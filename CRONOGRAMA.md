@@ -61,8 +61,4 @@ Sprytes player e NPC's amigáveis
 ### 12/07 a 18/07
 
 Sprytes inimigos
-
-# Semana 9
-### 19/07 a 20/07
-
 Sprytes cenários
