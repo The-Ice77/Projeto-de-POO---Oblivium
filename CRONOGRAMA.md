@@ -55,10 +55,10 @@ Colisão fase 1
 # Semana 7
 ### 05/06 a 11/07
 
-Sprytes player e NPC's amigáveis
+Sprites player e NPC's amigáveis
 
 # Semana 8
 ### 12/07 a 18/07
 
-Sprytes inimigos
-Sprytes cenários
+Sprites inimigos
+Sprites cenários
