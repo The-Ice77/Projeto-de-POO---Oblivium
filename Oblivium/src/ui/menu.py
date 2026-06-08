@@ -48,7 +48,7 @@ def credits():
 
         screen.blit(title, (280, 200))
         screen.blit(line1, (150, 300))
-        screen.blit(line2, (150, 350))
+        screen.blit(line2, (125, 350))
         screen.blit(line3, (100, 400))
 
         pygame.display.update()
@@ -97,4 +97,3 @@ def start_menu():
         pygame.display.update()
 
 start_menu()
-
