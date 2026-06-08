@@ -27,6 +27,32 @@ def game():
 
         pygame.display.update()
 
+
+def credits():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return  # Volta para o menu
+
+        screen.fill(BG)
+
+        title = font.render("Créditos", True, WHITE)
+        line1 = font.render("Desenvolvido por Sumzin", True, WHITE)
+        line2 = font.render("Desenvolvido por Mestre Shiffu", True, WHITE)
+        line3 = font.render("Projeto feito com Python e Pygame", True, WHITE)
+
+        screen.blit(title, (280, 200))
+        screen.blit(line1, (150, 300))
+        screen.blit(line2, (150, 350))
+        screen.blit(line3, (100, 400))
+
+        pygame.display.update()
+
 def start_menu():
 
     while True:
@@ -62,7 +88,7 @@ def start_menu():
                     game()
 
                 if credits_button.collidepoint(mouse):
-                    pass  # Placeholder for credits functionality
+                    credits()
 
                 if quit_button.collidepoint(mouse):
                     pygame.quit()
@@ -71,3 +97,4 @@ def start_menu():
         pygame.display.update()
 
 start_menu()
+
