@@ -1,4 +1,5 @@
 # states/state.py
+# Candidata a ser abstrata
 import pygame
 
 class State:
