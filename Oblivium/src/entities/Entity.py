@@ -1,3 +1,5 @@
+# Candidata a ser abstrata
+
 import pygame
 import math
 
