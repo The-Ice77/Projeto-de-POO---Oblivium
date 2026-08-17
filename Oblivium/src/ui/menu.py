@@ -1,22 +1,29 @@
 # src/ui/menu.py
 import pygame
 from src.utils.colors import UI_FUNDO_PADRAO, UI_TEXTO_APAGADO, UI_TEXTO_DESTAQUE
+from src.utils import save_manager
 
 class Menu:
     def __init__(self):
-        self.opcoes = ["Jogar", "Créditos", "Sair"]
+        self.opcoes = []
         self.selecionada = 0
         self.fonte_titulo = pygame.font.Font(None, 80)
         self.fonte_subtitulo = pygame.font.Font(None, 40)
         self.fonte_menu = pygame.font.Font(None, 50)
         
-        # Vinculado diretamente à paleta de cores unificada do arquivo utils/colors.py
         self.cor_fundo = UI_FUNDO_PADRAO
         self.cor_texto = UI_TEXTO_APAGADO
         self.cor_destaque = UI_TEXTO_DESTAQUE
         
-        # Lista para guardar a posição (hitbox) de cada opção no ecrã
         self.rects_opcoes = []
+        self.atualizar_opcoes()
+
+    def atualizar_opcoes(self):
+        """Verifica se existem saves para mostrar a opção Continuar logo abaixo de Novo Jogo."""
+        if save_manager.verificar_saves_globais():
+            self.opcoes = ["Novo Jogo", "Continuar", "Configurações", "Créditos", "Sair"]
+        else:
+            self.opcoes = ["Novo Jogo", "Configurações", "Créditos", "Sair"]
 
     def desenhar(self, tela):
         tela.fill(self.cor_fundo)

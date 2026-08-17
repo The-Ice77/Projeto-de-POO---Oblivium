@@ -27,12 +27,27 @@ class MenuState(State):
     def executar_opcao(self, opcao_clicada=None):
         opcao = opcao_clicada or self.game.menu.opcoes[self.game.menu.selecionada]
         
-        if opcao == "Jogar":
-            self.game.intro.iniciar()
-            self.game.mudar_estado("INTRO")
+        if opcao == "Continuar":
+            self.game.acao_slots = "CARREGAR"
+            self.game.origem_slots = "MENU"
+            self.game.mudar_estado("SLOTS")
+            
+        elif opcao == "Novo Jogo" or opcao == "Jogar":
+            # Abre a tela de saves exigindo que o jogador escolha um slot vazio
+            self.game.acao_slots = "NOVO_JOGO"
+            self.game.origem_slots = "MENU"
+            self.game.mudar_estado("SLOTS")
+            
+        elif opcao == "Configurações":
+            self.game.origem_configuracoes = "MENU"
+            self.game.mudar_estado("CONFIGURACOES")
+            
+        elif opcao == "Créditos":
+            self.game.mudar_estado("CREDITOS")
+            
         elif opcao == "Sair":
             self.game.running = False
-
+            
     def draw(self, tela):
         # O desenho real dos textos ("Jogar", "Sair") e do fundo acontece na UI do Menu,
         # onde as constantes FUNDO_MENU, TEXTO_MENU_PADRAO e TEXTO_MENU_SELECIONADO devem ser usadas.

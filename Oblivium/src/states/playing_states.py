@@ -27,15 +27,19 @@ class PlayingState(State):
                 self._handle_clicks(evento.pos)
 
     def update(self):
-        # Atualização dos Sistemas Independentes (Cada um faz sua parte)
+        # --- NOVO: Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo) ---
+        self.game.tempo_jogado += 1 / 60.0
+        
         self.game.caixa_dialogo.atualizar()
         self.cutscene.atualizar_magia()
         self._update_minigames_e_flashbacks()
         self._update_inimigos_e_triggers()
         self._update_transitions()
 
+        if self.game.caixa_dialogo.opcao_cancelada_id in ["voltar_magia", "desistir_puzzle"]:
+            self.game.investigou_pedras = False
+            self.game.caixa_dialogo.opcao_cancelada_id = None
     def draw(self, tela):
-        # Renderização em Camadas Hierárquicas Claras
         self.game.mapa_casa.desenhar(tela)
         self._draw_interactable_prompts(tela)
         
@@ -48,8 +52,6 @@ class PlayingState(State):
         self.cutscene.desenhar_efeitos(tela)
         self._draw_ui_overlays(tela)
 
-    # --- MÉTODOS AUXILIARES DE COORDENAÇÃO (MANTÉM O CÓDIGO SAUDÁVEL) ---
-    
     def _processar_movimento(self, teclas):
         if self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or \
            self.game.flashback_sistema.estado != "INATIVO" or (self.game.magia_ativa is not None and self.game.magia_ativa != "CONCLUIDO") or \
@@ -57,14 +59,38 @@ class PlayingState(State):
             return
             
         dx, dy = 0, 0
-        if teclas[pygame.K_UP] or teclas[pygame.K_w]: dy = -1
-        if teclas[pygame.K_DOWN] or teclas[pygame.K_s]: dy = 1
-        if teclas[pygame.K_LEFT] or teclas[pygame.K_a]: dx = -1
-        if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]: dx = 1
+        if teclas[self.game.controles["Cima"]]: dy = -1
+        if teclas[self.game.controles["Baixo"]]: dy = 1
+        if teclas[self.game.controles["Esquerda"]]: dx = -1
+        if teclas[self.game.controles["Direita"]]: dx = 1
+        
         if dx != 0 or dy != 0:
-            self.game.halia.mover(dx, dy, self.game.mapa_casa.hitboxes)
+            velocidade_original = self.game.halia.velocidade
+            if teclas[self.game.controles["Correr"]]:
+                self.game.halia.velocidade = velocidade_original * 1.8
+                
+            # --- CORREÇÃO DE COLISÃO DO CARROCEIRO ---
+            hitboxes_atuais = list(self.game.mapa_casa.hitboxes) # Copia as paredes do mapa
+            
+            # Adiciona o carroceiro como parede se ele estiver na tela
+            if self.game.carroceiro_visivel:
+                rect_carroceiro = pygame.Rect(
+                    int(self.game.carroceiro.x), 
+                    int(self.game.carroceiro.y), 
+                    self.game.carroceiro.largura, 
+                    self.game.carroceiro.altura
+                )
+                hitboxes_atuais.append(rect_carroceiro)
+            
+            self.game.halia.mover(dx, dy, hitboxes_atuais)
+            self.game.halia.velocidade = velocidade_original
 
     def _handle_keydown(self, evento):
+        if evento.key == self.game.controles["Pause"]:
+            if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
+                self.game.mudar_estado("PAUSE")
+                return
+
         if self.game.mg_timing.ativo and evento.key == pygame.K_SPACE:
             self._checar_sucesso_timing()
         elif self.game.mg_mash.ativo and evento.key == pygame.K_SPACE:
@@ -76,7 +102,7 @@ class PlayingState(State):
                 self.game.caixa_dialogo.controlar_menu_escolhas(evento.key)
             elif evento.key == pygame.K_RETURN:
                 self._processar_avanco_dialogo()
-        elif evento.key == pygame.K_e and not self.game.cena_inimigos_andando:
+        elif evento.key == self.game.controles["Interagir"] and not self.game.cena_inimigos_andando:
             self._processar_interacoes_mundo()
 
     def _handle_clicks(self, pos):
@@ -219,11 +245,18 @@ class PlayingState(State):
     def _processar_interacoes_mundo(self):
         area_interacao = pygame.Rect(self.game.halia.x - 20, self.game.halia.y - 20, self.game.halia.largura + 40, self.game.halia.altura + 40)
         
-        for item in self.game.mapa_casa.itens_no_chao[:]: 
+        for indice, item in enumerate(self.game.mapa_casa.itens_no_chao[:]): 
             if area_interacao.colliderect(item.rect):
                 self.game.mapa_casa.itens_no_chao.remove(item)
+                
+                # Registo por índice fixo da sala (Infalível contra bugs de coordenadas)
+                id_unico = f"{self.game.mapa_casa.cenario_atual}_item_{indice}"
+                if id_unico not in self.game.itens_coletados:
+                    self.game.itens_coletados.append(id_unico)
+                    
                 self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
                 return
+        
         
         if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
             if len(self.game.mapa_casa.itens_no_chao) == 0:
@@ -285,17 +318,17 @@ class PlayingState(State):
         if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.caixa_dialogo.ativo:
             for item in self.game.mapa_casa.itens_no_chao:
                 if area_interacao.colliderect(item.rect):
-                    txt = self.game.fonte_indicador.render("[E] Pegar", True, INDICADOR_INTERACAO)
+                    txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Pegar", True, INDICADOR_INTERACAO)
                     tela.blit(txt, (item.x + (item.largura // 2) - (txt.get_width() // 2), item.y - 20))
                     break 
             if area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
-                txt = self.game.fonte_indicador.render("[E] Abrir Porta", True, INDICADOR_INTERACAO)
+                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Abrir Porta", True, INDICADOR_INTERACAO)
                 tela.blit(txt, (self.game.mapa_casa.porta.x + (self.game.mapa_casa.porta.width // 2) - (txt.get_width() // 2), self.game.mapa_casa.porta.y - 20))
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
             r_c = pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)
             if area_interacao.colliderect(r_c) and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
-                txt = self.game.fonte_indicador.render("[E] Conversar", True, INDICADOR_INTERACAO)
+                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Conversar", True, INDICADOR_INTERACAO)
                 tela.blit(txt, (self.game.carroceiro.x + (self.game.carroceiro.largura // 2) - (txt.get_width() // 2), self.game.carroceiro.y - 25))
 
     def _draw_ui_overlays(self, tela):

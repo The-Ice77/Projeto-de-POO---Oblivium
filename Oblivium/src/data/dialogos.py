@@ -20,11 +20,28 @@ conversa_prosseguir = [
     {"autor": "Sistema", "texto": "Iniciando viagem rumo à capital..."}
 ]
 
+# --- RESPOSTAS BOBAS PARA TESTAR PAGINAÇÃO ---
+resposta_clima = [{"autor": "Carroceiro", "texto": "Pelo menos não está chovendo. Um tempo nublado é melhor para viajar."}]
+resposta_lanche = [{"autor": "Carroceiro", "texto": "Tenho apenas pão duro e uma maçã pela metade. Aceita?"}]
+resposta_estradas = [{"autor": "Carroceiro", "texto": "Desde a queda do tirano, monstros menores andam famintos pela região."}]
+resposta_animal = [{"autor": "Carroceiro", "texto": "Sempre fui muito apegado aos cavalos. O meu se chama Trovão."}]
+resposta_cantar = [{"autor": "Carroceiro", "texto": "Só depois de beber muito hidromel na taverna da capital!"}]
+
 no_escolhas_carroceiro = {
+    "pode_fechar": True,  # Habilita o botão [X] especificamente para este menu
+    "resultado_fechar": [{"autor": "Carroceiro", "texto": "Tudo bem, estarei aguardando aqui. Me avise quando estiver pronta."}],
     "escolhas": [
         {"id": "sobre_mundo", "texto": "O mundo sempre foi tão cinza assim?", "resultado": conversa_mundo},
         {"id": "criticar_demora", "texto": "Pensei que você sabia se orientar", "resultado": conversa_critica},
         {"id": "sobre_passado", "texto": "Falar sobre outra coisa (Meu passado)", "resultado": conversa_outra_coisa},
+        
+        # --- OPÇÕES EXTRAS PARA FORÇAR PAGINAÇÃO ---
+        {"id": "teste_1", "texto": "Sobre o clima de hoje...", "resultado": resposta_clima},
+        {"id": "teste_2", "texto": "Você tem um lanche na carroça?", "resultado": resposta_lanche},
+        {"id": "teste_3", "texto": "Por que as estradas estão tão perigosas?", "resultado": resposta_estradas},
+        {"id": "teste_4", "texto": "Qual o seu animal favorito?", "resultado": resposta_animal},
+        {"id": "teste_5", "texto": "Você gosta de cantar?", "resultado": resposta_cantar},
+        
         {"id": "prosseguir", "texto": "Deseja prosseguir viagem", "resultado": conversa_prosseguir} 
     ]
 }
@@ -32,6 +49,11 @@ no_escolhas_carroceiro = {
 conversa_mundo.append(no_escolhas_carroceiro)
 conversa_critica.append(no_escolhas_carroceiro)
 conversa_outra_coisa.append(no_escolhas_carroceiro)
+resposta_clima.append(no_escolhas_carroceiro)
+resposta_lanche.append(no_escolhas_carroceiro)
+resposta_estradas.append(no_escolhas_carroceiro)
+resposta_animal.append(no_escolhas_carroceiro)
+resposta_cantar.append(no_escolhas_carroceiro)
 
 dialogo_hub_carroceiro = [
     {"autor": "Carroceiro", "texto": "Ah, finalmente nos encontramos, demorei um pouco para achar sua casa."},
@@ -72,17 +94,19 @@ conversa_tentar_levitacao = [
 ]
 
 no_escolhas_magias = {
+    "pode_fechar": True,
+    "id_cancelamento": "voltar_magia", 
     "escolhas": [
         {"id": "escolha_fogo", "texto": "Conjurar Magia de Fogo (Puzzle de Mira)", "resultado": conversa_tentar_fogo, "repetivel": True},
-        {"id": "escolha_levitar", "texto": "Conjurar Magia de Levitação (Puzzle de Concentração)", "resultado": conversa_tentar_levitacao, "repetivel": True},
-        {"id": "voltar_magia", "texto": "Voltar atrás", "resultado": [{"autor": "Halia", "texto": "Preciso de me concentrar melhor antes de agir."}], "repetivel": True}
+        {"id": "escolha_levitar", "texto": "Conjurar Magia de Levitação (Puzzle de Concentração)", "resultado": conversa_tentar_levitacao, "repetivel": True}
     ]
 }
 
 no_escolha_inicial_puzzle = {
+    "pode_fechar": True,
+    "id_cancelamento": "desistir_puzzle", 
     "escolhas": [
-        {"id": "analisar_pedras", "texto": "Analisar as pedras caídas detalhadamente", "resultado": []}, 
-        {"id": "desistir_puzzle", "texto": "Voltar para trás", "resultado": [{"autor": "Pensamento", "texto": "Não posso desistir agora, preciso de encontrar uma solução."}], "repetivel": True}
+        {"id": "analisar_pedras", "texto": "Analisar as pedras caídas detalhadamente", "resultado": []}
     ]
 }
 
@@ -91,11 +115,10 @@ dialogo_investigar_pedras = [
     no_escolha_inicial_puzzle
 ]
 
-
 # --- Diálogos de Feedback de Minijogos ---
 dialogo_falha_timing = [
     {"autor": "Halia", "texto": "A magia dissipou-se nas minhas mãos... Perdi o tempo certo. Preciso focar-me e tentar novamente."},
-    no_escolhas_magias # Reaproveita o nó de escolhas que você já possui
+    no_escolhas_magias 
 ]
 
 dialogo_falha_mash = [
