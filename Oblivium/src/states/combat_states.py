@@ -7,7 +7,7 @@ class CombatState(State):
         super().__init__(game)
 
     def handle_events(self, eventos, teclas):
-        # Repassa os comandos do teclado/mouse direto para a tela de luta
+        
         for evento in eventos:
             self.game.tela_combate.processar_eventos(evento)
 

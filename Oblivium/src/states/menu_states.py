@@ -49,6 +49,4 @@ class MenuState(State):
             self.game.running = False
             
     def draw(self, tela):
-        # O desenho real dos textos ("Jogar", "Sair") e do fundo acontece na UI do Menu,
-        # onde as constantes FUNDO_MENU, TEXTO_MENU_PADRAO e TEXTO_MENU_SELECIONADO devem ser usadas.
         self.game.menu.desenhar(tela)

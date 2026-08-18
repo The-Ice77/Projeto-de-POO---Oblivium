@@ -16,9 +16,7 @@ class ControlesState(State):
     def handle_events(self, eventos, teclas):
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
-                # Se estiver à espera de uma nova tecla para remapear
                 if self.redefinindo:
-                    # Impede que o ESC cancele acidentalmente guardando o ESC, ou permite cancelar
                     if evento.key == pygame.K_ESCAPE:
                         self.redefinindo = False
                         return
@@ -42,7 +40,7 @@ class ControlesState(State):
                     self.game.mudar_estado("CONFIGURACOES")
 
             elif evento.type == pygame.MOUSEMOTION and not self.redefinindo:
-                # Atualiza a seleção ao passar o rato pelas caixas detetadas
+               
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
                         self.selecionada = i
@@ -96,11 +94,11 @@ class ControlesState(State):
             pos_y = y + 90 + (i * 45)
             tela.blit(render, (pos_x, pos_y))
             
-            # Cria um retângulo de clique generoso para facilitar a interação com o rato
+            
             rect = pygame.Rect(pos_x, pos_y, largura_bloco - 100, 35)
             self.rects_opcoes.append(rect)
 
-        # Botão Voltar no fim da lista
+        
         i_voltar = len(self.acoes)
         cor_voltar = TXT_SISTEMA_NARRADOR if self.selecionada == i_voltar else BRANCO
         texto_voltar = "> Voltar" if self.selecionada == i_voltar else "  Voltar"

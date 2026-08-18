@@ -33,13 +33,11 @@ class PauseState(State):
                     self.game.mudar_estado("JOGANDO")
                     
             elif evento.type == pygame.MOUSEMOTION:
-                # Muda a opção selecionada ao passar o rato por cima
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
                         self.selecionada = i
                         
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                # Executa a opção ao clicar com o botão esquerdo do rato
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
                         self.selecionada = i
@@ -84,11 +82,9 @@ class PauseState(State):
         pass
 
     def draw(self, tela):
-        # 1. Desenha o jogo congelado embaixo
         self.game.estados["JOGANDO"].draw(tela)
         tela.blit(self.overlay, (0, 0))
         
-        # 2. Desenha o bloquinho centralizado (Estilo UI)
         largura_bloco = 500
         altura_bloco = 420
         x = (self.game.LARGURA - largura_bloco) // 2
@@ -97,11 +93,9 @@ class PauseState(State):
         pygame.draw.rect(tela, UI_FUNDO_PADRAO, (x, y, largura_bloco, altura_bloco))
         pygame.draw.rect(tela, CINZA_CLARO, (x, y, largura_bloco, altura_bloco), 2)
 
-        # Título do Bloco
         titulo = self.fonte_titulo.render("Menu de Pause", True, UI_TEXTO_DESTAQUE)
         tela.blit(titulo, (x + (largura_bloco - titulo.get_width()) // 2, y + 30))
 
-        # Opções dentro do bloquinho com suporte a desenho de hitboxes para o rato
         self.rects_opcoes.clear()
         for i, opcao in enumerate(self.opcoes):
             cor = TXT_SISTEMA_NARRADOR if i == self.selecionada else BRANCO
@@ -112,6 +106,5 @@ class PauseState(State):
             pos_y = y + 110 + (i * 50)
             tela.blit(render, (pos_x, pos_y))
             
-            # Cria o retângulo invisível para colidir com o cursor do rato
             rect = pygame.Rect(pos_x, pos_y, render.get_width(), render.get_height())
             self.rects_opcoes.append(rect)

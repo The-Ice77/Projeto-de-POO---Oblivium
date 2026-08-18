@@ -24,10 +24,10 @@ class PlayingState(State):
             if evento.type == pygame.KEYDOWN:
                 self._handle_keydown(evento)
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                self._handle_clicks(evento.pos)
+                self._handle_clicks(evento)
 
     def update(self):
-        # --- NOVO: Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo) ---
+        # Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo)
         self.game.tempo_jogado += 1 / 60.0
         
         self.game.caixa_dialogo.atualizar()
@@ -39,11 +39,14 @@ class PlayingState(State):
         if self.game.caixa_dialogo.opcao_cancelada_id in ["voltar_magia", "desistir_puzzle"]:
             self.game.investigou_pedras = False
             self.game.caixa_dialogo.opcao_cancelada_id = None
+
     def draw(self, tela):
         self.game.mapa_casa.desenhar(tela)
         self._draw_interactable_prompts(tela)
         
-        self.game.carroceiro.desenhar(tela) if self.game.carroceiro_visivel else None
+        if self.game.carroceiro_visivel:
+            self.game.carroceiro.desenhar(tela)
+            
         self.game.halia.desenhar(tela)
         
         for inimigo in self.game.inimigos_em_cena:
@@ -69,10 +72,8 @@ class PlayingState(State):
             if teclas[self.game.controles["Correr"]]:
                 self.game.halia.velocidade = velocidade_original * 1.8
                 
-            # --- CORREÇÃO DE COLISÃO DO CARROCEIRO ---
-            hitboxes_atuais = list(self.game.mapa_casa.hitboxes) # Copia as paredes do mapa
+            hitboxes_atuais = list(self.game.mapa_casa.hitboxes) 
             
-            # Adiciona o carroceiro como parede se ele estiver na tela
             if self.game.carroceiro_visivel:
                 rect_carroceiro = pygame.Rect(
                     int(self.game.carroceiro.x), 
@@ -86,6 +87,16 @@ class PlayingState(State):
             self.game.halia.velocidade = velocidade_original
 
     def _handle_keydown(self, evento):
+        # ABRIR O INVENTÁRIO
+        if evento.key == self.game.controles.get("Inventário", pygame.K_i):
+            if (not self.game.caixa_dialogo.ativo and 
+                self.game.transicao.estado == "INATIVO" and 
+                not self.game.cena_inimigos_andando and 
+                not self.game.aguardando_fim_viagem):
+                self.game.mudar_estado("INVENTARIO")
+                return
+
+        # ABRIR O PAUSE
         if evento.key == self.game.controles["Pause"]:
             if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
                 self.game.mudar_estado("PAUSE")
@@ -105,7 +116,20 @@ class PlayingState(State):
         elif evento.key == self.game.controles["Interagir"] and not self.game.cena_inimigos_andando:
             self._processar_interacoes_mundo()
 
-    def _handle_clicks(self, pos):
+    def _handle_clicks(self, evento):
+        pos = evento.pos
+        
+        # Clicar na bolsa do HUD abre o inventário
+        if (hasattr(self.game, 'hud') and 
+            not self.game.caixa_dialogo.ativo and 
+            self.game.transicao.estado == "INATIVO" and 
+            not self.game.cena_inimigos_andando and 
+            not self.game.aguardando_fim_viagem):
+            
+            if self.game.hud.rect_bolsa.collidepoint(pos):
+                self.game.mudar_estado("INVENTARIO")
+                return
+                
         if self.game.flashback_sistema.estado == "ESCURIDAO":
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.em_escolha:
@@ -146,25 +170,39 @@ class PlayingState(State):
                 self.game.mg_mash.iniciar()
 
     def _update_inimigos_e_triggers(self):
+        # 1. GATILHO DA CUTSCENE (Nascer dos inimigos)
         if self.game.conversa_combate_ativa and not self.game.caixa_dialogo.ativo:
             self.game.conversa_combate_ativa = False
             self.game.cena_inimigos_andando = True
+            
+            # Recua a Halia para a esquerda para dar espaço de visualização
+            if self.game.halia.x > 1000:
+                self.game.halia.x = 1000
+                
+            # Cria os inimigos fora/na beirada da tela
             if self.game.magia_usada_no_puzzle == "FOGO":
-                self.game.inimigos_em_cena.append(Enemy("Sombra 1", 30, 2, 1220, 290, None, 5, True))
-                self.game.inimigos_em_cena.append(Enemy("Sombra 2", 30, 2, 1220, 380, None, 5, True))
+                self.game.inimigos_em_cena.append(Enemy("Sombra 1", 30, 2.5, 1280, 290, None, 5, True))
+                self.game.inimigos_em_cena.append(Enemy("Sombra 2", 30, 2.5, 1280, 420, None, 5, True))
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
-                boss = Enemy("Anomalia Maior", 80, 1.5, 1200, 310, None, 15, True)
+                boss = Enemy("Anomalia Maior", 80, 2, 1280, 310, None, 15, True)
                 boss.largura, boss.altura = 55, 75
                 self.game.inimigos_em_cena.append(boss)
 
+        # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
         if self.game.cena_inimigos_andando:
+            x_parada = self.game.halia.x + self.game.halia.largura + 120
+            alguem_chegou = False
+            
             for inimigo in self.game.inimigos_em_cena:
-                inimigo.atualizar_movimento_mapa(self.game.halia.x, self.game.halia.y)
-                r_inimigo = pygame.Rect(int(inimigo.x), int(inimigo.y), inimigo.largura, inimigo.altura)
-                r_halia = pygame.Rect(int(self.game.halia.x), int(self.game.halia.y), self.game.halia.largura, self.game.halia.altura)
-                if r_inimigo.colliderect(r_halia) and not self.game.iniciando_combate:
-                    self.game.iniciando_combate = True
-                    self.game.transicao.iniciar()
+                if not self.game.iniciando_combate:
+                    if inimigo.x > x_parada:
+                        inimigo.x -= inimigo.velocidade
+                    else:
+                        alguem_chegou = True
+                        
+            if alguem_chegou and not self.game.iniciando_combate:
+                self.game.iniciando_combate = True
+                self.game.transicao.iniciar()
 
         self._check_map_zone_triggers()
 
@@ -217,46 +255,48 @@ class PlayingState(State):
                 self.game.magia_selecionada_temporaria = "FOGO"
             elif opcao_atual["id"] == "escolha_levitar":
                 self.game.magia_selecionada_temporaria = "LEVITAR"
-            elif opcao_atual["id"] == "voltar_magia" or opcao_atual["id"] == "desistir_puzzle":
+            elif opcao_atual["id"] in ["voltar_magia", "desistir_puzzle"]:
                 self.game.investigou_pedras = False
             if opcao_atual["id"] == "prosseguir":
                 self.game.aguardando_fim_viagem = True
         self.game.caixa_dialogo.proximo_texto()
 
     def _processar_clique_escolha(self, pos):
-        for i, r in enumerate(self.game.caixa_dialogo.rects_opcoes):
+        box = self.game.caixa_dialogo
+        for i, r in enumerate(box.rects_opcoes):
             if r.collidepoint(pos):
-                opcao = self.game.caixa_dialogo.opcoes_disponiveis[i]
+                idx_global = (box.pagina_atual * box.opcoes_por_pagina) + i
+                opcao = box.opcoes_disponiveis[idx_global]
+                
                 if opcao["id"] == "analisar_pedras":
-                    self.game.caixa_dialogo.ativo = False
-                    self.game.caixa_dialogo.em_escolha = False
+                    box.ativo = False
+                    box.em_escolha = False
                     self.game.flashback_sistema.iniciar(textos_flashback_magia)
                     return
                 elif opcao["id"] == "escolha_fogo":
                     self.game.magia_selecionada_temporaria = "FOGO"
                 elif opcao["id"] == "escolha_levitar":
                     self.game.magia_selecionada_temporaria = "LEVITAR"
-                elif opcao["id"] == "voltar_magia" or opcao["id"] == "desistir_puzzle":
+                elif opcao["id"] in ["voltar_magia", "desistir_puzzle"]:
                     self.game.investigou_pedras = False
-                if opcao["id"] == "prosseguir":
+                elif opcao["id"] == "prosseguir":
                     self.game.aguardando_fim_viagem = True
-        self.game.caixa_dialogo.clicar_mouse(pos)
+                    
+        box.clicar_mouse(pos)
 
     def _processar_interacoes_mundo(self):
         area_interacao = pygame.Rect(self.game.halia.x - 20, self.game.halia.y - 20, self.game.halia.largura + 40, self.game.halia.altura + 40)
         
-        for indice, item in enumerate(self.game.mapa_casa.itens_no_chao[:]): 
+        for item in self.game.mapa_casa.itens_no_chao[:]: 
             if area_interacao.colliderect(item.rect):
                 self.game.mapa_casa.itens_no_chao.remove(item)
                 
-                # Registo por índice fixo da sala (Infalível contra bugs de coordenadas)
-                id_unico = f"{self.game.mapa_casa.cenario_atual}_item_{indice}"
-                if id_unico not in self.game.itens_coletados:
-                    self.game.itens_coletados.append(id_unico)
+                id_do_item = getattr(item, "id_unico", "desconhecido")
+                if id_do_item not in self.game.itens_coletados:
+                    self.game.itens_coletados.append(id_do_item)
                     
                 self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
                 return
-        
         
         if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
             if len(self.game.mapa_casa.itens_no_chao) == 0:
@@ -337,3 +377,7 @@ class PlayingState(State):
         self.game.transicao.desenhar(tela)
         self.game.caixa_dialogo.desenhar(tela)
         self.game.flashback_sistema.desenhar(tela)
+        
+        # O HUD deve ser a última coisa, depois do diálogo mas antes da tela preta!
+        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
+            self.game.hud.desenhar(tela, self.game.halia)

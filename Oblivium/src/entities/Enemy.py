@@ -1,9 +1,8 @@
 import pygame
-from entities.Entity import Entidade 
+from src.entities.Entity import Entidade 
 
 class Enemy(Entidade):
     def __init__(self, nome, vida_maxima, velocidade, x, y, sprite, dano, agressivo):
-        # CORREÇÃO VITAL: A ordem agora respeita (nome, vida_maxima, x, y, velocidade, sprite)
         super().__init__(nome, vida_maxima, x, y, velocidade, sprite)
 
         # Atributos exclusivos do inimigo
@@ -24,20 +23,47 @@ class Enemy(Entidade):
             self.cor = (150, 30, 50) 
 
     # --- SISTEMA DE MOVIMENTO NO MAPA (Pré-Combate) ---
-    def atualizar_movimento_mapa(self, alvo_x, alvo_y):
+    def atualizar_movimento_mapa(self, alvo_x, alvo_y, lista_inimigos=None):
         if not getattr(self, 'vivo', True) or not self.agressivo:
             return
 
-        dx = alvo_x - self.x
-        dy = alvo_y - self.y
-        distancia = (dx**2 + dy**2) ** 0.5
+        # 1. Movimento em direção ao Alvo (Halia)
+        dx_alvo = alvo_x - self.x
+        dy_alvo = alvo_y - self.y
+        distancia_alvo = (dx_alvo**2 + dy_alvo**2) ** 0.5
         
-        if distancia < 500: 
+        if distancia_alvo < 500: 
             self.alvo_detectado = True
         
-        if self.alvo_detectado and distancia > 0:
-            self.x += (dx / distancia) * self.velocidade
-            self.y += (dy / distancia) * self.velocidade
+        vetor_x, vetor_y = 0, 0
+        if self.alvo_detectado and distancia_alvo > 0:
+            vetor_x = (dx_alvo / distancia_alvo) * self.velocidade
+            vetor_y = (dy_alvo / distancia_alvo) * self.velocidade
+
+        # 2. Separação (Evitar sobreposição com outros inimigos)
+        if lista_inimigos:
+            distancia_minima = 70 
+            for outro in lista_inimigos:
+                if outro is not self: 
+                    dx_outro = self.x - outro.x
+                    dy_outro = self.y - outro.y
+                    dist_outro = (dx_outro**2 + dy_outro**2) ** 0.5
+                    
+                    if dist_outro < distancia_minima and dist_outro > 0:
+                        
+                        fator_repulsao = (distancia_minima - dist_outro) / distancia_minima
+                        
+                        vetor_x += (dx_outro / dist_outro) * (self.velocidade * fator_repulsao * 2)
+                        vetor_y += (dy_outro / dist_outro) * (self.velocidade * fator_repulsao * 2)
+
+        # Normalizar o vetor final para não andar rápido demais na diagonal
+        tamanho_vetor = (vetor_x**2 + vetor_y**2) ** 0.5
+        if tamanho_vetor > 0:
+            vetor_x = (vetor_x / tamanho_vetor) * self.velocidade
+            vetor_y = (vetor_y / tamanho_vetor) * self.velocidade
+
+        self.x += vetor_x
+        self.y += vetor_y
 
     # --- SISTEMA DE RENDERIZAÇÃO ---
     def desenhar(self, tela):

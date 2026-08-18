@@ -84,28 +84,23 @@ class SlotsState(State):
 
     def _mostrar_feedback_sincrono(self, texto):
         """Desenha a tela congelada com o jogo ao fundo e exibe o aviso de loading."""
-        # Se veio do Pause, desenha o PlayingState limpo por baixo para manter a imersão
         if self.game.origem_slots == "PAUSE" and "JOGANDO" in self.game.estados:
             self.game.estados["JOGANDO"].draw(self.game.tela)
         else:
             self.game.tela.fill(PRETO)
             
-        # Película escura cobrindo a tela
         overlay_fb = pygame.Surface((self.game.LARGURA, self.game.ALTURA))
         overlay_fb.fill(PRETO)
         overlay_fb.set_alpha(220)
         self.game.tela.blit(overlay_fb, (0, 0))
         
-        # Texto centralizado
         render_fb = self.fonte_titulo.render(texto, True, BRANCO)
         pos_x = (self.game.LARGURA - render_fb.get_width()) // 2
         pos_y = (self.game.ALTURA - render_fb.get_height()) // 2
         self.game.tela.blit(render_fb, (pos_x, pos_y))
         
-        # Atualiza a janela imediatamente
         pygame.display.flip()
         
-        # Pausa fluida de 1 segundo sem congelar o sistema operativo
         tempo_inicio = pygame.time.get_ticks()
         while pygame.time.get_ticks() - tempo_inicio < 1000:
             pygame.event.pump()
@@ -131,15 +126,12 @@ class SlotsState(State):
                 self.game.mudar_estado("JOGANDO") 
                     
         elif self.game.acao_slots == "NOVO_JOGO":
-            self.game.slot_atual = slot_escolhido
-            self.game.tempo_jogado = 0.0
-            self.game.itens_coletados.clear() 
+            # --- ZERAR O ESTADO PARA NOVO JOGO ---
+            self.game.resetar_progresso(slot_escolhido)
             
-            self.game.mapa_casa.carregar_cenario("CASA")
-            self.game.filtrar_itens_coletados()
-            self.game.investigou_pedras = False
-            self.game.flashback_magia_concluido = False
-            
+            # --- SALVAR O NOVO JOGO PARA FIXAR NO SLOT ---
+            self.game.salvar_estado(slot_escolhido)
+
             self.game.intro.iniciar()
             self.game.mudar_estado("INTRO")
 

@@ -81,8 +81,7 @@ class Intro:
                     self.ativo = False
         return self.ativo
 
-    def draw(self, tela): # Atualizado o nome para draw mantendo a consistência dos estados
-        # 1. Limpa a tela com a constante de cor de fundo (PRETO)
+    def draw(self, tela): 
         tela.fill(PRETO) 
         
         if self.indice_atual < len(self.textos):

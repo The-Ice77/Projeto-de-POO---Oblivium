@@ -70,7 +70,7 @@ class MinigameMash:
         self.ativo = False
 
     def iniciar(self):
-        self.progresso = 40  # A barra já começa preenchida com a força inicial!
+        self.progresso = 40  
         self.ativo = True
 
     def atualizar(self):

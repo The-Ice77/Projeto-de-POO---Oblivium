@@ -25,8 +25,4 @@ class IntroState(State):
             self.game.mudar_estado("JOGANDO")
 
     def draw(self, tela):
-        # DE:
-        # self.game.intro.desenhar(tela)
-        
-        # PARA:
         self.game.intro.draw(tela)

@@ -196,7 +196,7 @@ class DialogueBox:
         # Saída limpa ou de cancelamento pelo [X]
         if self.pode_fechar and self.rect_botao_x.collidepoint(posicao_mouse):
             self.em_escolha = False
-            self.opcao_cancelada_id = self.id_cancelamento_no # Avisa o loop principal
+            self.opcao_cancelada_id = self.id_cancelamento_no 
             if self.resultado_fechar:
                 self.iniciar_dialogo(self.resultado_fechar)
             else:
@@ -300,7 +300,7 @@ class DialogueBox:
             
         self.rects_opcoes = novos_rects
 
-        # --- DESENHO DAS SETAS DE PAGINAÇÃO DISCRETAS (< >) ---
+        # --- DESENHO DAS SETAS DE PAGINAÇÃO (< >) ---
         total_paginas = (len(self.opcoes_disponiveis) - 1) // self.opcoes_por_pagina + 1
         
         # Esconde as áreas de clique por padrão (tira da tela)
@@ -312,11 +312,10 @@ class DialogueBox:
 
             # Seta Voltar (Aparece só se houver páginas anteriores)
             if self.pagina_atual > 0:
-                self.rect_seta_esq.topleft = (x + largura - 75, pos_y_setas) # Puxei 5px para a esquerda
+                self.rect_seta_esq.topleft = (x + largura - 75, pos_y_setas) 
                 cor_esq = BRANCO if self.hover_esq else UI_TEXTO_APAGADO
-                # Usando fonte_nome (tamanho 36) em vez de fonte_texto (32) para ficar ligeiramente maior
                 seta_esq_txt = self.fonte_nome.render("<", True, cor_esq) 
-                tela.blit(seta_esq_txt, (self.rect_seta_esq.x + 8, self.rect_seta_esq.y)) # Subi 5px para centralizar
+                tela.blit(seta_esq_txt, (self.rect_seta_esq.x + 8, self.rect_seta_esq.y)) 
 
             # Seta Avançar (Aparece só se houver páginas seguintes)
             if self.pagina_atual < total_paginas - 1:

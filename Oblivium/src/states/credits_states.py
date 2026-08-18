@@ -106,7 +106,7 @@ class CreditsState(State):
                 tela.blit(render, (pos_x, pos_y_atual))
                 pos_y_atual += 30 # Espaçamento vertical entre as linhas geradas
             
-            # Pequeno espaçamento extra após cada secção/bloco
+            
             pos_y_atual += 6
 
         # Aviso de retorno no rodapé

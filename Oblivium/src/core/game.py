@@ -11,6 +11,7 @@ from src.ui.flashback import Flashback
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
 from src.utils import save_manager
+from src.ui.hud import HUD
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -22,6 +23,7 @@ from src.states.credits_states import CreditsState
 from src.states.settings_states import SettingsState
 from src.states.controles_state import ControlesState
 from src.states.slots_states import SlotsState
+from src.states.inventory_states import InventoryState
 
 
 
@@ -59,7 +61,10 @@ class Game:
         self.slot_atual = None      # Memoriza o slot da sessão (1, 2 ou 3)
         self.tempo_jogado = 0.0     # Conta os segundos jogados
         self.fonte_indicador = pygame.font.Font(None, 24)
-        self.itens_coletados = []   # tentando fazer isso funcionar
+        self.itens_coletados = []   
+
+        # -- Opções de Inventário
+        self.hud = HUD(self.LARGURA, self.ALTURA)
         
         # --- Entidades Estáveis ---
         self.halia = Player("Halia", 100, 210, 280, 3, None, 50)
@@ -90,7 +95,7 @@ class Game:
         self.conversa_carroceiro_terminou = False
         
         
-        # CORREÇÃO DA VARIÁVEL: Mantendo estritamente "cena" em português para evitar AttributeError
+    
         self.inimigos_em_cena = [] 
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
         self.controles = {
@@ -115,7 +120,8 @@ class Game:
             "CONFIGURACOES": SettingsState(self),
             "CONTROLES": ControlesState(self),
             "CONTROLES": ControlesState(self),
-            "SLOTS": SlotsState(self) # <-- NOVO ESTADO ADICIONADO
+            "INVENTARIO": InventoryState(self),
+            "SLOTS": SlotsState(self) 
         }
         self.estado_atual = self.estados["MENU"]
         self.origem_configuracoes = "MENU"
@@ -139,11 +145,10 @@ class Game:
                 if evento.type == pygame.QUIT:
                     self.running = False
 
-            # Delegação limpa de Responsabilidade Única
+            
             self.estado_atual.handle_events(eventos, teclas)
             self.estado_atual.update()
             
-            # Renderização em Camada Isolada
             self.tela.fill((0, 0, 0))
             self.estado_atual.draw(self.tela)
             
@@ -199,7 +204,6 @@ class Game:
         # 2. Carrega o cenário (que já deve nascer filtrado se o mapa consultar a lista)
         cenario_salvo = dados["cenario_atual"]
         self.mapa_casa.carregar_cenario(cenario_salvo)
-        self.filtrar_itens_coletados() # Aplica o corte de itens imediatamente
         
         # 3. Restaura posições da Halia e NPCs exatamente como estavam
         self.halia.x = dados["halia"]["x"]
@@ -214,25 +218,40 @@ class Game:
         
         
         return True 
-    
-    def filtrar_itens_coletados(self):
-        """Filtra os itens do mapa atual com base na sua posição na lista original da sala."""
-        if not hasattr(self, 'mapa_casa') or not self.mapa_casa:
-            return
-            
-        itens_filtrados = []
-        for indice, item in enumerate(self.mapa_casa.itens_no_chao):
-            # ID único baseado estritamente na sala e na ordem do item na sala
-            id_unico = f"{self.mapa_casa.cenario_atual}_item_{indice}"
-            if id_unico not in self.itens_coletados:
-                itens_filtrados.append(item)
-        self.mapa_casa.itens_no_chao = itens_filtrados
+
+    def resetar_progresso(self, slot_novo):
+        """Limpa as variáveis globais para iniciar um Novo Jogo limpo no slot."""
+        self.slot_atual = slot_novo
+        self.tempo_jogado = 0.0
+        self.itens_coletados = []
+        self.caixa_dialogo.historico_escolhas.clear()
+        
+        # Reset da Halia
+        self.halia.x, self.halia.y = 210, 280
+        self.halia.vida_atual = self.halia.vida_maxima
+        self.halia.mana_atual = self.halia.mana_maxima
+        
+        # Reset do Carroceiro
+        self.carroceiro.x, self.carroceiro.y = 1350, 330
+        self.carroceiro_visivel = False
+        self.carroceiro_andando = False
+        self.conversa_carroceiro_terminou = False
+        self.progresso_npcs["carroceiro"] = 0
+        
+        # Reset de Flags do Mapa e Progresso
+        self.fechando_porta = False
+        self.aguardando_fim_viagem = False
+        self.investigou_pedras = False
+        self.flashback_magia_concluido = False
+        self.mapa_casa.porta_aberta = False
+        
+        # Recarrega o cenário inicial limpo
+        self.mapa_casa.carregar_cenario("CASA")
 
     def executar_com_feedback(self, texto, funcao_acao):
         """Exibe a tela escura de feedback ('Salvando...', 'Carregando...') 
            diretamente na gameplay antes de executar a ação."""
         
-        # Desenha o estado atual do jogo (o que está a acontecer na tela por trás do pause)
         if hasattr(self, 'estado_atual') and self.estado_atual:
             self.estado_atual.draw(self.tela)
         
@@ -255,7 +274,7 @@ class Game:
         # Executa a função real (Salvar ou Carregar os dados)
         funcao_acao()
         
-        # Mantém o feedback visível por 800 milissegundos de forma fluida
+
         tempo_inicio = pygame.time.get_ticks()
         while pygame.time.get_ticks() - tempo_inicio < 800:
             pygame.event.pump()

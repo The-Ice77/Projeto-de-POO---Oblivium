@@ -12,15 +12,15 @@ class Flashback:
         self.superficie_preta = pygame.Surface((largura, altura))
         self.superficie_preta.fill(PRETO)
         
-        self.fonte_flashback = pygame.font.Font(None, 36) # Fonte um pouco maior para a cena
+        self.fonte_flashback = pygame.font.Font(None, 36) 
         self.estado = "INATIVO" # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
         self.alpha = 0
         self.velocidade = 5 
         
         # --- VARIÁVEIS PARA O FADE DO TEXTO ---
         self.texto_alpha = 0
-        self.texto_estado = "FADE_IN" # FADE_IN, WAIT, FADE_OUT
-        self.velocidade_texto = 4     # Velocidade em que o texto aparece/some
+        self.texto_estado = "FADE_IN" 
+        self.velocidade_texto = 4     
         
         self.textos = []
         self.indice_texto = 0
@@ -132,7 +132,6 @@ class Flashback:
             # Quebra o texto para não vazar da tela lateralmente
             linhas = self._quebrar_texto(texto_final, self.largura - 200)
             
-            # Calcula o Y inicial para deixar o bloco perfeitamente centralizado na tela verticalmente
             altura_bloco = len(linhas) * 35
             y_inicial = (self.altura // 2) - (altura_bloco // 2)
 

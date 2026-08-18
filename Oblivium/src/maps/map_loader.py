@@ -17,8 +17,8 @@ class Mapa:
         self.cenario_atual = "CASA" # Pode ser "CASA" ou "ESTRADA"
         
         # --- DADOS DO CENÁRIO: CASA ---
-        self.area_chao_casa = pygame.Rect(50, 50, 500, 600)  # Termina em y = 650
-        self.varanda_madeira = pygame.Rect(550, 50, 150, 600) # Termina em y = 650
+        self.area_chao_casa = pygame.Rect(50, 50, 500, 600)  
+        self.varanda_madeira = pygame.Rect(550, 50, 150, 600) 
         
         self.paredes_casa = [
             pygame.Rect(50, 50, 500, 40),          # Parede superior (topo em y=50)
@@ -63,48 +63,46 @@ class Mapa:
         """Muda o estado do mapa, reconstrói as hitboxes e filtra os itens já apanhados."""
         self.cenario_atual = nome_cenario
         self.hitboxes = []
+        self.itens_no_chao = []
 
         if self.cenario_atual == "CASA":
             self.hitboxes.extend(self.paredes_casa)
             self.hitboxes.extend(self.moveis)
             self.hitboxes.extend(self.limites_varanda)
-            if not self.porta_aberta:
+            if not getattr(self, 'porta_aberta', False):
                 self.hitboxes.append(self.porta)
                 
-            # Restaura a lista original de itens da casa sempre que o cenário for carregado
-            self.itens_no_chao = [
+            # Cria a lista BRUTA de todos os itens com IDs FIXOS (nomeados e não por índice)
+            itens_brutos = [
                 Item("A Bolsa de Moedas", 420, 180, 25, 25, COLOR_BOLSA_MOEDAS), 
                 Item("O Livro Antigo", 300, 450, 25, 30, COLOR_LIVRO_ANTIGO),    
                 Item("O Cajado Mágico", 230, 200, 10, 60, COLOR_CAJADO_MAGICO)    
             ]
             
+            # IDs fixos garantem que não há confusão de índice
+            itens_brutos[0].id_unico = "item_moedas"
+            itens_brutos[1].id_unico = "item_livro"
+            itens_brutos[2].id_unico = "item_cajado"
+            
+            # Só adiciona no chão se NÃO estiver na lista de coletados do jogo
+            coletados = getattr(self.game, 'itens_coletados', [])
+            for item in itens_brutos:
+                if item.id_unico not in coletados:
+                    self.itens_no_chao.append(item)
+                
         elif self.cenario_atual == "ESTRADA":
             self.hitboxes.extend(self.barreiras_estrada)
             self.hitboxes.append(pygame.Rect(0, 0, 20, self.altura_tela))
             self.hitboxes.append(pygame.Rect(1220, 0, 30, self.altura_tela))
-            self.itens_no_chao = [] 
         
         elif self.cenario_atual == "ESTRADA_2":
             self.hitboxes.extend(self.barreiras_estrada)
             self.hitboxes.append(pygame.Rect(0, 0, 20, self.altura_tela))
-            
             self.pedras_deslizamento = [
-                pygame.Rect(1100, 250, 80, 70),   # Pedra Superior
-                pygame.Rect(1150, 310, 90, 80),   # Pedra do Meio Direita
-                pygame.Rect(1080, 320, 80, 80),   # Pedra do Meio Esquerda
-                pygame.Rect(1120, 390, 100, 90),  # Pedra da Base
+                pygame.Rect(1100, 250, 80, 70), pygame.Rect(1150, 310, 90, 80),
+                pygame.Rect(1080, 320, 80, 80), pygame.Rect(1120, 390, 100, 90)
             ]
             self.hitboxes.extend(self.pedras_deslizamento)
-            self.itens_no_chao = []
-
-        # Aplica o filtro global de itens coletados diretamente na raiz do carregamento
-        if hasattr(self.game, 'itens_coletados') and self.game.itens_coletados:
-            itens_filtrados = []
-            for indice, item in enumerate(self.itens_no_chao):
-                id_unico = f"{nome_cenario}_item_{indice}"
-                if id_unico not in self.game.itens_coletados:
-                    itens_filtrados.append(item)
-            self.itens_no_chao = itens_filtrados
 
     def abrir_porta(self):
         self.porta_aberta = True
