@@ -1,103 +1,128 @@
-# Candidata a ser abstrata
-
+# src/entities/Entity.py
 import pygame
 import math
 
 class Entidade:
-    def __init__(self, nome, vida_maxima, x, y, velocidade, sprite):
+    def __init__(self, nome, vida_maxima, x, y, velocidade):
         self.nome = nome
         self.vida_maxima = vida_maxima
         self.vida_atual = vida_maxima
         self.x = float(x)
         self.y = float(y)
         self.velocidade = velocidade
-        self.sprite = sprite
         self.vivo = True
         
-        # Dimensões provisórias da Hitbox da entidade
         self.largura = 40
         self.altura = 40
-    
+        
+        # ==========================================
+        # SISTEMA DE ANIMAÇÃO E SPRITES
+        # ==========================================
+        # Dicionário que guardará listas de superfícies (frames) por estado
+        self.animacoes = {
+            "idle": [],
+            "andar": [],
+            "atacar": [],
+            "morrer": []
+        }
+        
+        self.estado_atual = "idle"
+        self.frame_atual = 0.0
+        self.velocidade_animacao = 0.15  # Quão rápido os frames passam
+        self.virado_direita = True       # Controla o flip horizontal da imagem
+        
+        # Imagem atual a ser renderizada
+        self.imagem_atual = None
+
+    def atualizar_animacao(self):
+        """Atualiza o frame atual da animação baseada no estado da entidade."""
+        if not self.vivo and self.estado_atual != "morrer":
+            self.mudar_estado("morrer")
+            
+        frames_estado = self.animacoes.get(self.estado_atual, [])
+        
+        if frames_estado:
+            self.frame_atual += self.velocidade_animacao
+            
+            # Se a animação chegou ao fim
+            if self.frame_atual >= len(frames_estado):
+                if self.estado_atual == "morrer":
+                    self.frame_atual = len(frames_estado) - 1 # Trava no último frame morto
+                else:
+                    self.frame_atual = 0.0 # Faz o loop da animação
+                    
+            imagem_base = frames_estado[int(self.frame_atual)]
+            
+            # Espelha a imagem se estiver virado para a esquerda
+            if not self.virado_direita:
+                self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
+            else:
+                self.imagem_atual = imagem_base
+        else:
+            self.imagem_atual = None
+
+    def mudar_estado(self, novo_estado):
+        """Altera o estado da animação e reseta o frame se o estado for novo."""
+        if self.estado_atual != novo_estado:
+            self.estado_atual = novo_estado
+            self.frame_atual = 0.0
+
     def mover(self, dx, dy, hitboxes_mapa):
         if not self.vivo or (dx == 0 and dy == 0):
+            self.mudar_estado("idle")
             return
+            
+        self.mudar_estado("andar")
+        
+        # Define para onde a entidade está a olhar
+        if dx > 0:
+            self.virado_direita = True
+        elif dx < 0:
+            self.virado_direita = False
             
         tamanho = math.hypot(dx, dy)
         dx = dx / tamanho
         dy = dy / tamanho
         
-        # movimento e colisão no x
         self.x += dx * self.velocidade
         rect_teste_x = pygame.Rect(int(self.x), int(self.y), self.largura, self.altura)
         
         for parede in hitboxes_mapa:
             if rect_teste_x.colliderect(parede):
-                if dx > 0: # Batendo na parede indo para a direita
-                    self.x = parede.left - self.largura
-                elif dx < 0: # Batendo na parede indo para a esquerda
-                    self.x = parede.right
+                if dx > 0: self.x = parede.left - self.largura
+                elif dx < 0: self.x = parede.right
 
-        # movimento e colisão no y
         self.y += dy * self.velocidade
         rect_teste_y = pygame.Rect(int(self.x), int(self.y), self.largura, self.altura)
         
         for parede in hitboxes_mapa:
             if rect_teste_y.colliderect(parede):
-                if dy > 0: # Batendo na parede indo para baixo
-                    self.y = parede.top - self.altura
-                elif dy < 0: # Batendo na parede indo para cima
-                    self.y = parede.bottom
+                if dy > 0: self.y = parede.top - self.altura
+                elif dy < 0: self.y = parede.bottom
 
- 
-
-    # opção para se desenhar
     def desenhar(self, tela):
-        if not self.vivo:
-            return # Opcional: não desenhar se estiver morto ou desenhar indicativo de morto ( caveira )
-            
-        if self.sprite is not None:
-            # Quando tiver a pixel art pronta
-            tela.blit(self.sprite, (int(self.x), int(self.y)))
-        else:
-            # Retângulo provisório caso não tenha sprite definido
-            # O player pode ser verde, inimigos podem ser vermelhos futuramente
-            pygame.draw.rect(tela, (34, 139, 34), (int(self.x), int(self.y), 40, 40))
-    
-    # sistema de dano
-    def receber_dano(self, dano):
-        if not self.vivo:
-            print(f"{self.nome} já está morto")
-            return
+        # Atualiza o frame antes de desenhar
+        self.atualizar_animacao()
         
-        self.vida_atual -= dano
+        if self.imagem_atual:
+            tela.blit(self.imagem_atual, (int(self.x), int(self.y)))
+        else:
+            # Fallback limpo (Apenas o quadrado colorido)
+            cor = (34, 139, 34) if self.vivo else (100, 100, 100)
+            pygame.draw.rect(tela, cor, (int(self.x), int(self.y), self.largura, self.altura))
 
-        # CORREÇÃO: Estava self.vida em vez de self.vida_atual
+    # (Mantenha os métodos receber_dano, curar e mostrar_status iguais)
+    def receber_dano(self, dano):
+        if not self.vivo: return
+        self.vida_atual -= dano
         if self.vida_atual <= 0:
             self.vida_atual = 0
             self.vivo = False
             self.morrer()
-    
-    # sistema de cura
+            
     def curar(self, cura):
-        if not self.vivo:
-            print(f'{self.nome} não pode receber cura')
-            return
+        if not self.vivo: return
+        self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)
         
-        self.vida_atual += cura
-        
-        if self.vida_atual > self.vida_maxima:
-            self.vida_atual = self.vida_maxima
-
-        print(f'{self.nome} recuperou {cura} de vida. Vida atual: {self.vida_atual}/{self.vida_maxima}')
-    
-    # sistema de morte
     def morrer(self):
-        print(f'{self.nome} foi derrotado!')
-
-    def mostrar_status(self):
-        print("<-- Status -->")
-        print(f"Nome: {self.nome}")
-        print(f"Vida: {self.vida_atual}/{self.vida_maxima}")
-        print(f"Posição: ({int(self.x)}, {int(self.y)})")
-        print(f"Velocidade: {self.velocidade}")
-        print(f'Estado: {"Vivo" if self.vivo else "Morto"}')
+        self.mudar_estado("morrer")

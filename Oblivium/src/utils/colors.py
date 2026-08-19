@@ -60,3 +60,12 @@ INDICADOR_INTERACAO = (255, 255, 180)  # [E] Interagir
 # Elementos de Puzzles / Interativos do Cenário
 COR_PEDRA_DESLIZAMENTO = (110, 105, 105)      # Um cinza mineral mais claro e visível
 COR_BORDA_PEDRA = (70, 80, 95)                # Um cinza azulado escuro para dar relevo e destaque
+
+# --- CORES DO AMULETO DE MEMÓRIAS (7 FASES) ---
+AMULETO_COR_FASE_1 = (90, 160, 210)   # Azul frio inicial
+AMULETO_COR_FASE_2 = (120, 190, 140)  # Verde musgo / aurora
+AMULETO_COR_FASE_3 = (210, 180, 90)   # Dourado pálido
+AMULETO_COR_FASE_4 = (220, 130, 80)   # Âmbar / Laranja
+AMULETO_COR_FASE_5 = (180, 90, 180)   # Roxo místico
+AMULETO_COR_FASE_6 = (220, 90, 110)   # Carmesim / Vermelho vivo
+AMULETO_COR_FASE_7 = (240, 240, 240)  # Branco puro / Despertar completo

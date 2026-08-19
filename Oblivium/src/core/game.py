@@ -67,7 +67,7 @@ class Game:
         self.hud = HUD(self.LARGURA, self.ALTURA)
         
         # --- Entidades Estáveis ---
-        self.halia = Player("Halia", 100, 210, 280, 3, None, 50)
+        self.halia = Player("Halia", 100, 210, 280, 3, mana_maxima=50, dinheiro=0)
         self.carroceiro = NPC(nome="Carroceiro", x=1350, y=330, velocidade=2)
 
         # --- Flags Globais de Progresso e Cutscenes (Lidas pelo PlayingState) ---

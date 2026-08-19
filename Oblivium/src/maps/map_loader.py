@@ -1,6 +1,7 @@
 # src/maps/map_loader.py
 import pygame
-from entities.item import Item 
+from src.entities.item import Item 
+from src.utils.resource_manager import ResourceManager
 from src.utils.colors import (
     CENARIO_FUNDO_FORA, CENARIO_MADEIRA_VARANDA, CENARIO_PAREDE_CASA,
     CENARIO_CHAO_CASA, CENARIO_PORTA, CENARIO_MOVEIS,
@@ -14,53 +15,68 @@ class Mapa:
         self.game = game
         self.largura_tela = largura_tela
         self.altura_tela = altura_tela
-        self.cenario_atual = "CASA" # Pode ser "CASA" ou "ESTRADA"
+        self.cenario_atual = "CASA" 
         
-        # --- DADOS DO CENÁRIO: CASA ---
+        # ==========================================
+        # CARREGAMENTO DE IMAGENS (SPRITES)
+        # ==========================================
+        # Fundos de Cenário
+        self.fundo_casa = ResourceManager.carregar_imagem("assets/maps/fundo_casa.png", (self.largura_tela, self.altura_tela))
+        self.fundo_estrada = ResourceManager.carregar_imagem("assets/maps/fundo_estrada.png", (self.largura_tela, self.altura_tela))
+        
+        # Objetos e Props
+        self.sprite_porta_fechada = ResourceManager.carregar_imagem("assets/props/porta_fechada.png", (40, 100))
+        self.sprite_porta_aberta = ResourceManager.carregar_imagem("assets/props/porta_aberta.png", (40, 100))
+        
+        # Móveis Atualizados: Estante e Cama
+        self.sprite_estante = ResourceManager.carregar_imagem("assets/props/estante.png", (110, 180))
+        self.sprite_cama = ResourceManager.carregar_imagem("assets/props/cama.png", (100, 140))
+        
+        self.sprite_pedra = ResourceManager.carregar_imagem("assets/props/pedra.png") # Escalonado dinamicamente no draw
+
+        # ==========================================
+        # DADOS DO CENÁRIO: CASA (HITBOXES INVISÍVEIS)
+        # ==========================================
         self.area_chao_casa = pygame.Rect(50, 50, 500, 600)  
         self.varanda_madeira = pygame.Rect(550, 50, 150, 600) 
         
         self.paredes_casa = [
-            pygame.Rect(50, 50, 500, 40),          # Parede superior (topo em y=50)
-            pygame.Rect(50, 50, 40, 600),          # Parede esquerda (começa em x=50)
-            pygame.Rect(50, 610, 500, 40),         # Parede inferior (fica entre y=610 e y=650, fechando perfeitamente)
-            pygame.Rect(510, 50, 40, 250),         # Parede direita superior (antes da porta)
-            pygame.Rect(510, 400, 40, 250),        # Parede direita inferior (depois da porta)
+            pygame.Rect(50, 50, 500, 40),          
+            pygame.Rect(50, 50, 40, 600),          
+            pygame.Rect(50, 610, 500, 40),         
+            pygame.Rect(510, 50, 40, 250),         
+            pygame.Rect(510, 400, 40, 250),        
         ]
         
         self.porta = pygame.Rect(510, 300, 40, 100)
+        
         self.moveis = [
-            pygame.Rect(90, 90, 110, 180),         
-            pygame.Rect(410, 90, 100, 60),         
+            pygame.Rect(90, 90, 100, 140),         # Cama 
+            pygame.Rect(400, 90, 110, 80),        # Estante / Armário 
         ]
+        
         self.limites_varanda = [
             pygame.Rect(550, 45, 150, 5),      
             pygame.Rect(550, 650, 150, 5),    
         ]
         self.porta_aberta = False 
-        
-        # Instanciação padrão dos itens no chão da casa
-        self.itens_no_chao = [
-            Item("A Bolsa de Moedas", 420, 180, 25, 25, COLOR_BOLSA_MOEDAS), 
-            Item("O Livro Antigo", 300, 450, 25, 30, COLOR_LIVRO_ANTIGO),    
-            Item("O Cajado Mágico", 230, 200, 10, 60, COLOR_CAJADO_MAGICO)    
-        ]
+        self.itens_no_chao = []
 
-        # --- DADOS DO CENÁRIO: ESTRADA ---
+        # ==========================================
+        # DADOS DO CENÁRIO: ESTRADA (HITBOXES INVISÍVEIS)
+        # ==========================================
         self.area_estrada = pygame.Rect(0, 250, largura_tela, 220)
         self.barreiras_estrada = [
-            pygame.Rect(0, 0, largura_tela, 250),      # Margem superior
-            pygame.Rect(0, 470, largura_tela, 250)     # Margem inferior
+            pygame.Rect(0, 0, largura_tela, 250),      
+            pygame.Rect(0, 470, largura_tela, 250)     
         ]
 
         self.hitboxes = []
         self.pedras_deslizamento = [] 
         
-        # Carrega o cenário inicial e aplica o filtro de itens coletados de imediato
         self.carregar_cenario("CASA")
 
     def carregar_cenario(self, nome_cenario):
-        """Muda o estado do mapa, reconstrói as hitboxes e filtra os itens já apanhados."""
         self.cenario_atual = nome_cenario
         self.hitboxes = []
         self.itens_no_chao = []
@@ -72,19 +88,16 @@ class Mapa:
             if not getattr(self, 'porta_aberta', False):
                 self.hitboxes.append(self.porta)
                 
-            # Cria a lista BRUTA de todos os itens com IDs FIXOS (nomeados e não por índice)
             itens_brutos = [
-                Item("A Bolsa de Moedas", 420, 180, 25, 25, COLOR_BOLSA_MOEDAS), 
+                Item("A Bolsa de Moedas", 420, 300, 25, 25, COLOR_BOLSA_MOEDAS), 
                 Item("O Livro Antigo", 300, 450, 25, 30, COLOR_LIVRO_ANTIGO),    
                 Item("O Cajado Mágico", 230, 200, 10, 60, COLOR_CAJADO_MAGICO)    
             ]
             
-            # IDs fixos garantem que não há confusão de índice
             itens_brutos[0].id_unico = "item_moedas"
             itens_brutos[1].id_unico = "item_livro"
             itens_brutos[2].id_unico = "item_cajado"
             
-            # Só adiciona no chão se NÃO estiver na lista de coletados do jogo
             coletados = getattr(self.game, 'itens_coletados', [])
             for item in itens_brutos:
                 if item.id_unico not in coletados:
@@ -110,41 +123,62 @@ class Mapa:
 
     def desenhar(self, tela):
         if self.cenario_atual == "CASA":
-            tela.fill(CENARIO_FUNDO_FORA)
-            pygame.draw.rect(tela, CENARIO_MADEIRA_VARANDA, self.varanda_madeira)
-            pygame.draw.rect(tela, CENARIO_PAREDE_CASA, self.varanda_madeira, 2) 
-            
-            for limite in self.limites_varanda:
-                pygame.draw.rect(tela, CENARIO_PAREDE_CASA, limite)
-                
-            pygame.draw.rect(tela, CENARIO_CHAO_CASA, self.area_chao_casa)
-            
+            # 1. Tenta desenhar o Fundo da Casa
+            if self.fundo_casa:
+                tela.blit(self.fundo_casa, (0, 0))
+            else:
+                tela.fill(CENARIO_FUNDO_FORA)
+                pygame.draw.rect(tela, CENARIO_MADEIRA_VARANDA, self.varanda_madeira)
+                pygame.draw.rect(tela, CENARIO_PAREDE_CASA, self.varanda_madeira, 2) 
+                pygame.draw.rect(tela, CENARIO_CHAO_CASA, self.area_chao_casa)
+                for parede in self.paredes_casa:
+                    pygame.draw.rect(tela, CENARIO_PAREDE_CASA, parede)
+                    pygame.draw.rect(tela, CENARIO_FUNDO_FORA, parede, 2)
+                for limite in self.limites_varanda:
+                    pygame.draw.rect(tela, CENARIO_PAREDE_CASA, limite)
+
+            # 2. Desenha a Porta
+            if not self.porta_aberta:
+                if self.sprite_porta_fechada:
+                    tela.blit(self.sprite_porta_fechada, self.porta.topleft)
+                else:
+                    pygame.draw.rect(tela, CENARIO_PORTA, self.porta)
+                    pygame.draw.rect(tela, CENARIO_PAREDE_CASA, self.porta, 2)
+            else:
+                if self.sprite_porta_aberta:
+                    tela.blit(self.sprite_porta_aberta, self.porta.topleft)
+                else:
+                    pygame.draw.rect(tela, CENARIO_CHAO_CASA, self.porta, 2)
+
+            # 3. Desenha os Móveis (Estante [0] e Cama [1])
+            sprites_moveis = [self.sprite_cama, self.sprite_estante]
+            for i, movel in enumerate(self.moveis):
+                sprite = sprites_moveis[i] if i < len(sprites_moveis) else None
+                if sprite:
+                    tela.blit(sprite, movel.topleft)
+                else:
+                    pygame.draw.rect(tela, CENARIO_MOVEIS, movel)
+                    pygame.draw.rect(tela, CENARIO_PAREDE_CASA, movel, 2)
+                    
+            # 4. Desenha Itens
             for item in self.itens_no_chao:
                 item.desenhar(tela)
                 
-            for parede in self.paredes_casa:
-                pygame.draw.rect(tela, CENARIO_PAREDE_CASA, parede)
-                pygame.draw.rect(tela, CENARIO_FUNDO_FORA, parede, 2) 
-                
-            if not self.porta_aberta:
-                pygame.draw.rect(tela, CENARIO_PORTA, self.porta)
-                pygame.draw.rect(tela, CENARIO_PAREDE_CASA, self.porta, 2)
-            else:
-                pygame.draw.rect(tela, CENARIO_CHAO_CASA, self.porta, 2)
-                
-            for movel in self.moveis:
-                pygame.draw.rect(tela, CENARIO_MOVEIS, movel)
-                pygame.draw.rect(tela, CENARIO_PAREDE_CASA, movel, 2)
-                
         elif self.cenario_atual in ["ESTRADA", "ESTRADA_2"]:
-            tela.fill(CENARIO_GRAMA_CINZA)
-            pygame.draw.rect(tela, CENARIO_ESTRADA, self.area_estrada)
-            
-            for barreira in self.barreiras_estrada:
-                pygame.draw.rect(tela, CENARIO_BARREIRAS, barreira)
-                pygame.draw.rect(tela, CENARIO_FUNDO_FORA, barreira, 1) 
+            if self.fundo_estrada:
+                tela.blit(self.fundo_estrada, (0, 0))
+            else:
+                tela.fill(CENARIO_GRAMA_CINZA)
+                pygame.draw.rect(tela, CENARIO_ESTRADA, self.area_estrada)
+                for barreira in self.barreiras_estrada:
+                    pygame.draw.rect(tela, CENARIO_BARREIRAS, barreira)
+                    pygame.draw.rect(tela, CENARIO_FUNDO_FORA, barreira, 1) 
                 
             if self.cenario_atual == "ESTRADA_2":
                 for pedra in self.pedras_deslizamento:
-                    pygame.draw.rect(tela, COR_PEDRA_DESLIZAMENTO, pedra)
-                    pygame.draw.rect(tela, COR_BORDA_PEDRA, pedra, 2)
+                    if self.sprite_pedra:
+                        img_escalada = pygame.transform.scale(self.sprite_pedra, (pedra.width, pedra.height))
+                        tela.blit(img_escalada, pedra.topleft)
+                    else:
+                        pygame.draw.rect(tela, COR_PEDRA_DESLIZAMENTO, pedra)
+                        pygame.draw.rect(tela, COR_BORDA_PEDRA, pedra, 2)

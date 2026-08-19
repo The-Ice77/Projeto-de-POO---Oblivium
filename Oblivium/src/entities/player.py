@@ -1,12 +1,11 @@
-# player.py
-from entities.Entity import Entidade
+# src/entities/player.py
+from src.entities.Entity import Entidade
 
 class Player(Entidade):
-    # CORRIGIDO: A ordem agora é x, y, velocidade (igual à Entidade)
-    def __init__(self, nome, vida_maxima, x, y, velocidade, sprite, mana_maxima, dinheiro=0):
+    def __init__(self, nome, vida_maxima, x, y, velocidade, mana_maxima, dinheiro=0):
         
-        # Herda atributos da classe pai 
-        super().__init__(nome, vida_maxima, x, y, velocidade, sprite)
+        # Herda atributos da classe pai (sem o sprite obsoleto)
+        super().__init__(nome, vida_maxima, x, y, velocidade)
 
         # Atributos exclusivos do jogador
         self.mana_maxima = mana_maxima

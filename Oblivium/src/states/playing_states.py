@@ -378,6 +378,6 @@ class PlayingState(State):
         self.game.caixa_dialogo.desenhar(tela)
         self.game.flashback_sistema.desenhar(tela)
         
-        # O HUD deve ser a última coisa, depois do diálogo mas antes da tela preta!
-        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
-            self.game.hud.desenhar(tela, self.game.halia)
+        # O HUD deve ser a última coisa, passando o 'self.game' para gerenciar estados e transparências
+        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo:
+            self.game.hud.desenhar(tela, self.game)
