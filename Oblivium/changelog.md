@@ -14,7 +14,7 @@ Adição do menu de configuração com alteração de teclas e outros
 - Melhorias efetuadas no encontro com inimigos que não respeitavam corretamente o espaço da Halia na tela
 - Correção de bugs ocasionados pelo sistema de save implementado na versão anterior e os encontrados graças as alterações, com exemplo: Surgimento dos itens após coletar; permanência de memória; transição falha para a "ESTRADA 2" e inimigos não respeitavam corretamente a Halia.
 
-### Atualização v0.3.6
+### Atualização v[0.3.6]
 #### Implementação, Correção e Aprimoramento
 - Implementação do suporte a sprites ou criação da base do mesmo para facilitar o trabalho no futuro
 - Gerenciador de sprites adicionado, com capacidade de carregar sprite ( adição para carregar animações em breve )
@@ -23,3 +23,13 @@ Adição do menu de configuração com alteração de teclas e outros
 - Melhoria no hud com automatização do mesmo, transparência ao explorar uma região que ele ocupa e ficar indisponível em certas cenas
 - Melhoria no indicador de recuperação de memória ( cada fase indicada uma cor )
 - Testes realizados com substituição de partes do jogo por sprites realizadas e bem sucedidas
+
+### Atualização v[0.3.7] - Arquitetura de Animações e POO
+#### Implementação, Correção e Aprimoramento
+- Atualização no `ResourceManager` com a nova classe `Animacao` e métodos para leitura de linhas e recortes precisos de sprites com múltiplas animações.
+- Atualização da classe `Entidade` para funcionar como um molde (injeção de dependência), gerindo as animações nativamente com o método `aplicar_pacote_animacoes`.
+- Limpeza e adequação das classes `Player`, `NPC`, `Enemy` e `Boss` para herdarem puramente da classe `Entidade` sem acoplamento de arquivos fixos.
+**Testes:**
+- Correção de um bug crítico onde a animação de "andar" da personagem continuava executando infinitamente após parar o movimento.
+- Aprimoramento na renderização matemática de `Entidade`, garantindo que imagens gigantes (ex: 160x144) sejam desenhadas centralizadas na hitbox de colisão (40x40) sem quebrar o contato com o mapa.
+- Condução e validação de testes temporários utilizando pacotes completos de animações (Idle, Walk, Attack, Death) redimensionadas corretamente na escala do jogo.

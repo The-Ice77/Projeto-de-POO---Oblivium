@@ -85,6 +85,8 @@ class PlayingState(State):
             
             self.game.halia.mover(dx, dy, hitboxes_atuais)
             self.game.halia.velocidade = velocidade_original
+        else:
+            self.game.halia.mudar_estado("idle")
 
     def _handle_keydown(self, evento):
         # ABRIR O INVENTÁRIO

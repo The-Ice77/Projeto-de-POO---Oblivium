@@ -1,5 +1,6 @@
 # src/entities/player.py
 from src.entities.Entity import Entidade
+from src.utils.resource_manager import ResourceManager, Animacao
 
 class Player(Entidade):
     def __init__(self, nome, vida_maxima, x, y, velocidade, mana_maxima, dinheiro=0):
@@ -15,6 +16,7 @@ class Player(Entidade):
 
         # Estado do jogador
         self.em_combate = False
+
 
     # Sistema de Magia
     def usar_magia(self, custo_mana):

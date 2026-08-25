@@ -8,6 +8,39 @@ DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)
 DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_SRC)
 PASTA_ASSETS = os.path.join(DIRETORIO_RAIZ, "assets")
 
+class Animacao:
+    """
+    Classe utilitária para gerenciar o estado e os frames de uma animação.
+    """
+    def __init__(self, frames, velocidade=0.15, loop=True):
+        self.frames = frames
+        self.velocidade = velocidade
+        self.loop = loop
+        self.frame_atual = 0.0
+        self.concluida = False
+
+    def atualizar(self):
+        if not self.frames:
+            return
+
+        if not self.concluida:
+            self.frame_atual += self.velocidade
+            if self.frame_atual >= len(self.frames):
+                if self.loop:
+                    self.frame_atual = 0.0
+                else:
+                    self.frame_atual = len(self.frames) - 1
+                    self.concluida = True
+
+    def get_imagem(self):
+        if not self.frames:
+            return None
+        return self.frames[int(self.frame_atual)]
+
+    def resetar(self):
+        self.frame_atual = 0.0
+        self.concluida = False
+
 class ResourceManager:
     # Dicionários de Cache (Memória do Jogo)
     _cache_imagens = {}
@@ -27,7 +60,6 @@ class ResourceManager:
         Se já foi carregada antes, devolve a versão da memória.
         Pode redimensionar a imagem automaticamente se 'tamanho' (largura, altura) for passado.
         """
-
         chave = f"{caminho}_{tamanho}"
         
         if chave in cls._cache_imagens:
@@ -51,7 +83,6 @@ class ResourceManager:
     def carregar_spritesheet(cls, caminho, largura_frame, altura_frame, tamanho_final=None):
         """
         Carrega uma folha de sprites (spritesheet) e corta-a numa lista de frames individuais.
-        Excelente para animações (andar, atacar, etc).
         """
         chave = f"{caminho}_{largura_frame}x{altura_frame}_{tamanho_final}"
         
@@ -73,9 +104,7 @@ class ResourceManager:
         for y in range(0, altura_total, altura_frame):
             for x in range(0, largura_total, largura_frame):
                 rect_corte = pygame.Rect(x, y, largura_frame, altura_frame)
-
                 frame = pygame.Surface((largura_frame, altura_frame), pygame.SRCALPHA)
-
                 frame.blit(spritesheet, (0, 0), rect_corte)
 
                 if tamanho_final:
@@ -87,10 +116,47 @@ class ResourceManager:
         return frames
 
     @classmethod
+    def extrair_linha_spritesheet(cls, caminho, largura_frame, altura_frame, linha, tamanho_final=None):
+        """
+        Extrai apenas os frames de uma linha específica de uma spritesheet.
+        Muito útil para spritesheets organizadas por animações (ex: linha 0 = idle, linha 1 = correr).
+        """
+        chave = f"{caminho}_{largura_frame}x{altura_frame}_linha{linha}_{tamanho_final}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+            
+        caminho_absoluto = cls._obter_caminho_absoluto(caminho)
+        if not os.path.exists(caminho_absoluto):
+            print(f"[Aviso] Spritesheet não encontrada: {caminho_absoluto}")
+            return []
+            
+        spritesheet = pygame.image.load(caminho_absoluto).convert_alpha()
+        largura_total = spritesheet.get_width()
+        altura_total = spritesheet.get_height()
+        
+        frames = []
+        y = linha * altura_frame
+        
+        if y >= altura_total:
+            return []
+            
+        for x in range(0, largura_total, largura_frame):
+            rect_corte = pygame.Rect(x, y, largura_frame, altura_frame)
+            frame = pygame.Surface((largura_frame, altura_frame), pygame.SRCALPHA)
+            frame.blit(spritesheet, (0, 0), rect_corte)
+            
+            if tamanho_final:
+                frame = pygame.transform.scale(frame, tamanho_final)
+            frames.append(frame)
+            
+        cls._cache_animacoes[chave] = frames
+        return frames
+
+    @classmethod
     def limpar_cache(cls):
         """
         Útil para limpar a memória ao mudar de cenários muito pesados.
         """
         cls._cache_imagens.clear()
         cls._cache_animacoes.clear()
-        print("[Sistema] Cache de imagens limpo.")
+        print("[Sistema] Cache de imagens limpo.")

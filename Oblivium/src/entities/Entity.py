@@ -1,6 +1,7 @@
 # src/entities/Entity.py
 import pygame
 import math
+from src.utils.resource_manager import Animacao
 
 class Entidade:
     def __init__(self, nome, vida_maxima, x, y, velocidade):
@@ -18,46 +19,54 @@ class Entidade:
         # ==========================================
         # SISTEMA DE ANIMAÇÃO E SPRITES
         # ==========================================
-        # Dicionário que guardará listas de superfícies (frames) por estado
+        # Dicionário que guarda objetos da classe Animacao por estado
         self.animacoes = {
-            "idle": [],
-            "andar": [],
-            "atacar": [],
-            "morrer": []
+            "idle": Animacao([]),
+            "andar": Animacao([]),
+            "atacar": Animacao([], loop=False),
+            "morrer": Animacao([], loop=False)
         }
         
         self.estado_atual = "idle"
-        self.frame_atual = 0.0
-        self.velocidade_animacao = 0.15  # Quão rápido os frames passam
         self.virado_direita = True       # Controla o flip horizontal da imagem
         
         # Imagem atual a ser renderizada
         self.imagem_atual = None
+
+    def definir_animacao(self, estado, animacao):
+        """
+        Define ou sobrescreve a animação de um estado específico da Entidade.
+        Ideal para injetar as artes após a criação da instância.
+        """
+        self.animacoes[estado] = animacao
+
+    def aplicar_pacote_animacoes(self, pacote):
+        """
+        Recebe um dicionário onde a chave é o estado ("idle", "andar")
+        e o valor é o objeto Animacao.
+        """
+        for estado, animacao in pacote.items():
+            self.animacoes[estado] = animacao
 
     def atualizar_animacao(self):
         """Atualiza o frame atual da animação baseada no estado da entidade."""
         if not self.vivo and self.estado_atual != "morrer":
             self.mudar_estado("morrer")
             
-        frames_estado = self.animacoes.get(self.estado_atual, [])
+        animacao = self.animacoes.get(self.estado_atual)
         
-        if frames_estado:
-            self.frame_atual += self.velocidade_animacao
+        if animacao and animacao.frames:
+            animacao.atualizar()
+            imagem_base = animacao.get_imagem()
             
-            # Se a animação chegou ao fim
-            if self.frame_atual >= len(frames_estado):
-                if self.estado_atual == "morrer":
-                    self.frame_atual = len(frames_estado) - 1 # Trava no último frame morto
+            if imagem_base:
+                # Espelha a imagem se estiver virado para a esquerda
+                if not self.virado_direita:
+                    self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
                 else:
-                    self.frame_atual = 0.0 # Faz o loop da animação
-                    
-            imagem_base = frames_estado[int(self.frame_atual)]
-            
-            # Espelha a imagem se estiver virado para a esquerda
-            if not self.virado_direita:
-                self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
+                    self.imagem_atual = imagem_base
             else:
-                self.imagem_atual = imagem_base
+                self.imagem_atual = None
         else:
             self.imagem_atual = None
 
@@ -65,7 +74,8 @@ class Entidade:
         """Altera o estado da animação e reseta o frame se o estado for novo."""
         if self.estado_atual != novo_estado:
             self.estado_atual = novo_estado
-            self.frame_atual = 0.0
+            if novo_estado in self.animacoes:
+                self.animacoes[novo_estado].resetar()
 
     def mover(self, dx, dy, hitboxes_mapa):
         if not self.vivo or (dx == 0 and dy == 0):
@@ -105,7 +115,14 @@ class Entidade:
         self.atualizar_animacao()
         
         if self.imagem_atual:
-            tela.blit(self.imagem_atual, (int(self.x), int(self.y)))
+            largura_img = self.imagem_atual.get_width()
+            altura_img = self.imagem_atual.get_height()
+            
+            # Centraliza horizontalmente e alinha a base da imagem com a base da hitbox
+            offset_x = (largura_img - self.largura) / 2
+            offset_y = altura_img - self.altura
+            
+            tela.blit(self.imagem_atual, (int(self.x - offset_x), int(self.y - offset_y)))
         else:
             # Fallback limpo (Apenas o quadrado colorido)
             cor = (34, 139, 34) if self.vivo else (100, 100, 100)
