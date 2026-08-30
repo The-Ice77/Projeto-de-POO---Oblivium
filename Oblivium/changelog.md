@@ -33,3 +33,12 @@ Adição do menu de configuração com alteração de teclas e outros
 - Correção de um bug crítico onde a animação de "andar" da personagem continuava executando infinitamente após parar o movimento.
 - Aprimoramento na renderização matemática de `Entidade`, garantindo que imagens gigantes (ex: 160x144) sejam desenhadas centralizadas na hitbox de colisão (40x40) sem quebrar o contato com o mapa.
 - Condução e validação de testes temporários utilizando pacotes completos de animações (Idle, Walk, Attack, Death) redimensionadas corretamente na escala do jogo.
+
+### Atualização v[0.3.8] - Adição de Artes e Melhoria no Sistema de Save
+#### Implementação
+- Atualização da classe `Item` para trabalhar utilizando o novo gerenciador de sprites.
+- Atualização da classe `Game` para salvar novos parâmetros no sistema de save do jogo.
+- Atualização da classe `HUD` para trabalhar com as novas artes para o menu, sendo ela a bolsa para o inventário e o amuleto da progressão de memória.
+- Atualização do `maploader` para trabalhar com as novas sprites dos itens.
+#### Testes
+- Rodando o código algumas vezes para verificação do tamanho das sprites e seu posicionamento.

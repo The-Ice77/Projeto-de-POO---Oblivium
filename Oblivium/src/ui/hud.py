@@ -14,31 +14,33 @@ class HUD:
         self.fonte_nome = pygame.font.Font(None, 36) 
         self.fonte_pequena = pygame.font.Font(None, 22)
         
-        # Hitbox da bolsa (cantos estritamente quadrados, alinhados à UI)
-        self.rect_bolsa = pygame.Rect(self.largura - 90, self.altura - 90, 60, 60)
+        # Hitbox da bolsa (agora maior e mais fácil de clicar/visualizar)
+        self.rect_bolsa = pygame.Rect(self.largura - 120, self.altura - 120, 95, 95)
         
         # --- PROGRESSÃO DE FASES (1 a 7) ---
         self.fase_atual_amuleto = 1 
         self.memorias_coletadas = 0 # Quantas partes da memória foram ativadas (0 a 7)
         
         # --- SUPORTE A SPRITES ---
-        self.sprite_bolsa = None
-        self.sprite_memorias = None
+        # Bolsa carregada com um tamanho maior (95x95)
+        self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (95, 95))
+        
+        # Pré-carrega as 8 fases do amuleto
+        self.sprites_memorias = {
+            i: ResourceManager.carregar_imagem(f"hud/Sistema de Memórias - {i}.png", (80, 80))
+            for i in range(8)
+        }
 
         # --- CONTROLE DE TRANSPARÊNCIA (FADE POR PROXIMIDADE) ---
         self.alpha_atual = 255
 
-    def carregar_sprite_fase(self, caminho_imagem):
-        """Atualiza a sprite do círculo de memórias conforme avança de fase."""
-        if os.path.exists(caminho_imagem):
-            self.sprite_memorias = pygame.image.load(caminho_imagem).convert_alpha()
-            self.sprite_memorias = pygame.transform.scale(self.sprite_memorias, (80, 80))
-        else:
-            self.sprite_memorias = None
-
     def desenhar(self, tela, game):
         """Desenha o HUD completo verificando transições, flashbacks e proximidade da Halia."""
         
+        halia = getattr(game, 'halia', None)
+        if halia:
+            self.memorias_coletadas = getattr(halia, 'fragmentos_memoria', 0)
+            
         # 1. Oculta automaticamente se houver transição ou flashback ativo
         if hasattr(game, 'transicao') and game.transicao.estado != "INATIVO":
             return
@@ -112,9 +114,11 @@ class HUD:
         cx_memorias = x_caixa + largura_caixa + 50
         cy_memorias = y_caixa + (altura_caixa // 2)
         
-        if self.sprite_memorias:
-            ret_img = self.sprite_memorias.get_rect(center=(cx_memorias, cy_memorias))
-            surface_hud.blit(self.sprite_memorias, ret_img.topleft)
+        # Pega a arte correspondente à quantidade atual de memórias (0 a 7)
+        sprite_memoria_atual = self.sprites_memorias.get(self.memorias_coletadas)
+        if sprite_memoria_atual:
+            ret_img = sprite_memoria_atual.get_rect(center=(cx_memorias, cy_memorias))
+            surface_hud.blit(sprite_memoria_atual, ret_img.topleft)
         else:
             self._desenhar_amuleto_7_fases(surface_hud, cx_memorias, cy_memorias, self.memorias_coletadas, self.fase_atual_amuleto)
 

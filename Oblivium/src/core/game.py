@@ -11,6 +11,7 @@ from src.ui.flashback import Flashback
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
 from src.utils import save_manager
+from src.utils.resource_manager import ResourceManager, Animacao
 from src.ui.hud import HUD
 
 # Importação dos Estados Estruturados
@@ -167,6 +168,8 @@ class Game:
                 "y": self.halia.y,
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
+                "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
+                "dinheiro": getattr(self.halia, 'dinheiro', 0)
             },
             "carroceiro": {
                 "x": self.carroceiro.x,
@@ -210,6 +213,8 @@ class Game:
         self.halia.y = dados["halia"]["y"]
         self.halia.vida_atual = dados["halia"]["vida_atual"]
         self.halia.mana_atual = dados["halia"]["mana_atual"]
+        self.halia.fragmentos_memoria = dados["halia"].get("fragmentos_memoria", 0)
+        self.halia.dinheiro = dados["halia"].get("dinheiro", 0)
         
         self.carroceiro.x = dados["carroceiro"]["x"]
         self.carroceiro.y = dados["carroceiro"]["y"]

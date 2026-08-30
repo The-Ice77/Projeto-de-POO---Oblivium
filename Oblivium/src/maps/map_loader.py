@@ -89,9 +89,12 @@ class Mapa:
                 self.hitboxes.append(self.porta)
                 
             itens_brutos = [
-                Item("A Bolsa de Moedas", 420, 300, 25, 25, COLOR_BOLSA_MOEDAS), 
-                Item("O Livro Antigo", 300, 450, 25, 30, COLOR_LIVRO_ANTIGO),    
-                Item("O Cajado Mágico", 230, 200, 10, 60, COLOR_CAJADO_MAGICO)    
+                Item("A Bolsa de Moedas", 420, 300, 40, 40, COLOR_BOLSA_MOEDAS, 
+                     caminho_sprite="props/Bolsa de Moedas.png"), 
+                Item("O Livro Antigo", 300, 450, 40, 40, COLOR_LIVRO_ANTIGO,
+                     caminho_sprite="props/Grimório.png"),    
+                Item("O Cajado Mágico", 230, 200, 55, 55, COLOR_CAJADO_MAGICO,
+                     caminho_sprite="props/Cajado.png")    
             ]
             
             itens_brutos[0].id_unico = "item_moedas"

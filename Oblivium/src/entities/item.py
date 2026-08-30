@@ -1,8 +1,9 @@
 # src/entities/item.py
 import pygame
+from src.utils.resource_manager import ResourceManager
 
 class Item:
-    def __init__(self, nome, x, y, largura=20, altura=20, cor=(200, 200, 200), sprite=None):
+    def __init__(self, nome, x, y, largura=20, altura=20, cor=(200, 200, 200), caminho_sprite=None):
         self.nome = nome
         self.x = float(x)
         self.y = float(y)
@@ -13,10 +14,10 @@ class Item:
         self.rect = pygame.Rect(self.x, self.y, self.largura, self.altura)
         
         # --- SUPORTE A SPRITES ---
-        self.imagem = sprite
-        if self.imagem:
-            # Garante que a imagem tenha o tamanho correto da hitbox
-            self.imagem = pygame.transform.scale(self.imagem, (self.largura, self.altura))
+        self.imagem = None
+        if caminho_sprite:
+            # O Item carrega a sua própria imagem através do gerenciador
+            self.imagem = ResourceManager.carregar_imagem(caminho_sprite, (self.largura, self.altura))
         
     def desenhar(self, tela):
         if self.imagem:
