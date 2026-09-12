@@ -1,7 +1,7 @@
 # src/entities/item.py
 import pygame
 from src.utils.resource_manager import ResourceManager
-
+# alteração
 class Item:
     def __init__(self, nome, x, y, largura=20, altura=20, cor=(200, 200, 200), caminho_sprite=None):
         self.nome = nome
