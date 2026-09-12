@@ -42,3 +42,6 @@ Adição do menu de configuração com alteração de teclas e outros
 - Atualização do `maploader` para trabalhar com as novas sprites dos itens.
 #### Testes
 - Rodando o código algumas vezes para verificação do tamanho das sprites e seu posicionamento.
+
+### Atualização v[0.3.8.5] Correção de erros
+- Correção de bugs encontrados devido as atualizações da versão anterior

@@ -238,7 +238,7 @@ class PlayingState(State):
     def _mover_carroceiro_autonomo(self):
         next_h = pygame.Rect(int(self.game.carroceiro.x - 2), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
         h_halia = pygame.Rect(int(self.game.halia.x), int(self.game.halia.y), self.game.halia.largura, self.game.halia.altura)
-        if not next_h.colliderect(h_halia): self.game.carroceiro.mover(-1, 0)
+        if not next_h.colliderect(h_halia): self.game.carroceiro.mover(-1, 0, [])
         if self.game.carroceiro.x <= 900 or next_h.colliderect(h_halia):
             if self.game.carroceiro.x <= 900: self.game.carroceiro.x = 900
             self.game.carroceiro_andando = False; self.game.carroceiro.velocidade = 0

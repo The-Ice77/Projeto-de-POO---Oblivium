@@ -77,7 +77,10 @@ class Entidade:
             if novo_estado in self.animacoes:
                 self.animacoes[novo_estado].resetar()
 
-    def mover(self, dx, dy, hitboxes_mapa):
+    def mover(self, dx, dy, hitboxes_mapa=None):
+        if hitboxes_mapa is None:
+            hitboxes_mapa = []
+            
         if not self.vivo or (dx == 0 and dy == 0):
             self.mudar_estado("idle")
             return

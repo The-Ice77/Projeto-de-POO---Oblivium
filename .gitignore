@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+saves/
+RELATORIO_MUDANCAS.md
+relatorio*.md
