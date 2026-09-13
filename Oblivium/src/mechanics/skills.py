@@ -278,87 +278,79 @@ class SkillsRegistry:
         ]
 
     @classmethod
+    def carregar_de_json(cls, caminho_json=None):
+        """Carrega todas as habilidades e magias a partir do arquivo JSON."""
+        import json
+        import os
+        
+        if caminho_json is None:
+            diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+            caminho_json = os.path.join(diretorio_atual, "..", "data", "skills.json")
+            
+        if not os.path.exists(caminho_json):
+            print(f"[SkillsRegistry] Aviso: Arquivo '{caminho_json}' não encontrado. Usando catálogo em memória.")
+            return False
+
+        try:
+            with open(caminho_json, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+
+            cls._catalogo.clear()
+            for id_acao, info in dados.items():
+                tipo = info.get("tipo", "MAGICO").upper()
+                
+                if tipo == "FISICO":
+                    instancia = AtaqueFisico(
+                        id_acao=info["id_acao"],
+                        nome=info["nome"],
+                        descricao=info.get("descricao", ""),
+                        poder_base=info.get("poder_base", 12),
+                        custo_mana=info.get("custo_mana", 0),
+                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO")
+                    )
+                elif tipo == "CURA":
+                    instancia = MagiaCura(
+                        id_acao=info["id_acao"],
+                        nome=info["nome"],
+                        descricao=info.get("descricao", ""),
+                        custo_mana=info.get("custo_mana", 15),
+                        poder_base=info.get("poder_base", 25),
+                        alvo_tipo=info.get("alvo_tipo", "PROPRIO")
+                    )
+                elif tipo == "FOCO":
+                    instancia = AcaoFoco(
+                        id_acao=info["id_acao"],
+                        nome=info["nome"],
+                        descricao=info.get("descricao", "")
+                    )
+                else: # MAGICO
+                    instancia = MagiaOfensiva(
+                        id_acao=info["id_acao"],
+                        nome=info["nome"],
+                        descricao=info.get("descricao", ""),
+                        elemento=info.get("elemento", "ARCANO"),
+                        custo_mana=info.get("custo_mana", 10),
+                        poder_base=info.get("poder_base", 20),
+                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO")
+                    )
+                
+                cls.registrar(instancia)
+            return True
+        except Exception as e:
+            print(f"[SkillsRegistry] Erro ao carregar skills.json: {e}")
+            return False
+
+    @classmethod
     def inicializar_catalogo_padrao(cls):
-        """Preenche o registro com todas as habilidades padrão do jogo."""
-        cls._catalogo.clear()
-        
-        # --- Ações Básicas e Táticas ---
-        cls.registrar(AtaqueFisico(
-            id_acao="ataque_basico",
-            nome="Golpe com Cajado",
-            descricao="Um ataque físico direto desferido com o cajado.",
-            poder_base=12,
-            custo_mana=0
-        ))
-        
-        cls.registrar(AcaoFoco(
-            id_acao="foco_espiritual",
-            nome="Concentrar",
-            descricao="Medita brevemente para recuperar Mana e fortalecer a defesa."
-        ))
-
-        # --- Magias da Halia (Grimório) ---
-        cls.registrar(MagiaOfensiva(
-            id_acao="bola_de_fogo",
-            nome="Bola de Fogo",
-            descricao="Dispara uma esfera incandescente causando alto dano de Fogo.",
-            elemento="FOGO",
-            custo_mana=12,
-            poder_base=22
-        ))
-
-        cls.registrar(MagiaOfensiva(
-            id_acao="levitar",
-            nome="Pulso de Gravidade",
-            descricao="Manipula a gravidade ao redor do alvo, arremessando detritos arcanos.",
-            elemento="ARCANO",
-            custo_mana=14,
-            poder_base=24
-        ))
-
-        cls.registrar(MagiaOfensiva(
-            id_acao="raio_arcano",
-            nome="Raio Arcano",
-            descricao="Dispara uma rajada concentrada de energia pura nos pontos vitais do alvo.",
-            elemento="ARCANO",
-            custo_mana=8,
-            poder_base=16
-        ))
-
-        cls.registrar(MagiaCura(
-            id_acao="brisa_curativa",
-            nome="Brisa Curativa",
-            descricao="Evoca ventos suaves impregnados de energia vital para curar ferimentos.",
-            custo_mana=15,
-            poder_base=28
-        ))
-
-        # --- Habilidades de Inimigos / Monstros ---
-        cls.registrar(AtaqueFisico(
-            id_acao="golpe_sombrio",
-            nome="Golpe Sombrio",
-            descricao="Uma investida envolta em sombras que atinge o alvo com garras fantasmagóricas.",
-            poder_base=10,
-            custo_mana=0
-        ))
-
-        cls.registrar(MagiaOfensiva(
-            id_acao="onda_corrosiva",
-            nome="Onda Corrosiva",
-            descricao="Expele miasma sombrio causando dano mágico corrosivo.",
-            elemento="SOMBRA",
-            custo_mana=10,
-            poder_base=18
-        ))
-
-        cls.registrar(MagiaOfensiva(
-            id_acao="impacto_anomalo",
-            nome="Impacto Anômalo",
-            descricao="Poderoso choque de distorção de espaço que atinge a mente e o corpo.",
-            elemento="ARCANO",
-            custo_mana=15,
-            poder_base=28
-        ))
+        """Inicializa o catálogo prioritariamente a partir do JSON."""
+        sucesso = cls.carregar_de_json()
+        if not sucesso:
+            # Fallback seguro caso o JSON não esteja disponível
+            cls.registrar(AtaqueFisico("ataque_basico", "Golpe com Cajado", "Ataque físico", 12))
+            cls.registrar(AcaoFoco("foco_espiritual", "Concentrar", "Recupera Mana"))
+            cls.registrar(MagiaOfensiva("bola_de_fogo", "Bola de Fogo", "Fogo", "FOGO", 12, 22))
+            cls.registrar(MagiaOfensiva("levitar", "Pulso de Gravidade", "Arcano", "ARCANO", 14, 24))
+            cls.registrar(MagiaCura("brisa_curativa", "Brisa Curativa", "Cura", 15, 28))
 
 # Inicializa o catálogo padrão automaticamente ao carregar o módulo
 SkillsRegistry.inicializar_catalogo_padrao()

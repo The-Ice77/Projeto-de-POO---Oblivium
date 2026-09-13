@@ -1,0 +1,117 @@
+{
+    "sombra_menor": {
+        "nome": "Sombra Menor",
+        "classe": "Enemy",
+        "vida_base": 30,
+        "velocidade": 2.5,
+        "dano_base": 8,
+        "atributos": {
+            "forca": 9,
+            "destreza": 13,
+            "constituicao": 9,
+            "intelecto": 8,
+            "sabedoria": 7,
+            "presenca": 8
+        },
+        "habilidades": ["ataque_basico", "golpe_sombrio"],
+        "recompensas": {
+            "moedas": 8,
+            "memorias": 0,
+            "xp": 12
+        },
+        "dimensoes": [35, 45],
+        "cor": [80, 30, 110]
+    },
+    "sombra_guardia": {
+        "nome": "Sombra Guardiã",
+        "classe": "Enemy",
+        "vida_base": 45,
+        "velocidade": 2.0,
+        "dano_base": 12,
+        "atributos": {
+            "forca": 13,
+            "destreza": 8,
+            "constituicao": 14,
+            "intelecto": 7,
+            "sabedoria": 8,
+            "presenca": 10
+        },
+        "habilidades": ["ataque_basico", "golpe_sombrio"],
+        "recompensas": {
+            "moedas": 15,
+            "memorias": 0,
+            "xp": 20
+        },
+        "dimensoes": [45, 55],
+        "cor": [60, 20, 90]
+    },
+    "espectro_errante": {
+        "nome": "Espectro Errante",
+        "classe": "Enemy",
+        "vida_base": 35,
+        "velocidade": 2.2,
+        "dano_base": 10,
+        "atributos": {
+            "forca": 7,
+            "destreza": 11,
+            "constituicao": 10,
+            "intelecto": 14,
+            "sabedoria": 12,
+            "presenca": 11
+        },
+        "habilidades": ["onda_corrosiva", "golpe_sombrio"],
+        "recompensas": {
+            "moedas": 12,
+            "memorias": 0,
+            "xp": 18
+        },
+        "dimensoes": [38, 48],
+        "cor": [50, 80, 140]
+    },
+    "anomalia_maior": {
+        "nome": "Anomalia Maior",
+        "classe": "Boss",
+        "vida_base": 80,
+        "velocidade": 2.0,
+        "dano_base": 16,
+        "atributos": {
+            "forca": 14,
+            "destreza": 11,
+            "constituicao": 16,
+            "intelecto": 15,
+            "sabedoria": 12,
+            "presenca": 16
+        },
+        "habilidades": ["golpe_sombrio", "impacto_anomalo", "onda_corrosiva"],
+        "recompensas": {
+            "moedas": 45,
+            "memorias": 1,
+            "xp": 80
+        },
+        "dimensoes": [55, 75],
+        "cor": [150, 0, 200]
+    },
+    "guardiao_antigo": {
+        "nome": "Guardião Antigo das Rochas",
+        "classe": "Boss",
+        "vida_base": 120,
+        "velocidade": 1.5,
+        "dano_base": 20,
+        "atributos": {
+            "forca": 17,
+            "destreza": 9,
+            "constituicao": 18,
+            "intelecto": 12,
+            "sabedoria": 14,
+            "presenca": 15
+        },
+        "habilidades": ["ataque_basico", "golpe_sombrio", "impacto_anomalo"],
+        "recompensas": {
+            "moedas": 75,
+            "memorias": 2,
+            "xp": 150
+        },
+        "dimensoes": [70, 90],
+        "cor": [110, 50, 40]
+    }
+}

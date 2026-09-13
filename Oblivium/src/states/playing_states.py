@@ -3,6 +3,7 @@ import pygame
 import copy
 from src.states.states import State
 from src.entities.Enemy import Enemy
+from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
 from src.data.dialogos import *
@@ -181,13 +182,13 @@ class PlayingState(State):
             if self.game.halia.x > 1000:
                 self.game.halia.x = 1000
                 
-            # Cria os inimigos fora/na beirada da tela
+            # Cria os inimigos fora/na beirada da tela usando a Factory
             if self.game.magia_usada_no_puzzle == "FOGO":
-                self.game.inimigos_em_cena.append(Enemy("Sombra 1", 30, 2.5, 1280, 290, None, 5, True))
-                self.game.inimigos_em_cena.append(Enemy("Sombra 2", 30, 2.5, 1280, 420, None, 5, True))
+                sombra1 = EnemyFactory.criar("sombra_menor", x=1280, y=290, nome_custom="Sombra 1")
+                sombra2 = EnemyFactory.criar("sombra_menor", x=1280, y=420, nome_custom="Sombra 2")
+                self.game.inimigos_em_cena.extend([sombra1, sombra2])
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
-                boss = Enemy("Anomalia Maior", 80, 2, 1280, 310, None, 15, True)
-                boss.largura, boss.altura = 55, 75
+                boss = EnemyFactory.criar_boss("anomalia_maior", x=1280, y=310, nome_custom="Anomalia Maior")
                 self.game.inimigos_em_cena.append(boss)
 
         # 2. MOVIMENTO DA CUTSCENE (Roteirizado)

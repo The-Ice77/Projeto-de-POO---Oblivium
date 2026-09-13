@@ -1,0 +1,92 @@
+{
+    "ataque_basico": {
+        "id_acao": "ataque_basico",
+        "nome": "Golpe com Cajado",
+        "descricao": "Um ataque físico direto desferido com o cajado.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 12
+    },
+    "foco_espiritual": {
+        "id_acao": "foco_espiritual",
+        "nome": "Concentrar",
+        "descricao": "Medita brevemente para recuperar Mana e fortalecer a postura defensiva.",
+        "tipo": "FOCO",
+        "elemento": "NEUTRO",
+        "custo_mana": 0,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 10
+    },
+    "bola_de_fogo": {
+        "id_acao": "bola_de_fogo",
+        "nome": "Bola de Fogo",
+        "descricao": "Dispara uma esfera incandescente causando alto dano de Fogo.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 12,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 22
+    },
+    "levitar": {
+        "id_acao": "levitar",
+        "nome": "Pulso de Gravidade",
+        "descricao": "Manipula a gravidade ao redor do alvo, arremessando detritos arcanos.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 14,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 24
+    },
+    "raio_arcano": {
+        "id_acao": "raio_arcano",
+        "nome": "Raio Arcano",
+        "descricao": "Dispara uma rajada concentrada de energia pura nos pontos vitais do alvo.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 8,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 16
+    },
+    "brisa_curativa": {
+        "id_acao": "brisa_curativa",
+        "nome": "Brisa Curativa",
+        "descricao": "Evoca ventos suaves impregnados de energia vital para curar ferimentos.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 15,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 28
+    },
+    "golpe_sombrio": {
+        "id_acao": "golpe_sombrio",
+        "nome": "Golpe Sombrio",
+        "descricao": "Uma investida envolta em sombras que atinge o alvo com garras fantasmagóricas.",
+        "tipo": "FISICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 10
+    },
+    "onda_corrosiva": {
+        "id_acao": "onda_corrosiva",
+        "nome": "Onda Corrosiva",
+        "descricao": "Expele miasma sombrio causando dano mágico corrosivo.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 10,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 18
+    },
+    "impacto_anomalo": {
+        "id_acao": "impacto_anomalo",
+        "nome": "Impacto Anômalo",
+        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e o corpo.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 15,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 28
+    }
+}
