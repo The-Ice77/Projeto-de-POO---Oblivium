@@ -1,0 +1,364 @@
+# src/mechanics/skills.py
+import random
+
+class AcaoCombate:
+    """
+    Classe base para todas as ações executáveis em combate (Ataques, Magias, Foco, Suporte).
+    Implementa o padrão Strategy / Command para execução desacoplada.
+    """
+    def __init__(self, id_acao, nome, descricao, tipo, elemento="FISICO", custo_mana=0, alvo_tipo="INIMIGO_UNICO", poder_base=10):
+        self.id_acao = id_acao
+        self.nome = nome
+        self.descricao = descricao
+        self.tipo = tipo            # "FISICO", "MAGICO", "CURA", "FOCO", "BUFF", "DEBUFF"
+        self.elemento = elemento    # "FISICO", "FOGO", "ARCANO", "SAGRADO", "SOMBRA", "NEUTRO"
+        self.custo_mana = custo_mana
+        self.alvo_tipo = alvo_tipo  # "INIMIGO_UNICO", "TODOS_INIMIGOS", "PROPRIO", "ALIADO"
+        self.poder_base = poder_base
+
+    def pode_usar(self, conjurador):
+        """Verifica se o conjurador tem recursos (mana/vida) para executar a ação."""
+        if not getattr(conjurador, 'vivo', True):
+            return False
+        if self.custo_mana > 0:
+            mana_atual = getattr(conjurador, 'mana_atual', 0)
+            return mana_atual >= self.custo_mana
+        return True
+
+    def deduzir_custos(self, conjurador):
+        """Deduz o custo de mana do conjurador."""
+        if self.custo_mana > 0 and hasattr(conjurador, 'gastar_mana'):
+            return conjurador.gastar_mana(self.custo_mana)
+        elif self.custo_mana > 0 and hasattr(conjurador, 'mana_atual'):
+            conjurador.mana_atual -= self.custo_mana
+            return True
+        return True
+
+    def calcular_critico(self, conjurador):
+        """Determina se a ação gerou um acerto crítico baseado em Destreza e Presença."""
+        if not hasattr(conjurador, 'atributos'):
+            return False, 1.0
+        chance = conjurador.atributos.calcular_chance_critico()
+        rolagem = random.uniform(0, 100)
+        if rolagem <= chance:
+            return True, 1.5
+        return False, 1.0
+
+    def executar(self, conjurador, alvos):
+        """
+        Executa a ação sobre uma lista de alvos.
+        Retorna um dicionário com o relatório detalhado da execução para a UI / Combat Log.
+        """
+        raise NotImplementedError("Subclasses devem implementar o método executar.")
+
+
+# ==============================================================================
+# SUBCLASSES ESPECÍFICAS DE AÇÕES
+# ==============================================================================
+
+class AtaqueFisico(AcaoCombate):
+    """Ataque físico direto escalado com Força e Destreza."""
+    def __init__(self, id_acao, nome, descricao, poder_base=12, custo_mana=0, alvo_tipo="INIMIGO_UNICO"):
+        super().__init__(id_acao, nome, descricao, tipo="FISICO", elemento="FISICO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+
+    def executar(self, conjurador, alvos):
+        if not self.pode_usar(conjurador):
+            return {"sucesso": False, "mensagem": f"{conjurador.nome} não tem mana suficiente!"}
+
+        self.deduzir_custos(conjurador)
+        resultados = []
+
+        if not isinstance(alvos, list):
+            alvos = [alvos]
+
+        for alvo in alvos:
+            if not getattr(alvo, 'vivo', True):
+                continue
+
+            critico, mult_crit = self.calcular_critico(conjurador)
+            mod_for = getattr(conjurador.atributos, 'mod_for', 0) if hasattr(conjurador, 'atributos') else 0
+            mod_des = getattr(conjurador.atributos, 'mod_des', 0) if hasattr(conjurador, 'atributos') else 0
+            variacao = random.randint(-2, 2)
+
+            dano_bruto = int((self.poder_base + (mod_for * 1.5) + (mod_des * 0.8) + variacao) * mult_crit)
+            dano_bruto = max(1, dano_bruto)
+
+            dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="fisico")
+            
+            texto_crit = " (CRÍTICO!)" if critico else ""
+            msg = f"{conjurador.nome} usou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano{texto_crit}."
+            
+            resultados.append({
+                "alvo": alvo,
+                "dano": dano_sofrido,
+                "cura": 0,
+                "critico": critico,
+                "tipo_dano": "FISICO",
+                "mensagem": msg
+            })
+
+        return {
+            "sucesso": True,
+            "acao": self,
+            "conjurador": conjurador,
+            "resultados": resultados
+        }
+
+
+class MagiaOfensiva(AcaoCombate):
+    """Magia de dano elemental / arcano escalada com Intelecto e Sabedoria."""
+    def __init__(self, id_acao, nome, descricao, elemento, custo_mana, poder_base=20, alvo_tipo="INIMIGO_UNICO"):
+        super().__init__(id_acao, nome, descricao, tipo="MAGICO", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+
+    def executar(self, conjurador, alvos):
+        if not self.pode_usar(conjurador):
+            return {"sucesso": False, "mensagem": f"{conjurador.nome} não tem mana suficiente para {self.nome}!"}
+
+        self.deduzir_custos(conjurador)
+        resultados = []
+
+        if not isinstance(alvos, list):
+            alvos = [alvos]
+
+        for alvo in alvos:
+            if not getattr(alvo, 'vivo', True):
+                continue
+
+            critico, mult_crit = self.calcular_critico(conjurador)
+            mod_int = getattr(conjurador.atributos, 'mod_int', 0) if hasattr(conjurador, 'atributos') else 0
+            mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
+            variacao = random.randint(-2, 3)
+
+            dano_bruto = int((self.poder_base + (mod_int * 2.2) + (mod_sab * 0.8) + variacao) * mult_crit)
+            dano_bruto = max(2, dano_bruto)
+
+            dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="magico")
+            
+            texto_crit = " (CRÍTICO MÁGICO!)" if critico else ""
+            msg = f"{conjurador.nome} conjurou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano [{self.elemento}]{texto_crit}."
+            
+            resultados.append({
+                "alvo": alvo,
+                "dano": dano_sofrido,
+                "cura": 0,
+                "critico": critico,
+                "tipo_dano": "MAGICO",
+                "elemento": self.elemento,
+                "mensagem": msg
+            })
+
+        return {
+            "sucesso": True,
+            "acao": self,
+            "conjurador": conjurador,
+            "resultados": resultados
+        }
+
+
+class MagiaCura(AcaoCombate):
+    """Magia de restauração de pontos de vida escalada com Sabedoria e Presença."""
+    def __init__(self, id_acao, nome, descricao, custo_mana=15, poder_base=25, alvo_tipo="PROPRIO"):
+        super().__init__(id_acao, nome, descricao, tipo="CURA", elemento="SAGRADO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+
+    def executar(self, conjurador, alvos):
+        if not self.pode_usar(conjurador):
+            return {"sucesso": False, "mensagem": f"{conjurador.nome} não tem mana suficiente para {self.nome}!"}
+
+        self.deduzir_custos(conjurador)
+        resultados = []
+
+        if not isinstance(alvos, list):
+            alvos = [alvos]
+
+        for alvo in alvos:
+            if not getattr(alvo, 'vivo', True):
+                continue
+
+            mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
+            mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
+            variacao = random.randint(-1, 3)
+
+            cura_bruta = max(5, self.poder_base + (mod_sab * 2.5) + (mod_pre * 1.2) + variacao)
+            vida_antes = alvo.vida_atual
+            alvo.curar(cura_bruta)
+            cura_efetiva = alvo.vida_atual - vida_antes
+
+            msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_efetiva} de vida ({alvo.vida_atual}/{alvo.vida_maxima})."
+            
+            resultados.append({
+                "alvo": alvo,
+                "dano": 0,
+                "cura": cura_efetiva,
+                "critico": False,
+                "tipo_dano": "CURA",
+                "mensagem": msg
+            })
+
+        return {
+            "sucesso": True,
+            "acao": self,
+            "conjurador": conjurador,
+            "resultados": resultados
+        }
+
+
+class AcaoFoco(AcaoCombate):
+    """Ação tática que restaura Mana, prepara postura defensiva e eleva a concentração."""
+    def __init__(self, id_acao="foco_espiritual", nome="Concentrar", descricao="Foca a energia espiritual para recuperar Mana e reforçar a defesa."):
+        super().__init__(id_acao, nome, descricao, tipo="FOCO", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=10)
+
+    def executar(self, conjurador, alvos=None):
+        mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
+        mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
+        
+        mana_recuperada = max(8, 8 + (mod_pre * 2) + mod_sab + random.randint(0, 3))
+        
+        mana_antes = getattr(conjurador, 'mana_atual', 0)
+        if hasattr(conjurador, 'recuperar_mana'):
+            conjurador.recuperar_mana(mana_recuperada)
+        elif hasattr(conjurador, 'mana_atual'):
+            conjurador.mana_atual = min(conjurador.mana_maxima, conjurador.mana_atual + mana_recuperada)
+        mana_efetiva = conjurador.mana_atual - mana_antes
+
+        # Ativa postura defensiva durante a rodada
+        conjurador.defendendo = True
+        conjurador.focado = True
+
+        msg = f"{conjurador.nome} concentrou sua energia, recuperando {mana_efetiva} MP e entrando em postura defensiva!"
+        
+        return {
+            "sucesso": True,
+            "acao": self,
+            "conjurador": conjurador,
+            "resultados": [{
+                "alvo": conjurador,
+                "dano": 0,
+                "cura": 0,
+                "mana_recuperada": mana_efetiva,
+                "critico": False,
+                "mensagem": msg
+            }]
+        }
+
+
+# ==============================================================================
+# REGISTRO CENTRAL DE HABILIDADES (REGISTRY PATTERN)
+# ==============================================================================
+
+class SkillsRegistry:
+    """
+    Catálogo centralizado de todas as habilidades, magias e ações de combate do jogo.
+    Permite registrar novas habilidades e buscá-las por ID de forma global.
+    """
+    _catalogo = {}
+
+    @classmethod
+    def registrar(cls, acao):
+        """Registra uma ação ou magia no catálogo."""
+        cls._catalogo[acao.id_acao] = acao
+
+    @classmethod
+    def get(cls, id_acao):
+        """Retorna uma ação pelo ID ou None se não existir."""
+        return cls._catalogo.get(id_acao)
+
+    @classmethod
+    def listar_todas(cls):
+        """Retorna lista de todas as ações registradas."""
+        return list(cls._catalogo.values())
+
+    @classmethod
+    def obter_magias_iniciais_player(cls):
+        """Retorna as magias que Halia possui no início da jornada."""
+        return [
+            cls.get("ataque_basico"),
+            cls.get("bola_de_fogo"),
+            cls.get("levitar"),
+            cls.get("brisa_curativa")
+        ]
+
+    @classmethod
+    def inicializar_catalogo_padrao(cls):
+        """Preenche o registro com todas as habilidades padrão do jogo."""
+        cls._catalogo.clear()
+        
+        # --- Ações Básicas e Táticas ---
+        cls.registrar(AtaqueFisico(
+            id_acao="ataque_basico",
+            nome="Golpe com Cajado",
+            descricao="Um ataque físico direto desferido com o cajado.",
+            poder_base=12,
+            custo_mana=0
+        ))
+        
+        cls.registrar(AcaoFoco(
+            id_acao="foco_espiritual",
+            nome="Concentrar",
+            descricao="Medita brevemente para recuperar Mana e fortalecer a defesa."
+        ))
+
+        # --- Magias da Halia (Grimório) ---
+        cls.registrar(MagiaOfensiva(
+            id_acao="bola_de_fogo",
+            nome="Bola de Fogo",
+            descricao="Dispara uma esfera incandescente causando alto dano de Fogo.",
+            elemento="FOGO",
+            custo_mana=12,
+            poder_base=22
+        ))
+
+        cls.registrar(MagiaOfensiva(
+            id_acao="levitar",
+            nome="Pulso de Gravidade",
+            descricao="Manipula a gravidade ao redor do alvo, arremessando detritos arcanos.",
+            elemento="ARCANO",
+            custo_mana=14,
+            poder_base=24
+        ))
+
+        cls.registrar(MagiaOfensiva(
+            id_acao="raio_arcano",
+            nome="Raio Arcano",
+            descricao="Dispara uma rajada concentrada de energia pura nos pontos vitais do alvo.",
+            elemento="ARCANO",
+            custo_mana=8,
+            poder_base=16
+        ))
+
+        cls.registrar(MagiaCura(
+            id_acao="brisa_curativa",
+            nome="Brisa Curativa",
+            descricao="Evoca ventos suaves impregnados de energia vital para curar ferimentos.",
+            custo_mana=15,
+            poder_base=28
+        ))
+
+        # --- Habilidades de Inimigos / Monstros ---
+        cls.registrar(AtaqueFisico(
+            id_acao="golpe_sombrio",
+            nome="Golpe Sombrio",
+            descricao="Uma investida envolta em sombras que atinge o alvo com garras fantasmagóricas.",
+            poder_base=10,
+            custo_mana=0
+        ))
+
+        cls.registrar(MagiaOfensiva(
+            id_acao="onda_corrosiva",
+            nome="Onda Corrosiva",
+            descricao="Expele miasma sombrio causando dano mágico corrosivo.",
+            elemento="SOMBRA",
+            custo_mana=10,
+            poder_base=18
+        ))
+
+        cls.registrar(MagiaOfensiva(
+            id_acao="impacto_anomalo",
+            nome="Impacto Anômalo",
+            descricao="Poderoso choque de distorção de espaço que atinge a mente e o corpo.",
+            elemento="ARCANO",
+            custo_mana=15,
+            poder_base=28
+        ))
+
+# Inicializa o catálogo padrão automaticamente ao carregar o módulo
+SkillsRegistry.inicializar_catalogo_padrao()
