@@ -147,6 +147,10 @@ class Entidade:
             self.vivo = False
             self.morrer()
             
+    def esta_vivo(self):
+        """Retorna se a entidade está viva e com pontos de vida."""
+        return self.vivo and self.vida_atual > 0
+
     def curar(self, cura):
         if not self.vivo: return
         self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)

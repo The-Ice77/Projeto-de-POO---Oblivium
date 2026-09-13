@@ -48,17 +48,17 @@ class Condicao:
 
             entidade.receber_dano(dano)
             resultado["dano"] = dano
-            resultado["mensagem"] = f"{entidade.nome} sofreu {dano} de dano de {self.nome} {self.icone}!"
+            resultado["mensagem"] = f"{entidade.nome} sofreu {dano} de dano de {self.nome} {self.icone}."
 
         # 2. Efeitos de Controle de Grupo (CC / Atordoamento / Congelamento)
         elif self.tipo == "CC":
             resultado["impede_acao"] = True
-            resultado["mensagem"] = f"{entidade.nome} está {self.nome} {self.icone} e não pode agir este turno!"
+            resultado["mensagem"] = f"{entidade.nome} esta {self.nome} {self.icone} e perdeu o turno!"
 
         # 3. Buffs / Defesas Passivas
         elif self.tipo == "BUFF":
             entidade.defendendo = True
-            resultado["mensagem"] = f"{entidade.nome} está sob efeito de {self.nome} {self.icone}!"
+            resultado["mensagem"] = f"{entidade.nome} esta sob efeito de {self.nome} {self.icone}."
 
         # Reduz a duração restante da condição
         self.duracao -= 1
@@ -76,7 +76,7 @@ class Condicao:
             caminho_json = os.path.join(diretorio_atual, "..", "data", "condicoes.json")
 
         if not os.path.exists(caminho_json):
-            print(f"[Condicao] Aviso: Arquivo '{caminho_json}' não encontrado. Usando catálogo em memória.")
+            print(f"[Condicao] Aviso: Arquivo '{caminho_json}' nao encontrado. Usando catalogo em memoria.")
             return False
 
         try:
@@ -93,9 +93,9 @@ class Condicao:
             sucesso = cls.carregar_de_json()
             if not sucesso:
                 cls._MODELOS = {
-                    "queimadura": {"nome": "Em Chamas", "tipo": "DOT", "duracao": 2, "intensidade": 7, "elemento": "FOGO", "icone": "🔥"},
-                    "veneno": {"nome": "Envenenado", "tipo": "DOT", "duracao": 3, "intensidade": 5, "elemento": "VENENO", "icone": "☠️"},
-                    "atordoado": {"nome": "Atordoado", "tipo": "CC", "duracao": 1, "intensidade": 0, "elemento": "NEUTRO", "icone": "💫"}
+                    "queimadura": {"nome": "Em Chamas", "tipo": "DOT", "duracao": 2, "intensidade": 7, "elemento": "FOGO", "icone": "[FOGO]"},
+                    "veneno": {"nome": "Envenenado", "tipo": "DOT", "duracao": 3, "intensidade": 5, "elemento": "VENENO", "icone": "[VENENO]"},
+                    "atordoado": {"nome": "Atordoado", "tipo": "CC", "duracao": 1, "intensidade": 0, "elemento": "NEUTRO", "icone": "[ATORDOADO]"}
                 }
 
     @classmethod

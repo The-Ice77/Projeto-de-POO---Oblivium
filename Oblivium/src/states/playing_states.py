@@ -182,18 +182,21 @@ class PlayingState(State):
             if self.game.halia.x > 1000:
                 self.game.halia.x = 1000
                 
-            # Cria os inimigos fora/na beirada da tela usando a Factory
+            # Cria os inimigos na beirada visível da tela usando a Factory
             if self.game.magia_usada_no_puzzle == "FOGO":
-                sombra1 = EnemyFactory.criar("sombra_menor", x=1280, y=290, nome_custom="Sombra 1")
-                sombra2 = EnemyFactory.criar("sombra_menor", x=1280, y=420, nome_custom="Sombra 2")
+                sombra1 = EnemyFactory.criar("sombra_menor", x=1180, y=290, nome_custom="Sombra 1")
+                sombra2 = EnemyFactory.criar("sombra_menor", x=1180, y=420, nome_custom="Sombra 2")
+                sombra1.velocidade = 4.0
+                sombra2.velocidade = 4.0
                 self.game.inimigos_em_cena.extend([sombra1, sombra2])
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
-                boss = EnemyFactory.criar_boss("anomalia_maior", x=1280, y=310, nome_custom="Anomalia Maior")
+                boss = EnemyFactory.criar_boss("anomalia_maior", x=1180, y=310, nome_custom="Anomalia Maior")
+                boss.velocidade = 4.0
                 self.game.inimigos_em_cena.append(boss)
 
         # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
         if self.game.cena_inimigos_andando:
-            x_parada = self.game.halia.x + self.game.halia.largura + 120
+            x_parada = max(self.game.halia.x + self.game.halia.largura + 100, 850)
             alguem_chegou = False
             
             for inimigo in self.game.inimigos_em_cena:

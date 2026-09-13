@@ -11,6 +11,10 @@ class CombatState(State):
             self.game.tela_combate.processar_eventos(evento)
 
     def update(self):
+        # Gerencia transições de clarear/escurecer durante o combate
+        if hasattr(self.game, 'transicao') and self.game.transicao.estado != "INATIVO":
+            self.game.transicao.atualizar()
+            
         # O motor de combate gerencia turnos e dispara callbacks ao finalizar
         self.game.tela_combate.atualizar()
 

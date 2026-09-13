@@ -310,3 +310,25 @@ Considerando as ideias atuais para o projeto e que o mesmo seja finalizado desse
 - Efeitos visuais avançados
 - Save automático
 - Diferentes finais conforme linhas de diálogo
+
+---
+
+## 🏛️ Arquitetura e Engenharia de Software (POO & Design Patterns)
+
+O projeto *Oblivium* segue padrões rigorosos de **Programação Orientada a Objetos (POO)** e boas práticas de arquitetura de software:
+
+### 1. Component Pattern & Composição
+- **Sistema de 6 Atributos (`Atributos`):** Força, Destreza, Constituição, Intelecto, Sabedoria e Presença compõem instâncias de `Player`, `Enemy` e `Boss`, calculando dinamicamente modificadores, HP/MP máximo, defesas e iniciativa.
+
+### 2. Registry Pattern & Polimorfismo
+- **Catálogo de Habilidades (`SkillsRegistry`):** Magias (`MagiaOfensiva`, `MagiaCura`), golpes físicos (`AtaqueFisico`) e posturas (`AcaoFoco`) herdam de `AcaoCombate` e são registradas dinamicamente a partir de `src/data/skills.json`.
+
+### 3. Factory Method Pattern
+- **Fábrica de Inimigos (`EnemyFactory`):** Centraliza a criação de monstros e chefes a partir de `src/data/bestiario.json`, suportando escalonamento de nível e geração procedural de encontros aleatórios balanceados.
+
+### 4. State Pattern & Desacoplamento
+- **Motor de Combate por Turnos (`CombatScreen` & `CombatState`):** Totalmente desacoplado do mapa e do overworld, operando via máquina de estados (`MENU_PRINCIPAL`, `SUBMENU_MAGIA`, `SELECIONANDO_ALVO`, `TURNO_INIMIGO`, `VITORIA`, `DERROTA`, `FUGIU`) e disparando *callbacks* assíncronos (`on_vitoria`, `on_derrota`, `on_fuga`).
+
+### 5. Externalização de Dados (JSON Driven)
+- Catálogos de dados (`skills.json`, `bestiario.json`, `condicoes.json`) em arquivos JSON externos com suporte a fallback de emergência em memória.
+

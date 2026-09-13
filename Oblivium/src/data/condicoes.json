@@ -5,8 +5,8 @@
         "duracao": 2,
         "intensidade": 7,
         "elemento": "FOGO",
-        "icone": "🔥",
-        "descricao": "Sofre dano de fogo contínuo a cada rodada."
+        "icone": "[FOGO]",
+        "descricao": "Sofre dano de fogo continuo a cada rodada."
     },
     "veneno": {
         "nome": "Envenenado",
@@ -14,8 +14,8 @@
         "duracao": 3,
         "intensidade": 5,
         "elemento": "VENENO",
-        "icone": "☠️",
-        "descricao": "Toxina ativa que drena vida (mitigada por Constituição)."
+        "icone": "[VENENO]",
+        "descricao": "Toxina ativa que drena vida (mitigada por Constituicao)."
     },
     "sangramento": {
         "nome": "Sangrando",
@@ -23,7 +23,7 @@
         "duracao": 2,
         "intensidade": 6,
         "elemento": "FISICO",
-        "icone": "🩸",
+        "icone": "[SANGRIA]",
         "descricao": "Ferimento aberto causando perda de sangue por rodada."
     },
     "atordoado": {
@@ -32,8 +32,8 @@
         "duracao": 1,
         "intensidade": 0,
         "elemento": "NEUTRO",
-        "icone": "💫",
-        "descricao": "Incapacitado temporariamente, perde o próximo turno."
+        "icone": "[ATORDOADO]",
+        "descricao": "Incapacitado temporariamente, perde o proximo turno."
     },
     "congelado": {
         "nome": "Congelado",
@@ -41,7 +41,7 @@
         "duracao": 1,
         "intensidade": 4,
         "elemento": "GELO",
-        "icone": "❄️",
+        "icone": "[GELO]",
         "descricao": "Preso no gelo, perde o turno e sofre dano de frio."
     },
     "escudo_arcano": {
@@ -50,7 +50,7 @@
         "duracao": 2,
         "intensidade": 10,
         "elemento": "ARCANO",
-        "icone": "🛡️",
+        "icone": "[ESCUDO]",
         "descricao": "Barreira protetora que reduz danos sofridos."
     }
 }

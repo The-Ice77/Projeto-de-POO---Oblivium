@@ -20,6 +20,15 @@ class AcaoCombate:
         self.poder_base = poder_base
         self.condicao_aplicada = condicao_aplicada # Dict com {"id_condicao": ..., "chance": ...}
 
+    @property
+    def tipo_alvo(self):
+        """Retorna o tipo de alvo em formato minúsculo padronizado."""
+        return str(self.alvo_tipo).lower()
+
+    @tipo_alvo.setter
+    def tipo_alvo(self, valor):
+        self.alvo_tipo = valor
+
     def pode_usar(self, conjurador):
         """Verifica se o conjurador tem recursos (mana/vida) para executar a ação."""
         if not getattr(conjurador, 'vivo', True):
