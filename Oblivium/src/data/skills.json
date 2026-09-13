@@ -63,15 +63,45 @@
         "alvo_tipo": "PROPRIO",
         "poder_base": 28
     },
-    "golpe_sombrio": {
-        "id_acao": "golpe_sombrio",
-        "nome": "Golpe Sombrio",
-        "descricao": "Uma investida envolta em sombras que atinge o alvo com garras fantasmagóricas.",
+    "garras_sombrias": {
+        "id_acao": "garras_sombrias",
+        "nome": "Garras Sombrias",
+        "descricao": "Desfere um arranhao rapido e afiado carregado de escuridao.",
         "tipo": "FISICO",
         "elemento": "SOMBRA",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 10
+        "poder_base": 9
+    },
+    "investida_sombria": {
+        "id_acao": "investida_sombria",
+        "nome": "Investida Sombria",
+        "descricao": "Avanca com forca esmagadora contra o alvo.",
+        "tipo": "FISICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 13
+    },
+    "toque_espectral": {
+        "id_acao": "toque_espectral",
+        "nome": "Toque Espectral",
+        "descricao": "Drena a vitalidade do alvo com um toque gelido.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 11
+    },
+    "golpe_sombrio": {
+        "id_acao": "golpe_sombrio",
+        "nome": "Golpe Sombrio",
+        "descricao": "Uma investida envolta em sombras que atinge o alvo com forca fantasmagorica.",
+        "tipo": "FISICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 12
     },
     "onda_corrosiva": {
         "id_acao": "onda_corrosiva",

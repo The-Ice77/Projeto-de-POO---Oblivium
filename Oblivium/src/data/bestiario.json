@@ -13,7 +13,7 @@
             "sabedoria": 7,
             "presenca": 8
         },
-        "habilidades": ["ataque_basico", "golpe_sombrio"],
+        "habilidades": ["garras_sombrias", "golpe_sombrio"],
         "recompensas": {
             "moedas": 8,
             "memorias": 0,
@@ -36,7 +36,7 @@
             "sabedoria": 8,
             "presenca": 10
         },
-        "habilidades": ["ataque_basico", "golpe_sombrio"],
+        "habilidades": ["investida_sombria", "golpe_sombrio"],
         "recompensas": {
             "moedas": 15,
             "memorias": 0,
@@ -59,7 +59,7 @@
             "sabedoria": 12,
             "presenca": 11
         },
-        "habilidades": ["onda_corrosiva", "golpe_sombrio"],
+        "habilidades": ["toque_espectral", "onda_corrosiva", "golpe_sombrio"],
         "recompensas": {
             "moedas": 12,
             "memorias": 0,

@@ -295,7 +295,20 @@ class SkillsRegistry:
     @classmethod
     def get(cls, id_acao):
         """Retorna uma ação pelo ID ou None se não existir."""
-        return cls._catalogo.get(id_acao)
+        if not cls._catalogo:
+            cls.inicializar_catalogo_padrao()
+
+        aliases = {
+            "foco": "foco_espiritual",
+            "concentrar": "foco_espiritual",
+            "ataque": "ataque_basico",
+            "cajado": "ataque_basico",
+            "fogo": "bola_de_fogo",
+            "cura": "brisa_curativa"
+        }
+        id_str = str(id_acao).lower()
+        chave = aliases.get(id_str, id_str)
+        return cls._catalogo.get(chave) or cls._catalogo.get(id_acao)
 
     @classmethod
     def listar_todas(cls):

@@ -382,8 +382,11 @@ class CombatScreen:
 
     def _executar_acao_jogador(self, acao, alvo):
         """Executa a ação escolhida pelo jogador com cálculo de dano e feedback."""
+        if not acao:
+            acao = SkillsRegistry.get("ataque_basico")
+
         self.estado_combate = "EXECUTANDO_ACAO"
-        self.timer_acao = 55
+        self.timer_acao = 75
         
         resultado = acao.executar(self.jogador, alvo)
         
@@ -404,19 +407,21 @@ class CombatScreen:
             alvo_r = r.get("alvo")
             if r.get("dano", 0) > 0 and alvo_r:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
-                self.shake_timers[alvo_r] = 10
+                self.shake_timers[alvo_r] = 12
             elif r.get("cura", 0) > 0 and alvo_r:
                 self.adicionar_texto_flutuante(f"+{r['cura']}", alvo_r.x + 20, alvo_r.y - 10, BARRA_VIDA_JOGADOR)
 
     def _executar_turno_inimigo(self, inimigo):
-        """IA do inimigo: seleciona habilidade e executa contra Halia."""
+        """IA do inimigo: seleciona habilidade temática de monstro e executa contra Halia."""
         self.estado_combate = "EXECUTANDO_ACAO"
-        self.timer_acao = 55
+        self.timer_acao = 75
         
-        # Escolhe ação do kit do monstro
-        kit = getattr(inimigo, 'habilidades', ["ataque_basico"])
-        id_escolhido = random.choice(kit) if kit else "ataque_basico"
+        # Escolhe ação temática do kit do monstro
+        kit = getattr(inimigo, 'habilidades', ["garras_sombrias", "golpe_sombrio"])
+        id_escolhido = random.choice(kit) if kit else "garras_sombrias"
         acao = SkillsRegistry.get(id_escolhido)
+        if not acao:
+            acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio")
 
         resultado = acao.executar(inimigo, self.jogador)
         
@@ -428,7 +433,7 @@ class CombatScreen:
                 self.adicionar_log(r["mensagem"])
             if r.get("dano", 0) > 0:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
-                self.shake_timers[self.jogador] = 10
+                self.shake_timers[self.jogador] = 12
 
     def _tentar_fuga(self):
         """Calcula a probabilidade de fuga baseada na Destreza."""
