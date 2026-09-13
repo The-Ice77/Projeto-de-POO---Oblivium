@@ -1,7 +1,7 @@
 # src/mechanics/cutscene_manager.py
 import pygame
 import copy
-from data.dialogos import conversa_pos_fogo, conversa_pos_levitar
+from src.data.dialogos import conversa_pos_fogo, conversa_pos_levitar
 
 class CutsceneManager:
     def __init__(self, game):

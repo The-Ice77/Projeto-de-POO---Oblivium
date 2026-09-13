@@ -5,7 +5,7 @@ from src.states.states import State
 from src.entities.Enemy import Enemy
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
-from data.dialogos import *
+from src.data.dialogos import *
 
 class PlayingState(State):
     def __init__(self, game):

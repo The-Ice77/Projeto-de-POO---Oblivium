@@ -2,16 +2,22 @@
 import pygame
 import math
 from src.utils.resource_manager import Animacao
+from src.mechanics.attributes import Atributos
 
 class Entidade:
-    def __init__(self, nome, vida_maxima, x, y, velocidade):
+    def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None):
         self.nome = nome
+        self.atributos = atributos if atributos is not None else Atributos()
         self.vida_maxima = vida_maxima
         self.vida_atual = vida_maxima
         self.x = float(x)
         self.y = float(y)
         self.velocidade = velocidade
         self.vivo = True
+        
+        # Estado de combate
+        self.defendendo = False
+        self.focado = False
         
         self.largura = 40
         self.altura = 40
@@ -144,5 +150,31 @@ class Entidade:
         if not self.vivo: return
         self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)
         
+    def aplicar_dano(self, dano_bruto, tipo="fisico"):
+        """
+        Aplica dano considerando a defesa da entidade e o estado de defesa.
+        Retorna o valor do dano final efetivamente sofrido.
+        """
+        if not self.vivo:
+            return 0
+            
+        defesa = self.atributos.calcular_defesa_fisica() if tipo == "fisico" else self.atributos.calcular_defesa_magica()
+        
+        # Se estiver em postura defensiva, a defesa é dobrada
+        if self.defendendo:
+            defesa = int(defesa * 2) + 2
+            
+        dano_final = max(1, dano_bruto - defesa)
+        self.receber_dano(dano_final)
+        return dano_final
+
+    def calcular_iniciativa(self):
+        """Retorna a iniciativa para definir ordem de turnos."""
+        return self.atributos.calcular_iniciativa()
+
+    def resetar_turno_combate(self):
+        """Reseta posturas temporárias do turno anterior."""
+        self.defendendo = False
+
     def morrer(self):
         self.mudar_estado("morrer")

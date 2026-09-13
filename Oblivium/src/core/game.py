@@ -4,6 +4,7 @@ from src.ui.menu import Menu
 from src.ui.dialogue_box import DialogueBox  
 from src.ui.intro import Intro
 from src.entities.player import Player
+from src.mechanics.attributes import Atributos
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
 from src.entities.NPC import NPC
@@ -169,7 +170,9 @@ class Game:
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
                 "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
-                "dinheiro": getattr(self.halia, 'dinheiro', 0)
+                "dinheiro": getattr(self.halia, 'dinheiro', 0),
+                "atributos": self.halia.atributos.to_dict(),
+                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', [])
             },
             "carroceiro": {
                 "x": self.carroceiro.x,
@@ -197,7 +200,6 @@ class Game:
         self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
         self.caixa_dialogo.historico_escolhas = set(dados["flags"].get("historico_dialogos", []))
         
-        
         # 1. Recupera as flags e a lista de itens coletados PRIMEIRO
         self.mapa_casa.porta_aberta = dados["flags"].get("porta_aberta", False)
         self.investigou_pedras = dados["flags"]["investigou_pedras"]
@@ -208,7 +210,7 @@ class Game:
         cenario_salvo = dados["cenario_atual"]
         self.mapa_casa.carregar_cenario(cenario_salvo)
         
-        # 3. Restaura posições da Halia e NPCs exatamente como estavam
+        # 3. Restaura posições da Halia, atributos e NPCs
         self.halia.x = dados["halia"]["x"]
         self.halia.y = dados["halia"]["y"]
         self.halia.vida_atual = dados["halia"]["vida_atual"]
@@ -216,11 +218,17 @@ class Game:
         self.halia.fragmentos_memoria = dados["halia"].get("fragmentos_memoria", 0)
         self.halia.dinheiro = dados["halia"].get("dinheiro", 0)
         
+        if "atributos" in dados["halia"]:
+            self.halia.atributos = Atributos.from_dict(dados["halia"]["atributos"])
+            self.halia.recalcular_status_derivados(manter_porcentagem=False)
+            
+        if "magias_desbloqueadas" in dados["halia"]:
+            self.halia.magias_desbloqueadas = dados["halia"]["magias_desbloqueadas"]
+        
         self.carroceiro.x = dados["carroceiro"]["x"]
         self.carroceiro.y = dados["carroceiro"]["y"]
         self.carroceiro_visivel = dados["carroceiro"]["visivel"]
         self.carroceiro_andando = dados["carroceiro"]["andando"]
-        
         
         return True 
 
@@ -233,8 +241,10 @@ class Game:
         
         # Reset da Halia
         self.halia.x, self.halia.y = 210, 280
-        self.halia.vida_atual = self.halia.vida_maxima
-        self.halia.mana_atual = self.halia.mana_maxima
+        self.halia.atributos = Atributos(forca=8, destreza=12, constituicao=12, intelecto=15, sabedoria=13, presenca=14)
+        self.halia.recalcular_status_derivados()
+        self.halia.restaurar_total()
+        self.halia.magias_desbloqueadas = ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"]
         
         # Reset do Carroceiro
         self.carroceiro.x, self.carroceiro.y = 1350, 330

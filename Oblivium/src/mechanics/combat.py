@@ -10,7 +10,7 @@ class CombatScreen:
         self.fonte_status = pygame.font.Font(None, 24)
         self.fonte_menu = pygame.font.Font(None, 32)
         
-        self.opcoes_menu = ["Atacar", "Magia", "Item", "Fugir"]
+        self.opcoes_menu = ["Atacar", "Concentrar", "Item", "Fugir"]
         self.opcao_selecionada = 0
         
         self.jogador = None
