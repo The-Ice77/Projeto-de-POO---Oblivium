@@ -22,12 +22,16 @@
     "bola_de_fogo": {
         "id_acao": "bola_de_fogo",
         "nome": "Bola de Fogo",
-        "descricao": "Dispara uma esfera incandescente causando alto dano de Fogo.",
+        "descricao": "Dispara uma esfera incandescente causando alto dano de Fogo com chance de queimar.",
         "tipo": "MAGICO",
         "elemento": "FOGO",
         "custo_mana": 12,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 22
+        "poder_base": 22,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 45
+        }
     },
     "levitar": {
         "id_acao": "levitar",
@@ -72,21 +76,29 @@
     "onda_corrosiva": {
         "id_acao": "onda_corrosiva",
         "nome": "Onda Corrosiva",
-        "descricao": "Expele miasma sombrio causando dano mágico corrosivo.",
+        "descricao": "Expele miasma sombrio causando dano mágico corrosivo e envenenamento.",
         "tipo": "MAGICO",
         "elemento": "SOMBRA",
         "custo_mana": 10,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 18
+        "poder_base": 18,
+        "condicao_aplicada": {
+            "id_condicao": "veneno",
+            "chance": 50
+        }
     },
     "impacto_anomalo": {
         "id_acao": "impacto_anomalo",
         "nome": "Impacto Anômalo",
-        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e o corpo.",
+        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e pode atordoar.",
         "tipo": "MAGICO",
         "elemento": "ARCANO",
         "custo_mana": 15,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 28
+        "poder_base": 28,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 35
+        }
     }
 }

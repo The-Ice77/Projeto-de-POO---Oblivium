@@ -15,9 +15,10 @@ class Entidade:
         self.velocidade = velocidade
         self.vivo = True
         
-        # Estado de combate
+        # Estado de combate e efeitos
         self.defendendo = False
         self.focado = False
+        self.condicoes = [] # Lista de instâncias de Condicao ativas
         
         self.largura = 40
         self.altura = 40
@@ -172,9 +173,48 @@ class Entidade:
         """Retorna a iniciativa para definir ordem de turnos."""
         return self.atributos.calcular_iniciativa()
 
+    def adicionar_condicao(self, condicao):
+        """Aplica ou renova uma condição de estado na entidade."""
+        for c in self.condicoes:
+            if c.id_condicao == condicao.id_condicao:
+                c.duracao = max(c.duracao, condicao.duracao)
+                c.intensidade = max(c.intensidade, condicao.intensidade)
+                return
+        self.condicoes.append(condicao)
+
+    def remover_condicao(self, id_condicao):
+        """Remove uma condição específica da entidade."""
+        self.condicoes = [c for c in self.condicoes if c.id_condicao != id_condicao]
+
+    def processar_condicoes_inicio_turno(self):
+        """
+        Processa todas as condições ativas no início do turno da entidade.
+        Retorna lista de relatórios de efeitos ocorridos e flag se a ação foi impedida.
+        """
+        relatorios = []
+        impede_acao = False
+
+        for cond in self.condicoes[:]:
+            res = cond.processar_inicio_turno(self)
+            if res:
+                relatorios.append(res)
+                if res.get("impede_acao", False):
+                    impede_acao = True
+            
+            if cond.expirou():
+                self.condicoes.remove(cond)
+
+        return relatorios, impede_acao
+
+    @property
+    def esta_atordoado(self):
+        """Retorna se a entidade está sob algum efeito incapacitante."""
+        return any(c.tipo == "CC" for c in self.condicoes)
+
     def resetar_turno_combate(self):
         """Reseta posturas temporárias do turno anterior."""
         self.defendendo = False
 
     def morrer(self):
+        self.condicoes.clear()
         self.mudar_estado("morrer")

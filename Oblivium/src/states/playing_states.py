@@ -324,8 +324,31 @@ class PlayingState(State):
             if self.game.iniciando_combate:
                 self.game.iniciando_combate = False
                 self.game.transicao.estado = "CLAREANDO"
-                self.game.mudar_estado("COMBATE")
-                self.game.tela_combate.iniciar_combate(self.game.halia, self.game.inimigos_em_cena)
+                
+                def on_vitoria():
+                    self.game.inimigos_em_cena.clear()
+                    self.game.cena_inimigos_andando = False
+                    self.game.mudar_estado("JOGANDO")
+                    
+                def on_derrota():
+                    self.game.halia.restaurar_total()
+                    self.game.halia.x, self.game.halia.y = 60, 330
+                    self.game.inimigos_em_cena.clear()
+                    self.game.cena_inimigos_andando = False
+                    self.game.mudar_estado("JOGANDO")
+                    
+                def on_fuga():
+                    self.game.halia.x = max(60, self.game.halia.x - 120)
+                    self.game.inimigos_em_cena.clear()
+                    self.game.cena_inimigos_andando = False
+                    self.game.mudar_estado("JOGANDO")
+
+                self.game.iniciar_combate(
+                    inimigos=self.game.inimigos_em_cena,
+                    on_vitoria=on_vitoria,
+                    on_derrota=on_derrota,
+                    on_fuga=on_fuga
+                )
             elif self.game.mapa_casa.cenario_atual == "CASA":
                 self._entrar_na_estrada_1()
             elif self.game.mapa_casa.cenario_atual == "ESTRADA":

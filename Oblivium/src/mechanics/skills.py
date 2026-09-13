@@ -1,12 +1,15 @@
 # src/mechanics/skills.py
 import random
+import json
+import os
+from src.mechanics.conditions import Condicao
 
 class AcaoCombate:
     """
     Classe base para todas as ações executáveis em combate (Ataques, Magias, Foco, Suporte).
     Implementa o padrão Strategy / Command para execução desacoplada.
     """
-    def __init__(self, id_acao, nome, descricao, tipo, elemento="FISICO", custo_mana=0, alvo_tipo="INIMIGO_UNICO", poder_base=10):
+    def __init__(self, id_acao, nome, descricao, tipo, elemento="FISICO", custo_mana=0, alvo_tipo="INIMIGO_UNICO", poder_base=10, condicao_aplicada=None):
         self.id_acao = id_acao
         self.nome = nome
         self.descricao = descricao
@@ -15,6 +18,7 @@ class AcaoCombate:
         self.custo_mana = custo_mana
         self.alvo_tipo = alvo_tipo  # "INIMIGO_UNICO", "TODOS_INIMIGOS", "PROPRIO", "ALIADO"
         self.poder_base = poder_base
+        self.condicao_aplicada = condicao_aplicada # Dict com {"id_condicao": ..., "chance": ...}
 
     def pode_usar(self, conjurador):
         """Verifica se o conjurador tem recursos (mana/vida) para executar a ação."""
@@ -44,6 +48,22 @@ class AcaoCombate:
             return True, 1.5
         return False, 1.0
 
+    def tentar_aplicar_condicao(self, alvo):
+        """Aplica condição de estado caso configurada e a rolagem de chance tenha sucesso."""
+        if not self.condicao_aplicada or not hasattr(alvo, 'adicionar_condicao'):
+            return None
+
+        chance = self.condicao_aplicada.get("chance", 30)
+        id_cond = self.condicao_aplicada.get("id_condicao", "queimadura")
+        duracao = self.condicao_aplicada.get("duracao", None)
+        intensidade = self.condicao_aplicada.get("intensidade", None)
+
+        if random.uniform(0, 100) <= chance:
+            nova_cond = Condicao.criar(id_cond, duracao=duracao, intensidade=intensidade)
+            alvo.adicionar_condicao(nova_cond)
+            return nova_cond
+        return None
+
     def executar(self, conjurador, alvos):
         """
         Executa a ação sobre uma lista de alvos.
@@ -58,8 +78,8 @@ class AcaoCombate:
 
 class AtaqueFisico(AcaoCombate):
     """Ataque físico direto escalado com Força e Destreza."""
-    def __init__(self, id_acao, nome, descricao, poder_base=12, custo_mana=0, alvo_tipo="INIMIGO_UNICO"):
-        super().__init__(id_acao, nome, descricao, tipo="FISICO", elemento="FISICO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+    def __init__(self, id_acao, nome, descricao, poder_base=12, custo_mana=0, alvo_tipo="INIMIGO_UNICO", elemento="FISICO", condicao_aplicada=None):
+        super().__init__(id_acao, nome, descricao, tipo="FISICO", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos):
         if not self.pode_usar(conjurador):
@@ -85,14 +105,17 @@ class AtaqueFisico(AcaoCombate):
 
             dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="fisico")
             
+            cond_aplicada = self.tentar_aplicar_condicao(alvo)
             texto_crit = " (CRÍTICO!)" if critico else ""
-            msg = f"{conjurador.nome} usou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano{texto_crit}."
+            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+            msg = f"{conjurador.nome} usou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano{texto_crit}{texto_cond}."
             
             resultados.append({
                 "alvo": alvo,
                 "dano": dano_sofrido,
                 "cura": 0,
                 "critico": critico,
+                "condicao": cond_aplicada,
                 "tipo_dano": "FISICO",
                 "mensagem": msg
             })
@@ -107,8 +130,8 @@ class AtaqueFisico(AcaoCombate):
 
 class MagiaOfensiva(AcaoCombate):
     """Magia de dano elemental / arcano escalada com Intelecto e Sabedoria."""
-    def __init__(self, id_acao, nome, descricao, elemento, custo_mana, poder_base=20, alvo_tipo="INIMIGO_UNICO"):
-        super().__init__(id_acao, nome, descricao, tipo="MAGICO", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+    def __init__(self, id_acao, nome, descricao, elemento, custo_mana, poder_base=20, alvo_tipo="INIMIGO_UNICO", condicao_aplicada=None):
+        super().__init__(id_acao, nome, descricao, tipo="MAGICO", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos):
         if not self.pode_usar(conjurador):
@@ -134,14 +157,17 @@ class MagiaOfensiva(AcaoCombate):
 
             dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="magico")
             
+            cond_aplicada = self.tentar_aplicar_condicao(alvo)
             texto_crit = " (CRÍTICO MÁGICO!)" if critico else ""
-            msg = f"{conjurador.nome} conjurou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano [{self.elemento}]{texto_crit}."
+            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+            msg = f"{conjurador.nome} conjurou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano [{self.elemento}]{texto_crit}{texto_cond}."
             
             resultados.append({
                 "alvo": alvo,
                 "dano": dano_sofrido,
                 "cura": 0,
                 "critico": critico,
+                "condicao": cond_aplicada,
                 "tipo_dano": "MAGICO",
                 "elemento": self.elemento,
                 "mensagem": msg
@@ -157,8 +183,8 @@ class MagiaOfensiva(AcaoCombate):
 
 class MagiaCura(AcaoCombate):
     """Magia de restauração de pontos de vida escalada com Sabedoria e Presença."""
-    def __init__(self, id_acao, nome, descricao, custo_mana=15, poder_base=25, alvo_tipo="PROPRIO"):
-        super().__init__(id_acao, nome, descricao, tipo="CURA", elemento="SAGRADO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base)
+    def __init__(self, id_acao, nome, descricao, custo_mana=15, poder_base=25, alvo_tipo="PROPRIO", condicao_aplicada=None):
+        super().__init__(id_acao, nome, descricao, tipo="CURA", elemento="SAGRADO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos):
         if not self.pode_usar(conjurador):
@@ -280,9 +306,6 @@ class SkillsRegistry:
     @classmethod
     def carregar_de_json(cls, caminho_json=None):
         """Carrega todas as habilidades e magias a partir do arquivo JSON."""
-        import json
-        import os
-        
         if caminho_json is None:
             diretorio_atual = os.path.dirname(os.path.abspath(__file__))
             caminho_json = os.path.join(diretorio_atual, "..", "data", "skills.json")
@@ -298,6 +321,7 @@ class SkillsRegistry:
             cls._catalogo.clear()
             for id_acao, info in dados.items():
                 tipo = info.get("tipo", "MAGICO").upper()
+                cond = info.get("condicao_aplicada", None)
                 
                 if tipo == "FISICO":
                     instancia = AtaqueFisico(
@@ -306,7 +330,9 @@ class SkillsRegistry:
                         descricao=info.get("descricao", ""),
                         poder_base=info.get("poder_base", 12),
                         custo_mana=info.get("custo_mana", 0),
-                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO")
+                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO"),
+                        elemento=info.get("elemento", "FISICO"),
+                        condicao_aplicada=cond
                     )
                 elif tipo == "CURA":
                     instancia = MagiaCura(
@@ -315,7 +341,8 @@ class SkillsRegistry:
                         descricao=info.get("descricao", ""),
                         custo_mana=info.get("custo_mana", 15),
                         poder_base=info.get("poder_base", 25),
-                        alvo_tipo=info.get("alvo_tipo", "PROPRIO")
+                        alvo_tipo=info.get("alvo_tipo", "PROPRIO"),
+                        condicao_aplicada=cond
                     )
                 elif tipo == "FOCO":
                     instancia = AcaoFoco(
@@ -331,7 +358,8 @@ class SkillsRegistry:
                         elemento=info.get("elemento", "ARCANO"),
                         custo_mana=info.get("custo_mana", 10),
                         poder_base=info.get("poder_base", 20),
-                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO")
+                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO"),
+                        condicao_aplicada=cond
                     )
                 
                 cls.registrar(instancia)

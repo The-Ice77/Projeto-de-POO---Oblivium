@@ -137,6 +137,18 @@ class Game:
         if novo_estado in self.estados:
             self.estado_atual = self.estados[novo_estado]
 
+    def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
+        """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""
+        self.inimigos_em_cena = inimigos
+        self.mudar_estado("COMBATE")
+        self.tela_combate.iniciar_combate(
+            jogador=self.halia,
+            inimigos=self.inimigos_em_cena,
+            on_vitoria=on_vitoria,
+            on_derrota=on_derrota,
+            on_fuga=on_fuga
+        )
+
     def run(self):
         """Loop principal e delegação de controle para o estado ativo"""
         while self.running:
