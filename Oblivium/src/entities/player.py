@@ -66,10 +66,8 @@ class Player(Entidade):
         return False
 
     def restaurar_total(self):
-        """Restaura vida e mana para os valores máximos."""
-        self.vida_atual = self.vida_maxima
-        self.mana_atual = self.mana_maxima
-        self.vivo = True
+        """Restaura vida e mana para os valores máximos e limpa estados."""
+        super().restaurar_total()
 
     # Sistema de Magia Legado / Compatibilidade
     def usar_magia(self, custo_mana):
@@ -108,11 +106,15 @@ class Player(Entidade):
     def entrar_combate(self):
         self.em_combate = True
         self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
         print(f"{self.nome} entrou em combate!")
 
     def sair_combate(self):
         self.em_combate = False
         self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
         print(f"{self.nome} saiu do combate!")
 
     # Sobrescrita

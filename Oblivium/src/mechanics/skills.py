@@ -92,28 +92,35 @@ class AcaoCombate:
         if getattr(alvo, 'esta_atordoado', False):
             return True, "acerto"
 
-        # Precisão do conjurador
+        # Precisão do atacante
         if self.tipo == "FISICO":
-            precisao_base = 90.0
-            bonus_conjurador = (conjurador.atributos.mod_des * 2.5) + (conjurador.atributos.mod_for * 0.5)
+            precisao_base = 86.0
+            bonus_conjurador = (conjurador.atributos.mod_des * 2.0) + (conjurador.atributos.mod_for * 0.5)
         else: # MAGICO
-            precisao_base = 94.0
+            precisao_base = 88.0
             bonus_conjurador = (conjurador.atributos.mod_int * 2.0) + (conjurador.atributos.mod_sab * 1.0)
 
-        # Evasão do alvo
-        evasao_alvo = max(0.0, alvo.atributos.mod_des * 2.5)
+        # Evasão do defensor (base de agilidade + modificador de Destreza)
+        evasao_base = 8.0
+        evasao_alvo = evasao_base + max(0.0, alvo.atributos.mod_des * 3.0)
+        
+        # Postura defensiva (Defender) concede enorme bônus de esquiva (+45%)
         if getattr(alvo, 'defendendo', False):
-            evasao_alvo += 18.0
+            evasao_alvo += 45.0
+            
+        # Estado vulnerável (Foco Espiritual) reduz drasticamente a esquiva (-15%)
+        if getattr(alvo, 'vulneravel', False):
+            evasao_alvo = max(0.0, evasao_alvo - 15.0)
 
-        # Chance final de acerto clamped entre 45% e 97%
-        chance_acerto = max(45.0, min(97.0, precisao_base + bonus_conjurador - evasao_alvo))
+        # Chance final de acerto
+        chance_acerto = max(25.0, min(95.0, precisao_base + bonus_conjurador - evasao_alvo))
         rolagem = random.uniform(0, 100)
 
         if rolagem <= chance_acerto:
             return True, "acerto"
         else:
-            # Se a evasão do alvo foi significativa ou estava defendendo, conta como esquiva
-            if evasao_alvo >= 6.0 or getattr(alvo, 'defendendo', False):
+            # Se o alvo estava defendendo ou tem evasão relevante, conta como esquiva ágil
+            if getattr(alvo, 'defendendo', False) or evasao_alvo >= 10.0 or random.random() < 0.75:
                 return False, "esquiva"
             return False, "erro"
 
@@ -328,16 +335,45 @@ class MagiaCura(AcaoCombate):
         }
 
 
+class AcaoDefender(AcaoCombate):
+    """Ação tática que assume postura de guarda para reduzir danos pela metade e esquivar de ataques."""
+    def __init__(self, id_acao="defender", nome="Defender", descricao="Assume postura de guarda. Reduz danos recebidos pela metade e esquiva com facilidade."):
+        super().__init__(id_acao, nome, descricao, tipo="DEFESA", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=0)
+
+    def executar(self, conjurador, alvos=None):
+        conjurador.defendendo = True
+        conjurador.vulneravel = False
+        conjurador.focado = False
+
+        msg = f"{conjurador.nome} assumiu postura defensiva em guarda total, reduzindo danos e preparando esquiva!"
+        
+        return {
+            "sucesso": True,
+            "acao": self,
+            "conjurador": conjurador,
+            "defendendo": True,
+            "mensagem": msg,
+            "resultados": [{
+                "alvo": conjurador,
+                "dano": 0,
+                "cura": 0,
+                "defendendo": True,
+                "critico": False,
+                "mensagem": msg
+            }]
+        }
+
+
 class AcaoFoco(AcaoCombate):
-    """Ação tática que restaura Mana, prepara postura defensiva e eleva a concentração."""
-    def __init__(self, id_acao="foco_espiritual", nome="Concentrar", descricao="Foca a energia espiritual para recuperar Mana e reforçar a defesa."):
-        super().__init__(id_acao, nome, descricao, tipo="FOCO", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=10)
+    """Ação que canaliza energia espiritual para recuperar Mana, abrindo a guarda e deixando o conjurador vulnerável."""
+    def __init__(self, id_acao="foco_espiritual", nome="Foco Espiritual", descricao="Canaliza energia espiritual para recuperar grande quantidade de Mana, mas fica vulnerável (+35% dano)."):
+        super().__init__(id_acao, nome, descricao, tipo="FOCO", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=15)
 
     def executar(self, conjurador, alvos=None):
         mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
         mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
         
-        mana_recuperada = max(8, 8 + (mod_pre * 2) + mod_sab + random.randint(0, 3))
+        mana_recuperada = max(12, 12 + (mod_pre * 3) + (mod_sab * 2) + random.randint(2, 5))
         
         mana_antes = getattr(conjurador, 'mana_atual', 0)
         if hasattr(conjurador, 'recuperar_mana'):
@@ -346,21 +382,26 @@ class AcaoFoco(AcaoCombate):
             conjurador.mana_atual = min(conjurador.mana_maxima, conjurador.mana_atual + mana_recuperada)
         mana_efetiva = conjurador.mana_atual - mana_antes
 
-        # Ativa postura defensiva durante a rodada
-        conjurador.defendendo = True
+        # Ao concentrar, abre a guarda ficando vulnerável
+        conjurador.defendendo = False
+        conjurador.vulneravel = True
         conjurador.focado = True
 
-        msg = f"{conjurador.nome} concentrou sua energia, recuperando {mana_efetiva} MP e entrando em postura defensiva!"
+        msg = f"{conjurador.nome} concentrou sua energia recuperando {mana_efetiva} MP, mas ficou vulnerável a ataques (+35% dano)!"
         
         return {
             "sucesso": True,
             "acao": self,
             "conjurador": conjurador,
+            "mana_recuperada": mana_efetiva,
+            "vulneravel": True,
+            "mensagem": msg,
             "resultados": [{
                 "alvo": conjurador,
                 "dano": 0,
                 "cura": 0,
                 "mana_recuperada": mana_efetiva,
+                "vulneravel": True,
                 "critico": False,
                 "mensagem": msg
             }]
@@ -390,6 +431,9 @@ class SkillsRegistry:
             cls.inicializar_catalogo_padrao()
 
         aliases = {
+            "defender": "defender",
+            "defesa": "defender",
+            "guarda": "defender",
             "foco": "foco_espiritual",
             "concentrar": "foco_espiritual",
             "ataque": "ataque_basico",
@@ -457,6 +501,12 @@ class SkillsRegistry:
                         alvo_tipo=info.get("alvo_tipo", "PROPRIO"),
                         condicao_aplicada=cond
                     )
+                elif tipo == "DEFESA":
+                    instancia = AcaoDefender(
+                        id_acao=info["id_acao"],
+                        nome=info["nome"],
+                        descricao=info.get("descricao", "")
+                    )
                 elif tipo == "FOCO":
                     instancia = AcaoFoco(
                         id_acao=info["id_acao"],
@@ -488,6 +538,7 @@ class SkillsRegistry:
         if not sucesso:
             # Fallback seguro caso o JSON não esteja disponível
             cls.registrar(AtaqueFisico("ataque_basico", "Golpe com Cajado", "Ataque físico", 12))
+            cls.registrar(AcaoDefender("defender", "Defender", "Assume postura defensiva"))
             cls.registrar(AcaoFoco("foco_espiritual", "Concentrar", "Recupera Mana"))
             cls.registrar(MagiaOfensiva("bola_de_fogo", "Bola de Fogo", "Fogo", "FOGO", 12, 22))
             cls.registrar(MagiaOfensiva("levitar", "Pulso de Gravidade", "Arcano", "ARCANO", 14, 24))

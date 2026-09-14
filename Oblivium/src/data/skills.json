@@ -9,15 +9,25 @@
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 12
     },
+    "defender": {
+        "id_acao": "defender",
+        "nome": "Defender",
+        "descricao": "Assume postura de guarda. Reduz danos recebidos pela metade e esquiva com facilidade.",
+        "tipo": "DEFESA",
+        "elemento": "NEUTRO",
+        "custo_mana": 0,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 0
+    },
     "foco_espiritual": {
         "id_acao": "foco_espiritual",
-        "nome": "Concentrar",
-        "descricao": "Medita brevemente para recuperar Mana e fortalecer a postura defensiva.",
+        "nome": "Foco Espiritual",
+        "descricao": "Canaliza energia espiritual para recuperar grande quantidade de Mana, mas fica vulnerável (+35% dano).",
         "tipo": "FOCO",
         "elemento": "NEUTRO",
         "custo_mana": 0,
         "alvo_tipo": "PROPRIO",
-        "poder_base": 10
+        "poder_base": 15
     },
     "bola_de_fogo": {
         "id_acao": "bola_de_fogo",

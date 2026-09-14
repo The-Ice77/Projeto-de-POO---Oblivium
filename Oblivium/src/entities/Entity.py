@@ -33,6 +33,7 @@ class Entidade:
         
         # Estado de combate e efeitos
         self.defendendo = False
+        self.vulneravel = False
         self.focado = False
         self.condicoes = [] # Lista de instâncias de Condicao ativas
         
@@ -189,12 +190,13 @@ class Entidade:
         self.mana_atual = self.mana_maxima
         self.vivo = True
         self.defendendo = False
+        self.vulneravel = False
         self.focado = False
         self.condicoes.clear()
         
     def aplicar_dano(self, dano_bruto, tipo="fisico"):
         """
-        Aplica dano considerando a defesa da entidade e o estado de defesa.
+        Aplica dano considerando a defesa da entidade, postura defensiva e estado vulnerável.
         Retorna o valor do dano final efetivamente sofrido.
         """
         if not self.vivo:
@@ -202,11 +204,19 @@ class Entidade:
             
         defesa = self.atributos.calcular_defesa_fisica() if tipo == "fisico" else self.atributos.calcular_defesa_magica()
         
-        # Se estiver em postura defensiva, a defesa é dobrada
+        # Se estiver em postura defensiva, defesa amplificada e reduz dano recebido pela metade
         if self.defendendo:
-            defesa = int(defesa * 2) + 2
+            defesa = int(defesa * 2.2) + 4
+            dano_calculado = max(1, dano_bruto - defesa)
+            dano_final = max(1, int(dano_calculado * 0.55))
+        else:
+            dano_calculado = max(1, dano_bruto - defesa)
+            dano_final = dano_calculado
             
-        dano_final = max(1, dano_bruto - defesa)
+        # Se estiver vulnerável (após Concentrar), sofre +35% de dano amplificado
+        if getattr(self, 'vulneravel', False):
+            dano_final = int(dano_final * 1.35) + 2
+            
         self.receber_dano(dano_final)
         return dano_final
 
@@ -255,6 +265,8 @@ class Entidade:
     def resetar_turno_combate(self):
         """Reseta posturas temporárias do turno anterior."""
         self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
 
     def morrer(self):
         self.condicoes.clear()

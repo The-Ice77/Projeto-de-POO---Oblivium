@@ -76,6 +76,10 @@ class CombatScreen:
         # Submenu de Magias
         self.magias_disponiveis = []
         self.indice_magia = 0
+
+        # Submenu de Concentrar (Ações Táticas: Foco Espiritual e Defender)
+        self.opcoes_concentrar = []
+        self.indice_concentrar = 0
         
         # Seleção de Alvo
         self.indice_alvo = 0
@@ -84,6 +88,7 @@ class CombatScreen:
         # Entidades e Fila de Turnos
         self.jogador = None
         self.inimigos = []
+        self.ordem_turnos_base = []
         self.ordem_turnos = [] 
         self.indice_turno_atual = 0
         
@@ -110,6 +115,7 @@ class CombatScreen:
         # Hitboxes de Interação de Mouse
         self.rects_menu_principal = []
         self.rects_magias = []
+        self.rects_concentrar = []
         self.rects_inimigos = []
         self.rect_botao_voltar = pygame.Rect(0, 0, 0, 0)
         self.rect_banner = pygame.Rect(0, 0, 0, 0)
@@ -131,6 +137,7 @@ class CombatScreen:
         
         self.indice_menu = 0
         self.indice_magia = 0
+        self.indice_concentrar = 0
         self.indice_alvo = 0
         self.acao_selecionada = None
         self.textos_flutuantes.clear()
@@ -147,14 +154,23 @@ class CombatScreen:
         if hasattr(self.jogador, 'entrar_combate'):
             self.jogador.entrar_combate()
 
-        # Carrega grimório do jogador
+        # Carrega grimório e grupo de concentração do jogador
         self._carregar_magias_jogador()
+        self._carregar_acoes_concentrar()
+
+        # Estabelece a ordem de turnos base uma única vez no início do combate
+        participantes = [self.jogador] + [i for i in self.inimigos if getattr(i, 'vivo', True)]
+        self.ordem_turnos_base = sorted(
+            participantes,
+            key=lambda ent: ent.calcular_iniciativa() if hasattr(ent, 'calcular_iniciativa') else 10,
+            reverse=True
+        )
 
         self.adicionar_log("A batalha começou!")
         self._iniciar_nova_rodada()
 
     def _carregar_magias_jogador(self):
-        """Carrega a lista de ações disponíveis para o jogador."""
+        """Carrega a lista de magias disponíveis para o jogador."""
         self.magias_disponiveis.clear()
         ids_magias = getattr(self.jogador, 'magias_desbloqueadas', ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"])
         for id_magia in ids_magias:
@@ -162,21 +178,19 @@ class CombatScreen:
             if acao:
                 self.magias_disponiveis.append(acao)
 
-    def _iniciar_nova_rodada(self):
-        """Calcula a ordem de iniciativa de todas as criaturas vivas."""
-        participantes = [self.jogador] + [i for i in self.inimigos if getattr(i, 'vivo', True)]
-        
-        # Reseta defesas ativas do turno anterior
-        for p in participantes:
-            if hasattr(p, 'resetar_turno_combate'):
-                p.resetar_turno_combate()
+    def _carregar_acoes_concentrar(self):
+        """Carrega o grupo de ações táticas de Concentração (Foco Espiritual e Defender)."""
+        self.opcoes_concentrar.clear()
+        foco = SkillsRegistry.get("foco_espiritual")
+        defesa = SkillsRegistry.get("defender")
+        if foco:
+            self.opcoes_concentrar.append(foco)
+        if defesa:
+            self.opcoes_concentrar.append(defesa)
 
-        # Ordena por iniciativa decrescente
-        self.ordem_turnos = sorted(
-            participantes,
-            key=lambda ent: ent.calcular_iniciativa() if hasattr(ent, 'calcular_iniciativa') else 10,
-            reverse=True
-        )
+    def _iniciar_nova_rodada(self):
+        """Prepara a rodada mantendo a ordem consistente de turnos entre participantes vivos."""
+        self.ordem_turnos = [p for p in self.ordem_turnos_base if getattr(p, 'vivo', True)]
         self.indice_turno_atual = 0
         self._avancar_para_proximo_turno()
 
@@ -193,7 +207,7 @@ class CombatScreen:
             self._finalizar_derrota()
             return
 
-        # 3. Se a rodada acabou, começa nova rodada
+        # 3. Se a rodada acabou, começa nova rodada mantendo a consistência dos turnos
         if self.indice_turno_atual >= len(self.ordem_turnos):
             self._iniciar_nova_rodada()
             return
@@ -205,6 +219,10 @@ class CombatScreen:
             self.indice_turno_atual += 1
             self._avancar_para_proximo_turno()
             return
+
+        # Reseta postura temporária apenas no início do turno da própria entidade
+        if hasattr(entidade_atual, 'resetar_turno_combate'):
+            entidade_atual.resetar_turno_combate()
 
         # 4. Processa Condições / DoT / CC no início do turno
         if hasattr(entidade_atual, 'processar_condicoes_inicio_turno'):
@@ -231,7 +249,6 @@ class CombatScreen:
         if entidade_atual is self.jogador:
             self.estado_combate = "MENU_PRINCIPAL"
             self.indice_menu = 0
-            self.adicionar_log("Sua vez! Escolha uma ação.")
         else:
             self.estado_combate = "TURNO_INIMIGO"
             self.timer_acao = 45
@@ -254,6 +271,12 @@ class CombatScreen:
                 for idx, r in enumerate(self.rects_magias):
                     if r.collidepoint(pos):
                         self.indice_magia = idx
+                        break
+
+            elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                for idx, r in enumerate(self.rects_concentrar):
+                    if r.collidepoint(pos):
+                        self.indice_concentrar = idx
                         break
 
             elif self.estado_combate == "SELECIONANDO_ALVO":
@@ -288,6 +311,16 @@ class CombatScreen:
                         self._selecionar_magia_grimorio()
                         return
 
+            elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                if self.rect_botao_voltar.collidepoint(pos):
+                    self.estado_combate = "MENU_PRINCIPAL"
+                    return
+                for idx, r in enumerate(self.rects_concentrar):
+                    if r.collidepoint(pos):
+                        self.indice_concentrar = idx
+                        self._selecionar_acao_concentrar()
+                        return
+
             elif self.estado_combate == "SELECIONANDO_ALVO":
                 for idx, r in enumerate(self.rects_inimigos):
                     if r.collidepoint(pos):
@@ -319,6 +352,19 @@ class CombatScreen:
                     self.indice_magia = (self.indice_magia + 1) % len(self.magias_disponiveis)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self._selecionar_magia_grimorio()
+                elif evento.key == pygame.K_ESCAPE:
+                    self.estado_combate = "MENU_PRINCIPAL"
+
+            elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                if not self.opcoes_concentrar:
+                    self.estado_combate = "MENU_PRINCIPAL"
+                    return
+                if evento.key in [pygame.K_UP, pygame.K_w]:
+                    self.indice_concentrar = (self.indice_concentrar - 1) % len(self.opcoes_concentrar)
+                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
+                    self.indice_concentrar = (self.indice_concentrar + 1) % len(self.opcoes_concentrar)
+                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
+                    self._selecionar_acao_concentrar()
                 elif evento.key == pygame.K_ESCAPE:
                     self.estado_combate = "MENU_PRINCIPAL"
 
@@ -359,11 +405,19 @@ class CombatScreen:
             self.indice_magia = 0
 
         elif opcao == "Concentrar":
-            foco = SkillsRegistry.get("foco")
-            self._executar_acao_jogador(foco, self.jogador)
+            self._carregar_acoes_concentrar()
+            self.estado_combate = "SUBMENU_CONCENTRAR"
+            self.indice_concentrar = 0
 
         elif opcao == "Fugir":
             self._tentar_fuga()
+
+    def _selecionar_acao_concentrar(self):
+        """Executa a ação tática de Concentração ou Defesa selecionada no submenu."""
+        if not self.opcoes_concentrar:
+            return
+        acao = self.opcoes_concentrar[self.indice_concentrar]
+        self._executar_acao_jogador(acao, self.jogador)
 
     def _selecionar_magia_grimorio(self):
         if not self.magias_disponiveis:
@@ -398,24 +452,33 @@ class CombatScreen:
         
         resultado = acao.executar(self.jogador, alvo)
         
-        # 1. Trata mensagem única direta (ex: Foco)
+        # 1. Trata mensagem única direta (ex: Foco, Defesa)
         if resultado.get("mensagem"):
             self.adicionar_log(resultado["mensagem"])
 
         if resultado.get("cura", 0) > 0:
             self.adicionar_texto_flutuante(f"+{resultado['cura']}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
         if resultado.get("mana_recuperada", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{resultado['mana_recuperada']} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA)
+            self.adicionar_texto_flutuante(f"+{resultado['mana_recuperada']} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA, duracao=80)
+        if resultado.get("defendendo"):
+            self.adicionar_texto_flutuante("EM GUARDA!", self.jogador.x + 30, self.jogador.y - 10, (100, 210, 255), duracao=80)
+        if resultado.get("vulneravel"):
+            self.adicionar_texto_flutuante("VULNERÁVEL!", self.jogador.x + 30, self.jogador.y - 10, (240, 130, 130), duracao=80)
 
         # 2. Trata lista de resultados de alvos (ataques e magias)
         for r in resultado.get("resultados", []):
-            if r.get("mensagem"):
+            if r.get("mensagem") and r.get("mensagem") != resultado.get("mensagem"):
                 self.adicionar_log(r["mensagem"])
                 
             alvo_r = r.get("alvo")
             if r.get("errou", False) and alvo_r:
-                texto_erro = "ESQUIVOU!" if r.get("motivo") == "esquiva" else "ERROU!"
-                self.adicionar_texto_flutuante(texto_erro, alvo_r.x + 20, alvo_r.y - 10, UI_TEXTO_APAGADO)
+                if r.get("motivo") == "esquiva":
+                    texto_erro = "ESQUIVOU!"
+                    cor_erro = (100, 210, 255) # Cyan
+                else:
+                    texto_erro = "ERROU!"
+                    cor_erro = (240, 160, 100) # Âmbar
+                self.adicionar_texto_flutuante(texto_erro, alvo_r.x + 20, alvo_r.y - 15, cor_erro, duracao=80)
             elif r.get("dano", 0) > 0 and alvo_r:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
@@ -454,8 +517,13 @@ class CombatScreen:
             if r.get("mensagem"):
                 self.adicionar_log(r["mensagem"])
             if r.get("errou", False):
-                texto_erro = "ESQUIVOU!" if r.get("motivo") == "esquiva" else "ERROU!"
-                self.adicionar_texto_flutuante(texto_erro, self.jogador.x + 30, self.jogador.y - 10, UI_TEXTO_APAGADO)
+                if r.get("motivo") == "esquiva":
+                    texto_erro = "ESQUIVOU!"
+                    cor_erro = (100, 210, 255) # Cyan
+                else:
+                    texto_erro = "ERROU!"
+                    cor_erro = (240, 160, 100) # Âmbar
+                self.adicionar_texto_flutuante(texto_erro, self.jogador.x + 30, self.jogador.y - 15, cor_erro, duracao=80)
             elif r.get("dano", 0) > 0:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[self.jogador] = 12
@@ -582,8 +650,8 @@ class CombatScreen:
         if len(self.historico_log) > 6:
             self.historico_log.pop(0)
 
-    def adicionar_texto_flutuante(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE):
-        self.textos_flutuantes.append(TextoFlutuante(texto, x, y, cor=cor))
+    def adicionar_texto_flutuante(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60):
+        self.textos_flutuantes.append(TextoFlutuante(texto, x, y, cor=cor, duracao=duracao))
 
     def desenhar_barra(self, tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=FUNDO_BARRA, largura=180, altura=12):
         """Desenha barras estilizadas com borda suave e visual interpolado."""
@@ -727,8 +795,8 @@ class CombatScreen:
         self.rects_menu_principal.clear()
         if self.estado_combate == "MENU_PRINCIPAL":
             for i, opcao in enumerate(self.opcoes_menu_principal):
-                item_y = painel_rect.y + 20 + (i * 50)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 42)
+                item_y = painel_rect.y + 14 + (i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
                 self.rects_menu_principal.append(item_rect)
                 
                 if i == self.indice_menu:
@@ -741,7 +809,7 @@ class CombatScreen:
                     marcador = "  "
                     
                 txt = self.fonte_menu.render(f"{marcador}{opcao}", True, cor)
-                tela.blit(txt, (item_rect.x + 14, item_rect.y + 8))
+                tela.blit(txt, (item_rect.x + 14, item_rect.y + 6))
 
         # RENDERIZAR SUBMENU DE MAGIAS COM TOOLTIP
         self.rects_magias.clear()
@@ -773,7 +841,39 @@ class CombatScreen:
             # Exibe painel de detalhes (Tooltip) da magia selecionada
             if self.indice_magia < len(self.magias_disponiveis):
                 magia_sel = self.magias_disponiveis[self.indice_magia]
-                self._desenhar_tooltip_magia(tela, magia_sel, painel_rect.x + largura_secao_menu + 20, painel_rect.bottom - 55)
+                self._desenhar_tooltip_acao(tela, magia_sel, painel_rect.x + largura_secao_menu + 20, painel_rect.bottom - 55)
+
+        # RENDERIZAR SUBMENU DE CONCENTRAR COM TOOLTIP
+        self.rects_concentrar.clear()
+        if self.estado_combate == "SUBMENU_CONCENTRAR":
+            self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 100, 26)
+            pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
+            pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
+            txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
+            tela.blit(txt_voltar, (self.rect_botao_voltar.x + 14, self.rect_botao_voltar.y + 5))
+
+            for i, acao in enumerate(self.opcoes_concentrar):
+                item_y = painel_rect.y + 46 + (i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
+                self.rects_concentrar.append(item_rect)
+                
+                if i == self.indice_concentrar:
+                    pygame.draw.rect(tela, (28, 28, 34), item_rect)
+                    pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
+                    cor = TXT_SISTEMA_NARRADOR
+                    marcador = "> "
+                else:
+                    cor = CINZA_CLARO
+                    marcador = "  "
+                    
+                sufixo = "(+MP)" if acao.id_acao == "foco_espiritual" else "(Guarda)"
+                txt = self.fonte_menu.render(f"{marcador}{acao.nome} {sufixo}", True, cor)
+                tela.blit(txt, (item_rect.x + 10, item_rect.y + 6))
+
+            # Exibe painel de detalhes (Tooltip) da ação de concentração selecionada
+            if self.indice_concentrar < len(self.opcoes_concentrar):
+                acao_sel = self.opcoes_concentrar[self.indice_concentrar]
+                self._desenhar_tooltip_acao(tela, acao_sel, painel_rect.x + largura_secao_menu + 20, painel_rect.bottom - 55)
 
         # RENDERIZAR SELEÇÃO DE ALVOS
         elif self.estado_combate == "SELECIONANDO_ALVO":
@@ -794,9 +894,24 @@ class CombatScreen:
         txt_cabecalho_log = self.fonte_status.render("HISTORICO DE COMBATE", True, UI_TEXTO_APAGADO)
         tela.blit(txt_cabecalho_log, (pos_log_x, pos_log_y))
         
-        linhas_exibidas = self.historico_log[-4:] if self.estado_combate == "SUBMENU_MAGIA" else self.historico_log[-6:]
+        linhas_exibidas = self.historico_log[-4:] if self.estado_combate in ["SUBMENU_MAGIA", "SUBMENU_CONCENTRAR"] else self.historico_log[-6:]
         for idx, linha in enumerate(linhas_exibidas):
-            cor_linha = BRANCO if idx == len(linhas_exibidas) - 1 else CINZA_CLARO
+            is_latest = (idx == len(linhas_exibidas) - 1)
+            
+            # Cores temáticas para eventos no histórico
+            if "esquivou" in linha.lower():
+                cor_linha = (120, 210, 255) # Cyan para esquiva
+            elif "errou" in linha.lower():
+                cor_linha = (245, 170, 110) # Âmbar para erro
+            elif "CRÍTICO" in linha:
+                cor_linha = (255, 220, 90)  # Dourado para crítico
+            elif "recuperou" in linha.lower() or "curou" in linha.lower():
+                cor_linha = (110, 235, 130) # Verde para cura
+            elif is_latest:
+                cor_linha = BRANCO
+            else:
+                cor_linha = CINZA_CLARO
+                
             txt_linha = self.fonte_log.render(linha, True, cor_linha)
             tela.blit(txt_linha, (pos_log_x, pos_log_y + 28 + (idx * 28)))
 
@@ -808,13 +923,21 @@ class CombatScreen:
         if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
             self._desenhar_banner_fim_combate(tela)
 
-    def _desenhar_tooltip_magia(self, tela, magia, x, y):
-        """Desenha uma faixa descritiva elegante para a magia selecionada."""
+    def _desenhar_tooltip_acao(self, tela, acao, x, y):
+        """Desenha uma faixa descritiva elegante para a habilidade ou ação selecionada."""
         rect_tt = pygame.Rect(x, y, self.largura - x - 55, 42)
         pygame.draw.rect(tela, (20, 20, 25), rect_tt)
         pygame.draw.rect(tela, CINZA_CLARO, rect_tt, 1)
 
-        detalhe = f"[{magia.elemento}] Poder: {magia.poder_base} | {magia.descricao}"
+        if getattr(acao, 'tipo', '') == "MAGICO":
+            detalhe = f"[{acao.elemento}] Poder: {acao.poder_base} | {acao.descricao}"
+        elif getattr(acao, 'tipo', '') == "FOCO":
+            detalhe = f"[TÁTICO] Foco Espiritual | {acao.descricao}"
+        elif getattr(acao, 'tipo', '') == "DEFESA":
+            detalhe = f"[TÁTICO] Defender | {acao.descricao}"
+        else:
+            detalhe = f"[{getattr(acao, 'elemento', 'NEUTRO')}] {acao.descricao}"
+
         txt_d = self.fonte_tooltip.render(detalhe, True, UI_TEXTO_DESTAQUE)
         tela.blit(txt_d, (rect_tt.x + 12, rect_tt.y + 11))
 
