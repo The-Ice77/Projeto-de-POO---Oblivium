@@ -45,3 +45,21 @@ Adição do menu de configuração com alteração de teclas e outros
 
 ### Atualização v[0.3.8.5] Correção de erros
 - Correção de bugs encontrados devido as atualizações da versão anterior
+
+### Atualização v[0.4.0] - Sistema Completo de Combate por Turnos, Puzzles e Persistência
+#### Implementação, Correção e Aprimoramento
+- **Sistema de 6 Atributos (POO)**: Implementação de Força, Destreza, Constituição, Intelecto, Sabedoria e Presença na classe `Entidade` e derivadas (`Player`, `Enemy`, `Boss`).
+- **Catálogo de Habilidades e Bestiário JSON**: Carregamento dinâmico e desacoplado de `skills.json`, `bestiario.json` e `condicoes.json`.
+- **Motor e Interface de Combate por Turnos**: Batalha por turnos com controles híbridos (Mouse/Teclado), HUD estilizado de acordo com a identidade visual de Oblivium, barras interpoladas, tremor de impacto e textos flutuantes.
+- **Sistema de Mana para Inimigos e Chefes**: Atribuição de `mana_base` e `mana_maxima` para todos os monstros, permitindo ao Boss conjurar seus ataques especiais (*Impacto Anômalo*, *Onda Corrosiva*) com dedução de MP e IA inteligente.
+- **Harmonização de Puzzles e Overworld**: Interação direta com a tecla `[E]` nas rochas da Estrada 2 e remoção física de obstáculos via `mapa_casa.desobstruir_estrada()`.
+- **Correção no Sistema de Save/Load**: Preservação total de saves manuais sem auto-saves indesejados pós-batalha, desobstrução automática de cenários concluídos ao carregar, e reset estrito de memórias para 0 em Novos Jogos.
+- **Suporte Standalone**: Configuração de resolução de raiz nos módulos para permitir execução direta via terminal sem `ModuleNotFoundError`.
+
+### Atualização v[0.4.1] - Submenu de Ações Táticas, Feedback de Esquiva e Ordem de Turnos
+#### Implementação, Correção e Aprimoramento
+- **Submenu Concentrar (Ações Táticas)**: Agrupamento da opção *"Concentrar"* no menu principal de combate em um submenu contendo:
+  - *Foco Espiritual*: Canaliza energia espiritual para recuperar MP, deixando a personagem vulnerável (+35% de dano sofrido).
+  - *Defender*: Assume postura de guarda total, reduzindo danos recebidos pela metade e aumentando expressivamente a evasão (+45% de esquiva).
+- **Consistência na Fila de Turnos (Fim dos Ataques Duplos)**: A iniciativa agora é calculada uma única vez no início do combate (`ordem_turnos_base`), garantindo que cada participante aja estritamente uma vez por rodada em ordem round-robin, eliminando o comportamento onde inimigos (como o Boss ou a Sombra 2) atacavam duas vezes seguidas na virada de rodada.
+- **Destaque Visual e Log de Esquivas**: Mensagens de esquiva no histórico de combate e textos flutuantes (`"ESQUIVOU!"` em Cyan e `"EM GUARDA!"`) destacados com animação suave e cores distintas para feedback imediato das ações defensivas.

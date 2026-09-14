@@ -1,19 +1,43 @@
 # src/entities/Enemy.py
 import pygame
+import random
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.entities.Entity import Entidade 
+from src.mechanics.attributes import Atributos
 
 class Enemy(Entidade):
-    # Aceitamos o 'sprite' na assinatura para não quebrar instâncias antigas, mas não o usamos
-    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True):
-        
-        # Chama a classe mãe (Entidade) usando a nova assinatura sem sprite
-        super().__init__(nome, vida_maxima, x, y, velocidade)
+    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True, atributos=None, recompensas=None, mana_maxima=None):
+        if atributos is None:
+            atributos = Atributos(
+                forca=10,
+                destreza=10,
+                constituicao=10,
+                intelecto=8,
+                sabedoria=8,
+                presenca=8
+            )
+            
+        super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos, mana_maxima=mana_maxima)
 
         # Atributos exclusivos do inimigo
         self.dano = dano
         self.agressivo = agressivo
         self.alvo_detectado = False
         
+        # Habilidades disponíveis para o inimigo
+        self.habilidades = ["ataque_basico"]
+        
+        # Recompensas ao ser derrotado
+        recompensas_padrao = {"moedas": 10, "memorias": 0, "xp": 15}
+        self.recompensas = recompensas if recompensas is not None else recompensas_padrao
+
         # --- ATRIBUTOS DE RENDERIZAÇÃO (FALLBACK) ---
         if "Anomalia" in self.nome:
             self.largura = 55
@@ -59,16 +83,12 @@ class Enemy(Entidade):
             vetor_x = (vetor_x / tamanho_vetor) * self.velocidade
             vetor_y = (vetor_y / tamanho_vetor) * self.velocidade
 
-        # Utiliza o método mover herdado de Entidade para atualizar a direção (virado_direita) de forma segura
         if hasattr(self, 'mover'):
-            # Passamos [] para as hitboxes para ele andar livremente, 
-            # mas aproveitamos a atualização do estado da animação e da direção
             self.mover(vetor_x, vetor_y, [])
         else:
             self.x += vetor_x
             self.y += vetor_y
 
-    # --- SISTEMA DE RENDERIZAÇÃO ROBUSTO ---
     # --- SISTEMA DE RENDERIZAÇÃO ROBUSTO ---
     def desenhar(self, tela):
         if not getattr(self, 'vivo', True):
@@ -92,17 +112,24 @@ class Enemy(Entidade):
             pygame.draw.rect(tela, (50, 0, 0), retangulo, 2)
 
     # --- SISTEMA DE COMBATE LÓGICO ---
-    def atacar(self, alvo):
-        if not getattr(self, 'vivo', True):
-            return
-        # Busca o dano de forma segura, se não existir aplica 0
-        alvo.receber_dano(getattr(self, 'dano', 0))
+    def calcular_dano_base(self):
+        """Calcula o dano bruto baseado no dano base + modificador de força/destreza."""
+        variacao = random.randint(-1, 2)
+        mod = max(0, self.atributos.mod_for)
+        return max(1, self.dano + mod + variacao)
 
-    def morrer(self):
-        self.vivo = False
+    def atacar(self, alvo):
+        """Ataca o alvo aplicando dano mitigado pela defesa do alvo."""
+        if not getattr(self, 'vivo', True):
+            return 0
+        dano_bruto = self.calcular_dano_base()
+        dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="fisico")
+        return dano_sofrido
 
     def mostrar_status(self):
         print("<-- ENEMY -->")
         print(f"Nome: {getattr(self, 'nome', 'Desconhecido')}")
+        print(f"Vida: {self.vida_atual}/{self.vida_maxima}")
         print(f"Dano: {getattr(self, 'dano', 0)}")
+        print(f"Atributos: {self.atributos}")
         print(f"Posição: ({self.x}, {self.y})")

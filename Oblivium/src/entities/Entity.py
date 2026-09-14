@@ -1,17 +1,41 @@
 # src/entities/Entity.py
 import pygame
 import math
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.utils.resource_manager import Animacao
+from src.mechanics.attributes import Atributos
 
 class Entidade:
-    def __init__(self, nome, vida_maxima, x, y, velocidade):
+    def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None, mana_maxima=None):
         self.nome = nome
+        self.atributos = atributos if atributos is not None else Atributos()
         self.vida_maxima = vida_maxima
         self.vida_atual = vida_maxima
+        
+        # Sistema de Mana baseada em Atributos ou valor explícito
+        if mana_maxima is not None:
+            self.mana_maxima = mana_maxima
+        else:
+            self.mana_maxima = self.atributos.calcular_mana_maxima(mana_base=20)
+        self.mana_atual = self.mana_maxima
+
         self.x = float(x)
         self.y = float(y)
         self.velocidade = velocidade
         self.vivo = True
+        
+        # Estado de combate e efeitos
+        self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
+        self.condicoes = [] # Lista de instâncias de Condicao ativas
         
         self.largura = 40
         self.altura = 40
@@ -140,9 +164,110 @@ class Entidade:
             self.vivo = False
             self.morrer()
             
+    def esta_vivo(self):
+        """Retorna se a entidade está viva e com pontos de vida."""
+        return self.vivo and self.vida_atual > 0
+
     def curar(self, cura):
         if not self.vivo: return
         self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)
+
+    def recuperar_mana(self, quantidade):
+        """Recupera mana sem ultrapassar o limite máximo."""
+        if not self.vivo: return
+        self.mana_atual = min(self.mana_maxima, self.mana_atual + quantidade)
+
+    def gastar_mana(self, custo):
+        """Deduz mana se houver o suficiente. Retorna True se sucesso, False se insuficiente."""
+        if self.mana_atual >= custo:
+            self.mana_atual -= custo
+            return True
+        return False
+
+    def restaurar_total(self):
+        """Restaura completamente a vida, a mana e remove todas as condições ativas."""
+        self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
+        self.vivo = True
+        self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
+        self.condicoes.clear()
         
+    def aplicar_dano(self, dano_bruto, tipo="fisico"):
+        """
+        Aplica dano considerando a defesa da entidade, postura defensiva e estado vulnerável.
+        Retorna o valor do dano final efetivamente sofrido.
+        """
+        if not self.vivo:
+            return 0
+            
+        defesa = self.atributos.calcular_defesa_fisica() if tipo == "fisico" else self.atributos.calcular_defesa_magica()
+        
+        # Se estiver em postura defensiva, defesa amplificada e reduz dano recebido pela metade
+        if self.defendendo:
+            defesa = int(defesa * 2.2) + 4
+            dano_calculado = max(1, dano_bruto - defesa)
+            dano_final = max(1, int(dano_calculado * 0.55))
+        else:
+            dano_calculado = max(1, dano_bruto - defesa)
+            dano_final = dano_calculado
+            
+        # Se estiver vulnerável (após Concentrar), sofre +35% de dano amplificado
+        if getattr(self, 'vulneravel', False):
+            dano_final = int(dano_final * 1.35) + 2
+            
+        self.receber_dano(dano_final)
+        return dano_final
+
+    def calcular_iniciativa(self):
+        """Retorna a iniciativa para definir ordem de turnos."""
+        return self.atributos.calcular_iniciativa()
+
+    def adicionar_condicao(self, condicao):
+        """Aplica ou renova uma condição de estado na entidade."""
+        for c in self.condicoes:
+            if c.id_condicao == condicao.id_condicao:
+                c.duracao = max(c.duracao, condicao.duracao)
+                c.intensidade = max(c.intensidade, condicao.intensidade)
+                return
+        self.condicoes.append(condicao)
+
+    def remover_condicao(self, id_condicao):
+        """Remove uma condição específica da entidade."""
+        self.condicoes = [c for c in self.condicoes if c.id_condicao != id_condicao]
+
+    def processar_condicoes_inicio_turno(self):
+        """
+        Processa todas as condições ativas no início do turno da entidade.
+        Retorna lista de relatórios de efeitos ocorridos e flag se a ação foi impedida.
+        """
+        relatorios = []
+        impede_acao = False
+
+        for cond in self.condicoes[:]:
+            res = cond.processar_inicio_turno(self)
+            if res:
+                relatorios.append(res)
+                if res.get("impede_acao", False):
+                    impede_acao = True
+            
+            if cond.expirou():
+                self.condicoes.remove(cond)
+
+        return relatorios, impede_acao
+
+    @property
+    def esta_atordoado(self):
+        """Retorna se a entidade está sob algum efeito incapacitante."""
+        return any(c.tipo == "CC" for c in self.condicoes)
+
+    def resetar_turno_combate(self):
+        """Reseta posturas temporárias do turno anterior."""
+        self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
+
     def morrer(self):
+        self.condicoes.clear()
         self.mudar_estado("morrer")

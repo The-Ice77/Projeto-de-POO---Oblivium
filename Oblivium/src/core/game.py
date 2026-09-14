@@ -4,6 +4,7 @@ from src.ui.menu import Menu
 from src.ui.dialogue_box import DialogueBox  
 from src.ui.intro import Intro
 from src.entities.player import Player
+from src.mechanics.attributes import Atributos
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
 from src.entities.NPC import NPC
@@ -94,9 +95,7 @@ class Game:
         self.carroceiro_visivel = False
         self.carroceiro_andando = False 
         self.conversa_carroceiro_terminou = False
-        
-        
-    
+        self.combate_estrada_concluido = False
         self.inimigos_em_cena = [] 
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
         self.controles = {
@@ -136,6 +135,18 @@ class Game:
         if novo_estado in self.estados:
             self.estado_atual = self.estados[novo_estado]
 
+    def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
+        """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""
+        self.inimigos_em_cena = inimigos
+        self.mudar_estado("COMBATE")
+        self.tela_combate.iniciar_combate(
+            jogador=self.halia,
+            inimigos=self.inimigos_em_cena,
+            on_vitoria=on_vitoria,
+            on_derrota=on_derrota,
+            on_fuga=on_fuga
+        )
+
     def run(self):
         """Loop principal e delegação de controle para o estado ativo"""
         while self.running:
@@ -169,7 +180,9 @@ class Game:
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
                 "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
-                "dinheiro": getattr(self.halia, 'dinheiro', 0)
+                "dinheiro": getattr(self.halia, 'dinheiro', 0),
+                "atributos": self.halia.atributos.to_dict(),
+                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', [])
             },
             "carroceiro": {
                 "x": self.carroceiro.x,
@@ -181,6 +194,10 @@ class Game:
                 "porta_aberta": getattr(self.mapa_casa, 'porta_aberta', False),
                 "investigou_pedras": self.investigou_pedras,
                 "flashback_magia_concluido": self.flashback_magia_concluido,
+                "magia_ativa": self.magia_ativa,
+                "magia_usada_no_puzzle": self.magia_usada_no_puzzle,
+                "puzzle_concluido": (self.magia_ativa == "CONCLUIDO"),
+                "combate_concluido": getattr(self, 'combate_estrada_concluido', False),
                 "itens_coletados": self.itens_coletados,
                 "historico_dialogos": list(self.caixa_dialogo.historico_escolhas)
             }
@@ -195,20 +212,35 @@ class Game:
             
         self.slot_atual = slot 
         self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
-        self.caixa_dialogo.historico_escolhas = set(dados["flags"].get("historico_dialogos", []))
+        self.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
         
+        # 1. Recupera as flags e o progresso
+        flags = dados.get("flags", {})
+        self.mapa_casa.porta_aberta = flags.get("porta_aberta", False)
+        self.investigou_pedras = flags.get("investigou_pedras", False)
+        self.flashback_magia_concluido = flags.get("flashback_magia_concluido", False)
+        self.magia_ativa = flags.get("magia_ativa", None)
+        self.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
+        self.combate_estrada_concluido = flags.get("combate_concluido", False)
+        self.itens_coletados = flags.get("itens_coletados", [])
         
-        # 1. Recupera as flags e a lista de itens coletados PRIMEIRO
-        self.mapa_casa.porta_aberta = dados["flags"].get("porta_aberta", False)
-        self.investigou_pedras = dados["flags"]["investigou_pedras"]
-        self.flashback_magia_concluido = dados["flags"]["flashback_magia_concluido"]
-        self.itens_coletados = dados["flags"].get("itens_coletados", [])
+        # Reseta flags temporárias de transição e batalha em andamento
+        self.inimigos_em_cena = []
+        self.cena_inimigos_andando = False
+        self.iniciando_combate = False
+        self.conversa_combate_ativa = False
+        self.transicao.estado = "INATIVO"
         
-        # 2. Carrega o cenário (que já deve nascer filtrado se o mapa consultar a lista)
-        cenario_salvo = dados["cenario_atual"]
+        # 2. Carrega o cenário e desobstrui caminhos se já resolvidos
+        cenario_salvo = dados.get("cenario_atual", "CASA")
         self.mapa_casa.carregar_cenario(cenario_salvo)
         
-        # 3. Restaura posições da Halia e NPCs exatamente como estavam
+        if cenario_salvo == "ESTRADA_2":
+            if self.magia_ativa == "CONCLUIDO" or self.combate_estrada_concluido or flags.get("puzzle_concluido", False):
+                self.magia_ativa = "CONCLUIDO"
+                self.mapa_casa.desobstruir_estrada(self.magia_usada_no_puzzle or "FOGO")
+        
+        # 3. Restaura posições da Halia, atributos e NPCs
         self.halia.x = dados["halia"]["x"]
         self.halia.y = dados["halia"]["y"]
         self.halia.vida_atual = dados["halia"]["vida_atual"]
@@ -216,11 +248,17 @@ class Game:
         self.halia.fragmentos_memoria = dados["halia"].get("fragmentos_memoria", 0)
         self.halia.dinheiro = dados["halia"].get("dinheiro", 0)
         
+        if "atributos" in dados["halia"]:
+            self.halia.atributos = Atributos.from_dict(dados["halia"]["atributos"])
+            self.halia.recalcular_status_derivados(manter_porcentagem=False)
+            
+        if "magias_desbloqueadas" in dados["halia"]:
+            self.halia.magias_desbloqueadas = dados["halia"]["magias_desbloqueadas"]
+        
         self.carroceiro.x = dados["carroceiro"]["x"]
         self.carroceiro.y = dados["carroceiro"]["y"]
         self.carroceiro_visivel = dados["carroceiro"]["visivel"]
         self.carroceiro_andando = dados["carroceiro"]["andando"]
-        
         
         return True 
 
@@ -233,8 +271,12 @@ class Game:
         
         # Reset da Halia
         self.halia.x, self.halia.y = 210, 280
-        self.halia.vida_atual = self.halia.vida_maxima
-        self.halia.mana_atual = self.halia.mana_maxima
+        self.halia.fragmentos_memoria = 0
+        self.halia.dinheiro = 0
+        self.halia.atributos = Atributos(forca=8, destreza=12, constituicao=12, intelecto=15, sabedoria=13, presenca=14)
+        self.halia.recalcular_status_derivados()
+        self.halia.restaurar_total()
+        self.halia.magias_desbloqueadas = ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"]
         
         # Reset do Carroceiro
         self.carroceiro.x, self.carroceiro.y = 1350, 330
@@ -249,6 +291,15 @@ class Game:
         self.investigou_pedras = False
         self.flashback_magia_concluido = False
         self.mapa_casa.porta_aberta = False
+        self.magia_ativa = None
+        self.magia_usada_no_puzzle = None
+        self.magia_selecionada_temporaria = None
+        self.combate_estrada_concluido = False
+        self.iniciando_combate = False
+        self.cena_inimigos_andando = False
+        self.conversa_combate_ativa = False
+        self.inimigos_em_cena = []
+        self.transicao.estado = "INATIVO"
         
         # Recarrega o cenário inicial limpo
         self.mapa_casa.carregar_cenario("CASA")
