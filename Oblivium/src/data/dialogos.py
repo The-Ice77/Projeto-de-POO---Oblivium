@@ -159,6 +159,35 @@ dialogo_entrada_estrada2 = [
 ]
 
 # --- Interações Específicas do Carroceiro na Estrada_2 ---
+conversa_seguir_capital = [
+    {"autor": "Carroceiro", "texto": "Excelente! Suba na carroça, a capital nos espera do outro lado deste vale."},
+    {"autor": "Narrador", "texto": "Com as ameaças derrotadas e o caminho liberado, Halia e o Carroceiro seguem em direção ao coração do reino..."},
+    {"autor": "Sistema", "texto": "Capítulo 1 concluído com sucesso! Obrigado por jogar esta etapa de Oblivium."}
+]
+
+no_escolhas_carroceiro_estrada2 = {
+    "pode_fechar": True,
+    "resultado_fechar": [{"autor": "Carroceiro", "texto": "Estarei pronto quando você estiver. Apenas me avise para partirmos."}],
+    "escolhas": [
+        {"id": "seguir_capital", "texto": "Subir na carroça e seguir viagem para a Capital", "resultado": conversa_seguir_capital},
+        {"id": "falar_batalha", "texto": "Essas criaturas... o que eram elas?", "resultado": [
+            {"autor": "Carroceiro", "texto": "Anomalias da névoa sombria. Desde a queda do lorde demônio, resquícios do poder dele ainda vagam sem rumo pelas estradas."},
+            {"autor": "Halia", "texto": "Entendo... Devo me manter alerta."}
+        ]}
+    ]
+}
+
+dialogo_pos_combate_vitoria = [
+    {"autor": "Carroceiro", "texto": "Incrível, Halia! Você derrotou as ameaças e a passagem está completamente desimpedida."},
+    {"autor": "Carroceiro", "texto": "Podemos continuar viagem quando você quiser."},
+    no_escolhas_carroceiro_estrada2
+]
+
+dialogo_carroceiro_pos_combate = [
+    {"autor": "Carroceiro", "texto": "A passagem está livre. Pronta para seguir viagem até a capital?"},
+    no_escolhas_carroceiro_estrada2
+]
+
 dialogo_carroceiro_pos_puzzle = [
     {"autor": "Carroceiro", "texto": "Cuidado com essas criaturas, Halia!"}
 ]

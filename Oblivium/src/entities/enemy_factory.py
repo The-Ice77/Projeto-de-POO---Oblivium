@@ -3,6 +3,13 @@ import random
 import copy
 import json
 import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.entities.Enemy import Enemy
 from src.entities.Boss import Boss
 from src.mechanics.attributes import Atributos
@@ -110,6 +117,9 @@ class EnemyFactory:
         tipo_classe = template.get("classe", "Enemy")
         classe_instancia = Boss if tipo_classe == "Boss" else Enemy
 
+        mana_base = template.get("mana_base", atributos.calcular_mana_maxima(mana_base=20))
+        mana_maxima = int(mana_base * fator_nivel)
+
         inimigo = classe_instancia(
             nome=nome,
             vida_maxima=vida_maxima,
@@ -119,7 +129,8 @@ class EnemyFactory:
             sprite=sprite,
             dano=dano,
             atributos=atributos,
-            recompensas=recompensas
+            recompensas=recompensas,
+            mana_maxima=mana_maxima
         )
 
         inimigo.habilidades = list(template.get("habilidades", ["ataque_basico"]))
@@ -194,3 +205,13 @@ class EnemyFactory:
 
 # Inicializa o carregamento do JSON ao importar o módulo
 EnemyFactory.carregar_de_json()
+
+if __name__ == "__main__":
+    print("=== [EnemyFactory] Catálogo do Bestiário ===")
+    for id_inimigo in EnemyFactory.listar_todos_tipos():
+        info = EnemyFactory.obter_info_bestiario(id_inimigo)
+        print(f"- ID: {id_inimigo:<18} | Nome: {info['nome']:<25} | Classe: {info.get('classe', 'Enemy'):<6} | HP: {info['vida_base']:<3} | MP: {info.get('mana_base', 20):<3}")
+    
+    print("\nInstanciando Anomalia Maior (Boss)...")
+    boss = EnemyFactory.criar_boss("anomalia_maior")
+    print(f"Sucesso! {boss.nome} criado com {boss.vida_atual}/{boss.vida_maxima} HP e {boss.mana_atual}/{boss.mana_maxima} MP.")

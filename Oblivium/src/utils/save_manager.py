@@ -36,3 +36,19 @@ def apagar_dados(slot):
     caminho = os.path.join(PASTA_SAVES, f"slot_{slot}.json")
     if os.path.exists(caminho):
         os.remove(caminho)
+
+def obter_resumo_slots():
+    """Retorna um dicionário com o status e informações básicas dos 3 slots de salvamento."""
+    resumos = {}
+    for slot in range(1, 4):
+        dados = carregar_dados(slot)
+        if dados:
+            resumos[slot] = {
+                "existe": True,
+                "cenario": dados.get("cenario_atual", "Desconhecido"),
+                "tempo_jogado": dados.get("tempo_jogado", 0.0),
+                "halia": dados.get("halia", {})
+            }
+        else:
+            resumos[slot] = {"existe": False}
+    return resumos

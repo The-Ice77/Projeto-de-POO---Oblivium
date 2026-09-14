@@ -1,15 +1,31 @@
 # src/entities/Entity.py
 import pygame
 import math
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.utils.resource_manager import Animacao
 from src.mechanics.attributes import Atributos
 
 class Entidade:
-    def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None):
+    def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None, mana_maxima=None):
         self.nome = nome
         self.atributos = atributos if atributos is not None else Atributos()
         self.vida_maxima = vida_maxima
         self.vida_atual = vida_maxima
+        
+        # Sistema de Mana baseada em Atributos ou valor explícito
+        if mana_maxima is not None:
+            self.mana_maxima = mana_maxima
+        else:
+            self.mana_maxima = self.atributos.calcular_mana_maxima(mana_base=20)
+        self.mana_atual = self.mana_maxima
+
         self.x = float(x)
         self.y = float(y)
         self.velocidade = velocidade
@@ -154,6 +170,27 @@ class Entidade:
     def curar(self, cura):
         if not self.vivo: return
         self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)
+
+    def recuperar_mana(self, quantidade):
+        """Recupera mana sem ultrapassar o limite máximo."""
+        if not self.vivo: return
+        self.mana_atual = min(self.mana_maxima, self.mana_atual + quantidade)
+
+    def gastar_mana(self, custo):
+        """Deduz mana se houver o suficiente. Retorna True se sucesso, False se insuficiente."""
+        if self.mana_atual >= custo:
+            self.mana_atual -= custo
+            return True
+        return False
+
+    def restaurar_total(self):
+        """Restaura completamente a vida, a mana e remove todas as condições ativas."""
+        self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
+        self.vivo = True
+        self.defendendo = False
+        self.focado = False
+        self.condicoes.clear()
         
     def aplicar_dano(self, dano_bruto, tipo="fisico"):
         """

@@ -1,4 +1,12 @@
 # src/entities/player.py
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.entities.Entity import Entidade
 from src.mechanics.attributes import Atributos
 from src.utils.resource_manager import ResourceManager, Animacao

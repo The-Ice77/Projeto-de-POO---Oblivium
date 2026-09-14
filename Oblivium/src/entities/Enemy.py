@@ -1,11 +1,19 @@
 # src/entities/Enemy.py
 import pygame
 import random
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.entities.Entity import Entidade 
 from src.mechanics.attributes import Atributos
 
 class Enemy(Entidade):
-    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True, atributos=None, recompensas=None):
+    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True, atributos=None, recompensas=None, mana_maxima=None):
         if atributos is None:
             atributos = Atributos(
                 forca=10,
@@ -16,7 +24,7 @@ class Enemy(Entidade):
                 presenca=8
             )
             
-        super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos)
+        super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos, mana_maxima=mana_maxima)
 
         # Atributos exclusivos do inimigo
         self.dano = dano

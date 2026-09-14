@@ -2,6 +2,14 @@
 import pygame
 import random
 import math
+import os
+import sys
+
+# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
+_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if _raiz_projeto not in sys.path:
+    sys.path.insert(0, _raiz_projeto)
+
 from src.mechanics.skills import SkillsRegistry
 from src.mechanics.conditions import Condicao
 from src.entities.Enemy import Enemy
@@ -412,16 +420,27 @@ class CombatScreen:
                 self.adicionar_texto_flutuante(f"+{r['cura']}", alvo_r.x + 20, alvo_r.y - 10, BARRA_VIDA_JOGADOR)
 
     def _executar_turno_inimigo(self, inimigo):
-        """IA do inimigo: seleciona habilidade temática de monstro e executa contra Halia."""
+        """IA do inimigo: seleciona habilidade temática com base na mana disponível e executa contra Halia."""
         self.estado_combate = "EXECUTANDO_ACAO"
         self.timer_acao = 75
         
-        # Escolhe ação temática do kit do monstro
+        # Filtra habilidades do kit que o inimigo tem mana para usar
         kit = getattr(inimigo, 'habilidades', ["garras_sombrias", "golpe_sombrio"])
-        id_escolhido = random.choice(kit) if kit else "garras_sombrias"
-        acao = SkillsRegistry.get(id_escolhido)
-        if not acao:
-            acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio")
+        acoes_disponiveis = []
+        for id_hab in kit:
+            acao_cand = SkillsRegistry.get(id_hab)
+            if acao_cand and acao_cand.pode_usar(inimigo):
+                acoes_disponiveis.append(acao_cand)
+                
+        if acoes_disponiveis:
+            # Se for Boss, prioriza magias com custo se houver mana, ou sorteia entre as válidas
+            magias_com_custo = [a for a in acoes_disponiveis if a.custo_mana > 0]
+            if magias_com_custo and random.random() < 0.65:
+                acao = random.choice(magias_com_custo)
+            else:
+                acao = random.choice(acoes_disponiveis)
+        else:
+            acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio") or SkillsRegistry.get("investida_sombria") or SkillsRegistry.get("ataque_basico")
 
         resultado = acao.executar(inimigo, self.jogador)
         

@@ -124,6 +124,24 @@ class Mapa:
         self.porta_aberta = True
         self.carregar_cenario("CASA")
 
+    def desobstruir_estrada(self, tipo_magia="FOGO"):
+        """Remove as pedras de bloqueio das hitboxes e as posiciona como escombros nas margens."""
+        if hasattr(self, 'pedras_deslizamento'):
+            for p in self.pedras_deslizamento:
+                if p in self.hitboxes:
+                    self.hitboxes.remove(p)
+            if tipo_magia == "FOGO":
+                self.pedras_deslizamento = [
+                    pygame.Rect(1110, 430, 20, 15), 
+                    pygame.Rect(1160, 440, 25, 20), 
+                    pygame.Rect(1090, 450, 15, 12)
+                ]
+            else:
+                self.pedras_deslizamento = [
+                    pygame.Rect(1100, 190, 60, 50),
+                    pygame.Rect(1150, 500, 65, 55)
+                ]
+
     def desenhar(self, tela):
         if self.cenario_atual == "CASA":
             # 1. Tenta desenhar o Fundo da Casa

@@ -317,10 +317,23 @@ class PlayingState(State):
                 if self.game.mapa_casa.cenario_atual == "ESTRADA":
                     self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_hub_carroceiro))
                 elif self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-                    if self.game.magia_ativa == "CONCLUIDO":
+                    if getattr(self.game, 'combate_estrada_concluido', False):
+                        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_pos_combate))
+                    elif self.game.magia_ativa == "CONCLUIDO":
                         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_pos_puzzle))
                     else:
                         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_impedimento))
+                return
+
+        # Interação direta com as rochas na Estrada 2
+        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
+            if self.game.halia.x >= 950:
+                self.game.investigou_pedras = True
+                if self.game.flashback_magia_concluido:
+                    self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)])
+                else:
+                    self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_investigar_pedras))
+                return
 
     def _update_transitions(self):
         if self.game.transicao.update() if hasattr(self.game.transicao, 'update') else self.game.transicao.atualizar():
@@ -329,9 +342,13 @@ class PlayingState(State):
                 self.game.transicao.estado = "CLAREANDO"
                 
                 def on_vitoria():
+                    self.game.combate_estrada_concluido = True
+                    self.game.magia_ativa = "CONCLUIDO"
+                    self.game.mapa_casa.desobstruir_estrada(self.game.magia_usada_no_puzzle or "FOGO")
                     self.game.inimigos_em_cena.clear()
                     self.game.cena_inimigos_andando = False
                     self.game.mudar_estado("JOGANDO")
+                    self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_pos_combate_vitoria))
                     
                 def on_derrota():
                     self.game.halia.restaurar_total()
@@ -399,6 +416,12 @@ class PlayingState(State):
             if area_interacao.colliderect(r_c) and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
                 txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Conversar", True, INDICADOR_INTERACAO)
                 tela.blit(txt, (self.game.carroceiro.x + (self.game.carroceiro.largura // 2) - (txt.get_width() // 2), self.game.carroceiro.y - 25))
+
+        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
+            if self.game.halia.x >= 950 and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
+                txt_acao = "Usar Magia" if self.game.flashback_magia_concluido else "Investigar Bloqueio"
+                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] {txt_acao}", True, INDICADOR_INTERACAO)
+                tela.blit(txt, (1060, 220))
 
     def _draw_ui_overlays(self, tela):
         self.game.mg_timing.desenhar(tela)

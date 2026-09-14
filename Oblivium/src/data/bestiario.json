@@ -3,6 +3,7 @@
         "nome": "Sombra Menor",
         "classe": "Enemy",
         "vida_base": 30,
+        "mana_base": 20,
         "velocidade": 2.5,
         "dano_base": 8,
         "atributos": {
@@ -26,6 +27,7 @@
         "nome": "Sombra Guardiã",
         "classe": "Enemy",
         "vida_base": 45,
+        "mana_base": 25,
         "velocidade": 2.0,
         "dano_base": 12,
         "atributos": {
@@ -49,6 +51,7 @@
         "nome": "Espectro Errante",
         "classe": "Enemy",
         "vida_base": 35,
+        "mana_base": 45,
         "velocidade": 2.2,
         "dano_base": 10,
         "atributos": {
@@ -72,6 +75,7 @@
         "nome": "Anomalia Maior",
         "classe": "Boss",
         "vida_base": 80,
+        "mana_base": 60,
         "velocidade": 2.0,
         "dano_base": 16,
         "atributos": {
@@ -95,6 +99,7 @@
         "nome": "Guardião Antigo das Rochas",
         "classe": "Boss",
         "vida_base": 120,
+        "mana_base": 80,
         "velocidade": 1.5,
         "dano_base": 20,
         "atributos": {
@@ -105,7 +110,7 @@
             "sabedoria": 14,
             "presenca": 15
         },
-        "habilidades": ["ataque_basico", "golpe_sombrio", "impacto_anomalo"],
+        "habilidades": ["investida_sombria", "golpe_sombrio", "impacto_anomalo"],
         "recompensas": {
             "moedas": 75,
             "memorias": 2,

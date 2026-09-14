@@ -95,9 +95,7 @@ class Game:
         self.carroceiro_visivel = False
         self.carroceiro_andando = False 
         self.conversa_carroceiro_terminou = False
-        
-        
-    
+        self.combate_estrada_concluido = False
         self.inimigos_em_cena = [] 
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
         self.controles = {
@@ -196,6 +194,10 @@ class Game:
                 "porta_aberta": getattr(self.mapa_casa, 'porta_aberta', False),
                 "investigou_pedras": self.investigou_pedras,
                 "flashback_magia_concluido": self.flashback_magia_concluido,
+                "magia_ativa": self.magia_ativa,
+                "magia_usada_no_puzzle": self.magia_usada_no_puzzle,
+                "puzzle_concluido": (self.magia_ativa == "CONCLUIDO"),
+                "combate_concluido": getattr(self, 'combate_estrada_concluido', False),
                 "itens_coletados": self.itens_coletados,
                 "historico_dialogos": list(self.caixa_dialogo.historico_escolhas)
             }
@@ -210,17 +212,33 @@ class Game:
             
         self.slot_atual = slot 
         self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
-        self.caixa_dialogo.historico_escolhas = set(dados["flags"].get("historico_dialogos", []))
+        self.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
         
-        # 1. Recupera as flags e a lista de itens coletados PRIMEIRO
-        self.mapa_casa.porta_aberta = dados["flags"].get("porta_aberta", False)
-        self.investigou_pedras = dados["flags"]["investigou_pedras"]
-        self.flashback_magia_concluido = dados["flags"]["flashback_magia_concluido"]
-        self.itens_coletados = dados["flags"].get("itens_coletados", [])
+        # 1. Recupera as flags e o progresso
+        flags = dados.get("flags", {})
+        self.mapa_casa.porta_aberta = flags.get("porta_aberta", False)
+        self.investigou_pedras = flags.get("investigou_pedras", False)
+        self.flashback_magia_concluido = flags.get("flashback_magia_concluido", False)
+        self.magia_ativa = flags.get("magia_ativa", None)
+        self.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
+        self.combate_estrada_concluido = flags.get("combate_concluido", False)
+        self.itens_coletados = flags.get("itens_coletados", [])
         
-        # 2. Carrega o cenário (que já deve nascer filtrado se o mapa consultar a lista)
-        cenario_salvo = dados["cenario_atual"]
+        # Reseta flags temporárias de transição e batalha em andamento
+        self.inimigos_em_cena = []
+        self.cena_inimigos_andando = False
+        self.iniciando_combate = False
+        self.conversa_combate_ativa = False
+        self.transicao.estado = "INATIVO"
+        
+        # 2. Carrega o cenário e desobstrui caminhos se já resolvidos
+        cenario_salvo = dados.get("cenario_atual", "CASA")
         self.mapa_casa.carregar_cenario(cenario_salvo)
+        
+        if cenario_salvo == "ESTRADA_2":
+            if self.magia_ativa == "CONCLUIDO" or self.combate_estrada_concluido or flags.get("puzzle_concluido", False):
+                self.magia_ativa = "CONCLUIDO"
+                self.mapa_casa.desobstruir_estrada(self.magia_usada_no_puzzle or "FOGO")
         
         # 3. Restaura posições da Halia, atributos e NPCs
         self.halia.x = dados["halia"]["x"]
@@ -253,6 +271,8 @@ class Game:
         
         # Reset da Halia
         self.halia.x, self.halia.y = 210, 280
+        self.halia.fragmentos_memoria = 0
+        self.halia.dinheiro = 0
         self.halia.atributos = Atributos(forca=8, destreza=12, constituicao=12, intelecto=15, sabedoria=13, presenca=14)
         self.halia.recalcular_status_derivados()
         self.halia.restaurar_total()
@@ -271,6 +291,15 @@ class Game:
         self.investigou_pedras = False
         self.flashback_magia_concluido = False
         self.mapa_casa.porta_aberta = False
+        self.magia_ativa = None
+        self.magia_usada_no_puzzle = None
+        self.magia_selecionada_temporaria = None
+        self.combate_estrada_concluido = False
+        self.iniciando_combate = False
+        self.cena_inimigos_andando = False
+        self.conversa_combate_ativa = False
+        self.inimigos_em_cena = []
+        self.transicao.estado = "INATIVO"
         
         # Recarrega o cenário inicial limpo
         self.mapa_casa.carregar_cenario("CASA")

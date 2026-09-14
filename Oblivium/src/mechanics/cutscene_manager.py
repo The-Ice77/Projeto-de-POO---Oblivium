@@ -35,15 +35,7 @@ class CutsceneManager:
             self.game.bola_fogo_x += 14
             if self.game.bola_fogo_x >= 1100:
                 self.game.bola_fogo_ativa = False
-                if hasattr(self.game.mapa_casa, 'pedras_deslizamento'):
-                    for p in self.game.mapa_casa.pedras_deslizamento:
-                        if p in self.game.mapa_casa.hitboxes: 
-                            self.game.mapa_casa.hitboxes.remove(p)
-                    self.game.mapa_casa.pedras_deslizamento = [
-                        pygame.Rect(1110, 430, 20, 15), 
-                        pygame.Rect(1160, 440, 25, 20), 
-                        pygame.Rect(1090, 450, 15, 12)
-                    ]
+                self.game.mapa_casa.desobstruir_estrada("FOGO")
                 dialogo_completo = [{"autor": "Narrador", "texto": "BOOM! A bola de fogo estilhaça o bloqueio em mil pedaços."}] + copy.deepcopy(conversa_pos_fogo)
                 self.game.caixa_dialogo.iniciar_dialogo(dialogo_completo)
                 self.game.magia_ativa = "CONCLUIDO"
@@ -56,9 +48,7 @@ class CutsceneManager:
                     if idx % 2 == 0: pedra.y -= 3; pedra.x += 1
                     else: pedra.y += 3; pedra.x += 1
         elif self.game.timer_magia == 61:
-            for p in self.game.mapa_casa.pedras_deslizamento:
-                if p in self.game.mapa_casa.hitboxes: 
-                    self.game.mapa_casa.hitboxes.remove(p)
+            self.game.mapa_casa.desobstruir_estrada("LEVITAR")
             dialogo_completo = [{"autor": "Narrador", "texto": "Com um gesto suave, as pedras erguem-se no ar e organizam-se nas margens da estrada."}] + copy.deepcopy(conversa_pos_levitar)
             self.game.caixa_dialogo.iniciar_dialogo(dialogo_completo)
             self.game.magia_ativa = "CONCLUIDO"
