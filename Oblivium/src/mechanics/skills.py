@@ -80,6 +80,43 @@ class AcaoCombate:
             return nova_cond
         return None
 
+    def verificar_acerto(self, conjurador, alvo):
+        """
+        Calcula se o ataque/magia acertou o alvo com base em Destreza, atributos e postura defensiva.
+        Retorna (acertou: bool, motivo: str) onde motivo pode ser 'acerto', 'esquiva' ou 'erro'.
+        """
+        if not hasattr(alvo, 'atributos') or not hasattr(conjurador, 'atributos'):
+            return True, "acerto"
+
+        # Se o alvo estiver atordoado ou incapacitado, acerto garantido (100%)
+        if getattr(alvo, 'esta_atordoado', False):
+            return True, "acerto"
+
+        # Precisão do conjurador
+        if self.tipo == "FISICO":
+            precisao_base = 90.0
+            bonus_conjurador = (conjurador.atributos.mod_des * 2.5) + (conjurador.atributos.mod_for * 0.5)
+        else: # MAGICO
+            precisao_base = 94.0
+            bonus_conjurador = (conjurador.atributos.mod_int * 2.0) + (conjurador.atributos.mod_sab * 1.0)
+
+        # Evasão do alvo
+        evasao_alvo = max(0.0, alvo.atributos.mod_des * 2.5)
+        if getattr(alvo, 'defendendo', False):
+            evasao_alvo += 18.0
+
+        # Chance final de acerto clamped entre 45% e 97%
+        chance_acerto = max(45.0, min(97.0, precisao_base + bonus_conjurador - evasao_alvo))
+        rolagem = random.uniform(0, 100)
+
+        if rolagem <= chance_acerto:
+            return True, "acerto"
+        else:
+            # Se a evasão do alvo foi significativa ou estava defendendo, conta como esquiva
+            if evasao_alvo >= 6.0 or getattr(alvo, 'defendendo', False):
+                return False, "esquiva"
+            return False, "erro"
+
     def executar(self, conjurador, alvos):
         """
         Executa a ação sobre uma lista de alvos.
@@ -111,6 +148,27 @@ class AtaqueFisico(AcaoCombate):
             if not getattr(alvo, 'vivo', True):
                 continue
 
+            # 1. Verifica se o ataque acertou ou errou/esquivou
+            acertou, motivo = self.verificar_acerto(conjurador, alvo)
+            if not acertou:
+                if motivo == "esquiva":
+                    msg = f"{conjurador.nome} usou {self.nome}, mas {alvo.nome} se esquivou agilmente!"
+                else:
+                    msg = f"{conjurador.nome} usou {self.nome}, mas errou o ataque contra {alvo.nome}!"
+                
+                resultados.append({
+                    "alvo": alvo,
+                    "dano": 0,
+                    "cura": 0,
+                    "errou": True,
+                    "motivo": motivo,
+                    "critico": False,
+                    "tipo_dano": "FISICO",
+                    "mensagem": msg
+                })
+                continue
+
+            # 2. Executa cálculo de dano e crítico em caso de acerto
             critico, mult_crit = self.calcular_critico(conjurador)
             mod_for = getattr(conjurador.atributos, 'mod_for', 0) if hasattr(conjurador, 'atributos') else 0
             mod_des = getattr(conjurador.atributos, 'mod_des', 0) if hasattr(conjurador, 'atributos') else 0
@@ -130,6 +188,8 @@ class AtaqueFisico(AcaoCombate):
                 "alvo": alvo,
                 "dano": dano_sofrido,
                 "cura": 0,
+                "errou": False,
+                "motivo": "acerto",
                 "critico": critico,
                 "condicao": cond_aplicada,
                 "tipo_dano": "FISICO",
@@ -163,6 +223,28 @@ class MagiaOfensiva(AcaoCombate):
             if not getattr(alvo, 'vivo', True):
                 continue
 
+            # 1. Verifica se a magia acertou ou errou/esquivou
+            acertou, motivo = self.verificar_acerto(conjurador, alvo)
+            if not acertou:
+                if motivo == "esquiva":
+                    msg = f"{conjurador.nome} conjurou {self.nome}, mas {alvo.nome} esquivou-se da magia!"
+                else:
+                    msg = f"{conjurador.nome} conjurou {self.nome}, mas a magia errou o alvo {alvo.nome}!"
+                
+                resultados.append({
+                    "alvo": alvo,
+                    "dano": 0,
+                    "cura": 0,
+                    "errou": True,
+                    "motivo": motivo,
+                    "critico": False,
+                    "tipo_dano": "MAGICO",
+                    "elemento": self.elemento,
+                    "mensagem": msg
+                })
+                continue
+
+            # 2. Executa cálculo de dano e crítico em caso de acerto
             critico, mult_crit = self.calcular_critico(conjurador)
             mod_int = getattr(conjurador.atributos, 'mod_int', 0) if hasattr(conjurador, 'atributos') else 0
             mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
@@ -182,6 +264,8 @@ class MagiaOfensiva(AcaoCombate):
                 "alvo": alvo,
                 "dano": dano_sofrido,
                 "cura": 0,
+                "errou": False,
+                "motivo": "acerto",
                 "critico": critico,
                 "condicao": cond_aplicada,
                 "tipo_dano": "MAGICO",

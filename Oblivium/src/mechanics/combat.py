@@ -413,7 +413,10 @@ class CombatScreen:
                 self.adicionar_log(r["mensagem"])
                 
             alvo_r = r.get("alvo")
-            if r.get("dano", 0) > 0 and alvo_r:
+            if r.get("errou", False) and alvo_r:
+                texto_erro = "ESQUIVOU!" if r.get("motivo") == "esquiva" else "ERROU!"
+                self.adicionar_texto_flutuante(texto_erro, alvo_r.x + 20, alvo_r.y - 10, UI_TEXTO_APAGADO)
+            elif r.get("dano", 0) > 0 and alvo_r:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
             elif r.get("cura", 0) > 0 and alvo_r:
@@ -450,7 +453,10 @@ class CombatScreen:
         for r in resultado.get("resultados", []):
             if r.get("mensagem"):
                 self.adicionar_log(r["mensagem"])
-            if r.get("dano", 0) > 0:
+            if r.get("errou", False):
+                texto_erro = "ESQUIVOU!" if r.get("motivo") == "esquiva" else "ERROU!"
+                self.adicionar_texto_flutuante(texto_erro, self.jogador.x + 30, self.jogador.y - 10, UI_TEXTO_APAGADO)
+            elif r.get("dano", 0) > 0:
                 self.adicionar_texto_flutuante(f"-{r['dano']}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[self.jogador] = 12
 
