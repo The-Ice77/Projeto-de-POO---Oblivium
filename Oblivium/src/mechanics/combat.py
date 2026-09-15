@@ -597,10 +597,15 @@ class CombatScreen:
         if resultado.get("mensagem"):
             self.adicionar_log(resultado["mensagem"])
 
-        if resultado.get("cura", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{resultado['cura']}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
-        if resultado.get("mana_recuperada", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{resultado['mana_recuperada']} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA, duracao=80)
+        cura_direta = float(resultado.get("cura", 0) or 0)
+        if cura_direta > 0:
+            cura_fmt = int(cura_direta) if cura_direta.is_integer() else f"{cura_direta:.1f}"
+            self.adicionar_texto_flutuante(f"+{cura_fmt}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
+        
+        mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
+        if mana_rec > 0:
+            mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
+            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
             self.adicionar_texto_flutuante("EM GUARDA!", self.jogador.x + 30, self.jogador.y - 10, (100, 210, 255), duracao=80)
         if resultado.get("vulneravel"):
@@ -612,6 +617,9 @@ class CombatScreen:
                 self.adicionar_log(r["mensagem"])
                 
             alvo_r = r.get("alvo")
+            dano_r = float(r.get("dano", 0) or 0)
+            cura_r = float(r.get("cura", 0) or 0)
+
             if r.get("errou", False) and alvo_r:
                 if r.get("motivo") == "esquiva":
                     texto_erro = "ESQUIVOU!"
@@ -620,15 +628,17 @@ class CombatScreen:
                     texto_erro = "ERROU!"
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, alvo_r.x + 20, alvo_r.y - 15, cor_erro, duracao=80)
-            elif r.get("dano", 0) > 0 and alvo_r:
-                self.adicionar_texto_flutuante(f"-{r['dano']}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
+            elif dano_r > 0 and alvo_r:
+                dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
+                self.adicionar_texto_flutuante(f"-{dano_fmt}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
                 # Feedback narrativo se o alvo foi derrotado
                 if not getattr(alvo_r, 'vivo', True):
                     msg_morte = self._gerar_mensagem_morte_acao(alvo_r, acao)
                     self.adicionar_log(msg_morte)
-            elif r.get("cura", 0) > 0 and alvo_r:
-                self.adicionar_texto_flutuante(f"+{r['cura']}", alvo_r.x + 20, alvo_r.y - 10, BARRA_VIDA_JOGADOR)
+            elif cura_r > 0 and alvo_r:
+                cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
+                self.adicionar_texto_flutuante(f"+{cura_fmt}", alvo_r.x + 20, alvo_r.y - 10, BARRA_VIDA_JOGADOR)
 
     def _executar_turno_inimigo(self, inimigo):
         """IA do inimigo: seleciona habilidade temática e executa contra Halia."""
@@ -660,6 +670,7 @@ class CombatScreen:
         for r in resultado.get("resultados", []):
             if r.get("mensagem") and r.get("mensagem") != resultado.get("mensagem"):
                 self.adicionar_log(r["mensagem"])
+            dano_r = float(r.get("dano", 0) or 0)
             if r.get("errou", False):
                 if r.get("motivo") == "esquiva":
                     texto_erro = "ESQUIVOU!"
@@ -668,8 +679,9 @@ class CombatScreen:
                     texto_erro = "ERROU!"
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, self.jogador.x + 30, self.jogador.y - 15, cor_erro, duracao=80)
-            elif r.get("dano", 0) > 0:
-                self.adicionar_texto_flutuante(f"-{r['dano']}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
+            elif dano_r > 0:
+                dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
+                self.adicionar_texto_flutuante(f"-{dano_fmt}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[self.jogador] = 12
                 # Feedback narrativo se Halia foi derrotada
                 if not getattr(self.jogador, 'vivo', True):

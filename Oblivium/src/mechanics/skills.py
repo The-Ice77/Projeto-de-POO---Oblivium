@@ -327,7 +327,7 @@ class MagiaCura(AcaoCombate):
             resultados.append({
                 "alvo": alvo,
                 "dano": 0,
-                "cura": cura_fmt,
+                "cura": cura_efetiva,
                 "critico": False,
                 "tipo_dano": "CURA",
                 "mensagem": msg
