@@ -135,7 +135,15 @@ class CombatScreen:
         self.rects_concentrar = []
         self.rects_inimigos = []
         self.rect_botao_voltar = pygame.Rect(0, 0, 0, 0)
+        self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
+        self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
         self.rect_banner = pygame.Rect(0, 0, 0, 0)
+        
+        # Sistema de Rolagem (Scroll) nos Submenus de Ações
+        self.scroll_ataque = 0
+        self.scroll_magia = 0
+        self.scroll_concentrar = 0
+        self.ITENS_POR_PAGINA_SUBMENU = 4
         
         # Recompensas Acumuladas
         self.recompensas_vitoria = {"moedas": 0, "memorias": 0, "xp": 0}
@@ -165,6 +173,9 @@ class CombatScreen:
         self.indice_magia = 0
         self.indice_concentrar = 0
         self.indice_alvo = 0
+        self.scroll_ataque = 0
+        self.scroll_magia = 0
+        self.scroll_concentrar = 0
         self.acao_selecionada = None
         self.textos_flutuantes.clear()
         self.historico_log.clear()
@@ -304,6 +315,75 @@ class CombatScreen:
     # PROCESSAMENTO DE EVENTOS (TECLADO E MOUSE)
     # =========================================================================
 
+    def _ajustar_scroll_submenu(self, estado):
+        """Garante que o item selecionado pelo teclado esteja sempre visível na janela de rolagem."""
+        max_itens = self.ITENS_POR_PAGINA_SUBMENU
+        if estado == "SUBMENU_ATAQUE":
+            total = len(self.ataques_fisicos_disponiveis)
+            idx = self.indice_ataque_fisico
+            if total <= max_itens:
+                self.scroll_ataque = 0
+            else:
+                if idx < self.scroll_ataque:
+                    self.scroll_ataque = idx
+                elif idx >= self.scroll_ataque + max_itens:
+                    self.scroll_ataque = idx - max_itens + 1
+                self.scroll_ataque = max(0, min(self.scroll_ataque, total - max_itens))
+
+        elif estado == "SUBMENU_MAGIA":
+            total = len(self.magias_disponiveis)
+            idx = self.indice_magia
+            if total <= max_itens:
+                self.scroll_magia = 0
+            else:
+                if idx < self.scroll_magia:
+                    self.scroll_magia = idx
+                elif idx >= self.scroll_magia + max_itens:
+                    self.scroll_magia = idx - max_itens + 1
+                self.scroll_magia = max(0, min(self.scroll_magia, total - max_itens))
+
+        elif estado == "SUBMENU_CONCENTRAR":
+            total = len(self.opcoes_concentrar)
+            idx = self.indice_concentrar
+            if total <= max_itens:
+                self.scroll_concentrar = 0
+            else:
+                if idx < self.scroll_concentrar:
+                    self.scroll_concentrar = idx
+                elif idx >= self.scroll_concentrar + max_itens:
+                    self.scroll_concentrar = idx - max_itens + 1
+                self.scroll_concentrar = max(0, min(self.scroll_concentrar, total - max_itens))
+
+    def _rolar_submenu(self, estado, delta):
+        """Rola a visualização do submenu para cima ou para baixo pelo mouse ou botões de seta."""
+        max_itens = self.ITENS_POR_PAGINA_SUBMENU
+        if estado == "SUBMENU_ATAQUE":
+            total = len(self.ataques_fisicos_disponiveis)
+            max_scroll = max(0, total - max_itens)
+            self.scroll_ataque = max(0, min(max_scroll, self.scroll_ataque + delta))
+            if self.indice_ataque_fisico < self.scroll_ataque:
+                self.indice_ataque_fisico = self.scroll_ataque
+            elif self.indice_ataque_fisico >= self.scroll_ataque + max_itens:
+                self.indice_ataque_fisico = self.scroll_ataque + max_itens - 1
+
+        elif estado == "SUBMENU_MAGIA":
+            total = len(self.magias_disponiveis)
+            max_scroll = max(0, total - max_itens)
+            self.scroll_magia = max(0, min(max_scroll, self.scroll_magia + delta))
+            if self.indice_magia < self.scroll_magia:
+                self.indice_magia = self.scroll_magia
+            elif self.indice_magia >= self.scroll_magia + max_itens:
+                self.indice_magia = self.scroll_magia + max_itens - 1
+
+        elif estado == "SUBMENU_CONCENTRAR":
+            total = len(self.opcoes_concentrar)
+            max_scroll = max(0, total - max_itens)
+            self.scroll_concentrar = max(0, min(max_scroll, self.scroll_concentrar + delta))
+            if self.indice_concentrar < self.scroll_concentrar:
+                self.indice_concentrar = self.scroll_concentrar
+            elif self.indice_concentrar >= self.scroll_concentrar + max_itens:
+                self.indice_concentrar = self.scroll_concentrar + max_itens - 1
+
     def processar_eventos(self, evento):
         # 1. Movimento do Mouse (Hover)
         if evento.type == pygame.MOUSEMOTION:
@@ -315,21 +395,21 @@ class CombatScreen:
                         break
 
             elif self.estado_combate == "SUBMENU_ATAQUE":
-                for idx, r in enumerate(self.rects_ataques_fisicos):
+                for r, real_idx in self.rects_ataques_fisicos:
                     if r.collidepoint(pos):
-                        self.indice_ataque_fisico = idx
+                        self.indice_ataque_fisico = real_idx
                         break
 
             elif self.estado_combate == "SUBMENU_MAGIA":
-                for idx, r in enumerate(self.rects_magias):
+                for r, real_idx in self.rects_magias:
                     if r.collidepoint(pos):
-                        self.indice_magia = idx
+                        self.indice_magia = real_idx
                         break
 
             elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                for idx, r in enumerate(self.rects_concentrar):
+                for r, real_idx in self.rects_concentrar:
                     if r.collidepoint(pos):
-                        self.indice_concentrar = idx
+                        self.indice_concentrar = real_idx
                         break
 
             elif self.estado_combate == "SELECIONANDO_ALVO":
@@ -338,62 +418,102 @@ class CombatScreen:
                         self.indice_alvo = idx
                         break
 
-        # 2. Clique do Mouse (Botão Esquerdo)
-        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+        # 2. Roda do Mouse (Rolagem / Scroll)
+        elif evento.type == pygame.MOUSEWHEEL:
+            delta = -evento.y
+            if self.estado_combate == "SUBMENU_ATAQUE":
+                self._rolar_submenu("SUBMENU_ATAQUE", delta)
+            elif self.estado_combate == "SUBMENU_MAGIA":
+                self._rolar_submenu("SUBMENU_MAGIA", delta)
+            elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
+
+        # 3. Clique do Mouse (Botão Esquerdo e Botões de Scroll)
+        elif evento.type == pygame.MOUSEBUTTONDOWN:
             pos = evento.pos
             
-            # Telas finais: Clique em qualquer lugar fecha
-            if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
-                self._concluir_fechamento_combate()
+            # Suporte a Scroll via botões 4 e 5 do mouse
+            if evento.button in (4, 5):
+                delta = -1 if evento.button == 4 else 1
+                if self.estado_combate == "SUBMENU_ATAQUE":
+                    self._rolar_submenu("SUBMENU_ATAQUE", delta)
+                elif self.estado_combate == "SUBMENU_MAGIA":
+                    self._rolar_submenu("SUBMENU_MAGIA", delta)
+                elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                    self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
                 return
 
-            if self.estado_combate == "MENU_PRINCIPAL":
-                for idx, r in enumerate(self.rects_menu_principal):
-                    if r.collidepoint(pos):
-                        self.indice_menu = idx
-                        self._selecionar_opcao_menu_principal()
-                        return
-
-            elif self.estado_combate == "SUBMENU_ATAQUE":
-                if self.rect_botao_voltar.collidepoint(pos):
-                    self.estado_combate = "MENU_PRINCIPAL"
+            if evento.button == 1:
+                # Telas finais: Clique em qualquer lugar fecha
+                if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
+                    self._concluir_fechamento_combate()
                     return
-                for idx, r in enumerate(self.rects_ataques_fisicos):
-                    if r.collidepoint(pos):
-                        self.indice_ataque_fisico = idx
-                        self._selecionar_ataque_fisico()
-                        return
 
-            elif self.estado_combate == "SUBMENU_MAGIA":
-                if self.rect_botao_voltar.collidepoint(pos):
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                for idx, r in enumerate(self.rects_magias):
-                    if r.collidepoint(pos):
-                        self.indice_magia = idx
-                        self._selecionar_magia_grimorio()
-                        return
+                if self.estado_combate == "MENU_PRINCIPAL":
+                    for idx, r in enumerate(self.rects_menu_principal):
+                        if r.collidepoint(pos):
+                            self.indice_menu = idx
+                            self._selecionar_opcao_menu_principal()
+                            return
 
-            elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                if self.rect_botao_voltar.collidepoint(pos):
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                for idx, r in enumerate(self.rects_concentrar):
-                    if r.collidepoint(pos):
-                        self.indice_concentrar = idx
-                        self._selecionar_acao_concentrar()
+                elif self.estado_combate == "SUBMENU_ATAQUE":
+                    if self.rect_botao_voltar.collidepoint(pos):
+                        self.estado_combate = "MENU_PRINCIPAL"
                         return
-
-            elif self.estado_combate == "SELECIONANDO_ALVO":
-                for idx, r in enumerate(self.rects_inimigos):
-                    if r.collidepoint(pos):
-                        self.indice_alvo = idx
-                        inimigos_vivos = self._obter_inimigos_vivos()
-                        if idx < len(inimigos_vivos):
-                            self._executar_acao_jogador(self.acao_selecionada, inimigos_vivos[idx])
+                    if self.rect_scroll_cima.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_ATAQUE", -1)
                         return
+                    if self.rect_scroll_baixo.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_ATAQUE", 1)
+                        return
+                    for r, real_idx in self.rects_ataques_fisicos:
+                        if r.collidepoint(pos):
+                            self.indice_ataque_fisico = real_idx
+                            self._selecionar_ataque_fisico()
+                            return
 
-        # 3. Teclado
+                elif self.estado_combate == "SUBMENU_MAGIA":
+                    if self.rect_botao_voltar.collidepoint(pos):
+                        self.estado_combate = "MENU_PRINCIPAL"
+                        return
+                    if self.rect_scroll_cima.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_MAGIA", -1)
+                        return
+                    if self.rect_scroll_baixo.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_MAGIA", 1)
+                        return
+                    for r, real_idx in self.rects_magias:
+                        if r.collidepoint(pos):
+                            self.indice_magia = real_idx
+                            self._selecionar_magia_grimorio()
+                            return
+
+                elif self.estado_combate == "SUBMENU_CONCENTRAR":
+                    if self.rect_botao_voltar.collidepoint(pos):
+                        self.estado_combate = "MENU_PRINCIPAL"
+                        return
+                    if self.rect_scroll_cima.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_CONCENTRAR", -1)
+                        return
+                    if self.rect_scroll_baixo.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_CONCENTRAR", 1)
+                        return
+                    for r, real_idx in self.rects_concentrar:
+                        if r.collidepoint(pos):
+                            self.indice_concentrar = real_idx
+                            self._selecionar_acao_concentrar()
+                            return
+
+                elif self.estado_combate == "SELECIONANDO_ALVO":
+                    for idx, r in enumerate(self.rects_inimigos):
+                        if r.collidepoint(pos):
+                            self.indice_alvo = idx
+                            inimigos_vivos = self._obter_inimigos_vivos()
+                            if idx < len(inimigos_vivos):
+                                self._executar_acao_jogador(self.acao_selecionada, inimigos_vivos[idx])
+                            return
+
+        # 4. Teclado
         elif evento.type == pygame.KEYDOWN:
             if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
                 if evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE]:
@@ -414,8 +534,14 @@ class CombatScreen:
                     return
                 if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.indice_ataque_fisico = (self.indice_ataque_fisico - 1) % len(self.ataques_fisicos_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_ATAQUE")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.indice_ataque_fisico = (self.indice_ataque_fisico + 1) % len(self.ataques_fisicos_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_ATAQUE")
+                elif evento.key == pygame.K_PAGEUP:
+                    self._rolar_submenu("SUBMENU_ATAQUE", -self.ITENS_POR_PAGINA_SUBMENU)
+                elif evento.key == pygame.K_PAGEDOWN:
+                    self._rolar_submenu("SUBMENU_ATAQUE", self.ITENS_POR_PAGINA_SUBMENU)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self._selecionar_ataque_fisico()
                 elif evento.key == pygame.K_ESCAPE:
@@ -427,8 +553,14 @@ class CombatScreen:
                     return
                 if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.indice_magia = (self.indice_magia - 1) % len(self.magias_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_MAGIA")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.indice_magia = (self.indice_magia + 1) % len(self.magias_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_MAGIA")
+                elif evento.key == pygame.K_PAGEUP:
+                    self._rolar_submenu("SUBMENU_MAGIA", -self.ITENS_POR_PAGINA_SUBMENU)
+                elif evento.key == pygame.K_PAGEDOWN:
+                    self._rolar_submenu("SUBMENU_MAGIA", self.ITENS_POR_PAGINA_SUBMENU)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self._selecionar_magia_grimorio()
                 elif evento.key == pygame.K_ESCAPE:
@@ -440,8 +572,14 @@ class CombatScreen:
                     return
                 if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.indice_concentrar = (self.indice_concentrar - 1) % len(self.opcoes_concentrar)
+                    self._ajustar_scroll_submenu("SUBMENU_CONCENTRAR")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.indice_concentrar = (self.indice_concentrar + 1) % len(self.opcoes_concentrar)
+                    self._ajustar_scroll_submenu("SUBMENU_CONCENTRAR")
+                elif evento.key == pygame.K_PAGEUP:
+                    self._rolar_submenu("SUBMENU_CONCENTRAR", -self.ITENS_POR_PAGINA_SUBMENU)
+                elif evento.key == pygame.K_PAGEDOWN:
+                    self._rolar_submenu("SUBMENU_CONCENTRAR", self.ITENS_POR_PAGINA_SUBMENU)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self._selecionar_acao_concentrar()
                 elif evento.key == pygame.K_ESCAPE:
@@ -473,16 +611,19 @@ class CombatScreen:
             self._carregar_ataques_fisicos_jogador()
             self.estado_combate = "SUBMENU_ATAQUE"
             self.indice_ataque_fisico = 0
+            self.scroll_ataque = 0
 
         elif opcao == "Magias":
             self._carregar_magias_jogador()
             self.estado_combate = "SUBMENU_MAGIA"
             self.indice_magia = 0
+            self.scroll_magia = 0
 
         elif opcao == "Concentrar":
             self._carregar_acoes_concentrar()
             self.estado_combate = "SUBMENU_CONCENTRAR"
             self.indice_concentrar = 0
+            self.scroll_concentrar = 0
 
         elif opcao == "Fugir":
             self._tentar_fuga()
@@ -1035,21 +1176,72 @@ class CombatScreen:
                 txt = self.fonte_menu.render(f"{marcador}{opcao}", True, cor)
                 tela.blit(txt, (item_rect.x + 14, item_rect.y + 6))
 
+    def _desenhar_cabecalho_e_scrollbar_submenu(self, tela, painel_rect, largura_secao_menu, total_itens, scroll_atual, titulo=""):
+        """Desenha o botão de voltar, paginação e barra de rolagem (scrollbar) se houver muitos itens."""
+        # Botão Voltar
+        self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 90, 26)
+        pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
+        pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
+        txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
+        tela.blit(txt_voltar, (self.rect_botao_voltar.x + 12, self.rect_botao_voltar.y + 5))
+
+        max_visivel = self.ITENS_POR_PAGINA_SUBMENU
+        if total_itens > max_visivel:
+            max_scroll = total_itens - max_visivel
+            
+            # Texto indicador de itens (ex: 1-4/7)
+            inicio_idx = scroll_atual + 1
+            fim_idx = min(total_itens, scroll_atual + max_visivel)
+            txt_pag = self.fonte_status.render(f"{inicio_idx}-{fim_idx}/{total_itens}", True, UI_TEXTO_APAGADO)
+            tela.blit(txt_pag, (self.rect_botao_voltar.right + 12, painel_rect.y + 17))
+
+            # Botões de seta para cima e para baixo
+            self.rect_scroll_cima = pygame.Rect(painel_rect.x + largura_secao_menu - 52, painel_rect.y + 12, 22, 24)
+            self.rect_scroll_baixo = pygame.Rect(painel_rect.x + largura_secao_menu - 26, painel_rect.y + 12, 22, 24)
+
+            # Seta Cima
+            cor_cima = BRANCO if scroll_atual > 0 else (60, 60, 70)
+            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_cima)
+            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_cima, 1)
+            txt_c = self.fonte_status.render("^", True, cor_cima)
+            tela.blit(txt_c, (self.rect_scroll_cima.x + 7, self.rect_scroll_cima.y + 3))
+
+            # Seta Baixo
+            cor_baixo = BRANCO if scroll_atual < max_scroll else (60, 60, 70)
+            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_baixo)
+            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_baixo, 1)
+            txt_b = self.fonte_status.render("v", True, cor_baixo)
+            tela.blit(txt_b, (self.rect_scroll_baixo.x + 7, self.rect_scroll_baixo.y + 4))
+
+            # Barra de rolagem lateral (Trilha e Cursor)
+            track_x = painel_rect.x + largura_secao_menu - 14
+            track_y = painel_rect.y + 46
+            track_h = 170
+            track_rect = pygame.Rect(track_x, track_y, 4, track_h)
+            pygame.draw.rect(tela, (20, 20, 26), track_rect, border_radius=2)
+
+            thumb_h = max(24, int(track_h * (max_visivel / total_itens)))
+            thumb_y = track_y + int((track_h - thumb_h) * (scroll_atual / max_scroll)) if max_scroll > 0 else track_y
+            thumb_rect = pygame.Rect(track_x, thumb_y, 4, thumb_h)
+            pygame.draw.rect(tela, (140, 140, 160), thumb_rect, border_radius=2)
+        else:
+            self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
+            self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
+
         # RENDERIZAR SUBMENU DE ATAQUES FÍSICOS
         self.rects_ataques_fisicos.clear()
         if self.estado_combate == "SUBMENU_ATAQUE":
-            self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 100, 26)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
-            pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
-            txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_voltar, (self.rect_botao_voltar.x + 14, self.rect_botao_voltar.y + 5))
+            total = len(self.ataques_fisicos_disponiveis)
+            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_ataque, "Ataques")
+            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
 
-            for i, ataque in enumerate(self.ataques_fisicos_disponiveis):
-                item_y = painel_rect.y + 46 + (i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
-                self.rects_ataques_fisicos.append(item_rect)
+            for slot_i, real_i in enumerate(range(self.scroll_ataque, min(total, self.scroll_ataque + self.ITENS_POR_PAGINA_SUBMENU))):
+                ataque = self.ataques_fisicos_disponiveis[real_i]
+                item_y = painel_rect.y + 46 + (slot_i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
+                self.rects_ataques_fisicos.append((item_rect, real_i))
                 
-                if i == self.indice_ataque_fisico:
+                if real_i == self.indice_ataque_fisico:
                     pygame.draw.rect(tela, (28, 28, 34), item_rect)
                     pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
                     cor = TXT_SISTEMA_NARRADOR
@@ -1065,18 +1257,17 @@ class CombatScreen:
         # RENDERIZAR SUBMENU DE MAGIAS
         self.rects_magias.clear()
         if self.estado_combate == "SUBMENU_MAGIA":
-            self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 100, 26)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
-            pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
-            txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_voltar, (self.rect_botao_voltar.x + 14, self.rect_botao_voltar.y + 5))
+            total = len(self.magias_disponiveis)
+            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_magia, "Grimório")
+            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
 
-            for i, magia in enumerate(self.magias_disponiveis):
-                item_y = painel_rect.y + 46 + (i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
-                self.rects_magias.append(item_rect)
+            for slot_i, real_i in enumerate(range(self.scroll_magia, min(total, self.scroll_magia + self.ITENS_POR_PAGINA_SUBMENU))):
+                magia = self.magias_disponiveis[real_i]
+                item_y = painel_rect.y + 46 + (slot_i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
+                self.rects_magias.append((item_rect, real_i))
                 
-                if i == self.indice_magia:
+                if real_i == self.indice_magia:
                     pygame.draw.rect(tela, (28, 28, 34), item_rect)
                     pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
                     cor = TXT_SISTEMA_NARRADOR
@@ -1092,18 +1283,17 @@ class CombatScreen:
         # RENDERIZAR SUBMENU DE CONCENTRAR
         self.rects_concentrar.clear()
         if self.estado_combate == "SUBMENU_CONCENTRAR":
-            self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 100, 26)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
-            pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
-            txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_voltar, (self.rect_botao_voltar.x + 14, self.rect_botao_voltar.y + 5))
+            total = len(self.opcoes_concentrar)
+            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_concentrar, "Tático")
+            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
 
-            for i, acao in enumerate(self.opcoes_concentrar):
-                item_y = painel_rect.y + 46 + (i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
-                self.rects_concentrar.append(item_rect)
+            for slot_i, real_i in enumerate(range(self.scroll_concentrar, min(total, self.scroll_concentrar + self.ITENS_POR_PAGINA_SUBMENU))):
+                acao = self.opcoes_concentrar[real_i]
+                item_y = painel_rect.y + 46 + (slot_i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
+                self.rects_concentrar.append((item_rect, real_i))
                 
-                if i == self.indice_concentrar:
+                if real_i == self.indice_concentrar:
                     pygame.draw.rect(tela, (28, 28, 34), item_rect)
                     pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
                     cor = TXT_SISTEMA_NARRADOR
