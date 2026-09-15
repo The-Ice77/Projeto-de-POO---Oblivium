@@ -51,6 +51,9 @@ class Player(Entidade):
 
         # Recalcula vida e mana base para o estado inicial
         self.recalcular_status_derivados(manter_porcentagem=False)
+        # Halia inicia com vida e mana totais
+        self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
 
         # Estado de Combate
         self.em_combate = False

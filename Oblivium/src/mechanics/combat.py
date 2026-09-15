@@ -175,6 +175,7 @@ class CombatScreen:
         self.manas_visuais[self.jogador] = float(self.jogador.mana_atual)
         for inimigo in self.inimigos:
             self.vidas_visuais[inimigo] = float(inimigo.vida_atual)
+            self.manas_visuais[inimigo] = float(getattr(inimigo, 'mana_atual', getattr(inimigo, 'mana_maxima', 20)))
 
         # Notifica jogador
         if hasattr(self.jogador, 'entrar_combate'):
@@ -739,6 +740,9 @@ class CombatScreen:
         for inimigo in self.inimigos:
             v_atual = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
             self.vidas_visuais[inimigo] += (inimigo.vida_atual - v_atual) * 0.18
+            
+            m_atual = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', 0)))
+            self.manas_visuais[inimigo] += (getattr(inimigo, 'mana_atual', 0) - m_atual) * 0.18
 
         # Atualiza timers de tremor (shake)
         for ent in list(self.shake_timers.keys()):
@@ -927,10 +931,21 @@ class CombatScreen:
                 offset_icone_x += txt_badge.get_width() + 6
 
             # Barra de Vida Suave Interpolada
+            base_bar_y = draw_y + (getattr(inimigo, 'altura', 40) * 2) + 16
+            larg_bar_inimigo = 150
+            alt_bar = 12
             vida_v = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
-            self.desenhar_barra(tela, draw_x, draw_y + (getattr(inimigo, 'altura', 40) * 2) + 8, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=150)
-            txt_hp = self.fonte_status.render(f"{int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_hp, (draw_x + 158, draw_y + (getattr(inimigo, 'altura', 40) * 2) + 6))
+            self.desenhar_barra(tela, draw_x, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
+            txt_hp = self.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
+            tela.blit(txt_hp, (draw_x + larg_bar_inimigo + 10, base_bar_y - 2))
+
+            # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
+            mana_max = getattr(inimigo, 'mana_maxima', 20)
+            mana_v = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
+            mp_bar_y = base_bar_y + 20
+            self.desenhar_barra(tela, draw_x, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
+            txt_mp = self.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
+            tela.blit(txt_mp, (draw_x + larg_bar_inimigo + 10, mp_bar_y - 2))
 
         # 3. RENDERIZAR HALIA (Lado Esquerdo)
         halia_x, halia_y = 160, 160
@@ -965,15 +980,18 @@ class CombatScreen:
             tela.blit(txt_badge_h, (offset_h_badge, draw_hy - 30))
             offset_h_badge += txt_badge_h.get_width() + 6
 
-        # Barras Interpoladas de HP e MP da Halia
+        # Barras Interpoladas de HP e MP da Halia (Mesmo padrão visual, espessura e espaçamento)
         vida_h_v = self.vidas_visuais.get(self.jogador, float(self.jogador.vida_atual))
         mana_h_v = self.manas_visuais.get(self.jogador, float(self.jogador.mana_atual))
+        larg_h_bar = 180
+        alt_h_bar = 12
+        base_h_bar_y = draw_hy + 105
 
-        self.desenhar_barra(tela, draw_hx, draw_hy + 105, vida_h_v, self.jogador.vida_maxima, (200, 40, 50), largura=180)
-        tela.blit(self.fonte_status.render(f"HP {int(vida_h_v)}/{self.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + 190, draw_hy + 103))
+        self.desenhar_barra(tela, draw_hx, base_h_bar_y, vida_h_v, self.jogador.vida_maxima, BARRA_VIDA_JOGADOR, largura=larg_h_bar, altura=alt_h_bar)
+        tela.blit(self.fonte_status.render(f"HP {int(vida_h_v)}/{self.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y - 2))
 
-        self.desenhar_barra(tela, draw_hx, draw_hy + 125, mana_h_v, self.jogador.mana_maxima, (50, 130, 210), largura=180)
-        tela.blit(self.fonte_status.render(f"MP {int(mana_h_v)}/{self.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + 190, draw_hy + 123))
+        self.desenhar_barra(tela, draw_hx, base_h_bar_y + 20, mana_h_v, self.jogador.mana_maxima, BARRA_MANA, largura=larg_h_bar, altura=alt_h_bar)
+        tela.blit(self.fonte_status.render(f"MP {int(mana_h_v)}/{self.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))
 
         # 4. PAINEL INFERIOR DE MENUS E COMBAT LOG
         altura_painel = 245

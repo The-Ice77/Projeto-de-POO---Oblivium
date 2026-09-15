@@ -311,17 +311,23 @@ class MagiaCura(AcaoCombate):
             mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
             variacao = random.randint(-1, 3)
 
-            cura_bruta = max(5, self.poder_base + (mod_sab * 2.5) + (mod_pre * 1.2) + variacao)
+            cura_calculada = max(5.0, self.poder_base + (mod_sab * 2.5) + (mod_pre * 1.2) + variacao)
+            cura_bruta = round(cura_calculada, 1)
             vida_antes = alvo.vida_atual
             alvo.curar(cura_bruta)
-            cura_efetiva = alvo.vida_atual - vida_antes
+            cura_efetiva = round(alvo.vida_atual - vida_antes, 1)
 
-            msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_efetiva} de vida ({alvo.vida_atual}/{alvo.vida_maxima})."
+            # Formatação limpa de dígitos (ex: 33 se inteiro, 33.3 se decimal)
+            cura_fmt = int(cura_efetiva) if float(cura_efetiva).is_integer() else f"{cura_efetiva:.1f}"
+            vida_atual_fmt = int(alvo.vida_atual) if float(alvo.vida_atual).is_integer() else f"{alvo.vida_atual:.1f}"
+            vida_max_fmt = int(alvo.vida_maxima) if float(alvo.vida_maxima).is_integer() else f"{alvo.vida_maxima:.1f}"
+
+            msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_fmt} de vida ({vida_atual_fmt}/{vida_max_fmt})."
             
             resultados.append({
                 "alvo": alvo,
                 "dano": 0,
-                "cura": cura_efetiva,
+                "cura": cura_fmt,
                 "critico": False,
                 "tipo_dano": "CURA",
                 "mensagem": msg

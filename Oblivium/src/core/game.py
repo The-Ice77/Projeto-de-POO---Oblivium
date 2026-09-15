@@ -183,6 +183,8 @@ class Game:
                 "nome": self.halia.nome,
                 "x": self.halia.x,
                 "y": self.halia.y,
+                "vivo": getattr(self.halia, 'vivo', True),
+                "estado_animacao": getattr(self.halia, 'estado_atual', "idle"),
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
                 "vida_maxima": getattr(self.halia, 'vida_maxima', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
@@ -268,6 +270,27 @@ class Game:
         self.halia.vida_atual = halia_dados.get("vida_atual", self.halia.vida_maxima)
         self.halia.mana_atual = halia_dados.get("mana_atual", self.halia.mana_maxima)
         
+        # Herda a condição de vivo ou reanima Halia para poder movimentar
+        esta_vivo = halia_dados.get("vivo", True)
+        if self.halia.vida_atual > 0:
+            self.halia.vivo = esta_vivo
+        else:
+            self.halia.restaurar_total()
+            
+        # Limpa resíduos de combate
+        self.halia.condicoes.clear()
+        self.halia.defendendo = False
+        self.halia.vulneravel = False
+        self.halia.focado = False
+        
+        if self.halia.vivo:
+            estado_salvo = halia_dados.get("estado_animacao", "idle")
+            if estado_salvo == "morrer":
+                estado_salvo = "idle"
+            self.halia.mudar_estado(estado_salvo)
+        else:
+            self.halia.mudar_estado("morrer")
+        
         if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
             self.halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
         else:
@@ -295,10 +318,14 @@ class Game:
         self.halia.x, self.halia.y = 210, 280
         self.halia.fragmentos_memoria = 0
         self.halia.dinheiro = 0
-        self.halia.atributos = Atributos(forca=8, destreza=12, constituicao=12, intelecto=15, sabedoria=13, presenca=14)
-        self.halia.recalcular_status_derivados()
-        self.halia.restaurar_total()
-        self.halia.magias_desbloqueadas = ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"]
+        self.halia.atributos = Atributos(forca=7, destreza=10, constituicao=10, intelecto=13, sabedoria=11, presenca=12)
+        self.halia.recalcular_status_derivados(manter_porcentagem=False)
+        self.halia.atualizar_grimorio()
+        # Inicia o jogo com vida e mana cheias
+        self.halia.vida_atual = self.halia.vida_maxima
+        self.halia.mana_atual = self.halia.mana_maxima
+        self.halia.vivo = True
+        self.halia.mudar_estado("idle")
         
         # Reset do Carroceiro
         self.carroceiro.x, self.carroceiro.y = 1350, 330
