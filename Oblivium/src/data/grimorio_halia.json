@@ -1,0 +1,98 @@
+{
+    "bola_de_fogo": {
+        "id_acao": "bola_de_fogo",
+        "nome": "Bola de Fogo",
+        "descricao": "Dispara uma esfera incandescente causando alto dano de Fogo com chance de queimar.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 12,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 22,
+        "memorias_necessarias": 0,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 45
+        }
+    },
+    "levitar": {
+        "id_acao": "levitar",
+        "nome": "Pulso de Gravidade",
+        "descricao": "Manipula o campo gravitacional ao redor do alvo, arremessando detritos arcanos.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 14,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 24,
+        "memorias_necessarias": 0
+    },
+    "brisa_curativa": {
+        "id_acao": "brisa_curativa",
+        "nome": "Brisa Curativa",
+        "descricao": "Evoca ventos suaves impregnados de energia vital para restaurar vida.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 15,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 28,
+        "memorias_necessarias": 0
+    },
+    "raio_arcano": {
+        "id_acao": "raio_arcano",
+        "nome": "Raio Arcano",
+        "descricao": "Dispara uma rajada cirúrgica de energia pura que perfura defesas mágicas.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 16,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 30,
+        "memorias_necessarias": 1
+    },
+    "impacto_anomalo": {
+        "id_acao": "impacto_anomalo",
+        "nome": "Impacto Anômalo",
+        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e pode atordoar o alvo.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 20,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 34,
+        "memorias_necessarias": 2,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 40
+        }
+    },
+    "escudo_etereo": {
+        "id_acao": "escudo_etereo",
+        "nome": "Escudo Etéreo",
+        "descricao": "Conjura uma barreira mágica cristalina que reduz drasticamente todo dano recebido no próximo turno.",
+        "tipo": "BUFF",
+        "elemento": "ARCANO",
+        "custo_mana": 18,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 0,
+        "memorias_necessarias": 3
+    },
+    "vortice_abissal": {
+        "id_acao": "vortice_abissal",
+        "nome": "Vórtice Abissal",
+        "descricao": "Abre uma fenda gravitacional devastadora que atinge todos os inimigos presentes.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 28,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 42,
+        "memorias_necessarias": 4
+    },
+    "claridade_ancestral": {
+        "id_acao": "claridade_ancestral",
+        "nome": "Claridade Ancestral",
+        "descricao": "Desperta momentaneamente a consciência cósmica de Halia, restaurando vida e mana massivamente.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 25,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 55,
+        "memorias_necessarias": 5
+    }
+}

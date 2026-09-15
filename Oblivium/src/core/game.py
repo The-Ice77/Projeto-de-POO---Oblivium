@@ -54,6 +54,10 @@ class Game:
         self.opcoes_velocidade = ["Lento", "Normal", "Rápido"]
         self.valores_velocidade = [0.5, 1.0, 2.5]
         
+        self.config_velocidade_combate_indice = 0  # 0: 1.0x (Normal), 1: 1.5x (Rápido), 2: 2.0x (Ultra)
+        self.opcoes_velocidade_combate = ["1.0x (Normal)", "1.5x (Rápido)", "2.0x (Ultra)"]
+        self.valores_velocidade_combate = [1.0, 1.5, 2.0]
+        
         self.config_audio = 100            # De 0 a 100%
         self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
         self.redefinindo_tecla = False     # Flag para escutar a nova tecla
@@ -174,21 +178,28 @@ class Game:
         dados_save = {
             "cenario_atual": self.mapa_casa.cenario_atual,
             "tempo_jogado": self.tempo_jogado,
+            "slot": slot_alvo,
             "halia": {
+                "nome": self.halia.nome,
                 "x": self.halia.x,
                 "y": self.halia.y,
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
+                "vida_maxima": getattr(self.halia, 'vida_maxima', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
+                "mana_maxima": getattr(self.halia, 'mana_maxima', 50),
                 "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
+                "nivel_sincronia": getattr(self.halia, 'nivel_sincronia', 1),
                 "dinheiro": getattr(self.halia, 'dinheiro', 0),
                 "atributos": self.halia.atributos.to_dict(),
-                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', [])
+                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', []),
+                "ataques_fisicos": getattr(self.halia, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
             },
             "carroceiro": {
                 "x": self.carroceiro.x,
                 "y": self.carroceiro.y,
                 "visivel": self.carroceiro_visivel,
-                "andando": self.carroceiro_andando
+                "andando": self.carroceiro_andando,
+                "conversa_terminou": getattr(self, 'conversa_carroceiro_terminou', False)
             },
             "flags": {
                 "porta_aberta": getattr(self.mapa_casa, 'porta_aberta', False),
@@ -212,6 +223,7 @@ class Game:
             
         self.slot_atual = slot 
         self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
+        self.origem_pause = "JOGANDO"
         self.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
         
         # 1. Recupera as flags e o progresso
@@ -223,6 +235,7 @@ class Game:
         self.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
         self.combate_estrada_concluido = flags.get("combate_concluido", False)
         self.itens_coletados = flags.get("itens_coletados", [])
+        self.conversa_carroceiro_terminou = dados.get("carroceiro", {}).get("conversa_terminou", False)
         
         # Reseta flags temporárias de transição e batalha em andamento
         self.inimigos_em_cena = []
@@ -240,25 +253,34 @@ class Game:
                 self.magia_ativa = "CONCLUIDO"
                 self.mapa_casa.desobstruir_estrada(self.magia_usada_no_puzzle or "FOGO")
         
-        # 3. Restaura posições da Halia, atributos e NPCs
-        self.halia.x = dados["halia"]["x"]
-        self.halia.y = dados["halia"]["y"]
-        self.halia.vida_atual = dados["halia"]["vida_atual"]
-        self.halia.mana_atual = dados["halia"]["mana_atual"]
-        self.halia.fragmentos_memoria = dados["halia"].get("fragmentos_memoria", 0)
-        self.halia.dinheiro = dados["halia"].get("dinheiro", 0)
+        # 3. Restaura posições da Halia, atributos, Grimório e NPCs
+        halia_dados = dados.get("halia", {})
+        self.halia.x = halia_dados.get("x", 210)
+        self.halia.y = halia_dados.get("y", 280)
+        self.halia.fragmentos_memoria = halia_dados.get("fragmentos_memoria", 0)
+        self.halia.nivel_sincronia = halia_dados.get("nivel_sincronia", 1 + self.halia.fragmentos_memoria)
+        self.halia.dinheiro = halia_dados.get("dinheiro", 0)
         
-        if "atributos" in dados["halia"]:
-            self.halia.atributos = Atributos.from_dict(dados["halia"]["atributos"])
+        if "atributos" in halia_dados:
+            self.halia.atributos = Atributos.from_dict(halia_dados["atributos"])
             self.halia.recalcular_status_derivados(manter_porcentagem=False)
             
-        if "magias_desbloqueadas" in dados["halia"]:
-            self.halia.magias_desbloqueadas = dados["halia"]["magias_desbloqueadas"]
+        self.halia.vida_atual = halia_dados.get("vida_atual", self.halia.vida_maxima)
+        self.halia.mana_atual = halia_dados.get("mana_atual", self.halia.mana_maxima)
         
-        self.carroceiro.x = dados["carroceiro"]["x"]
-        self.carroceiro.y = dados["carroceiro"]["y"]
-        self.carroceiro_visivel = dados["carroceiro"]["visivel"]
-        self.carroceiro_andando = dados["carroceiro"]["andando"]
+        if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
+            self.halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
+        else:
+            self.halia.atualizar_grimorio()
+            
+        if "ataques_fisicos" in halia_dados:
+            self.halia.ataques_fisicos = list(halia_dados["ataques_fisicos"])
+        
+        carroceiro_dados = dados.get("carroceiro", {})
+        self.carroceiro.x = carroceiro_dados.get("x", 200)
+        self.carroceiro.y = carroceiro_dados.get("y", 330)
+        self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
+        self.carroceiro_andando = carroceiro_dados.get("andando", False)
         
         return True 
 

@@ -246,13 +246,15 @@ class Entidade:
         impede_acao = False
 
         for cond in self.condicoes[:]:
+            if not self.vivo:
+                break
             res = cond.processar_inicio_turno(self)
             if res:
                 relatorios.append(res)
                 if res.get("impede_acao", False):
                     impede_acao = True
             
-            if cond.expirou():
+            if cond.expirou() and cond in self.condicoes:
                 self.condicoes.remove(cond)
 
         return relatorios, impede_acao

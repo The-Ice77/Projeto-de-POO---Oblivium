@@ -6,6 +6,7 @@ from src.entities.Enemy import Enemy
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
+from src.utils import save_manager
 from src.data.dialogos import *
 
 class PlayingState(State):
@@ -102,6 +103,7 @@ class PlayingState(State):
         # ABRIR O PAUSE
         if evento.key == self.game.controles["Pause"]:
             if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
+                self.game.origem_pause = "JOGANDO"
                 self.game.mudar_estado("PAUSE")
                 return
 
@@ -351,10 +353,14 @@ class PlayingState(State):
                     self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_pos_combate_vitoria))
                     
                 def on_derrota():
-                    self.game.halia.restaurar_total()
-                    self.game.halia.x, self.game.halia.y = 60, 330
-                    self.game.inimigos_em_cena.clear()
-                    self.game.cena_inimigos_andando = False
+                    # Ao ser derrotada, retorna ao último checkpoint carregando o save mais recente do slot ativo
+                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual):
+                        self.game.carregar_estado(self.game.slot_atual)
+                    else:
+                        self.game.halia.restaurar_total()
+                        self.game.halia.x, self.game.halia.y = 60, 330
+                        self.game.inimigos_em_cena.clear()
+                        self.game.cena_inimigos_andando = False
                     self.game.mudar_estado("JOGANDO")
                     
                 def on_fuga():
@@ -377,6 +383,8 @@ class PlayingState(State):
     def _entrar_na_estrada_1(self):
         self.game.mapa_casa.carregar_cenario("ESTRADA")
         self.game.halia.x, self.game.halia.y = 40, 330
+        if self.game.slot_atual:
+            self.game.salvar_estado(self.game.slot_atual)
         pygame.event.clear()
         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada1))
         self.game.transicao.estado = "CLAREANDO"
@@ -394,6 +402,9 @@ class PlayingState(State):
         h_npc = pygame.Rect(int(self.game.carroceiro.x), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
         if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
         
+        if self.game.slot_atual:
+            self.game.salvar_estado(self.game.slot_atual)
+            
         pygame.event.clear()
         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada2))
         self.game.transicao.estado = "CLAREANDO"

@@ -8,6 +8,11 @@ class CombatState(State):
 
     def handle_events(self, eventos, teclas):
         for evento in eventos:
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                if getattr(self.game.tela_combate, 'estado_combate', '') == "MENU_PRINCIPAL":
+                    self.game.origem_pause = "COMBATE"
+                    self.game.mudar_estado("PAUSE")
+                    return
             self.game.tela_combate.processar_eventos(evento)
 
     def update(self):

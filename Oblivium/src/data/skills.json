@@ -2,12 +2,22 @@
     "ataque_basico": {
         "id_acao": "ataque_basico",
         "nome": "Golpe com Cajado",
-        "descricao": "Um ataque físico direto desferido com o cajado.",
+        "descricao": "Um ataque físico direto e preciso desferido com a ponta do cajado.",
         "tipo": "FISICO",
         "elemento": "FISICO",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 12
+    },
+    "golpe_concentrado": {
+        "id_acao": "golpe_concentrado",
+        "nome": "Pancada Concentrada",
+        "descricao": "Golpe físico pesado que gasta 4 de Mana para canalizar força no impacto.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 4,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 18
     },
     "defender": {
         "id_acao": "defender",
@@ -53,16 +63,6 @@
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 24
     },
-    "raio_arcano": {
-        "id_acao": "raio_arcano",
-        "nome": "Raio Arcano",
-        "descricao": "Dispara uma rajada concentrada de energia pura nos pontos vitais do alvo.",
-        "tipo": "MAGICO",
-        "elemento": "ARCANO",
-        "custo_mana": 8,
-        "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 16
-    },
     "brisa_curativa": {
         "id_acao": "brisa_curativa",
         "nome": "Brisa Curativa",
@@ -73,6 +73,60 @@
         "alvo_tipo": "PROPRIO",
         "poder_base": 28
     },
+    "raio_arcano": {
+        "id_acao": "raio_arcano",
+        "nome": "Raio Arcano",
+        "descricao": "Dispara uma rajada cirúrgica de energia pura que perfura defesas mágicas.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 16,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 30
+    },
+    "impacto_anomalo": {
+        "id_acao": "impacto_anomalo",
+        "nome": "Impacto Anômalo",
+        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e pode atordoar o alvo.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 20,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 34,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 40
+        }
+    },
+    "escudo_etereo": {
+        "id_acao": "escudo_etereo",
+        "nome": "Escudo Etéreo",
+        "descricao": "Conjura uma barreira mágica cristalina que reduz todo dano recebido no turno.",
+        "tipo": "DEFESA",
+        "elemento": "ARCANO",
+        "custo_mana": 18,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 0
+    },
+    "vortice_abissal": {
+        "id_acao": "vortice_abissal",
+        "nome": "Vórtice Abissal",
+        "descricao": "Abre uma fenda gravitacional devastadora que atinge todos os inimigos presentes.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 28,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 42
+    },
+    "claridade_ancestral": {
+        "id_acao": "claridade_ancestral",
+        "nome": "Claridade Ancestral",
+        "descricao": "Desperta momentaneamente a consciência cósmica de Halia, restaurando vida e mana massivamente.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 25,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 55
+    },
     "garras_sombrias": {
         "id_acao": "garras_sombrias",
         "nome": "Garras Sombrias",
@@ -81,7 +135,7 @@
         "elemento": "SOMBRA",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 9
+        "poder_base": 8
     },
     "investida_sombria": {
         "id_acao": "investida_sombria",
@@ -91,7 +145,7 @@
         "elemento": "SOMBRA",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 13
+        "poder_base": 11
     },
     "toque_espectral": {
         "id_acao": "toque_espectral",
@@ -101,7 +155,7 @@
         "elemento": "SOMBRA",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 11
+        "poder_base": 10
     },
     "golpe_sombrio": {
         "id_acao": "golpe_sombrio",
@@ -111,7 +165,7 @@
         "elemento": "SOMBRA",
         "custo_mana": 0,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 12
+        "poder_base": 10
     },
     "onda_corrosiva": {
         "id_acao": "onda_corrosiva",
@@ -121,24 +175,10 @@
         "elemento": "SOMBRA",
         "custo_mana": 10,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 18,
+        "poder_base": 16,
         "condicao_aplicada": {
             "id_condicao": "veneno",
-            "chance": 50
-        }
-    },
-    "impacto_anomalo": {
-        "id_acao": "impacto_anomalo",
-        "nome": "Impacto Anômalo",
-        "descricao": "Poderoso choque de distorção de espaço que atinge a mente e pode atordoar.",
-        "tipo": "MAGICO",
-        "elemento": "ARCANO",
-        "custo_mana": 15,
-        "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 28,
-        "condicao_aplicada": {
-            "id_condicao": "atordoado",
-            "chance": 35
+            "chance": 45
         }
     }
 }
