@@ -1019,6 +1019,58 @@ class CombatScreen:
         """Encaminha para o utilitário centralizado de UI."""
         desenhar_barra_status_interpolada(tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=cor_fundo, largura=largura, altura=altura)
 
+    def _desenhar_cabecalho_e_scrollbar_submenu(self, tela, painel_rect, largura_secao_menu, total_itens, scroll_atual, titulo=""):
+        """Desenha o botão de voltar, paginação e barra de rolagem (scrollbar) se houver muitos itens."""
+        # Botão Voltar
+        self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 90, 26)
+        pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
+        pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
+        txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
+        tela.blit(txt_voltar, (self.rect_botao_voltar.x + 12, self.rect_botao_voltar.y + 5))
+
+        max_visivel = self.ITENS_POR_PAGINA_SUBMENU
+        if total_itens > max_visivel:
+            max_scroll = total_itens - max_visivel
+            
+            # Texto indicador de itens (ex: 1-4/7)
+            inicio_idx = scroll_atual + 1
+            fim_idx = min(total_itens, scroll_atual + max_visivel)
+            txt_pag = self.fonte_status.render(f"{inicio_idx}-{fim_idx}/{total_itens}", True, UI_TEXTO_APAGADO)
+            tela.blit(txt_pag, (self.rect_botao_voltar.right + 12, painel_rect.y + 17))
+
+            # Botões de seta para cima e para baixo
+            self.rect_scroll_cima = pygame.Rect(painel_rect.x + largura_secao_menu - 52, painel_rect.y + 12, 22, 24)
+            self.rect_scroll_baixo = pygame.Rect(painel_rect.x + largura_secao_menu - 26, painel_rect.y + 12, 22, 24)
+
+            # Seta Cima
+            cor_cima = BRANCO if scroll_atual > 0 else (60, 60, 70)
+            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_cima)
+            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_cima, 1)
+            txt_c = self.fonte_status.render("^", True, cor_cima)
+            tela.blit(txt_c, (self.rect_scroll_cima.x + 7, self.rect_scroll_cima.y + 3))
+
+            # Seta Baixo
+            cor_baixo = BRANCO if scroll_atual < max_scroll else (60, 60, 70)
+            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_baixo)
+            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_baixo, 1)
+            txt_b = self.fonte_status.render("v", True, cor_baixo)
+            tela.blit(txt_b, (self.rect_scroll_baixo.x + 7, self.rect_scroll_baixo.y + 4))
+
+            # Barra de rolagem lateral (Trilha e Cursor)
+            track_x = painel_rect.x + largura_secao_menu - 14
+            track_y = painel_rect.y + 46
+            track_h = 170
+            track_rect = pygame.Rect(track_x, track_y, 4, track_h)
+            pygame.draw.rect(tela, (20, 20, 26), track_rect, border_radius=2)
+
+            thumb_h = max(24, int(track_h * (max_visivel / total_itens)))
+            thumb_y = track_y + int((track_h - thumb_h) * (scroll_atual / max_scroll)) if max_scroll > 0 else track_y
+            thumb_rect = pygame.Rect(track_x, thumb_y, 4, thumb_h)
+            pygame.draw.rect(tela, (140, 140, 160), thumb_rect, border_radius=2)
+        else:
+            self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
+            self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
+
     def desenhar(self, tela):
         """Renderiza a arena, personagens, HUDs, menus, submenus, tooltips e banners."""
         # 1. FUNDO PADRÃO ESCURO DE OBLIVIUM
@@ -1175,58 +1227,6 @@ class CombatScreen:
                     
                 txt = self.fonte_menu.render(f"{marcador}{opcao}", True, cor)
                 tela.blit(txt, (item_rect.x + 14, item_rect.y + 6))
-
-    def _desenhar_cabecalho_e_scrollbar_submenu(self, tela, painel_rect, largura_secao_menu, total_itens, scroll_atual, titulo=""):
-        """Desenha o botão de voltar, paginação e barra de rolagem (scrollbar) se houver muitos itens."""
-        # Botão Voltar
-        self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 90, 26)
-        pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
-        pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
-        txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
-        tela.blit(txt_voltar, (self.rect_botao_voltar.x + 12, self.rect_botao_voltar.y + 5))
-
-        max_visivel = self.ITENS_POR_PAGINA_SUBMENU
-        if total_itens > max_visivel:
-            max_scroll = total_itens - max_visivel
-            
-            # Texto indicador de itens (ex: 1-4/7)
-            inicio_idx = scroll_atual + 1
-            fim_idx = min(total_itens, scroll_atual + max_visivel)
-            txt_pag = self.fonte_status.render(f"{inicio_idx}-{fim_idx}/{total_itens}", True, UI_TEXTO_APAGADO)
-            tela.blit(txt_pag, (self.rect_botao_voltar.right + 12, painel_rect.y + 17))
-
-            # Botões de seta para cima e para baixo
-            self.rect_scroll_cima = pygame.Rect(painel_rect.x + largura_secao_menu - 52, painel_rect.y + 12, 22, 24)
-            self.rect_scroll_baixo = pygame.Rect(painel_rect.x + largura_secao_menu - 26, painel_rect.y + 12, 22, 24)
-
-            # Seta Cima
-            cor_cima = BRANCO if scroll_atual > 0 else (60, 60, 70)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_cima)
-            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_cima, 1)
-            txt_c = self.fonte_status.render("^", True, cor_cima)
-            tela.blit(txt_c, (self.rect_scroll_cima.x + 7, self.rect_scroll_cima.y + 3))
-
-            # Seta Baixo
-            cor_baixo = BRANCO if scroll_atual < max_scroll else (60, 60, 70)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_baixo)
-            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_baixo, 1)
-            txt_b = self.fonte_status.render("v", True, cor_baixo)
-            tela.blit(txt_b, (self.rect_scroll_baixo.x + 7, self.rect_scroll_baixo.y + 4))
-
-            # Barra de rolagem lateral (Trilha e Cursor)
-            track_x = painel_rect.x + largura_secao_menu - 14
-            track_y = painel_rect.y + 46
-            track_h = 170
-            track_rect = pygame.Rect(track_x, track_y, 4, track_h)
-            pygame.draw.rect(tela, (20, 20, 26), track_rect, border_radius=2)
-
-            thumb_h = max(24, int(track_h * (max_visivel / total_itens)))
-            thumb_y = track_y + int((track_h - thumb_h) * (scroll_atual / max_scroll)) if max_scroll > 0 else track_y
-            thumb_rect = pygame.Rect(track_x, thumb_y, 4, thumb_h)
-            pygame.draw.rect(tela, (140, 140, 160), thumb_rect, border_radius=2)
-        else:
-            self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
-            self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
 
         # RENDERIZAR SUBMENU DE ATAQUES FÍSICOS
         self.rects_ataques_fisicos.clear()
