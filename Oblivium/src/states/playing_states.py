@@ -249,13 +249,13 @@ class PlayingState(State):
                 sombra2 = EnemyFactory.criar("sombra_menor", x=1180, y=420, nome_custom="Sombra 2")
                 sombra1.velocidade = 4.0
                 sombra2.velocidade = 4.0
-                sombra1.recompensas = {"moedas": 20, "memorias": 1, "xp": 40}
+                sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
                 sombra2.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
                 self.game.inimigos_em_cena.extend([sombra1, sombra2])
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
                 boss = EnemyFactory.criar_boss("anomalia_maior", x=1180, y=310, nome_custom="Anomalia Maior")
                 boss.velocidade = 4.0
-                boss.recompensas = {"moedas": 45, "memorias": 1, "xp": 80}
+                boss.recompensas = {"moedas": 45, "memorias": 0, "xp": 80}
                 self.game.inimigos_em_cena.append(boss)
 
         # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
@@ -303,6 +303,15 @@ class PlayingState(State):
             self.game.aguardando_fim_viagem = False; self.game.conversa_carroceiro_terminou = True
             self.game.transicao.iniciar("Algumas horas depois...")
 
+        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores
+        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and getattr(self.game, 'partindo_estrada2', False) and not self.game.caixa_dialogo.ativo:
+            self.game.partindo_estrada2 = False
+            self.game.conversa_carroceiro_terminou = True
+            if self.game.halia.fragmentos_memoria < 1:
+                self.game.halia.recuperar_memoria(1)
+            if self.game.slot_atual:
+                self.game.salvar_estado(self.game.slot_atual)
+
     def _mover_carroceiro_autonomo(self):
         next_h = pygame.Rect(int(self.game.carroceiro.x - 2), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
         h_halia = pygame.Rect(int(self.game.halia.x), int(self.game.halia.y), self.game.halia.largura, self.game.halia.altura)
@@ -327,8 +336,10 @@ class PlayingState(State):
                 self.game.magia_selecionada_temporaria = "LEVITAR"
             elif opcao_atual["id"] in ["voltar_magia", "desistir_puzzle"]:
                 self.game.investigou_pedras = False
-            if opcao_atual["id"] == "prosseguir":
+            elif opcao_atual["id"] == "prosseguir":
                 self.game.aguardando_fim_viagem = True
+            elif opcao_atual["id"] == "seguir_capital":
+                self.game.partindo_estrada2 = True
         self.game.caixa_dialogo.proximo_texto()
 
     def _processar_clique_escolha(self, pos):
@@ -351,6 +362,8 @@ class PlayingState(State):
                     self.game.investigou_pedras = False
                 elif opcao["id"] == "prosseguir":
                     self.game.aguardando_fim_viagem = True
+                elif opcao["id"] == "seguir_capital":
+                    self.game.partindo_estrada2 = True
                     
         box.clicar_mouse(pos)
 

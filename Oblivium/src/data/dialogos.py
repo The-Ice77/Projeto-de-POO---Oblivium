@@ -161,8 +161,8 @@ dialogo_entrada_estrada2 = [
 # --- Interações Específicas do Carroceiro na Estrada_2 ---
 conversa_seguir_capital = [
     {"autor": "Carroceiro", "texto": "Excelente! Suba na carroça, a capital nos espera do outro lado deste vale."},
-    {"autor": "Narrador", "texto": "Com as ameaças derrotadas e o caminho liberado, Halia e o Carroceiro seguem em direção ao coração do reino..."},
-    {"autor": "Sistema", "texto": "Capítulo 1 concluído com sucesso! Obrigado por jogar esta etapa de Oblivium."}
+    {"autor": "Narrador", "texto": "Com as ameaças derrotadas e o caminho liberado, Halia sobe na carroça e a viagem é retomada..."},
+    {"autor": "Pensamento", "texto": "Conforme nos distanciamos deste vale esquecido... sinto uma chama há muito adormecida voltar a queimar em meu peito."}
 ]
 
 no_escolhas_carroceiro_estrada2 = {
