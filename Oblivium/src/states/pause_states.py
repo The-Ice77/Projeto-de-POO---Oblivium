@@ -72,7 +72,7 @@ class PauseState(State):
                 return
 
             if self.game.slot_atual:
-                self.game.executar_com_feedback("Salvando Jogo...", lambda: self.game.salvar_estado(self.game.slot_atual))
+                self.game.executar_com_feedback("Salvando Jogo...", lambda: self.game.salvar_estado(self.game.slot_atual, tipo="manual"))
                 self.game.mudar_estado("JOGANDO")
             else:
                 self.game.acao_slots = "SALVAR"
@@ -80,14 +80,9 @@ class PauseState(State):
                 self.game.mudar_estado("SLOTS")
                 
         elif opcao == "Carregar Jogo":
-            if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual):
-                self.game.executar_com_feedback("Carregando Jogo...", lambda: self.game.carregar_estado(self.game.slot_atual))
-                self.game.origem_pause = "JOGANDO"
-                self.game.mudar_estado("JOGANDO")
-            else:
-                self.game.acao_slots = "CARREGAR"
-                self.game.origem_slots = "PAUSE"
-                self.game.mudar_estado("SLOTS")
+            self.game.acao_slots = "CARREGAR"
+            self.game.origem_slots = "PAUSE"
+            self.game.mudar_estado("SLOTS")
                 
         elif opcao == "Configurações":
             self.game.origem_configuracoes = "PAUSE"
