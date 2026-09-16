@@ -14,6 +14,8 @@ from src.mechanics.combat import CombatScreen
 from src.utils import save_manager
 from src.utils.resource_manager import ResourceManager, Animacao
 from src.ui.hud import HUD
+from src.utils.filtro_memoria import FiltroMemoria
+from src.ui.tela_despertar import TelaDespertarMemoria
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -46,13 +48,19 @@ class Game:
         self.mapa_casa = Mapa(self, self.LARGURA, self.ALTURA)
         self.transicao = Transition(self.LARGURA, self.ALTURA)
         self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA) 
+        self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
+        self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido
         self.opcoes_velocidade = ["Lento", "Normal", "Rápido"]
         self.valores_velocidade = [0.5, 1.0, 2.5]
+        
+        self.config_velocidade_combate_indice = 0  # 0: 1.0x (Normal), 1: 1.5x (Rápido), 2: 2.0x (Ultra)
+        self.opcoes_velocidade_combate = ["1.0x (Normal)", "1.5x (Rápido)", "2.0x (Ultra)"]
+        self.valores_velocidade_combate = [1.0, 1.5, 2.0]
         
         self.config_audio = 100            # De 0 a 100%
         self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
@@ -174,21 +182,30 @@ class Game:
         dados_save = {
             "cenario_atual": self.mapa_casa.cenario_atual,
             "tempo_jogado": self.tempo_jogado,
+            "slot": slot_alvo,
             "halia": {
+                "nome": self.halia.nome,
                 "x": self.halia.x,
                 "y": self.halia.y,
+                "vivo": getattr(self.halia, 'vivo', True),
+                "estado_animacao": getattr(self.halia, 'estado_atual', "idle"),
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
+                "vida_maxima": getattr(self.halia, 'vida_maxima', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
+                "mana_maxima": getattr(self.halia, 'mana_maxima', 50),
                 "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
+                "nivel_sincronia": getattr(self.halia, 'nivel_sincronia', 1),
                 "dinheiro": getattr(self.halia, 'dinheiro', 0),
                 "atributos": self.halia.atributos.to_dict(),
-                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', [])
+                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', []),
+                "ataques_fisicos": getattr(self.halia, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
             },
             "carroceiro": {
                 "x": self.carroceiro.x,
                 "y": self.carroceiro.y,
                 "visivel": self.carroceiro_visivel,
-                "andando": self.carroceiro_andando
+                "andando": self.carroceiro_andando,
+                "conversa_terminou": getattr(self, 'conversa_carroceiro_terminou', False)
             },
             "flags": {
                 "porta_aberta": getattr(self.mapa_casa, 'porta_aberta', False),
@@ -212,6 +229,7 @@ class Game:
             
         self.slot_atual = slot 
         self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
+        self.origem_pause = "JOGANDO"
         self.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
         
         # 1. Recupera as flags e o progresso
@@ -223,6 +241,7 @@ class Game:
         self.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
         self.combate_estrada_concluido = flags.get("combate_concluido", False)
         self.itens_coletados = flags.get("itens_coletados", [])
+        self.conversa_carroceiro_terminou = dados.get("carroceiro", {}).get("conversa_terminou", False)
         
         # Reseta flags temporárias de transição e batalha em andamento
         self.inimigos_em_cena = []
@@ -240,25 +259,65 @@ class Game:
                 self.magia_ativa = "CONCLUIDO"
                 self.mapa_casa.desobstruir_estrada(self.magia_usada_no_puzzle or "FOGO")
         
-        # 3. Restaura posições da Halia, atributos e NPCs
-        self.halia.x = dados["halia"]["x"]
-        self.halia.y = dados["halia"]["y"]
-        self.halia.vida_atual = dados["halia"]["vida_atual"]
-        self.halia.mana_atual = dados["halia"]["mana_atual"]
-        self.halia.fragmentos_memoria = dados["halia"].get("fragmentos_memoria", 0)
-        self.halia.dinheiro = dados["halia"].get("dinheiro", 0)
+        # 3. Restaura posições da Halia, atributos, Grimório e NPCs
+        halia_dados = dados.get("halia", {})
+        self.halia.x = halia_dados.get("x", 210)
+        self.halia.y = halia_dados.get("y", 280)
+        self.halia.fragmentos_memoria = halia_dados.get("fragmentos_memoria", 0)
+        self.halia.nivel_sincronia = halia_dados.get("nivel_sincronia", 1 + self.halia.fragmentos_memoria)
+        self.halia.dinheiro = halia_dados.get("dinheiro", 0)
         
-        if "atributos" in dados["halia"]:
-            self.halia.atributos = Atributos.from_dict(dados["halia"]["atributos"])
+        if "atributos" in halia_dados:
+            self.halia.atributos = Atributos.from_dict(halia_dados["atributos"])
             self.halia.recalcular_status_derivados(manter_porcentagem=False)
             
-        if "magias_desbloqueadas" in dados["halia"]:
-            self.halia.magias_desbloqueadas = dados["halia"]["magias_desbloqueadas"]
+        self.halia.vida_atual = halia_dados.get("vida_atual", self.halia.vida_maxima)
+        self.halia.mana_atual = halia_dados.get("mana_atual", self.halia.mana_maxima)
         
-        self.carroceiro.x = dados["carroceiro"]["x"]
-        self.carroceiro.y = dados["carroceiro"]["y"]
-        self.carroceiro_visivel = dados["carroceiro"]["visivel"]
-        self.carroceiro_andando = dados["carroceiro"]["andando"]
+        # Herda a condição de vivo ou reanima Halia para poder movimentar
+        esta_vivo = halia_dados.get("vivo", True)
+        if self.halia.vida_atual > 0:
+            self.halia.vivo = esta_vivo
+        else:
+            self.halia.restaurar_total()
+            
+        # Limpa resíduos de combate
+        self.halia.condicoes.clear()
+        self.halia.defendendo = False
+        self.halia.vulneravel = False
+        self.halia.focado = False
+        
+        if self.halia.vivo:
+            estado_salvo = halia_dados.get("estado_animacao", "idle")
+            if estado_salvo == "morrer":
+                estado_salvo = "idle"
+            self.halia.mudar_estado(estado_salvo)
+        else:
+            self.halia.mudar_estado("morrer")
+        
+        if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
+            self.halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
+        else:
+            self.halia.atualizar_grimorio()
+            
+        if "ataques_fisicos" in halia_dados:
+            self.halia.ataques_fisicos = list(halia_dados["ataques_fisicos"])
+        
+        carroceiro_dados = dados.get("carroceiro", {})
+        self.carroceiro.x = carroceiro_dados.get("x", 200)
+        self.carroceiro.y = carroceiro_dados.get("y", 330)
+        self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
+        self.carroceiro_andando = carroceiro_dados.get("andando", False)
+        
+        # 4. Sincroniza imediatamente o Filtro de Memória, HUD e telas visuais com o save carregado
+        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
+            self.filtro_memoria.definir_estagio(self.halia.fragmentos_memoria, com_transicao_suave=False)
+        if hasattr(self, 'tela_despertar') and self.tela_despertar:
+            self.tela_despertar.reiniciar()
+        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
+            self.estados["JOGANDO"].memoria_anterior_registrada = self.halia.fragmentos_memoria
+        if hasattr(self, 'hud') and self.hud:
+            self.hud.memorias_coletadas = self.halia.fragmentos_memoria
         
         return True 
 
@@ -273,10 +332,14 @@ class Game:
         self.halia.x, self.halia.y = 210, 280
         self.halia.fragmentos_memoria = 0
         self.halia.dinheiro = 0
-        self.halia.atributos = Atributos(forca=8, destreza=12, constituicao=12, intelecto=15, sabedoria=13, presenca=14)
-        self.halia.recalcular_status_derivados()
-        self.halia.restaurar_total()
-        self.halia.magias_desbloqueadas = ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"]
+        self.halia.atributos = Atributos(forca=7, destreza=10, constituicao=10, intelecto=13, sabedoria=11, presenca=12)
+        self.halia.recalcular_status_derivados(manter_porcentagem=False)
+        self.halia.atualizar_grimorio()
+        # Inicia o jogo com vida e mana cheias
+        self.halia.vida_atual = self.halia.vida_maxima
+        self.halia.mana_atual = self.halia.mana_maxima
+        self.halia.vivo = True
+        self.halia.mudar_estado("idle")
         
         # Reset do Carroceiro
         self.carroceiro.x, self.carroceiro.y = 1350, 330
@@ -300,6 +363,16 @@ class Game:
         self.conversa_combate_ativa = False
         self.inimigos_em_cena = []
         self.transicao.estado = "INATIVO"
+
+        # Sincroniza e reseta o Filtro de Memória (100% P&B / Estágio 0), HUD e Cutscenes
+        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
+            self.filtro_memoria.reiniciar(0)
+        if hasattr(self, 'tela_despertar') and self.tela_despertar:
+            self.tela_despertar.reiniciar()
+        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
+            self.estados["JOGANDO"].memoria_anterior_registrada = 0
+        if hasattr(self, 'hud') and self.hud:
+            self.hud.memorias_coletadas = 0
         
         # Recarrega o cenário inicial limpo
         self.mapa_casa.carregar_cenario("CASA")

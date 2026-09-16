@@ -9,46 +9,74 @@ if _raiz_projeto not in sys.path:
 
 from src.entities.Entity import Entidade
 from src.mechanics.attributes import Atributos
+from src.mechanics.grimorio import GrimorioHalia
 from src.utils.resource_manager import ResourceManager, Animacao
 
 class Player(Entidade):
+    """
+    Representa Halia, a protagonista de Oblivium.
+    Conceito Narrativo & Mecânico:
+    Halia é uma Grã-Maga de nível máximo arcanista, mas devido a uma perda profunda de memória,
+    sua mente e capacidades encontram-se seladas/reprimidas no início do jogo.
+    Conforme resgata Fragmentos de Memória, ela desbloqueia parcelas do seu verdadeiro poder,
+    ampliando seus atributos e despertando os feitiços ancestrais do seu Grimório.
+    """
+    NIVEL_VERDADEIRO = 50 # Grã-Maga Suprema
+
     def __init__(self, nome="Halia", vida_maxima=100, x=210, y=280, velocidade=3, mana_maxima=50, dinheiro=0, atributos=None):
-        # Atributos padrão da Halia (Foco em Magia, Agilidade e Presença)
+        # Atributos iniciais contidos (Mente reprimida pela amnésia)
         if atributos is None:
             atributos = Atributos(
-                forca=8,
-                destreza=12,
-                constituicao=12,
-                intelecto=15,
-                sabedoria=13,
-                presenca=14
+                forca=7,
+                destreza=10,
+                constituicao=10,
+                intelecto=13,
+                sabedoria=11,
+                presenca=12
             )
             
-        super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos)
+        super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos, mana_maxima=mana_maxima)
 
-        # Atributos exclusivos do jogador
-        self.mana_maxima = mana_maxima
-        self.mana_atual = mana_maxima
+        # Controle de Memórias e Sincronia
         self.fragmentos_memoria = 0
         self.dinheiro = dinheiro
+        self.nivel_sincronia = 1
 
-        # Grimório / Lista de Magias e Habilidades Desbloqueadas (IDs no SkillsRegistry)
-        self.magias_desbloqueadas = ["ataque_basico", "bola_de_fogo", "levitar", "brisa_curativa"]
+        # Ações Físicas Disponíveis (Submenu de Ataque Físico)
+        self.ataques_fisicos = ["ataque_basico", "golpe_concentrado"]
 
-        # Estado do jogador
+        # Grimório Exclusivo da Halia (Desbloqueado dinamicamente por memórias)
+        self.magias_desbloqueadas = []
+        self.atualizar_grimorio()
+
+        # Recalcula vida e mana base para o estado inicial
+        self.recalcular_status_derivados(manter_porcentagem=False)
+        # Halia inicia com vida e mana totais
+        self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
+
+        # Estado de Combate
         self.em_combate = False
 
+    def atualizar_grimorio(self):
+        """Sincroniza as magias conhecidas por Halia com o Grimório com base nas memórias."""
+        self.magias_desbloqueadas = GrimorioHalia.obter_magias_desbloqueadas(self.fragmentos_memoria)
+
     def recalcular_status_derivados(self, manter_porcentagem=True):
-        """Atualiza a vida e mana máxima com base nos atributos atuais (ex: após level up ou itens)."""
+        """Atualiza a vida e mana máxima com base nos atributos atuais."""
         pct_vida = self.vida_atual / self.vida_maxima if self.vida_maxima > 0 else 1.0
         pct_mana = self.mana_atual / self.mana_maxima if self.mana_maxima > 0 else 1.0
         
-        self.vida_maxima = self.atributos.calcular_vida_maxima(vida_base=40)
-        self.mana_maxima = self.atributos.calcular_mana_maxima(mana_base=11)
+        # Base de HP e MP escala suavemente com a sincronia de memória
+        vida_base_ajustada = 40 + (self.fragmentos_memoria * 8)
+        mana_base_ajustada = 20 + (self.fragmentos_memoria * 10)
+
+        self.vida_maxima = self.atributos.calcular_vida_maxima(vida_base=vida_base_ajustada)
+        self.mana_maxima = self.atributos.calcular_mana_maxima(mana_base=mana_base_ajustada)
         
         if manter_porcentagem:
-            self.vida_atual = int(self.vida_maxima * pct_vida)
-            self.mana_atual = int(self.mana_maxima * pct_mana)
+            self.vida_atual = max(1, int(self.vida_maxima * pct_vida))
+            self.mana_atual = max(0, int(self.mana_maxima * pct_mana))
         else:
             self.vida_atual = min(self.vida_atual, self.vida_maxima)
             self.mana_atual = min(self.mana_atual, self.mana_maxima)
@@ -69,26 +97,45 @@ class Player(Entidade):
         """Restaura vida e mana para os valores máximos e limpa estados."""
         super().restaurar_total()
 
-    # Sistema de Magia Legado / Compatibilidade
-    def usar_magia(self, custo_mana):
-        if not self.vivo:
-            print(f"{self.nome} não pode usar magia.")
-            return False
-
-        if self.gastar_mana(custo_mana):
-            print(f"{self.nome} usou magia! Mana restante: {self.mana_atual}/{self.mana_maxima}")
-            return True
-        else:
-            print("Mana insuficiente!")
-            return False
-
-    # Sistema de Memória
+    # ==========================================
+    # SISTEMA DE MEMÓRIA & EVOLUÇÃO
+    # ==========================================
     def recuperar_memoria(self, quantidade):
+        """
+        Ao recuperar fragmentos de memória, Halia reconecta-se com seu passado,
+        aumentando seus atributos essenciais e desbloqueando feitiços esquecidos.
+        """
         self.fragmentos_memoria += quantidade
-        print(f"{self.nome} recuperou {quantidade} fragmento(s) de memória!")
-        print(f"Total de memórias: {self.fragmentos_memoria}")
+        self.nivel_sincronia = 1 + self.fragmentos_memoria
 
-    # Sistema de Dinheiro
+        # Bônus de Atributos pelo despertar da mente
+        self.atributos.intelecto += (quantidade * 2)
+        self.atributos.sabedoria += (quantidade * 2)
+        self.atributos.presenca += (quantidade * 1)
+        self.atributos.constituicao += (quantidade * 1)
+        self.atributos.destreza += (quantidade * 1)
+
+        # Atualiza limites derivados e recupera vida/mana ganhas
+        self.recalcular_status_derivados(manter_porcentagem=True)
+        self.curar(15 * quantidade)
+        self.recuperar_mana(15 * quantidade)
+
+        # Verifica novos feitiços no Grimório
+        magias_antigas = set(self.magias_desbloqueadas)
+        self.atualizar_grimorio()
+        novas_magias = [m for m in self.magias_desbloqueadas if m not in magias_antigas]
+
+        print(f"[Memoria] {self.nome} recuperou {quantidade} fragmento(s) de memoria! (Total: {self.fragmentos_memoria})")
+        print(f"[Memoria] Nivel de Sincronia Arcano aumentado para {self.nivel_sincronia}!")
+        if novas_magias:
+            nomes_novos = [GrimorioHalia.obter_todas_magias().get(m, {}).get("nome", m) for m in novas_magias]
+            print(f"[Grimorio] Novos feiticos despertados: {', '.join(nomes_novos)}")
+
+        return novas_magias
+
+    # ==========================================
+    # SISTEMA FINANCEIRO
+    # ==========================================
     def ganhar_dinheiro(self, quantidade):
         self.dinheiro += quantidade
         print(f"{self.nome} recebeu {quantidade} moedas.")
@@ -102,7 +149,9 @@ class Player(Entidade):
             print("Dinheiro insuficiente!")
             return False
 
-    # Combate
+    # ==========================================
+    # CICLO DE COMBATE
+    # ==========================================
     def entrar_combate(self):
         self.em_combate = True
         self.defendendo = False
@@ -117,18 +166,15 @@ class Player(Entidade):
         self.focado = False
         print(f"{self.nome} saiu do combate!")
 
-    # Sobrescrita
     def morrer(self):
         super().morrer()
         print(f"{self.nome} desmaiou e retornará ao último checkpoint.")
 
-    # Status
     def mostrar_status(self):
-        print("< --- PLAYER --- >")
-        print(f"Nome: {self.nome}")
-        print(f"Vida: {self.vida_atual}/{self.vida_maxima}")
-        print(f"Mana: {self.mana_atual}/{self.mana_maxima}")
+        print("< --- HALIA (GRÃ-MAGA) --- >")
+        print(f"Nome: {self.nome} | Sincronia de Memória: Nível {self.nivel_sincronia} (Potencial: {self.NIVEL_VERDADEIRO})")
+        print(f"Vida: {self.vida_atual}/{self.vida_maxima} | Mana: {self.mana_atual}/{self.mana_maxima}")
         print(f"Atributos: {self.atributos}")
-        print(f"Fragmentos de Memórias: {self.fragmentos_memoria}")
-        print(f"Dinheiro: {self.dinheiro}")
-        print(f"Posição: ({int(self.x)}, {int(self.y)})")
+        print(f"Memórias Resgatadas: {self.fragmentos_memoria}")
+        print(f"Ataques Físicos: {self.ataques_fisicos}")
+        print(f"Magias Ativas no Grimório: {self.magias_desbloqueadas}")

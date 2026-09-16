@@ -27,39 +27,39 @@ BOTAO_FECHAR_NORMAL = (200, 50, 50)     # Vermelho escuro
 BOTAO_FECHAR_HOVER = (255, 100, 100)    # Vermelho claro
 
 # 3. CENÁRIOS & MEIO AMBIENTE (MAPA CASA & ESTRADAS)
-CENARIO_FUNDO_FORA = (12, 12, 14)
-CENARIO_CHAO_CASA = (120, 115, 110)
-CENARIO_PAREDE_CASA = (45, 40, 40)
-CENARIO_MOVEIS = (85, 80, 75)
-CENARIO_PORTA = (65, 55, 50)
-CENARIO_MADEIRA_VARANDA = (100, 95, 90)
+CENARIO_FUNDO_FORA = (18, 16, 22)
+CENARIO_CHAO_CASA = (165, 125, 85)          # Piso de madeira nobre aconchegante
+CENARIO_PAREDE_CASA = (75, 55, 45)          # Parede rústica acolhedora
+CENARIO_MOVEIS = (125, 80, 50)              # Móveis de mogno/carvalho polido
+CENARIO_PORTA = (105, 65, 40)               # Porta de madeira maciça
+CENARIO_MADEIRA_VARANDA = (145, 105, 70)    # Madeira de varanda externa
 
-# Tons da Estrada Tutorial (Mundo Cinzento)
-CENARIO_ESTRADA = (90, 85, 80)          # Terra batida acinzentada
-CENARIO_GRAMA_CINZA = (55, 55, 50)      # Vegetação morta
-CENARIO_BARREIRAS = (35, 35, 38)        # Pedras e árvores de bloqueio
+# Tons da Estrada e Natureza (Cores vivas para transição com o filtro)
+CENARIO_ESTRADA = (165, 125, 75)            # Terra batida dourada e terrosa
+CENARIO_GRAMA_CINZA = (60, 145, 65)         # Grama verdejante e viva
+CENARIO_BARREIRAS = (45, 95, 50)            # Vegetação e árvores verde-floresta
 
 # 4. ITENS & ENTIDADES
-COLOR_BOLSA_MOEDAS = (100, 80, 60)
-COLOR_LIVRO_ANTIGO = (70, 85, 100)
-COLOR_CAJADO_MAGICO = (80, 90, 70)
+COLOR_BOLSA_MOEDAS = (210, 160, 45)         # Bolsa de couro dourado
+COLOR_LIVRO_ANTIGO = (65, 120, 210)         # Grimório azul safira encantado
+COLOR_CAJADO_MAGICO = (160, 125, 60)        # Cajado de madeira nobre dourada
 
 # 5. COMBATE & MINIJOGOS (RANGES DE MAGIA)
 FUNDO_BATALHA = (20, 25, 35)
-BARRA_VIDA_JOGADOR = (50, 200, 50)
-BARRA_VIDA_INIMIGO = (200, 50, 50)
-BARRA_MANA = (50, 50, 255)
-FUNDO_BARRA = (50, 50, 50)
+BARRA_VIDA_JOGADOR = (220, 45, 45)
+BARRA_VIDA_INIMIGO = (220, 45, 45)
+BARRA_MANA = (45, 120, 240)
+FUNDO_BARRA = (35, 35, 42)
 
-FOGO_NUCLEO = (255, 240, 100)
-FOGO_INTERMEDIARIO = (255, 130, 0)
-FOGO_BORDA = (240, 40, 10)
-TEXTO_ALERTA_COMBATE = (255, 50, 50)
+FOGO_NUCLEO = (255, 245, 120)
+FOGO_INTERMEDIARIO = (255, 140, 20)
+FOGO_BORDA = (245, 45, 15)
+TEXTO_ALERTA_COMBATE = (255, 60, 60)
 INDICADOR_INTERACAO = (255, 255, 180)  # [E] Interagir
 
 # Elementos de Puzzles / Interativos do Cenário
-COR_PEDRA_DESLIZAMENTO = (110, 105, 105)      # Um cinza mineral mais claro e visível
-COR_BORDA_PEDRA = (70, 80, 95)                # Um cinza azulado escuro para dar relevo e destaque
+COR_PEDRA_DESLIZAMENTO = (130, 140, 155)      # Rocha com relevo mineral nítido
+COR_BORDA_PEDRA = (60, 70, 90)                # Contorno mineral azul-ardósia
 
 # --- CORES DO AMULETO DE MEMÓRIAS (7 FASES) ---
 AMULETO_COR_FASE_1 = (90, 160, 210)   # Azul frio inicial

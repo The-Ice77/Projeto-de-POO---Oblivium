@@ -1,5 +1,6 @@
 # src/ui/dialogue_box.py
 import pygame
+from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_painel_padrao
 from src.utils.colors import (
     UI_FUNDO_PADRAO, BRANCO, CINZA_CLARO, UI_TEXTO_APAGADO, 
     TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO, 
@@ -96,23 +97,13 @@ class DialogueBox:
                 self.em_escolha = False
                 self.pode_fechar = False 
                 self.texto_completo = dados_atuais.get("texto", "")
-                self.linhas_completas = self._quebrar_texto(self.texto_completo, self.fonte_texto, self.largura_maxima)
+                self.linhas_completas = quebrar_texto_em_linhas(self.texto_completo, self.fonte_texto, self.largura_maxima)
                 self.tamanho_total = len(self.texto_completo)
                 self.caractere_atual = 0
 
     def _quebrar_texto(self, texto, fonte, largura_maxima):
-        palavras = texto.split(' ')
-        linhas = []
-        linha_atual = ""
-        for palavra in palavras:
-            teste_linha = linha_atual + palavra + " "
-            if fonte.size(teste_linha)[0] <= largura_maxima:
-                linha_atual = teste_linha
-            else:
-                if linha_atual: linhas.append(linha_atual)
-                linha_atual = palavra + " "
-        if linha_atual: linhas.append(linha_atual)
-        return linhas
+        """Método de compatibilidade que repassa para o utilitário compartilhado de UI."""
+        return quebrar_texto_em_linhas(texto, fonte, largura_maxima)
 
     def proximo_texto(self):
         if not self.ativo: return
@@ -286,7 +277,7 @@ class DialogueBox:
             x_coluna = x + 20 if coluna == 0 else x + (largura // 2) + 10
             y_linha_pos = y + 55 + (linha_idx * 45) 
             
-            linhas_opcao = self._quebrar_texto(texto_completo_opt, self.fonte_texto, (largura // 2) - 40)
+            linhas_opcao = quebrar_texto_em_linhas(texto_completo_opt, self.fonte_texto, (largura // 2) - 40)
             
             y_bloco_atual = y_linha_pos
             for linha in linhas_opcao:

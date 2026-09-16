@@ -158,7 +158,7 @@ class Entidade:
     # (Mantenha os métodos receber_dano, curar e mostrar_status iguais)
     def receber_dano(self, dano):
         if not self.vivo: return
-        self.vida_atual -= dano
+        self.vida_atual = max(0, round(self.vida_atual - dano, 1))
         if self.vida_atual <= 0:
             self.vida_atual = 0
             self.vivo = False
@@ -170,17 +170,17 @@ class Entidade:
 
     def curar(self, cura):
         if not self.vivo: return
-        self.vida_atual = min(self.vida_maxima, self.vida_atual + cura)
+        self.vida_atual = min(self.vida_maxima, round(self.vida_atual + cura, 1))
 
     def recuperar_mana(self, quantidade):
         """Recupera mana sem ultrapassar o limite máximo."""
         if not self.vivo: return
-        self.mana_atual = min(self.mana_maxima, self.mana_atual + quantidade)
+        self.mana_atual = min(self.mana_maxima, round(self.mana_atual + quantidade, 1))
 
     def gastar_mana(self, custo):
         """Deduz mana se houver o suficiente. Retorna True se sucesso, False se insuficiente."""
         if self.mana_atual >= custo:
-            self.mana_atual -= custo
+            self.mana_atual = round(self.mana_atual - custo, 1)
             return True
         return False
 
@@ -246,13 +246,15 @@ class Entidade:
         impede_acao = False
 
         for cond in self.condicoes[:]:
+            if not self.vivo:
+                break
             res = cond.processar_inicio_turno(self)
             if res:
                 relatorios.append(res)
                 if res.get("impede_acao", False):
                     impede_acao = True
             
-            if cond.expirou():
+            if cond.expirou() and cond in self.condicoes:
                 self.condicoes.remove(cond)
 
         return relatorios, impede_acao
@@ -268,6 +270,18 @@ class Entidade:
         self.vulneravel = False
         self.focado = False
 
+    def restaurar_total(self):
+        """Restaura vida e mana para os valores máximos, limpa estados e reanima a entidade."""
+        self.vida_atual = self.vida_maxima
+        self.mana_atual = self.mana_maxima
+        self.vivo = True
+        self.condicoes.clear()
+        self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
+        self.mudar_estado("idle")
+
     def morrer(self):
+        self.vivo = False
         self.condicoes.clear()
         self.mudar_estado("morrer")

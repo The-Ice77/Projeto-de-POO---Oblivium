@@ -8,6 +8,11 @@ class CombatState(State):
 
     def handle_events(self, eventos, teclas):
         for evento in eventos:
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                if getattr(self.game.tela_combate, 'estado_combate', '') == "MENU_PRINCIPAL":
+                    self.game.origem_pause = "COMBATE"
+                    self.game.mudar_estado("PAUSE")
+                    return
             self.game.tela_combate.processar_eventos(evento)
 
     def update(self):
@@ -24,3 +29,7 @@ class CombatState(State):
         # Transições de tela
         if hasattr(self.game, 'transicao') and self.game.transicao.estado != "INATIVO":
             self.game.transicao.desenhar(tela)
+            
+        # Aplica o Filtro de Memória para consistência atmosférica em combate
+        if hasattr(self.game, 'filtro_memoria'):
+            self.game.filtro_memoria.aplicar_filtro(tela)
