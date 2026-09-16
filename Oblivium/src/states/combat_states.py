@@ -29,3 +29,7 @@ class CombatState(State):
         # Transições de tela
         if hasattr(self.game, 'transicao') and self.game.transicao.estado != "INATIVO":
             self.game.transicao.desenhar(tela)
+            
+        # Aplica o Filtro de Memória para consistência atmosférica em combate
+        if hasattr(self.game, 'filtro_memoria'):
+            self.game.filtro_memoria.aplicar_filtro(tela)

@@ -14,6 +14,8 @@ from src.mechanics.combat import CombatScreen
 from src.utils import save_manager
 from src.utils.resource_manager import ResourceManager, Animacao
 from src.ui.hud import HUD
+from src.utils.filtro_memoria import FiltroMemoria
+from src.ui.tela_despertar import TelaDespertarMemoria
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -46,7 +48,9 @@ class Game:
         self.mapa_casa = Mapa(self, self.LARGURA, self.ALTURA)
         self.transicao = Transition(self.LARGURA, self.ALTURA)
         self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA) 
+        self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
+        self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         # --- CONFIGURAÇÕES DO JOGO ---
@@ -305,6 +309,16 @@ class Game:
         self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
         self.carroceiro_andando = carroceiro_dados.get("andando", False)
         
+        # 4. Sincroniza imediatamente o Filtro de Memória, HUD e telas visuais com o save carregado
+        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
+            self.filtro_memoria.definir_estagio(self.halia.fragmentos_memoria, com_transicao_suave=False)
+        if hasattr(self, 'tela_despertar') and self.tela_despertar:
+            self.tela_despertar.reiniciar()
+        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
+            self.estados["JOGANDO"].memoria_anterior_registrada = self.halia.fragmentos_memoria
+        if hasattr(self, 'hud') and self.hud:
+            self.hud.memorias_coletadas = self.halia.fragmentos_memoria
+        
         return True 
 
     def resetar_progresso(self, slot_novo):
@@ -349,6 +363,16 @@ class Game:
         self.conversa_combate_ativa = False
         self.inimigos_em_cena = []
         self.transicao.estado = "INATIVO"
+
+        # Sincroniza e reseta o Filtro de Memória (100% P&B / Estágio 0), HUD e Cutscenes
+        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
+            self.filtro_memoria.reiniciar(0)
+        if hasattr(self, 'tela_despertar') and self.tela_despertar:
+            self.tela_despertar.reiniciar()
+        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
+            self.estados["JOGANDO"].memoria_anterior_registrada = 0
+        if hasattr(self, 'hud') and self.hud:
+            self.hud.memorias_coletadas = 0
         
         # Recarrega o cenário inicial limpo
         self.mapa_casa.carregar_cenario("CASA")

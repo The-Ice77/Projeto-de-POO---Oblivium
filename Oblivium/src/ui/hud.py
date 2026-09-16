@@ -2,7 +2,11 @@
 import pygame
 import math
 import os
-from src.utils.colors import UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, AMULETO_COR_FASE_1, AMULETO_COR_FASE_2, AMULETO_COR_FASE_3, AMULETO_COR_FASE_4, AMULETO_COR_FASE_5, AMULETO_COR_FASE_6, AMULETO_COR_FASE_7
+from src.utils.colors import (
+    UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO,
+    AMULETO_COR_FASE_1, AMULETO_COR_FASE_2, AMULETO_COR_FASE_3, AMULETO_COR_FASE_4,
+    AMULETO_COR_FASE_5, AMULETO_COR_FASE_6, AMULETO_COR_FASE_7
+)
 from src.utils.resource_manager import ResourceManager
 
 class HUD:
@@ -10,19 +14,18 @@ class HUD:
         self.largura = largura_tela
         self.altura = altura_tela
         
-        # Fontes seguindo o padrão exato da DialogueBox
+        # Fontes seguindo o padrão exato de Oblivium
         self.fonte_nome = pygame.font.Font(None, 36) 
         self.fonte_pequena = pygame.font.Font(None, 22)
         
-        # Hitbox da bolsa (agora maior e mais fácil de clicar/visualizar)
+        # Hitbox da bolsa (95x95)
         self.rect_bolsa = pygame.Rect(self.largura - 120, self.altura - 120, 95, 95)
         
-        # --- PROGRESSÃO DE FASES (1 a 7) ---
+        # --- PROGRESSÃO DE FASES (0 a 7) ---
         self.fase_atual_amuleto = 1 
-        self.memorias_coletadas = 0 # Quantas partes da memória foram ativadas (0 a 7)
+        self.memorias_coletadas = 0
         
         # --- SUPORTE A SPRITES ---
-        # Bolsa carregada com um tamanho maior (95x95)
         self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (95, 95))
         
         # Pré-carrega as 8 fases do amuleto
@@ -41,10 +44,12 @@ class HUD:
         if halia:
             self.memorias_coletadas = getattr(halia, 'fragmentos_memoria', 0)
             
-        # 1. Oculta automaticamente se houver transição ou flashback ativo
+        # 1. Oculta automaticamente se houver transição, flashback ou tela de despertar ativa
         if hasattr(game, 'transicao') and game.transicao.estado != "INATIVO":
             return
         if hasattr(game, 'flashback_sistema') and game.flashback_sistema.estado != "INATIVO":
+            return
+        if hasattr(game, 'tela_despertar') and game.tela_despertar.estado != "INATIVO":
             return
 
         halia = getattr(game, 'halia', None)
@@ -52,7 +57,6 @@ class HUD:
             return
 
         # 2. Zonas de Proximidade para Transparência Dinâmica
-        # Zona superior esquerda (Caixa de Status + Amuleto) e Zona inferior direita (Bolsa)
         zona_topo_esq = pygame.Rect(20, 20, 450, 130)
         zona_bolsa = pygame.Rect(self.largura - 110, self.altura - 110, 100, 100)
         
@@ -80,7 +84,6 @@ class HUD:
         mana_atual = getattr(halia, 'mana_atual', 50)
         mana_maxima = getattr(halia, 'mana_maxima', 50)
 
-
         largura_caixa = 280
         altura_caixa = 95
         x_caixa = 30
@@ -102,19 +105,18 @@ class HUD:
         razao_vida = max(0, min(1, vida_atual / vida_maxima)) if vida_maxima > 0 else 0
         razao_mana = max(0, min(1, mana_atual / mana_maxima)) if mana_maxima > 0 else 0
         
-        # Barra de Vida (Automatizada)
+        # Barra de Vida
         pygame.draw.rect(surface_hud, (60, 10, 10), (x_caixa + 70, y_caixa + 48, 180, 10))
-        pygame.draw.rect(surface_hud, (200, 40, 50), (x_caixa + 70, y_caixa + 48, int(180 * razao_vida), 10))
+        pygame.draw.rect(surface_hud, (220, 45, 45), (x_caixa + 70, y_caixa + 48, int(180 * razao_vida), 10))
         
-        # Barra de Mana (Automatizada)
+        # Barra de Mana
         pygame.draw.rect(surface_hud, (10, 20, 60), (x_caixa + 70, y_caixa + 70, 180, 10))
-        pygame.draw.rect(surface_hud, (50, 130, 210), (x_caixa + 70, y_caixa + 70, int(180 * razao_mana), 10))
+        pygame.draw.rect(surface_hud, (45, 120, 240), (x_caixa + 70, y_caixa + 70, int(180 * razao_mana), 10))
 
-        # 4. AMULETO DE MEMÓRIAS
+        # 4. AMULETO DE MEMÓRIAS (Ícone compacto do HUD)
         cx_memorias = x_caixa + largura_caixa + 50
         cy_memorias = y_caixa + (altura_caixa // 2)
         
-        # Pega a arte correspondente à quantidade atual de memórias (0 a 7)
         sprite_memoria_atual = self.sprites_memorias.get(self.memorias_coletadas)
         if sprite_memoria_atual:
             ret_img = sprite_memoria_atual.get_rect(center=(cx_memorias, cy_memorias))
@@ -144,16 +146,14 @@ class HUD:
         """Desenha o anel dividido em 7 partes, onde cada parte ativa possui a sua própria cor."""
         raio_externo = 40
         raio_interno = 16
-        max_mem = 7  # Exatamente 7 divisões
+        max_mem = 7
         
-        # Fundo e moldura circular geométrica
         pygame.draw.circle(tela, UI_FUNDO_PADRAO, (cx, cy), raio_externo)
         pygame.draw.circle(tela, CINZA_CLARO, (cx, cy), raio_externo, 2)
         pygame.draw.circle(tela, CINZA_CLARO, (cx, cy), raio_interno, 2)
         
         angulo_fatia = 360 / max_mem
         
-        # Mapeia cada índice da fatia (1 a 7) à sua respetiva constante de cor
         cores_fases = {
             1: AMULETO_COR_FASE_1,
             2: AMULETO_COR_FASE_2,
@@ -176,12 +176,10 @@ class HUD:
                 a = ang_inicial + (ang_final - ang_inicial) * (p / 4.0)
                 pontos.append((cx + (raio_interno + 4) * math.cos(a), cy + (raio_interno + 4) * math.sin(a)))
             
-            # Se a fatia estiver ativa, pinta com a cor específica daquela parte (i + 1)
             if i < atuais:
                 cor_fatia = cores_fases.get(i + 1, (200, 200, 200))
                 pygame.draw.polygon(tela, cor_fatia, pontos)
             else:
-                # Fatia inativa (escura)
                 pygame.draw.polygon(tela, (30, 30, 35), pontos)
             
             pygame.draw.polygon(tela, (10, 10, 12), pontos, 1)

@@ -14,6 +14,7 @@ class PlayingState(State):
         super().__init__(game)
         self.game = game
         self.cutscene = CutsceneManager(game)
+        self.memoria_anterior_registrada = getattr(self.game.halia, 'fragmentos_memoria', 0)
 
     def handle_events(self, eventos, teclas):
         self._processar_movimento(teclas)
@@ -32,6 +33,40 @@ class PlayingState(State):
         # Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo)
         self.game.tempo_jogado += 1 / 60.0
         
+        # Gerencia e dispara a tela solene de despertar de memória
+        mem_atual = getattr(self.game.halia, 'fragmentos_memoria', 0)
+        if mem_atual > self.memoria_anterior_registrada:
+            if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado == "INATIVO":
+                self.game.tela_despertar.iniciar(self.memoria_anterior_registrada, mem_atual)
+        elif mem_atual < self.memoria_anterior_registrada:
+            # Caso ocorra regressão de memórias, ajusta o filtro imediatamente de forma suave
+            self.memoria_anterior_registrada = mem_atual
+            if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
+                self.game.filtro_memoria.definir_estagio(mem_atual, com_transicao_suave=True)
+        
+        # Durante a apresentação dos textos, o mundo espera
+        if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
+            concluiu = self.game.tela_despertar.atualizar()
+            if concluiu:
+                # O jogador concluiu a leitura dos textos! Agora sim disparamos o pulso de cor e atualizamos o estágio
+                self.memoria_anterior_registrada = mem_atual
+                if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
+                    self.game.filtro_memoria.definir_estagio(
+                        mem_atual, 
+                        com_transicao_suave=True, 
+                        pos_origem=(self.game.halia.x + 20, self.game.halia.y + 30)
+                    )
+        else:
+            # Sincronização de segurança: garante que o filtro e o registro correspondam exatamente à memória
+            if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
+                if self.game.filtro_memoria.estagio_atual != mem_atual:
+                    self.game.filtro_memoria.definir_estagio(mem_atual, com_transicao_suave=False)
+            self.memoria_anterior_registrada = mem_atual
+
+        # Atualiza a interpolação suave do filtro de memória continuamente
+        if hasattr(self.game, 'filtro_memoria'):
+            self.game.filtro_memoria.atualizar()
+
         self.game.caixa_dialogo.atualizar()
         self.cutscene.atualizar_magia()
         self._update_minigames_e_flashbacks()
@@ -57,9 +92,19 @@ class PlayingState(State):
         self.cutscene.desenhar_efeitos(tela)
         self._draw_ui_overlays(tela)
 
+        # Aplica o Filtro de Memória sobre o mundo do jogo e interface regular
+        if hasattr(self.game, 'filtro_memoria'):
+            self.game.filtro_memoria.aplicar_filtro(tela, pos_jogador=(self.game.halia.x + 20, self.game.halia.y + 30))
+
+        # A Tela de Despertar é desenhada no topo com 100% de cores vivas e vibrantes
+        if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
+            self.game.tela_despertar.desenhar(tela)
+
     def _processar_movimento(self, teclas):
         if self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or \
-           self.game.flashback_sistema.estado != "INATIVO" or (self.game.magia_ativa is not None and self.game.magia_ativa != "CONCLUIDO") or \
+           self.game.flashback_sistema.estado != "INATIVO" or \
+           (hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO") or \
+           (self.game.magia_ativa is not None and self.game.magia_ativa != "CONCLUIDO") or \
            self.game.mg_timing.ativo or self.game.mg_mash.ativo or self.game.cena_inimigos_andando:
             return
             
@@ -91,10 +136,17 @@ class PlayingState(State):
             self.game.halia.mudar_estado("idle")
 
     def _handle_keydown(self, evento):
+        # Avanço da Tela Solene de Despertar de Memória
+        if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
+            if evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
+                self.game.tela_despertar.processar_input()
+                return
+
         # ABRIR O INVENTÁRIO
         if evento.key == self.game.controles.get("Inventário", pygame.K_i):
             if (not self.game.caixa_dialogo.ativo and 
                 self.game.transicao.estado == "INATIVO" and 
+                (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO") and
                 not self.game.cena_inimigos_andando and 
                 not self.game.aguardando_fim_viagem):
                 self.game.mudar_estado("INVENTARIO")
@@ -102,7 +154,8 @@ class PlayingState(State):
 
         # ABRIR O PAUSE
         if evento.key == self.game.controles["Pause"]:
-            if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO":
+            if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO" and \
+               (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO"):
                 self.game.origem_pause = "JOGANDO"
                 self.game.mudar_estado("PAUSE")
                 return
@@ -122,12 +175,18 @@ class PlayingState(State):
             self._processar_interacoes_mundo()
 
     def _handle_clicks(self, evento):
+        # Avanço da Tela Solene de Despertar de Memória
+        if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
+            self.game.tela_despertar.processar_input()
+            return
+
         pos = evento.pos
         
         # Clicar na bolsa do HUD abre o inventário
         if (hasattr(self.game, 'hud') and 
             not self.game.caixa_dialogo.ativo and 
             self.game.transicao.estado == "INATIVO" and 
+            (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO") and
             not self.game.cena_inimigos_andando and 
             not self.game.aguardando_fim_viagem):
             
@@ -190,10 +249,13 @@ class PlayingState(State):
                 sombra2 = EnemyFactory.criar("sombra_menor", x=1180, y=420, nome_custom="Sombra 2")
                 sombra1.velocidade = 4.0
                 sombra2.velocidade = 4.0
+                sombra1.recompensas = {"moedas": 20, "memorias": 1, "xp": 40}
+                sombra2.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
                 self.game.inimigos_em_cena.extend([sombra1, sombra2])
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
                 boss = EnemyFactory.criar_boss("anomalia_maior", x=1180, y=310, nome_custom="Anomalia Maior")
                 boss.velocidade = 4.0
+                boss.recompensas = {"moedas": 45, "memorias": 1, "xp": 80}
                 self.game.inimigos_em_cena.append(boss)
 
         # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
@@ -441,6 +503,6 @@ class PlayingState(State):
         self.game.caixa_dialogo.desenhar(tela)
         self.game.flashback_sistema.desenhar(tela)
         
-        # O HUD deve ser a última coisa, passando o 'self.game' para gerenciar estados e transparências
-        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo:
+        # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar
+        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
             self.game.hud.desenhar(tela, self.game)
