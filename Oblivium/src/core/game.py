@@ -174,7 +174,7 @@ class Game:
             
             pygame.display.flip()
             self.clock.tick(60)
-    def salvar_estado(self, slot=None):
+    def salvar_estado(self, slot=None, tipo="manual"):
         slot_alvo = slot or self.slot_atual
         if not slot_alvo: 
             return 
@@ -183,6 +183,7 @@ class Game:
             "cenario_atual": self.mapa_casa.cenario_atual,
             "tempo_jogado": self.tempo_jogado,
             "slot": slot_alvo,
+            "tipo_save": tipo,
             "halia": {
                 "nome": self.halia.nome,
                 "x": self.halia.x,
@@ -220,10 +221,14 @@ class Game:
             }
         }
         
-        save_manager.salvar_dados(slot_alvo, dados_save)
+        save_manager.salvar_dados(slot_alvo, dados_save, tipo=tipo)
 
-    def carregar_estado(self, slot):
-        dados = save_manager.carregar_dados(slot)
+    def carregar_estado(self, slot, tipo="manual"):
+        dados = save_manager.carregar_dados(slot, tipo=tipo)
+        if not dados:
+            outro_tipo = "autosave" if tipo == "manual" else "manual"
+            dados = save_manager.carregar_dados(slot, tipo=outro_tipo)
+            
         if not dados:
             return False
             
@@ -327,6 +332,7 @@ class Game:
         self.tempo_jogado = 0.0
         self.itens_coletados = []
         self.caixa_dialogo.historico_escolhas.clear()
+        save_manager.apagar_dados(slot_novo, tipo="autosave")
         
         # Reset da Halia
         self.halia.x, self.halia.y = 210, 280

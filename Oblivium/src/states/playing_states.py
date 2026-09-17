@@ -310,7 +310,7 @@ class PlayingState(State):
             if self.game.halia.fragmentos_memoria < 1:
                 self.game.halia.recuperar_memoria(1)
             if self.game.slot_atual:
-                self.game.salvar_estado(self.game.slot_atual)
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
     def _mover_carroceiro_autonomo(self):
         next_h = pygame.Rect(int(self.game.carroceiro.x - 2), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
@@ -418,6 +418,10 @@ class PlayingState(State):
                 self.game.iniciando_combate = False
                 self.game.transicao.estado = "CLAREANDO"
                 
+                # Salva autosave de checkpoint imediatamente antes do combate
+                if self.game.slot_atual:
+                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+                
                 def on_vitoria():
                     self.game.combate_estrada_concluido = True
                     self.game.magia_ativa = "CONCLUIDO"
@@ -428,9 +432,11 @@ class PlayingState(State):
                     self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_pos_combate_vitoria))
                     
                 def on_derrota():
-                    # Ao ser derrotada, retorna ao último checkpoint carregando o save mais recente do slot ativo
-                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual):
-                        self.game.carregar_estado(self.game.slot_atual)
+                    # Ao ser derrotada, retorna ao último checkpoint carregando o autosave do slot ativo
+                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
+                        self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
+                    elif self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="manual"):
+                        self.game.carregar_estado(self.game.slot_atual, tipo="manual")
                     else:
                         self.game.halia.restaurar_total()
                         self.game.halia.x, self.game.halia.y = 60, 330
@@ -459,7 +465,7 @@ class PlayingState(State):
         self.game.mapa_casa.carregar_cenario("ESTRADA")
         self.game.halia.x, self.game.halia.y = 40, 330
         if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual)
+            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
         pygame.event.clear()
         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada1))
         self.game.transicao.estado = "CLAREANDO"
@@ -478,7 +484,7 @@ class PlayingState(State):
         if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
         
         if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual)
+            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
             
         pygame.event.clear()
         self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada2))
