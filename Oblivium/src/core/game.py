@@ -142,6 +142,8 @@ class Game:
         """Altera dinamicamente o comportamento e as telas do jogo"""
         if novo_estado in self.estados:
             self.estado_atual = self.estados[novo_estado]
+            if novo_estado == "MENU":
+                self.menu.atualizar_opcoes()
 
     def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
         """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""
