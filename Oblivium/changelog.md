@@ -63,3 +63,10 @@ Adição do menu de configuração com alteração de teclas e outros
   - *Defender*: Assume postura de guarda total, reduzindo danos recebidos pela metade e aumentando expressivamente a evasão (+45% de esquiva).
 - **Consistência na Fila de Turnos (Fim dos Ataques Duplos)**: A iniciativa agora é calculada uma única vez no início do combate (`ordem_turnos_base`), garantindo que cada participante aja estritamente uma vez por rodada em ordem round-robin, eliminando o comportamento onde inimigos (como o Boss ou a Sombra 2) atacavam duas vezes seguidas na virada de rodada.
 - **Destaque Visual e Log de Esquivas**: Mensagens de esquiva no histórico de combate e textos flutuantes (`"ESQUIVOU!"` em Cyan e `"EM GUARDA!"`) destacados com animação suave e cores distintas para feedback imediato das ações defensivas.
+
+### Atualização v[0.4.2] - Nova Tela Inicial, Sistema de Partículas e Botões Gráficos
+#### Implementação, Correção e Aprimoramento
+- **Nova Identidade Visual da Tela Inicial**: Implementação completa dos novos assets em 32-bit RGBA com fundo preto puro, título estilizado de destaque, versão posicionada no canto inferior direito e texto especial alinhado na base.
+- **Componente POO `BotaoGrafico` com Cross-Fade Suave**: Botões com substituição fluida de opacidade entre os estados normal e hover com respiração luminosa orgânica, hitboxes centralizadas e desativação automática quando o cursor não está sobre opções.
+- **Motor de Partículas Genérico (`animations.py`)**: Implementação de `ParticulaFlutuante` e `EfeitoChuvaParticulas`, simulando uma chuva orgânica com física independente, oscilação senoidal (*sway*) e rotação individual.
+- **Extração C-Accelerated em `ResourceManager`**: Adição de `extrair_sprites_individuais` e `carregar_imagem_com_transparencia` acelerados via máscaras nativas em C (`pygame.mask`), isolando automaticamente 66 pétalas únicas e reduzindo o tempo de carregamento para uma fração de segundo.

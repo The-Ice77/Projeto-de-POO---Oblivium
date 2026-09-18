@@ -77,3 +77,98 @@ def desenhar_badge_status(superficie, x, y, icone, duracao, fonte, cor=TXT_SISTE
     txt_render = fonte.render(texto, True, cor)
     superficie.blit(txt_render, (x, y))
     return txt_render.get_width()
+
+
+class BotaoGrafico:
+    """
+    Componente POO de botão visual que suporta imagens de estado normal e hover,
+    transição interpolada suave, efeitos de pulso e fallback procedural para texto.
+    """
+    def __init__(self, identificador, imagem_normal=None, imagem_hover=None, x=0, y=0, fonte_fallback=None):
+        self.identificador = identificador
+        self.imagem_normal = imagem_normal
+        self.imagem_hover = imagem_hover
+        self.fonte_fallback = fonte_fallback or pygame.font.Font(None, 40)
+        
+        self.x = x
+        self.y = y
+        self.hover_progresso = 0.0  # 0.0 (normal) a 1.0 (totalmente hover)
+        self.timer_animacao = 0.0
+        
+        self._recalcular_rect()
+
+    def _recalcular_rect(self):
+        if self.imagem_normal:
+            w = self.imagem_normal.get_width()
+            h = self.imagem_normal.get_height()
+        elif self.imagem_hover:
+            w = self.imagem_hover.get_width()
+            h = self.imagem_hover.get_height()
+        else:
+            w, h = self.fonte_fallback.size(self.identificador)
+            
+        self.rect = pygame.Rect(self.x, self.y, w, h)
+
+    def definir_posicao(self, x, y):
+        self.x = x
+        self.y = y
+        self._recalcular_rect()
+
+    def atualizar(self, esta_selecionado_ou_hover, dt=0.016):
+        alvo = 1.0 if esta_selecionado_ou_hover else 0.0
+        velocidade = 7.0  # Transição suave e fluida
+        
+        if self.hover_progresso < alvo:
+            self.hover_progresso = min(alvo, self.hover_progresso + velocidade * dt)
+        elif self.hover_progresso > alvo:
+            self.hover_progresso = max(alvo, self.hover_progresso - velocidade * dt)
+            
+        if self.hover_progresso > 0.01:
+            self.timer_animacao += dt * 3.5
+        else:
+            self.timer_animacao = 0.0
+
+    def colide(self, pos_mouse):
+        return self.rect.collidepoint(pos_mouse)
+
+    def desenhar(self, superficie, selecionado=False):
+        import math
+        # Se temos sprites estilizados para normal e hover
+        if self.imagem_normal and self.imagem_hover:
+            progresso = 1.0 if selecionado else self.hover_progresso
+            
+            # 1. Renderiza o botão normal com fade-out suave
+            alpha_norm = int(255 * (1.0 - progresso))
+            if alpha_norm > 5:
+                if alpha_norm >= 250:
+                    superficie.blit(self.imagem_normal, (self.x, self.y))
+                else:
+                    surf_norm = self.imagem_normal.copy()
+                    surf_norm.set_alpha(alpha_norm)
+                    superficie.blit(surf_norm, (self.x, self.y))
+
+            # 2. Renderiza a versão hover com fade-in suave e respiração orgânica
+            if progresso > 0.02:
+                fator_brilho = 0.94 + 0.06 * math.sin(self.timer_animacao)
+                alpha_hov = int(255 * progresso * fator_brilho)
+                alpha_hov = max(0, min(255, alpha_hov))
+                
+                # Alinha o centro do sprite de hover perfeitamente com o centro da hitbox
+                hx = self.rect.centerx - self.imagem_hover.get_width() // 2
+                hy = self.rect.centery - self.imagem_hover.get_height() // 2
+                
+                if alpha_hov >= 250:
+                    superficie.blit(self.imagem_hover, (hx, hy))
+                else:
+                    surf_hov = self.imagem_hover.copy()
+                    surf_hov.set_alpha(alpha_hov)
+                    superficie.blit(surf_hov, (hx, hy))
+                
+        elif self.imagem_normal:
+            superficie.blit(self.imagem_normal, (self.x, self.y))
+        else:
+            # Fallback procedural
+            cor = UI_TEXTO_DESTAQUE if (selecionado or self.hover_progresso > 0.5) else UI_TEXTO_APAGADO
+            prefixo = "> " if (selecionado or self.hover_progresso > 0.5) else ""
+            txt_render = self.fonte_fallback.render(f"{prefixo}{self.identificador}", True, cor)
+            superficie.blit(txt_render, (self.x, self.y))
