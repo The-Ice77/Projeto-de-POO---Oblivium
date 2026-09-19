@@ -325,6 +325,11 @@ class Game:
             self.estados["JOGANDO"].memoria_anterior_registrada = self.halia.fragmentos_memoria
         if hasattr(self, 'hud') and self.hud:
             self.hud.memorias_coletadas = self.halia.fragmentos_memoria
+            
+        # 5. Blindagem de Autosave: ao carregar um Save Manual, sincroniza o autosave do slot
+        # com o checkpoint restaurado, garantindo que o autosave não fique apontando para um "futuro" antigo
+        if tipo == "manual" and slot:
+            self.salvar_estado(slot, tipo="autosave")
         
         return True 
 

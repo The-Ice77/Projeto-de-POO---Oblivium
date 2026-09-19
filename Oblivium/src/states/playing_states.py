@@ -212,6 +212,8 @@ class PlayingState(State):
     def _update_minigames_e_flashbacks(self):
         if self.game.flashback_sistema.atualizar():
             self.game.flashback_magia_concluido = True 
+            if self.game.slot_atual:
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
             self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)])
 
         if self.game.mg_timing.ativo:
@@ -418,10 +420,6 @@ class PlayingState(State):
                 self.game.iniciando_combate = False
                 self.game.transicao.estado = "CLAREANDO"
                 
-                # Salva autosave de checkpoint imediatamente antes do combate
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                
                 def on_vitoria():
                     self.game.combate_estrada_concluido = True
                     self.game.magia_ativa = "CONCLUIDO"
@@ -442,6 +440,15 @@ class PlayingState(State):
                         self.game.halia.x, self.game.halia.y = 60, 330
                         self.game.inimigos_em_cena.clear()
                         self.game.cena_inimigos_andando = False
+                    
+                    # Blindagem: garante que a derrota nunca mantenha o combate finalizado ou flags de transição presas
+                    if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
+                        self.game.combate_estrada_concluido = False
+                        self.game.inimigos_em_cena.clear()
+                        self.game.cena_inimigos_andando = False
+                        self.game.iniciando_combate = False
+                        self.game.halia.restaurar_total()
+                    
                     self.game.mudar_estado("JOGANDO")
                     
                 def on_fuga():
