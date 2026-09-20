@@ -376,7 +376,8 @@ class ResourceManager:
             rgba = cls.criar_superficie_32bit(nw, nh)
             for y in range(nh):
                 for x in range(nw):
-                    r, g, b = img_scaled.get_at((x, y))[:3]
+                    cor = img_scaled.get_at((x, y))
+                    r, g, b = cor.r, cor.g, cor.b
                     lum = max(r, g, b)
                     if lum <= 2:
                         rgba.set_at((x, y), (0, 0, 0, 0))
@@ -428,7 +429,8 @@ class ResourceManager:
                         frame_rgba = cls.criar_superficie_32bit(sw, sh)
                         for y in range(sh):
                             for x in range(sw):
-                                red, green, blue = sub.get_at((x, y))[:3]
+                                cor = sub.get_at((x, y))
+                                red, green, blue = cor.r, cor.g, cor.b
                                 lum = max(red, green, blue)
                                 if lum <= threshold_fundo:
                                     frame_rgba.set_at((x, y), (0, 0, 0, 0))
@@ -488,7 +490,8 @@ class ResourceManager:
                     
                     for py_i in range(ph):
                         for px_i in range(pw):
-                            red, green, blue = sub.get_at((px_i, py_i))[:3]
+                            cor = sub.get_at((px_i, py_i))
+                            red, green, blue = cor.r, cor.g, cor.b
                             lum = max(red, green, blue)
                             if lum <= threshold_fundo:
                                 rgba.set_at((px_i, py_i), (0, 0, 0, 0))

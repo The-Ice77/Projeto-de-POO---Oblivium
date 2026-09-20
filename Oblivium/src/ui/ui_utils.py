@@ -1,4 +1,5 @@
 # src/ui/ui_utils.py
+from Oblivium.src.utils.colors import BARRA_VIDA_JOGADOR
 import pygame
 import os
 import sys
