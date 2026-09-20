@@ -1,22 +1,31 @@
 # src/ui/transition.py
 import pygame
-from src.utils.colors import PRETO, BRANCO
+from src.utils.colors import PRETO, MARFIM_OFFWHITE, CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO
+from src.utils.resource_manager import ResourceManager
+from src.ui.ui_utils import desenhar_flor_botanica
 
 class Transition:
+    """
+    Sistema de Transição de Cenários e Capítulos alinhado à estética Editorial:
+    - Fade suave com fundo Carvão Profundo
+    - Tipografia em 'Sunday' em Marfim Offwhite
+    - Linha divisória fina com ornamentação botânica
+    """
     def __init__(self, largura, altura):
         self.largura = largura
         self.altura = altura
         
-        # Cria uma superfície preta do tamanho do ecrã usando a paleta global
+        # Cria uma superfície preta do tamanho do ecrã
         self.superficie = pygame.Surface((largura, altura))
-        self.superficie.fill(PRETO)
+        self.superficie.fill(CARVAO_PROFUNDO)
         
         self.alpha = 0
         self.estado = "INATIVO" # INATIVO, ESCURECENDO, MUDANDO, EXIBINDO_TEXTO, CLAREANDO
         self.velocidade = 5     # Velocidade do efeito de fade do ecrã
         
-        # --- NOVO: SISTEMA DE TEXTO DE TRANSIÇÃO ---
-        self.fonte = pygame.font.Font(None, 46)
+        # Tipografia Editorial
+        self.fonte = ResourceManager.carregar_fonte("sunday", 38)
+        self.fonte_sub = ResourceManager.carregar_fonte("just_breathe", 20)
         self.texto_atual = ""
         self.texto_alpha = 0
         self.texto_velocidade_fade = 4
@@ -46,20 +55,16 @@ class Transition:
             if self.alpha >= 255:
                 self.alpha = 255
                 self.estado = "MUDANDO"
-                return True # Avisa o main.py que o ecrã está 100% preto para carregar o novo mapa
+                return True # Avisa que o ecrã está 100% preto para carregar o novo mapa
                 
         elif self.estado == "MUDANDO":
-            # Se houver texto para exibir, vai para o estado de exibição. Se não, clareia direto.
             if self.texto_atual:
                 self.estado = "EXIBINDO_TEXTO"
-                # Cálculo dinâmico de tempo de leitura: 
-                # Garante um mínimo de 1.5 segundos (1500ms) + 60ms por caractere
                 self.tempo_hold_texto = max(1500, len(self.texto_atual) * 60)
             else:
                 self.estado = "CLAREANDO"
                 
         elif self.estado == "EXIBINDO_TEXTO":
-            # Máquina de estados interna para o Fade do Texto
             if self.texto_estado == "FADE_IN":
                 self.texto_alpha += self.texto_velocidade_fade
                 if self.texto_alpha >= 255:
@@ -76,7 +81,7 @@ class Transition:
                 self.texto_alpha -= self.texto_velocidade_fade
                 if self.texto_alpha <= 0:
                     self.texto_alpha = 0
-                    self.estado = "CLAREANDO" # Texto terminou, podemos revelar o novo mapa
+                    self.estado = "CLAREANDO"
 
         elif self.estado == "CLAREANDO":
             self.alpha -= self.velocidade
@@ -90,17 +95,28 @@ class Transition:
         if self.estado == "INATIVO": 
             return
 
-        # 1. Desenha o fundo da transição (PRETO)
+        # 1. Desenha o fundo da transição
         self.superficie.set_alpha(self.alpha)
         tela.blit(self.superficie, (0, 0))
         
-        # 2. Se houver um texto ativo e estiver no estado correto, renderiza-o centralizado
+        # 2. Se houver um texto ativo, renderiza com ornamentação delicada
         if self.estado == "EXIBINDO_TEXTO" and self.texto_atual:
-            render_texto = self.fonte.render(self.texto_atual, True, BRANCO)
-            render_texto.set_alpha(self.texto_alpha)
+            surf_texto = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
             
-            # Centralização matemática perfeita na horizontal e vertical
+            render_texto = self.fonte.render(self.texto_atual, True, MARFIM_OFFWHITE)
             x_centro = (self.largura // 2) - (render_texto.get_width() // 2)
             y_centro = (self.altura // 2) - (render_texto.get_height() // 2)
             
-            tela.blit(render_texto, (x_centro, y_centro))
+            surf_texto.blit(render_texto, (x_centro, y_centro))
+            
+            # Linha decorativa fina com seta e flor botânica
+            y_linha = y_centro + render_texto.get_height() + 14
+            w_linha = min(360, render_texto.get_width() + 60)
+            x_ini = (self.largura - w_linha) // 2
+            x_fim = x_ini + w_linha
+            
+            pygame.draw.line(surf_texto, CINZA_LINHO, (x_ini, y_linha), (x_fim, y_linha), 1)
+            desenhar_flor_botanica(surf_texto, self.largura // 2, y_linha, cor=CINZA_LINHO, escala=0.6)
+            
+            surf_texto.set_alpha(self.texto_alpha)
+            tela.blit(surf_texto, (0, 0))

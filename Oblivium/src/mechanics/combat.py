@@ -20,12 +20,14 @@ from src.ui.ui_utils import (
     quebrar_texto_em_linhas, desenhar_tooltip_formatado, desenhar_badge_status
 )
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_ESCURO, UI_TEXTO_DESTAQUE, 
-    UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO,
+    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_ESCURO, CINZA_LINHO, CINZA_ARDOSIA,
+    UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO,
     NOME_HALIA, NOME_MALDICAO, TEXTO_ALERTA_COMBATE,
     BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA,
-    BRANCO, PRETO, BOTAO_FECHAR_NORMAL, BOTAO_FECHAR_HOVER
+    BRANCO, PRETO, CARVAO_PROFUNDO, MARFIM_OFFWHITE,
+    AZUL_HOVER_MENU, AZUL_HOVER_BG, BOTAO_FECHAR_NORMAL, BOTAO_FECHAR_HOVER
 )
+from src.utils.resource_manager import ResourceManager
 
 class TextoFlutuante:
     """Gerencia textos flutuantes de dano, cura ou status na tela de combate."""
@@ -67,14 +69,14 @@ class CombatScreen:
         self.largura = largura
         self.altura = altura
         
-        # Fontes do Combate
-        self.fonte_titulo = pygame.font.Font(None, 42)
-        self.fonte_nomes = pygame.font.Font(None, 32)
-        self.fonte_status = pygame.font.Font(None, 22)
-        self.fonte_menu = pygame.font.Font(None, 30)
-        self.fonte_log = pygame.font.Font(None, 24)
-        self.fonte_dano = pygame.font.Font(None, 34)
-        self.fonte_tooltip = pygame.font.Font(None, 22)
+        # Fontes Consolidadas do Combate
+        self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
+        self.fonte_nomes = ResourceManager.carregar_fonte("sunday", 24)
+        self.fonte_status = ResourceManager.carregar_fonte("contrail", 15)
+        self.fonte_menu = ResourceManager.carregar_fonte("contrail", 20)
+        self.fonte_log = ResourceManager.carregar_fonte("contrail", 15)
+        self.fonte_dano = ResourceManager.carregar_fonte("sunday", 26)
+        self.fonte_tooltip = ResourceManager.carregar_fonte("contrail", 14)
         
         # Estrutura do Menu Principal
         self.opcoes_menu_principal = ["Atacar", "Magias", "Concentrar", "Fugir"]
@@ -1217,16 +1219,18 @@ class CombatScreen:
                 self.rects_menu_principal.append(item_rect)
                 
                 if i == self.indice_menu:
-                    pygame.draw.rect(tela, (28, 28, 34), item_rect)
-                    pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
-                    cor = TXT_SISTEMA_NARRADOR
-                    marcador = "> "
+                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
+                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
+                    cor = AZUL_HOVER_MENU
+                    marcador = "►  "
                 else:
-                    cor = CINZA_CLARO
-                    marcador = "  "
+                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
+                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
+                    cor = CINZA_LINHO
+                    marcador = "    "
                     
                 txt = self.fonte_menu.render(f"{marcador}{opcao}", True, cor)
-                tela.blit(txt, (item_rect.x + 14, item_rect.y + 6))
+                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SUBMENU DE ATAQUES FÍSICOS
         self.rects_ataques_fisicos.clear()
@@ -1242,17 +1246,19 @@ class CombatScreen:
                 self.rects_ataques_fisicos.append((item_rect, real_i))
                 
                 if real_i == self.indice_ataque_fisico:
-                    pygame.draw.rect(tela, (28, 28, 34), item_rect)
-                    pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
-                    cor = TXT_SISTEMA_NARRADOR
-                    marcador = "> "
+                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
+                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
+                    cor = AZUL_HOVER_MENU
+                    marcador = "►  "
                 else:
-                    cor = CINZA_CLARO
-                    marcador = "  "
+                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
+                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
+                    cor = CINZA_LINHO
+                    marcador = "    "
                     
                 custo_str = f"({ataque.custo_mana} MP)" if ataque.custo_mana > 0 else ""
                 txt = self.fonte_menu.render(f"{marcador}{ataque.nome} {custo_str}".strip(), True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.y + 6))
+                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SUBMENU DE MAGIAS
         self.rects_magias.clear()
@@ -1268,17 +1274,19 @@ class CombatScreen:
                 self.rects_magias.append((item_rect, real_i))
                 
                 if real_i == self.indice_magia:
-                    pygame.draw.rect(tela, (28, 28, 34), item_rect)
-                    pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
-                    cor = TXT_SISTEMA_NARRADOR
-                    marcador = "> "
+                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
+                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
+                    cor = AZUL_HOVER_MENU
+                    marcador = "►  "
                 else:
-                    cor = CINZA_CLARO
-                    marcador = "  "
+                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
+                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
+                    cor = CINZA_LINHO
+                    marcador = "    "
                     
                 custo_txt = f"({magia.custo_mana} MP)" if magia.custo_mana > 0 else "(Gratis)"
                 txt = self.fonte_menu.render(f"{marcador}{magia.nome} {custo_txt}", True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.y + 6))
+                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SUBMENU DE CONCENTRAR
         self.rects_concentrar.clear()
@@ -1294,17 +1302,19 @@ class CombatScreen:
                 self.rects_concentrar.append((item_rect, real_i))
                 
                 if real_i == self.indice_concentrar:
-                    pygame.draw.rect(tela, (28, 28, 34), item_rect)
-                    pygame.draw.rect(tela, CINZA_CLARO, item_rect, 1)
-                    cor = TXT_SISTEMA_NARRADOR
-                    marcador = "> "
+                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
+                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
+                    cor = AZUL_HOVER_MENU
+                    marcador = "►  "
                 else:
-                    cor = CINZA_CLARO
-                    marcador = "  "
+                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
+                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
+                    cor = CINZA_LINHO
+                    marcador = "    "
                     
                 sufixo = "(+MP)" if acao.id_acao == "foco_espiritual" else "(Guarda)"
                 txt = self.fonte_menu.render(f"{marcador}{acao.nome} {sufixo}", True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.y + 6))
+                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SELEÇÃO DE ALVOS
         elif self.estado_combate == "SELECIONANDO_ALVO":

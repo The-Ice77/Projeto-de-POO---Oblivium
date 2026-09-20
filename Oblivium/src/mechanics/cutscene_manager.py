@@ -42,12 +42,12 @@ class CutsceneManager:
                 self.game.conversa_combate_ativa = True
 
     def _processar_levitacao(self):
-        if self.game.timer_magia <= 60:
+        if self.game.timer_magia < 50:
             if hasattr(self.game.mapa_casa, 'pedras_deslizamento'):
                 for idx, pedra in enumerate(self.game.mapa_casa.pedras_deslizamento):
                     if idx % 2 == 0: pedra.y -= 3; pedra.x += 1
                     else: pedra.y += 3; pedra.x += 1
-        elif self.game.timer_magia == 61:
+        else:
             self.game.mapa_casa.desobstruir_estrada("LEVITAR")
             dialogo_completo = [{"autor": "Narrador", "texto": "Com um gesto suave, as pedras erguem-se no ar e organizam-se nas margens da estrada."}] + copy.deepcopy(conversa_pos_levitar)
             self.game.caixa_dialogo.iniciar_dialogo(dialogo_completo)

@@ -64,7 +64,82 @@ class ResourceManager:
     """
     _cache_imagens = {}
     _cache_animacoes = {}
+    _cache_fontes = {}
     _arquivos_ausentes_notificados = set()
+
+    @classmethod
+    def carregar_fonte(cls, familia_ou_caminho="ui", tamanho=20):
+        """
+        Carrega uma fonte tipográfica com suporte a aliases editoriais de Oblivium,
+        arquivos TTF/OTF locais e fallback seguro do Pygame.
+        """
+        chave = (str(familia_ou_caminho).lower(), int(tamanho))
+        if chave in cls._cache_fontes:
+            return cls._cache_fontes[chave]
+
+        nome = str(familia_ou_caminho).lower()
+        fonte_obj = None
+
+        # 1. Se for caminho direto para arquivo existente
+        if os.path.isfile(str(familia_ou_caminho)):
+            try:
+                fonte_obj = pygame.font.Font(familia_ou_caminho, tamanho)
+            except Exception:
+                fonte_obj = None
+
+        # 2. Se for alias com arquivos locais em assets/fontes/ ou assets/fonts/
+        if not fonte_obj:
+            nomes_arquivos = {
+                "sunday": ["Sunday.ttf", "sunday.ttf", "Sunday.otf"],
+                "titulo": ["Sunday.ttf", "sunday.ttf"],
+                "just_breathe": ["Just Breathe.ttf", "just_breathe.ttf", "JustBreathe.ttf"],
+                "narrativa": ["Just Breathe.ttf", "just_breathe.ttf"],
+                "poetica": ["Just Breathe.ttf", "just_breathe.ttf"],
+                "contrail": ["ContrailOne.ttf", "Contrail One.ttf", "contrail.ttf"],
+                "ui": ["ContrailOne.ttf", "Contrail One.ttf", "contrail.ttf"],
+                "status": ["ContrailOne.ttf", "Contrail One.ttf", "contrail.ttf"]
+            }
+            arquivos_candidatos = nomes_arquivos.get(nome, [str(familia_ou_caminho)])
+            for arq in arquivos_candidatos:
+                for subpasta in ["fontes", "fonts", "menu inicial", ""]:
+                    caminho_teste = cls._obter_caminho_absoluto(os.path.join(subpasta, arq))
+                    if os.path.exists(caminho_teste) and os.path.isfile(caminho_teste):
+                        try:
+                            fonte_obj = pygame.font.Font(caminho_teste, tamanho)
+                            break
+                        except Exception:
+                            pass
+                if fonte_obj:
+                    break
+
+        # 3. Fallback inteligente para fontes instaladas no sistema operacional
+        if not fonte_obj:
+            fontes_sistema = {
+                "sunday": ["georgia", "times new roman", "palatino linotype", "serif"],
+                "titulo": ["georgia", "times new roman", "palatino linotype", "serif"],
+                "just_breathe": ["gabriola", "segoe print", "segoe script", "monotype corsiva", "georgia"],
+                "narrativa": ["gabriola", "segoe print", "segoe script", "georgia"],
+                "poetica": ["gabriola", "segoe print", "segoe script", "georgia"],
+                "contrail": ["trebuchet ms", "segoe ui", "candara", "arial", "sans-serif"],
+                "ui": ["segoe ui", "trebuchet ms", "candara", "arial"],
+                "status": ["segoe ui", "trebuchet ms", "candara", "arial"]
+            }
+            candidatos_sys = fontes_sistema.get(nome, [nome, "georgia", "segoe ui"])
+            for sys_font in candidatos_sys:
+                try:
+                    fonte_obj = pygame.font.SysFont(sys_font, tamanho)
+                    if fonte_obj:
+                        break
+                except Exception:
+                    pass
+
+        # 4. Fallback padrão do Pygame
+        if not fonte_obj:
+            fonte_obj = pygame.font.Font(None, tamanho)
+
+        cls._cache_fontes[chave] = fonte_obj
+        return fonte_obj
+
 
     @classmethod
     def _obter_caminho_absoluto(cls, caminho_relativo):

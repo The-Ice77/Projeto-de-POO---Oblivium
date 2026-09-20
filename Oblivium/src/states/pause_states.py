@@ -1,26 +1,43 @@
 # src/states/pause_states.py
 import pygame
 from src.states.states import State
-from src.utils.colors import PRETO, BRANCO, UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR
+from src.utils.colors import (
+    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
+    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, BORDA_PADRAO, BORDA_DESTAQUE,
+    AZUL_HOVER_MENU, AZUL_HOVER_BG
+)
+from src.utils.resource_manager import ResourceManager
+from src.ui.ui_utils import desenhar_painel_padrao
 from src.utils import save_manager
 
 class PauseState(State):
+    """
+    Menu de Pause alinhado à estética Dark Fantasy / Metroidvania e ao padrão do Menu Inicial:
+    - Fundo escurecido suave
+    - Moldura em Carvão Profundo com contornos finos em Cinza Linho
+    - Tipografia consolidada (Sunday para títulos, Contrail One para opções e rodapé)
+    - Hover e seleções em azul suave
+    """
     def __init__(self, game):
         super().__init__(game)
         self.opcoes_padrao = ["Retomar", "Salvar Jogo", "Carregar Jogo", "Configurações", "Sair para o Menu"]
         self.opcoes_combate = ["Retomar", "Carregar Jogo", "Configurações", "Sair para o Menu"]
         self.opcoes = list(self.opcoes_padrao)
         self.selecionada = 0
-        self.fonte_titulo = pygame.font.Font(None, 50)
-        self.fonte_menu = pygame.font.Font(None, 36)
+        
+        # Tipografia Consolidada
+        self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
+        self.fonte_subtitulo = ResourceManager.carregar_fonte("just_breathe", 19)
+        self.fonte_menu = ResourceManager.carregar_fonte("contrail", 22)
+        self.fonte_rodape = ResourceManager.carregar_fonte("contrail", 15)
         
         # Lista para guardar as hitboxes das opções para detetar o rato
         self.rects_opcoes = []
         
         # Película escura de fundo
         self.overlay = pygame.Surface((self.game.LARGURA, self.game.ALTURA))
-        self.overlay.fill(PRETO)
-        self.overlay.set_alpha(165)
+        self.overlay.fill((10, 10, 14))
+        self.overlay.set_alpha(190)
 
     def _obter_opcoes_atuais(self):
         if getattr(self.game, 'origem_pause', '') == "COMBATE":
@@ -107,27 +124,54 @@ class PauseState(State):
         tela.blit(self.overlay, (0, 0))
         
         self.opcoes = self._obter_opcoes_atuais()
-        largura_bloco = 520
-        altura_bloco = 120 + (len(self.opcoes) * 52)
+        largura_bloco = 540
+        altura_bloco = 160 + (len(self.opcoes) * 52)
         x = (self.game.LARGURA - largura_bloco) // 2
         y = (self.game.ALTURA - altura_bloco) // 2
 
-        pygame.draw.rect(tela, UI_FUNDO_PADRAO, (x, y, largura_bloco, altura_bloco))
-        pygame.draw.rect(tela, CINZA_CLARO, (x, y, largura_bloco, altura_bloco), 2)
+        # 1. Painel Central em Carvão Profundo
+        rect_painel = pygame.Rect(x, y, largura_bloco, altura_bloco)
+        desenhar_painel_padrao(tela, rect_painel, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=245)
 
-        titulo_texto = "Combate Pausado" if origem == "COMBATE" else "Menu de Pause"
-        titulo = self.fonte_titulo.render(titulo_texto, True, UI_TEXTO_DESTAQUE)
-        tela.blit(titulo, (x + (largura_bloco - titulo.get_width()) // 2, y + 25))
+        # Moldura interna decorativa
+        rect_interno = rect_painel.inflate(-10, -10)
+        pygame.draw.rect(tela, (28, 28, 34), rect_interno, 1, border_radius=2)
 
+        # 2. Título e Subtítulo Poético
+        titulo_texto = "Pausa no Combate" if origem == "COMBATE" else "Pausa"
+        titulo = self.fonte_titulo.render(titulo_texto, True, MARFIM_OFFWHITE)
+        tela.blit(titulo, (x + (largura_bloco - titulo.get_width()) // 2, y + 26))
+
+        subtitulo = self.fonte_subtitulo.render("Entre o que foi e o que ainda pode ser", True, CINZA_LINHO)
+        tela.blit(subtitulo, (x + (largura_bloco - subtitulo.get_width()) // 2, y + 68))
+
+        # Divisória
+        y_div = y + 96
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y_div), (x + largura_bloco - 40, y_div), 1)
+
+        # 3. Opções do Menu com destaques '✦' e hover azul
         self.rects_opcoes.clear()
+        y_opcao_inicial = y + 114
+
         for i, opcao in enumerate(self.opcoes):
-            cor = TXT_SISTEMA_NARRADOR if i == self.selecionada else BRANCO
-            texto = f"> {opcao}" if i == self.selecionada else f"  {opcao}"
-            render = self.fonte_menu.render(texto, True, cor)
-            
-            pos_x = x + 60
-            pos_y = y + 95 + (i * 48)
-            tela.blit(render, (pos_x, pos_y))
-            
-            rect = pygame.Rect(pos_x, pos_y, render.get_width(), render.get_height())
-            self.rects_opcoes.append(rect)
+            pos_y = y_opcao_inicial + (i * 52)
+            rect_opcao = pygame.Rect(x + 40, pos_y, largura_bloco - 80, 42)
+            self.rects_opcoes.append(rect_opcao)
+
+            esta_selecionada = (i == self.selecionada)
+
+            if esta_selecionada:
+                pygame.draw.rect(tela, AZUL_HOVER_BG, rect_opcao, border_radius=3)
+                pygame.draw.rect(tela, AZUL_HOVER_MENU, rect_opcao, 1, border_radius=3)
+                texto = f"✦  {opcao}"
+                cor_texto = MARFIM_OFFWHITE
+            else:
+                texto = f"    {opcao}"
+                cor_texto = CINZA_LINHO
+
+            render = self.fonte_menu.render(texto, True, cor_texto)
+            tela.blit(render, (rect_opcao.x + 20, rect_opcao.centery - render.get_height() // 2))
+
+        # 4. Rodapé Informativo
+        txt_rodape = self.fonte_rodape.render("[↑ / ↓] Navegar   •   [ENTER] Confirmar   •   [ESC] Retomar", True, UI_TEXTO_APAGADO)
+        tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 30))

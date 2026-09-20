@@ -3,39 +3,59 @@ import pygame
 import math
 import os
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO,
+    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO,
+    MARFIM_OFFWHITE, BRANCO, BARRA_VIDA_JOGADOR, BARRA_MANA, BARRA_EXP,
+    BARRA_FUNDO_ESCURO, BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG,
     AMULETO_COR_FASE_1, AMULETO_COR_FASE_2, AMULETO_COR_FASE_3, AMULETO_COR_FASE_4,
     AMULETO_COR_FASE_5, AMULETO_COR_FASE_6, AMULETO_COR_FASE_7
 )
 from src.utils.resource_manager import ResourceManager
+from src.ui.ui_utils import desenhar_barra_status_interpolada, desenhar_painel_padrao
 
 class HUD:
+    """
+    HUD Simplificado e Focado de Oblivium:
+    - Retrato de Halia com moldura sutil em carvão escuro
+    - Nome de Halia em tipografia Sunday
+    - Barras de HP (Carmim) e MP (Cerúleo) limpas com interpolação suave
+    - Amuleto das 7 Fases de Memória na lateral do container
+    - Botão da Bolsa no canto inferior direito com atalho [B] e hover azul etéreo
+    - Fade dinâmico de proximidade quando Halia se aproxima
+    """
     def __init__(self, largura_tela, altura_tela):
         self.largura = largura_tela
         self.altura = altura_tela
         
-        # Fontes seguindo o padrão exato de Oblivium
-        self.fonte_nome = pygame.font.Font(None, 36) 
-        self.fonte_pequena = pygame.font.Font(None, 22)
+        # Fontes temáticas
+        self.fonte_nome = ResourceManager.carregar_fonte("sunday", 24)
+        self.fonte_status = ResourceManager.carregar_fonte("contrail", 14)
+        self.fonte_slots = ResourceManager.carregar_fonte("contrail", 14)
+        self.fonte_pequena = ResourceManager.carregar_fonte("contrail", 16)
         
-        # Hitbox da bolsa (95x95)
-        self.rect_bolsa = pygame.Rect(self.largura - 120, self.altura - 120, 95, 95)
+        # Hitbox da bolsa no canto inferior direito
+        self.rect_bolsa = pygame.Rect(self.largura - 110, self.altura - 110, 85, 85)
+        self.hover_bolsa = False
         
         # --- PROGRESSÃO DE FASES (0 a 7) ---
         self.fase_atual_amuleto = 1 
         self.memorias_coletadas = 0
         
         # --- SUPORTE A SPRITES ---
-        self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (95, 95))
+        self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (75, 75))
+        self.sprite_halia = ResourceManager.carregar_imagem("Halia/halia_portrait.png", (52, 60))
         
         # Pré-carrega as 8 fases do amuleto
         self.sprites_memorias = {
-            i: ResourceManager.carregar_imagem(f"hud/Sistema de Memórias - {i}.png", (80, 80))
+            i: ResourceManager.carregar_imagem(f"hud/Sistema de Memórias - {i}.png", (72, 72))
             for i in range(8)
         }
 
         # --- CONTROLE DE TRANSPARÊNCIA (FADE POR PROXIMIDADE) ---
         self.alpha_atual = 255
+
+    def atualizar_mouse(self, pos_mouse):
+        """Atualiza estado de hover do mouse sobre elementos interativos do HUD."""
+        self.hover_bolsa = self.rect_bolsa.collidepoint(pos_mouse)
 
     def desenhar(self, tela, game):
         """Desenha o HUD completo verificando transições, flashbacks e proximidade da Halia."""
@@ -52,13 +72,12 @@ class HUD:
         if hasattr(game, 'tela_despertar') and game.tela_despertar.estado != "INATIVO":
             return
 
-        halia = getattr(game, 'halia', None)
         if not halia:
             return
 
         # 2. Zonas de Proximidade para Transparência Dinâmica
-        zona_topo_esq = pygame.Rect(20, 20, 450, 130)
-        zona_bolsa = pygame.Rect(self.largura - 110, self.altura - 110, 100, 100)
+        zona_topo_esq = pygame.Rect(20, 20, 420, 130)
+        zona_bolsa = self.rect_bolsa.inflate(40, 40)
         
         rect_halia = pygame.Rect(
             int(getattr(halia, 'x', 0)), 
@@ -67,8 +86,8 @@ class HUD:
             getattr(halia, 'altura', 40)
         )
 
-        perto_hud = rect_halia.colliderect(zona_topo_esq.inflate(60, 60)) or rect_halia.colliderect(zona_bolsa.inflate(60, 60))
-        alvo_alpha = 40 if perto_hud else 255
+        perto_hud = rect_halia.colliderect(zona_topo_esq) or rect_halia.colliderect(zona_bolsa)
+        alvo_alpha = 45 if perto_hud else 255
 
         if self.alpha_atual < alvo_alpha:
             self.alpha_atual = min(alvo_alpha, self.alpha_atual + 20)
@@ -77,45 +96,68 @@ class HUD:
 
         surface_hud = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
 
-        # --- DADOS REAIS DA PERSONAGEM ---
+        # --- DADOS DA PERSONAGEM ---
         nome_personagem = getattr(halia, 'nome', 'Halia')
         vida_atual = getattr(halia, 'vida_atual', 100)
-        vida_maxima = getattr(halia, 'vida_maxima', 100)
+        vida_maxima = max(1, getattr(halia, 'vida_maxima', 100))
         mana_atual = getattr(halia, 'mana_atual', 50)
-        mana_maxima = getattr(halia, 'mana_maxima', 50)
+        mana_maxima = max(1, getattr(halia, 'mana_maxima', 50))
 
-        largura_caixa = 280
-        altura_caixa = 95
-        x_caixa = 30
-        y_caixa = 30
-        
-        pygame.draw.rect(surface_hud, UI_FUNDO_PADRAO, (x_caixa, y_caixa, largura_caixa, altura_caixa))
-        pygame.draw.rect(surface_hud, CINZA_CLARO, (x_caixa, y_caixa, largura_caixa, altura_caixa), 2)
-        
-        # Nome da Personagem
-        txt_nome = self.fonte_nome.render(nome_personagem, True, UI_TEXTO_DESTAQUE)
-        surface_hud.blit(txt_nome, (x_caixa + 20, y_caixa + 12))
-        
-        # Textos Indicativos (Vida / Mana)
-        txt_vida = self.fonte_pequena.render("Vida", True, UI_TEXTO_APAGADO)
-        txt_mana = self.fonte_pequena.render("Mana", True, UI_TEXTO_APAGADO)
-        surface_hud.blit(txt_vida, (x_caixa + 20, y_caixa + 45))
-        surface_hud.blit(txt_mana, (x_caixa + 20, y_caixa + 67))
-        
-        razao_vida = max(0, min(1, vida_atual / vida_maxima)) if vida_maxima > 0 else 0
-        razao_mana = max(0, min(1, mana_atual / mana_maxima)) if mana_maxima > 0 else 0
-        
-        # Barra de Vida
-        pygame.draw.rect(surface_hud, (60, 10, 10), (x_caixa + 70, y_caixa + 48, 180, 10))
-        pygame.draw.rect(surface_hud, (220, 45, 45), (x_caixa + 70, y_caixa + 48, int(180 * razao_vida), 10))
-        
-        # Barra de Mana
-        pygame.draw.rect(surface_hud, (10, 20, 60), (x_caixa + 70, y_caixa + 70, 180, 10))
-        pygame.draw.rect(surface_hud, (45, 120, 240), (x_caixa + 70, y_caixa + 70, int(180 * razao_mana), 10))
+        # 3. CONTAINER PRINCIPAL SUPERIOR ESQUERDO
+        x_hud = 24
+        y_hud = 20
+        largura_painel = 310
+        altura_painel = 78
 
-        # 4. AMULETO DE MEMÓRIAS (Ícone compacto do HUD)
-        cx_memorias = x_caixa + largura_caixa + 50
-        cy_memorias = y_caixa + (altura_caixa // 2)
+        rect_painel = pygame.Rect(x_hud, y_hud, largura_painel, altura_painel)
+        desenhar_painel_padrao(surface_hud, rect_painel, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=240)
+
+        # 3.1 Moldura e Retrato de Halia
+        x_ret = x_hud + 9
+        y_ret = y_hud + 9
+        w_ret = 52
+        h_ret = 60
+        rect_retrato = pygame.Rect(x_ret, y_ret, w_ret, h_ret)
+        pygame.draw.rect(surface_hud, (14, 14, 18), rect_retrato, border_radius=2)
+        pygame.draw.rect(surface_hud, CINZA_ARDOSIA, rect_retrato, 1, border_radius=2)
+
+        if self.sprite_halia:
+            surface_hud.blit(self.sprite_halia, (x_ret + 1, y_ret + 1))
+        else:
+            f_ini = ResourceManager.carregar_fonte("sunday", 28)
+            txt_ini = f_ini.render("H", True, MARFIM_OFFWHITE)
+            surface_hud.blit(txt_ini, txt_ini.get_rect(center=rect_retrato.center))
+
+        # 3.2 Nome e Barras de Status (HP e MP)
+        x_conteudo = x_ret + w_ret + 14
+        txt_nome = self.fonte_nome.render(nome_personagem, True, MARFIM_OFFWHITE)
+        surface_hud.blit(txt_nome, (x_conteudo, y_hud + 8))
+
+        # Barra de Vida (HP)
+        y_hp = y_hud + 36
+        w_barra = 150
+        h_barra = 12
+        desenhar_barra_status_interpolada(
+            surface_hud, x_conteudo, y_hp, w_barra, h_barra,
+            vida_atual, vida_maxima,
+            BARRA_VIDA_JOGADOR, (50, 16, 18), BORDA_PADRAO
+        )
+        txt_hp_num = self.fonte_status.render(f"HP {int(vida_atual)}/{int(vida_maxima)}", True, MARFIM_OFFWHITE)
+        surface_hud.blit(txt_hp_num, (x_conteudo + w_barra + 8, y_hp - 1))
+
+        # Barra de Mana (MP)
+        y_mp = y_hp + 19
+        desenhar_barra_status_interpolada(
+            surface_hud, x_conteudo, y_mp, w_barra, h_barra,
+            mana_atual, mana_maxima,
+            BARRA_MANA, (16, 26, 52), BORDA_PADRAO
+        )
+        txt_mp_num = self.fonte_status.render(f"MP {int(mana_atual)}/{int(mana_maxima)}", True, MARFIM_OFFWHITE)
+        surface_hud.blit(txt_mp_num, (x_conteudo + w_barra + 8, y_mp - 1))
+
+        # 4. AMULETO DE MEMÓRIAS (Ao lado do painel)
+        cx_memorias = x_hud + largura_painel + 48
+        cy_memorias = y_hud + (altura_painel // 2)
         
         sprite_memoria_atual = self.sprites_memorias.get(self.memorias_coletadas)
         if sprite_memoria_atual:
@@ -124,33 +166,37 @@ class HUD:
         else:
             self._desenhar_amuleto_7_fases(surface_hud, cx_memorias, cy_memorias, self.memorias_coletadas, self.fase_atual_amuleto)
 
-        # 5. ÍCONE DA BOLSA
-        if self.sprite_bolsa:
-            surface_hud.blit(self.sprite_bolsa, self.rect_bolsa.topleft)
-        else:
-            pygame.draw.rect(surface_hud, UI_FUNDO_PADRAO, self.rect_bolsa)
-            pygame.draw.rect(surface_hud, CINZA_CLARO, self.rect_bolsa, 2)
-            
-            inner_rect = pygame.Rect(self.rect_bolsa.x + 12, self.rect_bolsa.y + 12, 36, 36)
-            pygame.draw.rect(surface_hud, (30, 30, 35), inner_rect)
-            pygame.draw.rect(surface_hud, CINZA_CLARO, inner_rect, 1)
+        # 5. ÍCONE DA BOLSA / INVENTÁRIO (Canto inferior direito com hover azul clarinho)
+        borda_bolsa = AZUL_HOVER_MENU if self.hover_bolsa else CINZA_LINHO
+        fundo_bolsa = AZUL_HOVER_BG if self.hover_bolsa else CARVAO_PROFUNDO
+        
+        desenhar_painel_padrao(surface_hud, self.rect_bolsa, cor_fundo=fundo_bolsa, cor_borda=borda_bolsa, alpha=240)
 
-            pygame.draw.rect(surface_hud, UI_TEXTO_DESTAQUE, (self.rect_bolsa.centerx - 6, self.rect_bolsa.y + 12, 12, 8), 1)
-            pygame.draw.rect(surface_hud, UI_TEXTO_DESTAQUE, (self.rect_bolsa.centerx - 4, self.rect_bolsa.centery - 2, 8, 10), 1)
+        if self.sprite_bolsa:
+            ret_b = self.sprite_bolsa.get_rect(center=self.rect_bolsa.center)
+            surface_hud.blit(self.sprite_bolsa, ret_b.topleft)
+        else:
+            txt_b = self.fonte_nome.render("Bolsa", True, MARFIM_OFFWHITE)
+            surface_hud.blit(txt_b, txt_b.get_rect(center=self.rect_bolsa.center))
+
+        # Atalho de Tecla [B] no canto superior do botão
+        cor_atalho = AZUL_HOVER_MENU if self.hover_bolsa else MARFIM_OFFWHITE
+        txt_atalho = self.fonte_slots.render("[B]", True, cor_atalho)
+        surface_hud.blit(txt_atalho, (self.rect_bolsa.x + 6, self.rect_bolsa.y + 4))
 
         # Aplica a transparência final em toda a superfície do HUD e pinta na tela principal
         surface_hud.set_alpha(int(self.alpha_atual))
         tela.blit(surface_hud, (0, 0))
 
     def _desenhar_amuleto_7_fases(self, tela, cx, cy, atuais, fase):
-        """Desenha o anel dividido em 7 partes, onde cada parte ativa possui a sua própria cor."""
-        raio_externo = 40
-        raio_interno = 16
+        """Desenha o anel dividido em 7 partes com bordas delicadas e cores etéreas."""
+        raio_externo = 34
+        raio_interno = 13
         max_mem = 7
         
-        pygame.draw.circle(tela, UI_FUNDO_PADRAO, (cx, cy), raio_externo)
-        pygame.draw.circle(tela, CINZA_CLARO, (cx, cy), raio_externo, 2)
-        pygame.draw.circle(tela, CINZA_CLARO, (cx, cy), raio_interno, 2)
+        pygame.draw.circle(tela, CARVAO_PROFUNDO, (cx, cy), raio_externo)
+        pygame.draw.circle(tela, CINZA_LINHO, (cx, cy), raio_externo, 1)
+        pygame.draw.circle(tela, CINZA_LINHO, (cx, cy), raio_interno, 1)
         
         angulo_fatia = 360 / max_mem
         
@@ -171,15 +217,15 @@ class HUD:
             pontos = []
             for p in range(5):
                 a = ang_inicial + (ang_final - ang_inicial) * (p / 4.0)
-                pontos.append((cx + (raio_externo - 4) * math.cos(a), cy + (raio_externo - 4) * math.sin(a)))
+                pontos.append((cx + (raio_externo - 3) * math.cos(a), cy + (raio_externo - 3) * math.sin(a)))
             for p in range(4, -1, -1):
                 a = ang_inicial + (ang_final - ang_inicial) * (p / 4.0)
-                pontos.append((cx + (raio_interno + 4) * math.cos(a), cy + (raio_interno + 4) * math.sin(a)))
+                pontos.append((cx + (raio_interno + 3) * math.cos(a), cy + (raio_interno + 3) * math.sin(a)))
             
             if i < atuais:
-                cor_fatia = cores_fases.get(i + 1, (200, 200, 200))
+                cor_fatia = cores_fases.get(i + 1, MARFIM_OFFWHITE)
                 pygame.draw.polygon(tela, cor_fatia, pontos)
             else:
-                pygame.draw.polygon(tela, (30, 30, 35), pontos)
+                pygame.draw.polygon(tela, (24, 24, 30), pontos)
             
-            pygame.draw.polygon(tela, (10, 10, 12), pontos, 1)
+            pygame.draw.polygon(tela, (8, 8, 12), pontos, 1)
