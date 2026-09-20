@@ -1,15 +1,30 @@
 # src/states/controles_state.py
 import pygame
 from src.states.states import State
-from src.utils.colors import PRETO, BRANCO, UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR
+from src.utils.colors import (
+    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
+    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR,
+    BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG
+)
+from src.utils.resource_manager import ResourceManager
+from src.ui.ui_utils import desenhar_painel_padrao
 
 class ControlesState(State):
+    """
+    Tela de Configuração de Teclas de Oblivium alinhada à estética Dark Fantasy / Metroidvania:
+    - Moldura em Carvão Profundo com contornos em Cinza Linho
+    - Tipografia consolidada (Sunday para títulos, Contrail One para comandos)
+    """
     def __init__(self, game):
         super().__init__(game)
         self.acoes = list(self.game.controles.keys())
         self.selecionada = 0
-        self.fonte_titulo = pygame.font.Font(None, 50)
-        self.fonte_opcao = pygame.font.Font(None, 30)
+        
+        # Tipografia Consolidada
+        self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
+        self.fonte_opcao = ResourceManager.carregar_fonte("contrail", 20)
+        self.fonte_sub = ResourceManager.carregar_fonte("contrail", 15)
+        
         self.redefinindo = False
         self.rects_opcoes = []
 
@@ -26,11 +41,11 @@ class ControlesState(State):
                     self.redefinindo = False
                     return
 
-                if evento.key == pygame.K_UP:
+                if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.selecionada = (self.selecionada - 1) % (len(self.acoes) + 1)
-                elif evento.key == pygame.K_DOWN:
+                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.selecionada = (self.selecionada + 1) % (len(self.acoes) + 1)
-                elif evento.key == pygame.K_RETURN:
+                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                     i_voltar = len(self.acoes)
                     if self.selecionada == i_voltar:
                         self.game.mudar_estado("CONFIGURACOES")
@@ -40,7 +55,6 @@ class ControlesState(State):
                     self.game.mudar_estado("CONFIGURACOES")
 
             elif evento.type == pygame.MOUSEMOTION and not self.redefinindo:
-               
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
                         self.selecionada = i
@@ -59,53 +73,74 @@ class ControlesState(State):
         pass
 
     def draw(self, tela):
-        tela.fill(PRETO)
+        tela.fill(CARVAO_PROFUNDO)
         
-        largura_bloco = 700
+        largura_bloco = 720
         altura_bloco = 520
         x = (self.game.LARGURA - largura_bloco) // 2
         y = (self.game.ALTURA - altura_bloco) // 2
 
-        pygame.draw.rect(tela, UI_FUNDO_PADRAO, (x, y, largura_bloco, altura_bloco))
-        pygame.draw.rect(tela, CINZA_CLARO, (x, y, largura_bloco, altura_bloco), 2)
+        rect_painel = pygame.Rect(x, y, largura_bloco, altura_bloco)
+        desenhar_painel_padrao(tela, rect_painel, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=245)
 
-        titulo = self.fonte_titulo.render("Configurar Teclas", True, UI_TEXTO_DESTAQUE)
+        # Moldura interna decorativa
+        rect_interno = rect_painel.inflate(-10, -10)
+        pygame.draw.rect(tela, (28, 28, 34), rect_interno, 1, border_radius=2)
+
+        # Título
+        titulo = self.fonte_titulo.render("Configurar Teclas", True, MARFIM_OFFWHITE)
         tela.blit(titulo, (x + 40, y + 25))
+
+        # Divisória
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 68), (x + largura_bloco - 40, y + 68), 1)
 
         self.rects_opcoes.clear()
         
         # Renderiza cada ação e a sua respetiva tecla
         for i, acao in enumerate(self.acoes):
             tecla_nome = pygame.key.name(self.game.controles[acao]).upper()
-            texto_str = f"{acao}: [ {tecla_nome} ]"
-            
-            if self.selecionada == i and self.redefinindo:
-                texto_str = f"{acao}: < Pressione nova tecla... >"
-                cor = (255, 100, 100)
-            elif self.selecionada == i:
-                cor = TXT_SISTEMA_NARRADOR
-                texto_str = f"> {texto_str}"
-            else:
-                cor = BRANCO
-                texto_str = f"  {texto_str}"
-
-            render = self.fonte_opcao.render(texto_str, True, cor)
-            pos_x = x + 50
-            pos_y = y + 90 + (i * 45)
-            tela.blit(render, (pos_x, pos_y))
-            
-            
-            rect = pygame.Rect(pos_x, pos_y, largura_bloco - 100, 35)
+            pos_y = y + 80 + (i * 44)
+            rect = pygame.Rect(x + 40, pos_y, largura_bloco - 80, 36)
             self.rects_opcoes.append(rect)
 
-        
+            esta_sel = (self.selecionada == i)
+
+            if esta_sel and self.redefinindo:
+                pygame.draw.rect(tela, (45, 20, 20), rect, border_radius=2)
+                pygame.draw.rect(tela, (220, 70, 70), rect, 1, border_radius=2)
+                texto_str = f"{acao}:  < Pressione a nova tecla... >"
+                cor = (255, 120, 120)
+            elif esta_sel:
+                pygame.draw.rect(tela, AZUL_HOVER_BG, rect, border_radius=2)
+                pygame.draw.rect(tela, AZUL_HOVER_MENU, rect, 1, border_radius=2)
+                texto_str = f"✦  {acao}: [ {tecla_nome} ]"
+                cor = MARFIM_OFFWHITE
+            else:
+                texto_str = f"    {acao}: [ {tecla_nome} ]"
+                cor = CINZA_LINHO
+
+            render = self.fonte_opcao.render(texto_str, True, cor)
+            tela.blit(render, (x + 55, rect.centery - render.get_height() // 2))
+
+        # Opção de Voltar
         i_voltar = len(self.acoes)
-        cor_voltar = TXT_SISTEMA_NARRADOR if self.selecionada == i_voltar else BRANCO
-        texto_voltar = "> Voltar" if self.selecionada == i_voltar else "  Voltar"
-        render_voltar = self.fonte_opcao.render(texto_voltar, True, cor_voltar)
-        pos_x_v = x + 50
-        pos_y_v = y + 90 + (i_voltar * 45) + 10
-        tela.blit(render_voltar, (pos_x_v, pos_y_v))
-        
-        rect_v = pygame.Rect(pos_x_v, pos_y_v, largura_bloco - 100, 35)
+        pos_y_v = y + 80 + (i_voltar * 44) + 8
+        rect_v = pygame.Rect(x + 40, pos_y_v, largura_bloco - 80, 36)
         self.rects_opcoes.append(rect_v)
+
+        esta_sel_v = (self.selecionada == i_voltar)
+        if esta_sel_v:
+            pygame.draw.rect(tela, AZUL_HOVER_BG, rect_v, border_radius=2)
+            pygame.draw.rect(tela, AZUL_HOVER_MENU, rect_v, 1, border_radius=2)
+            texto_voltar = "✦  Voltar"
+            cor_voltar = MARFIM_OFFWHITE
+        else:
+            texto_voltar = "    Voltar"
+            cor_voltar = CINZA_LINHO
+
+        render_voltar = self.fonte_opcao.render(texto_voltar, True, cor_voltar)
+        tela.blit(render_voltar, (x + 55, rect_v.centery - render_voltar.get_height() // 2))
+
+        # Rodapé
+        txt_rodape = self.fonte_sub.render("[ENTER] Redefinir tecla   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)
+        tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 28))

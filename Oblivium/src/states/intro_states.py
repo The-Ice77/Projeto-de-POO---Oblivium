@@ -8,8 +8,13 @@ class IntroState(State):
         
     def handle_events(self, eventos, teclas):
         for evento in eventos:
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
-                self.game.intro.pular()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+                    self.game.intro.avancar()
+                elif evento.key == pygame.K_ESCAPE:
+                    self.game.intro.pular()
+            elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                self.game.intro.avancar()
 
     def update(self):
         # Se a introdução terminar de rodar, muda automaticamente para o jogo livre

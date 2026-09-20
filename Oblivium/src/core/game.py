@@ -147,7 +147,11 @@ class Game:
 
     def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
         """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""
-        self.inimigos_em_cena = inimigos
+        if isinstance(inimigos, (list, tuple)):
+            self.inimigos_em_cena = list(inimigos)
+        else:
+            self.inimigos_em_cena = [inimigos]
+            
         self.mudar_estado("COMBATE")
         self.tela_combate.iniciar_combate(
             jogador=self.halia,
@@ -325,6 +329,11 @@ class Game:
             self.estados["JOGANDO"].memoria_anterior_registrada = self.halia.fragmentos_memoria
         if hasattr(self, 'hud') and self.hud:
             self.hud.memorias_coletadas = self.halia.fragmentos_memoria
+            
+        # 5. Blindagem de Autosave: ao carregar um Save Manual, sincroniza o autosave do slot
+        # com o checkpoint restaurado, garantindo que o autosave não fique apontando para um "futuro" antigo
+        if tipo == "manual" and slot:
+            self.salvar_estado(slot, tipo="autosave")
         
         return True 
 

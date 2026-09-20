@@ -70,3 +70,31 @@ Adição do menu de configuração com alteração de teclas e outros
 - **Componente POO `BotaoGrafico` com Cross-Fade Suave**: Botões com substituição fluida de opacidade entre os estados normal e hover com respiração luminosa orgânica, hitboxes centralizadas e desativação automática quando o cursor não está sobre opções.
 - **Motor de Partículas Genérico (`animations.py`)**: Implementação de `ParticulaFlutuante` e `EfeitoChuvaParticulas`, simulando uma chuva orgânica com física independente, oscilação senoidal (*sway*) e rotação individual.
 - **Extração C-Accelerated em `ResourceManager`**: Adição de `extrair_sprites_individuais` e `carregar_imagem_com_transparencia` acelerados via máscaras nativas em C (`pygame.mask`), isolando automaticamente 66 pétalas únicas e reduzindo o tempo de carregamento para uma fração de segundo.
+
+### Atualização v[0.4.3] - Alinhamento Visual Editorial, Diálogos com Retratos e Refinamento de Sistemas
+#### Implementação, Correção e Aprimoramento
+- **Alinhamento Estético Editorial e Dark Fantasy**:
+  - Padronização completa da paleta de cores em todas as telas com Carvão Profundo (`#0A0A0E`), Marfim Off-White (`#F6F3EC`), Cinza Linho (`#C4BFB6`) e destaques em azul claro suave (`AZUL_HOVER_MENU`).
+  - Consolidação tipográfica universal com *Sunday* para títulos/nomes, *Just Breathe* para passagens poéticas/narrativas e *Contrail One* para estatísticas, opções e interfaces funcionais.
+- **Caixa de Diálogos com Retratos e Sistema de Escolhas em 2 Colunas**:
+  - Suporte universal a retratos (Portraits) para NPCs (Torvin, Carroceiro) e Halia com moldura interna escura e avatar fallback estilizado.
+  - Menu de escolhas organizado lado a lado em 2 colunas com navegação intuitiva por teclado (setas/WASD para alternar entre opções e páginas), cabeçalho de conversa e botão de fechar `[X]` sem sobreposições.
+  - Indicador de avanço limpo e estático no rodapé (`▼ [ ENTER ou Clique para avançar ]`), removendo caixas azuis flutuantes.
+- **Mapeamento de Controles Unificado e Intuitivo**:
+  - **Minigames**: Operação exclusiva via tecla **ESPAÇO**, eliminando interferências de cliques acidentais de mouse.
+  - **Avançar / Pular (Diálogos, Intro, Flashbacks, Memórias)**: Operação consistente através de **ENTER** ou **CLIQUE DO MOUSE**.
+- **Minigames Mágicos & Cutscenes**:
+  - Correção na validação de vitória da Levitação Gravitacional (`MinigameMash`), garantindo o encerramento imediato ao alcançar 100% e transição contínua para a cutscene de desobstrução das pedras.
+  - Animação da cutscene de levitação com limites de frame rate seguros (`timer >= 50`), prevenindo travamentos no overworld.
+- **Sequência Solene de Despertar de Memória (`TelaDespertarMemoria`)**:
+  - Estruturação em 5 etapas com *crossfades* suaves de opacidade (`alpha_conteudo`):
+    1. *Título*: Exibição minimalista de *"✦ MEMÓRIA RESTAURADA ✦"* com flor botânica decorativa.
+    2. *Estágio*: Exibição destacada de *"Estágio X de 7 — [Nome]"* com a cor temática do fragmento.
+    3. *Impacto do Amuleto*: Animação centralizada com contração, *screen shake* e dispersão de partículas etéreas.
+    4. *Detalhes*: Layout lateral aberto exibindo a narrativa em *Just Breathe*, o anseio de Halia e novos feitiços despertados.
+    5. *Retorno*: *Fade out* suave de volta à exploração do mapa.
+- **Pop-up de Interação no Overworld**:
+  - Indicador `[ Pressione E para ... ]` posicionado diretamente acima do alvo interagível (itens no chão, porta, Carroceiro e pedras) e renderizado na camada superior (*Z-Index*) sobre os sprites do cenário e personagens.
+- **Telas Auxiliares e Interface Geral**:
+  - Harmonização das telas de Pausa, Configurações, Controles, Créditos e Gerenciamento de Saves/Slots com a identidade visual unificada.
+  - Títulos de seções nos Créditos destacados em azul claro com espaçamento generoso e padronização da fonte de agradecimentos.

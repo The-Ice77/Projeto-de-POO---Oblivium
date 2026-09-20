@@ -1,9 +1,21 @@
 # src/states/settings_states.py
 import pygame
 from src.states.states import State
-from src.utils.colors import PRETO, BRANCO, UI_FUNDO_PADRAO, CINZA_CLARO, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR
+from src.utils.colors import (
+    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
+    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR,
+    BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG
+)
+from src.utils.resource_manager import ResourceManager
+from src.ui.ui_utils import desenhar_painel_padrao
 
 class SettingsState(State):
+    """
+    Tela de Configurações alinhada à estética Dark Fantasy / Metroidvania:
+    - Moldura em Carvão Profundo com contornos delicados em Cinza Linho / Marfim
+    - Tipografia consolidada (Sunday para títulos, Contrail One para opções)
+    - Navegação com teclado e mouse com feedback visual
+    """
     def __init__(self, game):
         super().__init__(game)
         self.opcoes = [
@@ -14,20 +26,24 @@ class SettingsState(State):
             "Voltar"
         ]
         self.selecionada = 0
-        self.fonte_titulo = pygame.font.Font(None, 56)
-        self.fonte_opcao = pygame.font.Font(None, 32)
+        
+        # Tipografia Consolidada
+        self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
+        self.fonte_opcao = ResourceManager.carregar_fonte("contrail", 22)
+        self.fonte_sub = ResourceManager.carregar_fonte("contrail", 16)
+        
         self.rects_opcoes = []
 
     def handle_events(self, eventos, teclas):
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_UP or evento.key == pygame.K_w:
+                if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.selecionada = (self.selecionada - 1) % len(self.opcoes)
-                elif evento.key == pygame.K_DOWN or evento.key == pygame.K_s:
+                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.selecionada = (self.selecionada + 1) % len(self.opcoes)
-                elif evento.key == pygame.K_LEFT or evento.key == pygame.K_a:
+                elif evento.key in [pygame.K_LEFT, pygame.K_a]:
                     self.alterar_valor(-1)
-                elif evento.key == pygame.K_RIGHT or evento.key == pygame.K_d:
+                elif evento.key in [pygame.K_RIGHT, pygame.K_d]:
                     self.alterar_valor(1)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self.executar_acao()
@@ -82,18 +98,26 @@ class SettingsState(State):
         pass
 
     def draw(self, tela):
-        tela.fill(PRETO)
+        tela.fill(CARVAO_PROFUNDO)
         
-        largura_bloco = 760
-        altura_bloco = 480
+        largura_bloco = 740
+        altura_bloco = 470
         x = (self.game.LARGURA - largura_bloco) // 2
         y = (self.game.ALTURA - altura_bloco) // 2
 
-        pygame.draw.rect(tela, UI_FUNDO_PADRAO, (x, y, largura_bloco, altura_bloco))
-        pygame.draw.rect(tela, CINZA_CLARO, (x, y, largura_bloco, altura_bloco), 2)
+        rect_painel = pygame.Rect(x, y, largura_bloco, altura_bloco)
+        desenhar_painel_padrao(tela, rect_painel, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=245)
 
-        titulo = self.fonte_titulo.render("Configurações", True, UI_TEXTO_DESTAQUE)
-        tela.blit(titulo, (x + 50, y + 30))
+        # Moldura interna decorativa
+        rect_interno = rect_painel.inflate(-10, -10)
+        pygame.draw.rect(tela, (28, 28, 34), rect_interno, 1, border_radius=2)
+
+        # Título
+        titulo = self.fonte_titulo.render("Configurações", True, MARFIM_OFFWHITE)
+        tela.blit(titulo, (x + 45, y + 28))
+
+        # Divisória
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 74), (x + largura_bloco - 40, y + 74), 1)
 
         vel_texto = self.game.opcoes_velocidade[self.game.config_velocidade_indice]
         vel_combate = self.game.opcoes_velocidade_combate[self.game.config_velocidade_combate_indice]
@@ -104,18 +128,30 @@ class SettingsState(State):
             f"Velocidade do Combate: < {vel_combate} >",
             f"Volume do Áudio: < {audio_texto} >",
             "Configurar Teclas...",
-            "Voltar"
+            "Voltar ao Menu"
         ]
 
         self.rects_opcoes.clear()
         for i, texto_opcao in enumerate(opcoes_render):
-            cor = TXT_SISTEMA_NARRADOR if i == self.selecionada else BRANCO
-            prefixo = "> " if i == self.selecionada else "  "
-            render = self.fonte_opcao.render(f"{prefixo}{texto_opcao}", True, cor)
+            esta_sel = (i == self.selecionada)
+            pos_x = x + 40
+            pos_y = y + 95 + (i * 62)
             
-            pos_x = x + 50
-            pos_y = y + 110 + (i * 65)
-            tela.blit(render, (pos_x, pos_y))
+            rect_opt = pygame.Rect(pos_x, pos_y, largura_bloco - 80, 42)
+            self.rects_opcoes.append(rect_opt)
             
-            rect = pygame.Rect(pos_x, pos_y, render.get_width(), render.get_height())
-            self.rects_opcoes.append(rect)
+            if esta_sel:
+                pygame.draw.rect(tela, AZUL_HOVER_BG, rect_opt, border_radius=3)
+                pygame.draw.rect(tela, AZUL_HOVER_MENU, rect_opt, 1, border_radius=3)
+                cor = MARFIM_OFFWHITE
+                texto_final = f"✦  {texto_opcao}"
+            else:
+                cor = CINZA_LINHO
+                texto_final = f"   {texto_opcao}"
+                
+            render = self.fonte_opcao.render(texto_final, True, cor)
+            tela.blit(render, (pos_x + 16, rect_opt.centery - render.get_height() // 2))
+
+        # Rodapé
+        txt_rodape = self.fonte_sub.render("[← / →] Ajustar valor   •   [ENTER] Confirmar   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)
+        tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 32))

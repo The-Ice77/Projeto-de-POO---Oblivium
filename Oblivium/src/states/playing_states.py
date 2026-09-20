@@ -8,6 +8,7 @@ from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
 from src.utils import save_manager
 from src.data.dialogos import *
+from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
     def __init__(self, game):
@@ -79,7 +80,6 @@ class PlayingState(State):
 
     def draw(self, tela):
         self.game.mapa_casa.desenhar(tela)
-        self._draw_interactable_prompts(tela)
         
         if self.game.carroceiro_visivel:
             self.game.carroceiro.desenhar(tela)
@@ -90,6 +90,7 @@ class PlayingState(State):
             inimigo.desenhar(tela)
             
         self.cutscene.desenhar_efeitos(tela)
+        self._draw_interactable_prompts(tela)
         self._draw_ui_overlays(tela)
 
         # Aplica o Filtro de Memória sobre o mundo do jogo e interface regular
@@ -136,9 +137,9 @@ class PlayingState(State):
             self.game.halia.mudar_estado("idle")
 
     def _handle_keydown(self, evento):
-        # Avanço da Tela Solene de Despertar de Memória
+        # Avanço da Tela Solene de Despertar de Memória (Enter ou Clique)
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
-            if evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
+            if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                 self.game.tela_despertar.processar_input()
                 return
 
@@ -160,16 +161,23 @@ class PlayingState(State):
                 self.game.mudar_estado("PAUSE")
                 return
 
-        if self.game.mg_timing.ativo and evento.key == pygame.K_SPACE:
-            self._checar_sucesso_timing()
-        elif self.game.mg_mash.ativo and evento.key == pygame.K_SPACE:
-            self.game.mg_mash.esmagar()
-        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key == pygame.K_RETURN:
+        # MINIGAMES: Exclusivamente tecla ESPAÇO
+        if self.game.mg_timing.ativo:
+            if evento.key == pygame.K_SPACE:
+                self._checar_sucesso_timing()
+        elif self.game.mg_mash.ativo:
+            if evento.key == pygame.K_SPACE:
+                self.game.mg_mash.esmagar()
+        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
-            if self.game.caixa_dialogo.em_escolha and evento.key in [pygame.K_UP, pygame.K_DOWN]:
-                self.game.caixa_dialogo.controlar_menu_escolhas(evento.key)
-            elif evento.key == pygame.K_RETURN:
+            if self.game.caixa_dialogo.em_escolha:
+                if evento.key in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT, 
+                                  pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]:
+                    self.game.caixa_dialogo.controlar_menu_escolhas(evento.key)
+                elif evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+                    self._processar_avanco_dialogo()
+            elif evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                 self._processar_avanco_dialogo()
         elif evento.key == self.game.controles["Interagir"] and not self.game.cena_inimigos_andando:
             self._processar_interacoes_mundo()
@@ -182,6 +190,10 @@ class PlayingState(State):
 
         pos = evento.pos
         
+        # Durante minigames, cliques de mouse não interferem (minigames são apenas ESPAÇO)
+        if self.game.mg_timing.ativo or self.game.mg_mash.ativo:
+            return
+
         # Clicar na bolsa do HUD abre o inventário
         if (hasattr(self.game, 'hud') and 
             not self.game.caixa_dialogo.ativo and 
@@ -196,10 +208,11 @@ class PlayingState(State):
                 
         if self.game.flashback_sistema.estado == "ESCURIDAO":
             self.game.flashback_sistema.processar_input()
-        elif self.game.caixa_dialogo.em_escolha:
-            self._processar_clique_escolha(pos)
         elif self.game.caixa_dialogo.ativo:
-            self.game.caixa_dialogo.proximo_texto()
+            if self.game.caixa_dialogo.em_escolha:
+                self._processar_clique_escolha(pos)
+            else:
+                self.game.caixa_dialogo.clicar_mouse(pos)
 
     def _checar_sucesso_timing(self):
         if self.game.mg_timing.checar_sucesso():
@@ -212,6 +225,8 @@ class PlayingState(State):
     def _update_minigames_e_flashbacks(self):
         if self.game.flashback_sistema.atualizar():
             self.game.flashback_magia_concluido = True 
+            if self.game.slot_atual:
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
             self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)])
 
         if self.game.mg_timing.ativo:
@@ -347,23 +362,10 @@ class PlayingState(State):
         for i, r in enumerate(box.rects_opcoes):
             if r.collidepoint(pos):
                 idx_global = (box.pagina_atual * box.opcoes_por_pagina) + i
-                opcao = box.opcoes_disponiveis[idx_global]
-                
-                if opcao["id"] == "analisar_pedras":
-                    box.ativo = False
-                    box.em_escolha = False
-                    self.game.flashback_sistema.iniciar(textos_flashback_magia)
+                if idx_global < len(box.opcoes_disponiveis):
+                    box.opcao_selecionada = idx_global
+                    self._processar_avanco_dialogo()
                     return
-                elif opcao["id"] == "escolha_fogo":
-                    self.game.magia_selecionada_temporaria = "FOGO"
-                elif opcao["id"] == "escolha_levitar":
-                    self.game.magia_selecionada_temporaria = "LEVITAR"
-                elif opcao["id"] in ["voltar_magia", "desistir_puzzle"]:
-                    self.game.investigou_pedras = False
-                elif opcao["id"] == "prosseguir":
-                    self.game.aguardando_fim_viagem = True
-                elif opcao["id"] == "seguir_capital":
-                    self.game.partindo_estrada2 = True
                     
         box.clicar_mouse(pos)
 
@@ -418,10 +420,6 @@ class PlayingState(State):
                 self.game.iniciando_combate = False
                 self.game.transicao.estado = "CLAREANDO"
                 
-                # Salva autosave de checkpoint imediatamente antes do combate
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                
                 def on_vitoria():
                     self.game.combate_estrada_concluido = True
                     self.game.magia_ativa = "CONCLUIDO"
@@ -442,6 +440,15 @@ class PlayingState(State):
                         self.game.halia.x, self.game.halia.y = 60, 330
                         self.game.inimigos_em_cena.clear()
                         self.game.cena_inimigos_andando = False
+                    
+                    # Blindagem: garante que a derrota nunca mantenha o combate finalizado ou flags de transição presas
+                    if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
+                        self.game.combate_estrada_concluido = False
+                        self.game.inimigos_em_cena.clear()
+                        self.game.cena_inimigos_andando = False
+                        self.game.iniciando_combate = False
+                        self.game.halia.restaurar_total()
+                    
                     self.game.mudar_estado("JOGANDO")
                     
                 def on_fuga():
@@ -492,28 +499,25 @@ class PlayingState(State):
 
     def _draw_interactable_prompts(self, tela):
         area_interacao = pygame.Rect(self.game.halia.x - 20, self.game.halia.y - 20, self.game.halia.largura + 40, self.game.halia.altura + 40)
+        tecla_interacao_str = pygame.key.name(self.game.controles['Interagir']).upper()
         
         if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.caixa_dialogo.ativo:
             for item in self.game.mapa_casa.itens_no_chao:
                 if area_interacao.colliderect(item.rect):
-                    txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Pegar", True, INDICADOR_INTERACAO)
-                    tela.blit(txt, (item.x + (item.largura // 2) - (txt.get_width() // 2), item.y - 20))
+                    desenhar_indicador_tecla(tela, item.x + (item.largura // 2), item.y - 34, tecla=tecla_interacao_str, acao="para Pegar")
                     break 
             if area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
-                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Abrir Porta", True, INDICADOR_INTERACAO)
-                tela.blit(txt, (self.game.mapa_casa.porta.x + (self.game.mapa_casa.porta.width // 2) - (txt.get_width() // 2), self.game.mapa_casa.porta.y - 20))
+                desenhar_indicador_tecla(tela, self.game.mapa_casa.porta.x + (self.game.mapa_casa.porta.width // 2), self.game.mapa_casa.porta.y - 34, tecla=tecla_interacao_str, acao="para Abrir")
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
             r_c = pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)
             if area_interacao.colliderect(r_c) and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
-                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] Conversar", True, INDICADOR_INTERACAO)
-                tela.blit(txt, (self.game.carroceiro.x + (self.game.carroceiro.largura // 2) - (txt.get_width() // 2), self.game.carroceiro.y - 25))
+                desenhar_indicador_tecla(tela, self.game.carroceiro.x + (self.game.carroceiro.largura // 2), self.game.carroceiro.y - 38, tecla=tecla_interacao_str, acao="para Conversar")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
             if self.game.halia.x >= 950 and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
-                txt_acao = "Usar Magia" if self.game.flashback_magia_concluido else "Investigar Bloqueio"
-                txt = self.game.fonte_indicador.render(f"[{pygame.key.name(self.game.controles['Interagir']).upper()}] {txt_acao}", True, INDICADOR_INTERACAO)
-                tela.blit(txt, (1060, 220))
+                txt_acao = "para Usar Magia" if self.game.flashback_magia_concluido else "para Investigar"
+                desenhar_indicador_tecla(tela, 1070, 200, tecla=tecla_interacao_str, acao=txt_acao)
 
     def _draw_ui_overlays(self, tela):
         self.game.mg_timing.desenhar(tela)
