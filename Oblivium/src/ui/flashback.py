@@ -4,6 +4,7 @@ from src.utils.colors import (
     PRETO, TXT_ECO_PASSADO, TXT_PENSAMENTO_FANTASMA, 
     TXT_SISTEMA_NARRADOR, UI_TEXTO_APAGADO
 )
+from src.utils.resource_manager import ResourceManager
 
 class Flashback:
     def __init__(self, largura, altura):
@@ -12,7 +13,8 @@ class Flashback:
         self.superficie_preta = pygame.Surface((largura, altura))
         self.superficie_preta.fill(PRETO)
         
-        self.fonte_flashback = pygame.font.Font(None, 36) 
+        self.fonte_flashback = ResourceManager.carregar_fonte("just_breathe", 36)
+        self.fonte_avanco = ResourceManager.carregar_fonte("contrail", 18)
         self.estado = "INATIVO" # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
         self.alpha = 0
         self.velocidade = 5 
@@ -147,5 +149,5 @@ class Flashback:
 
             # Desenha o rodapé de avanço apenas quando o texto estiver visível e à espera
             if self.texto_estado == "WAIT":
-                avancar = pygame.font.Font(None, 20).render("Clique ou pressione [ENTER] para recordar", True, UI_TEXTO_APAGADO)
+                avancar = self.fonte_avanco.render("Clique ou pressione [ENTER] para recordar", True, UI_TEXTO_APAGADO)
                 tela.blit(avancar, ((self.largura // 2) - (avancar.get_width() // 2), self.altura - 50))

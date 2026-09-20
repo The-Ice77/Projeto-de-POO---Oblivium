@@ -552,3 +552,6 @@ class SkillsRegistry:
 
 # Inicializa o catálogo padrão automaticamente ao carregar o módulo
 SkillsRegistry.inicializar_catalogo_padrao()
+
+# Alias de compatibilidade
+ActionCatalog = SkillsRegistry

@@ -20,7 +20,7 @@ class PauseState(State):
     """
     def __init__(self, game):
         super().__init__(game)
-        self.opcoes_padrao = ["Retomar", "Salvar Jogo", "Carregar Jogo", "Configurações", "Sair para o Menu"]
+        self.opcoes_padrao = ["Retomar", "Inventário", "Salvar Jogo", "Carregar Jogo", "Configurações", "Sair para o Menu"]
         self.opcoes_combate = ["Retomar", "Carregar Jogo", "Configurações", "Sair para o Menu"]
         self.opcoes = list(self.opcoes_padrao)
         self.selecionada = 0
@@ -83,6 +83,9 @@ class PauseState(State):
         if opcao == "Retomar":
             self.game.mudar_estado(origem)
             
+        elif opcao == "Inventário":
+            self.game.mudar_estado("INVENTARIO")
+            
         elif opcao == "Salvar Jogo":
             # Não permitido no meio do combate por design
             if origem == "COMBATE":
@@ -116,8 +119,8 @@ class PauseState(State):
 
     def draw(self, tela):
         origem = getattr(self.game, 'origem_pause', 'JOGANDO')
-        if origem == "COMBATE" and hasattr(self.game, 'tela_combate'):
-            self.game.tela_combate.desenhar(tela)
+        if origem == "COMBATE" and "COMBATE" in self.game.estados:
+            self.game.estados["COMBATE"].draw(tela)
         elif "JOGANDO" in self.game.estados:
             self.game.estados["JOGANDO"].draw(tela)
 
