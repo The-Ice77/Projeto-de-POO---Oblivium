@@ -1,5 +1,4 @@
 # src/ui/ui_utils.py
-from Oblivium.src.utils.colors import BARRA_VIDA_JOGADOR
 import pygame
 import os
 import sys
@@ -15,7 +14,7 @@ from src.utils.colors import (
     UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, PRETO, BRANCO,
     CINZA_LINHO, CARVAO_PROFUNDO, MARFIM_OFFWHITE, DOURADO_ENVELHECIDO,
     PERGAMINHO_BG, PERGAMINHO_BORDA, PERGAMINHO_TINTA, PERGAMINHO_TINTA_SUAVE,
-    GIZ_SUAVE, AZUL_HOVER_MENU, AZUL_HOVER_BG
+    GIZ_SUAVE, AZUL_HOVER_MENU, AZUL_HOVER_BG, BARRA_VIDA_JOGADOR
 )
 from src.utils.resource_manager import ResourceManager
 

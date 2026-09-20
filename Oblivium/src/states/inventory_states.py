@@ -106,7 +106,7 @@ class InventoryState(State):
             if evento.type == pygame.KEYDOWN:
                 # Fechar com ESC ou apertando a tecla de inventário
                 tecla_inv = self.game.controles.get("Inventário", pygame.K_i)
-                if evento.key in [pygame.K_ESCAPE, tecla_inv, pygame.K_b]:
+                if evento.key in [pygame.K_ESCAPE, tecla_inv]:
                     self.game.mudar_estado("JOGANDO")
                     return
                     
