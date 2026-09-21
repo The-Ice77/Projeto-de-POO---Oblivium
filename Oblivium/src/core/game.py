@@ -5,6 +5,7 @@ from src.ui.dialogue_box import DialogueBox
 from src.ui.intro import Intro
 from src.entities.player import Player
 from src.mechanics.attributes import Atributos
+from src.mechanics.inventory import Inventario
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
 from src.entities.NPC import NPC
@@ -16,6 +17,7 @@ from src.utils.resource_manager import ResourceManager, Animacao
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.tela_despertar import TelaDespertarMemoria
+from src.ui.notification_manager import NotificationManager
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -28,6 +30,7 @@ from src.states.settings_states import SettingsState
 from src.states.controles_state import ControlesState
 from src.states.slots_states import SlotsState
 from src.states.inventory_states import InventoryState
+from src.states.shop_states import ShopState
 
 
 
@@ -53,6 +56,7 @@ class Game:
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
+        self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido
         self.opcoes_velocidade = ["Lento", "Normal", "Rápido"]
@@ -127,8 +131,8 @@ class Game:
             "CREDITOS": CreditsState(self),
             "CONFIGURACOES": SettingsState(self),
             "CONTROLES": ControlesState(self),
-            "CONTROLES": ControlesState(self),
             "INVENTARIO": InventoryState(self),
+            "LOJA": ShopState(self),
             "SLOTS": SlotsState(self) 
         }
         self.estado_atual = self.estados["MENU"]
@@ -172,12 +176,18 @@ class Game:
                     self.running = False
 
             
+            eventos = self.notificacoes.handle_events(eventos)
             self.estado_atual.handle_events(eventos, teclas)
             self.estado_atual.update()
+            self.notificacoes.update()
             
             self.tela.fill((0, 0, 0))
             self.estado_atual.draw(self.tela)
             
+            # Se o estado atual for o MENU principal, desenha eventuais notificações pendentes
+            if self.estado_atual == self.estados.get("MENU"):
+                self.notificacoes.draw(self.tela)
+
             pygame.display.flip()
             self.clock.tick(60)
     def salvar_estado(self, slot=None, tipo="manual"):
@@ -204,6 +214,7 @@ class Game:
                 "nivel_sincronia": getattr(self.halia, 'nivel_sincronia', 1),
                 "dinheiro": getattr(self.halia, 'dinheiro', 0),
                 "atributos": self.halia.atributos.to_dict(),
+                "inventario": self.halia.inventario.to_dict() if hasattr(self.halia, 'inventario') else {},
                 "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', []),
                 "ataques_fisicos": getattr(self.halia, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
             },
@@ -280,7 +291,14 @@ class Game:
         
         if "atributos" in halia_dados:
             self.halia.atributos = Atributos.from_dict(halia_dados["atributos"])
-            self.halia.recalcular_status_derivados(manter_porcentagem=False)
+
+        if "inventario" in halia_dados and halia_dados["inventario"]:
+            self.halia.inventario = Inventario.from_dict(halia_dados["inventario"])
+        else:
+            self.halia.inventario = Inventario()
+            self.halia.inicializar_inventario_padrao()
+            
+        self.halia.recalcular_status_derivados(manter_porcentagem=False)
             
         self.halia.vida_atual = halia_dados.get("vida_atual", self.halia.vida_maxima)
         self.halia.mana_atual = halia_dados.get("mana_atual", self.halia.mana_maxima)
@@ -350,6 +368,8 @@ class Game:
         self.halia.fragmentos_memoria = 0
         self.halia.dinheiro = 0
         self.halia.atributos = Atributos(forca=7, destreza=10, constituicao=10, intelecto=13, sabedoria=11, presenca=12)
+        self.halia.inventario = Inventario()
+        self.halia.inicializar_inventario_padrao()
         self.halia.recalcular_status_derivados(manter_porcentagem=False)
         self.halia.atualizar_grimorio()
         # Inicia o jogo com vida e mana cheias

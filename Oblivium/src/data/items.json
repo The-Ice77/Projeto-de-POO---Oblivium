@@ -1,0 +1,342 @@
+{
+  "consumiveis": {
+    "pocao_vida_menor": {
+      "id": "pocao_vida_menor",
+      "nome": "Poção de Vida Menor",
+      "descricao": "Elixir carmesim aromático que restaura 35 pontos de vida.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "CURA_HP",
+      "valor_efeito": 35,
+      "usavel_combate": true,
+      "usavel_fora": true,
+      "raridade": "COMUM",
+      "preco_compra": 25,
+      "preco_venda": 12,
+      "acumulavel": true,
+      "quantidade_maxima": 20
+    },
+    "pocao_vida_maior": {
+      "id": "pocao_vida_maior",
+      "nome": "Poção de Vida Maior",
+      "descricao": "Extrato concentrado de ervas sagradas que regenera 80 pontos de vida.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "CURA_HP",
+      "valor_efeito": 80,
+      "usavel_combate": true,
+      "usavel_fora": true,
+      "raridade": "RARO",
+      "preco_compra": 70,
+      "preco_venda": 35,
+      "acumulavel": true,
+      "quantidade_maxima": 20
+    },
+    "elixir_mana_menor": {
+      "id": "elixir_mana_menor",
+      "nome": "Elixir de Mana Menor",
+      "descricao": "Líquido azulado luminoso que canaliza o éter e restaura 25 pontos de mana.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "RESTAURA_MP",
+      "valor_efeito": 25,
+      "usavel_combate": true,
+      "usavel_fora": true,
+      "raridade": "COMUM",
+      "preco_compra": 30,
+      "preco_venda": 15,
+      "acumulavel": true,
+      "quantidade_maxima": 20
+    },
+    "elixir_mana_maior": {
+      "id": "elixir_mana_maior",
+      "nome": "Elixir de Mana Maior",
+      "descricao": "Destilado de orvalho astral que recupera 60 pontos de mana.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "RESTAURA_MP",
+      "valor_efeito": 60,
+      "usavel_combate": true,
+      "usavel_fora": true,
+      "raridade": "RARO",
+      "preco_compra": 85,
+      "preco_venda": 42,
+      "acumulavel": true,
+      "quantidade_maxima": 20
+    },
+    "frasco_fogo_alquimico": {
+      "id": "frasco_fogo_alquimico",
+      "nome": "Fogo Alquímico",
+      "descricao": "Frasco instável de combustão rápida. Causa 35 de dano de fogo e aplica Queimadura.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "DANO_OFENSIVO",
+      "valor_efeito": 35,
+      "condicao_aplicada": "queimadura",
+      "usavel_combate": true,
+      "usavel_fora": false,
+      "raridade": "INCOMUM",
+      "preco_compra": 45,
+      "preco_venda": 20,
+      "acumulavel": true,
+      "quantidade_maxima": 10
+    },
+    "unguento_purificador": {
+      "id": "unguento_purificador",
+      "nome": "Unguento Purificador",
+      "descricao": "Pasta de ervas medicinais que purifica todas as aflições e venenos.",
+      "categoria": "CONSUMIVEL",
+      "tipo_consumivel": "CURA_CONDICAO",
+      "valor_efeito": 0,
+      "usavel_combate": true,
+      "usavel_fora": true,
+      "raridade": "INCOMUM",
+      "preco_compra": 40,
+      "preco_venda": 18,
+      "acumulavel": true,
+      "quantidade_maxima": 10
+    }
+  },
+  "equipamentos": {
+    "manto_arcanista": {
+      "id": "manto_arcanista",
+      "nome": "Manto Arcanista",
+      "descricao": "Tecido clássico impregnado com ressonância mágica ancestral.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "ROUPA",
+      "raridade": "COMUM",
+      "preco_compra": 60,
+      "preco_venda": 30,
+      "bonus_atributos": {
+        "intelecto": 2,
+        "constituicao": 1
+      },
+      "bonus_stats": {
+        "defesa_fisica": 2,
+        "defesa_magica": 5,
+        "poder_magico": 3
+      }
+    },
+    "tunica_seda_eter": {
+      "id": "tunica_seda_eter",
+      "nome": "Túnica de Seda do Éter",
+      "descricao": "Vestimenta tecida por fiadeiras celestes, expande a circulação de mana e a agilidade.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "ROUPA",
+      "raridade": "RARO",
+      "preco_compra": 180,
+      "preco_venda": 90,
+      "bonus_atributos": {
+        "intelecto": 4,
+        "destreza": 2,
+        "sabedoria": 2
+      },
+      "bonus_stats": {
+        "defesa_fisica": 4,
+        "defesa_magica": 12,
+        "poder_magico": 8
+      }
+    },
+    "cajado_espinheiro": {
+      "id": "cajado_espinheiro",
+      "nome": "Cajado de Espinheiro",
+      "descricao": "Foco arcano talhado em madeira sagrada de Oblivium, ressoa com feitiços arcanos.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "CAJADO",
+      "raridade": "COMUM",
+      "preco_compra": 75,
+      "preco_venda": 35,
+      "bonus_atributos": {
+        "intelecto": 3,
+        "forca": 1
+      },
+      "bonus_stats": {
+        "poder_magico": 6,
+        "defesa_fisica": 1
+      }
+    },
+    "cajado_orvalho_estelar": {
+      "id": "cajado_orvalho_estelar",
+      "nome": "Cajado do Orvalho Estelar",
+      "descricao": "Cajado coroado por uma ametista pura que amplifica drasticamente feitiços arcanos.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "CAJADO",
+      "raridade": "RARO",
+      "preco_compra": 220,
+      "preco_venda": 110,
+      "bonus_atributos": {
+        "intelecto": 6,
+        "sabedoria": 3
+      },
+      "bonus_stats": {
+        "poder_magico": 15,
+        "defesa_magica": 4
+      }
+    },
+    "anel_cristal_mana": {
+      "id": "anel_cristal_mana",
+      "nome": "Anel de Cristal de Mana",
+      "descricao": "Joia forjada em prata pura com um quartzo azul que retém energia mística.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "ACESSORIO_1",
+      "raridade": "INCOMUM",
+      "preco_compra": 90,
+      "preco_venda": 45,
+      "bonus_atributos": {
+        "intelecto": 2,
+        "presenca": 1
+      },
+      "bonus_stats": {
+        "poder_magico": 4,
+        "mana_maxima_bonus": 15
+      }
+    },
+    "amuleto_guardiao_antigo": {
+      "id": "amuleto_guardiao_antigo",
+      "nome": "Amuleto do Guardião",
+      "descricao": "Pingente de bronze que emana uma aura reconfortante de proteção e vitalidade.",
+      "categoria": "EQUIPAMENTO",
+      "slot": "ACESSORIO_2",
+      "raridade": "INCOMUM",
+      "preco_compra": 95,
+      "preco_venda": 48,
+      "bonus_atributos": {
+        "constituicao": 3,
+        "sabedoria": 1
+      },
+      "bonus_stats": {
+        "defesa_fisica": 4,
+        "defesa_magica": 4,
+        "vida_maxima_bonus": 20
+      }
+    }
+  },
+  "grimorios": {
+    "tomo_chama_ancestral": {
+      "id": "tomo_chama_ancestral",
+      "nome": "Tomo da Chama Ancestral",
+      "descricao": "Escritura sagrada dos arcanistas que ensina e aprimora a evocação da Bola de Fogo.",
+      "categoria": "GRIMORIO",
+      "magia_id": "bola_fogo",
+      "raridade": "RARO",
+      "preco_compra": 150,
+      "preco_venda": 75,
+      "bonus_stats": {
+        "dano_fogo_bonus": 10
+      }
+    },
+    "tomo_geada_eterna": {
+      "id": "tomo_geada_eterna",
+      "nome": "Tomo da Geada Eterna",
+      "descricao": "Páginas gélidas que ensinam o feitiço Raio de Gelo e reduzem seu custo de mana.",
+      "categoria": "GRIMORIO",
+      "magia_id": "raio_gelo",
+      "raridade": "RARO",
+      "preco_compra": 150,
+      "preco_venda": 75,
+      "bonus_stats": {
+        "dano_gelo_bonus": 10
+      }
+    },
+    "tomo_brisa_restauradora": {
+      "id": "tomo_brisa_restauradora",
+      "nome": "Tomo da Brisa Restauradora",
+      "descricao": "Encantamento botânico de cura profunda e alívio de fadiga.",
+      "categoria": "GRIMORIO",
+      "magia_id": "brisa_curativa",
+      "raridade": "RARO",
+      "preco_compra": 140,
+      "preco_venda": 70,
+      "bonus_stats": {
+        "cura_bonus": 12
+      }
+    }
+  },
+  "materiais": {
+    "erva_lunar": {
+      "id": "erva_lunar",
+      "nome": "Erva Lunar",
+      "descricao": "Pétalas prateadas que absorvem a luz da lua. Usada em poções de cura.",
+      "categoria": "MATERIAL",
+      "raridade": "COMUM",
+      "preco_compra": 10,
+      "preco_venda": 5,
+      "acumulavel": true,
+      "quantidade_maxima": 99
+    },
+    "po_eter": {
+      "id": "po_eter",
+      "nome": "Pó de Éter",
+      "descricao": "Resíduo brilhante da condensação mágica. Essencial para elixires e encantamentos.",
+      "categoria": "MATERIAL",
+      "raridade": "INCOMUM",
+      "preco_compra": 15,
+      "preco_venda": 7,
+      "acumulavel": true,
+      "quantidade_maxima": 99
+    },
+    "madeira_espinheiro": {
+      "id": "madeira_espinheiro",
+      "nome": "Madeira de Espinheiro",
+      "descricao": "Galho resistente e flexível, ideal para confecção e reforço de cajados.",
+      "categoria": "MATERIAL",
+      "raridade": "COMUM",
+      "preco_compra": 12,
+      "preco_venda": 6,
+      "acumulavel": true,
+      "quantidade_maxima": 99
+    },
+    "minerio_sombrio": {
+      "id": "minerio_sombrio",
+      "nome": "Minério Sombrio",
+      "descricao": "Metal denso imbuído de trevas purificadas, utilizado em aprimoramentos de equipamentos.",
+      "categoria": "MATERIAL",
+      "raridade": "RARO",
+      "preco_compra": 35,
+      "preco_venda": 18,
+      "acumulavel": true,
+      "quantidade_maxima": 99
+    },
+    "tecido_runico": {
+      "id": "tecido_runico",
+      "nome": "Tecido Rúnico",
+      "descricao": "Fibras entrelaçadas com runas arcanas de proteção.",
+      "categoria": "MATERIAL",
+      "raridade": "INCOMUM",
+      "preco_compra": 25,
+      "preco_venda": 12,
+      "acumulavel": true,
+      "quantidade_maxima": 99
+    }
+  },
+  "chaves": {
+    "chave_antiga": {
+      "id": "chave_antiga",
+      "nome": "Chave de Ferro Antiga",
+      "descricao": "Chave enferrujada encontrada nos escombros. Pode abrir portas ou baús trancados.",
+      "categoria": "CHAVE",
+      "raridade": "INCOMUM",
+      "preco_compra": 0,
+      "preco_venda": 0,
+      "acumulavel": false,
+      "quantidade_maxima": 1
+    },
+    "cristal_passagem": {
+      "id": "cristal_passagem",
+      "nome": "Cristal de Passagem",
+      "descricao": "Relíquia mágica que ressoa com portais e barreiras seladas de Oblivium.",
+      "categoria": "CHAVE",
+      "raridade": "EPICO",
+      "preco_compra": 0,
+      "preco_venda": 0,
+      "acumulavel": false,
+      "quantidade_maxima": 1
+    },
+    "mapa_continental": {
+      "id": "mapa_continental",
+      "nome": "Carta Cartográfica de Oblivium",
+      "descricao": "Pergaminho detalhado com os caminhos, estradas e regiões do continente.",
+      "categoria": "CHAVE",
+      "raridade": "RARO",
+      "preco_compra": 50,
+      "preco_venda": 0,
+      "acumulavel": false,
+      "quantidade_maxima": 1
+    }
+  }
+}

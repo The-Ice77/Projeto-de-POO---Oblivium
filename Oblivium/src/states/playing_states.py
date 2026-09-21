@@ -4,6 +4,7 @@ import copy
 from src.states.states import State
 from src.entities.Enemy import Enemy
 from src.entities.enemy_factory import EnemyFactory
+from src.mechanics.item_factory import ItemFactory
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
 from src.utils import save_manager
@@ -57,8 +58,13 @@ class PlayingState(State):
                         com_transicao_suave=True, 
                         pos_origem=(self.game.halia.x + 20, self.game.halia.y + 30)
                     )
+                if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+                    self.game.notificacoes.notificar_memoria_desperta(mem_atual)
         else:
             # Sincronização de segurança: garante que o filtro e o registro correspondam exatamente à memória
+            if mem_atual > self.memoria_anterior_registrada:
+                if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+                    self.game.notificacoes.notificar_memoria_desperta(mem_atual)
             if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
                 if self.game.filtro_memoria.estagio_atual != mem_atual:
                     self.game.filtro_memoria.definir_estagio(mem_atual, com_transicao_suave=False)
@@ -93,11 +99,15 @@ class PlayingState(State):
         self._draw_interactable_prompts(tela)
         self._draw_ui_overlays(tela)
 
-        # Aplica o Filtro de Memória sobre o mundo do jogo e interface regular
-        if hasattr(self.game, 'filtro_memoria'):
+        # 1. Notificações do gameplay desenhadas antes do filtro para seguirem o estágio de memória
+        if hasattr(self.game, 'notificacoes'):
+            self.game.notificacoes.draw(tela)
+
+        # 2. Aplica o Filtro de Memória sobre o mundo do jogo, interface e notificações
+        if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
             self.game.filtro_memoria.aplicar_filtro(tela, pos_jogador=(self.game.halia.x + 20, self.game.halia.y + 30))
 
-        # A Tela de Despertar é desenhada no topo com 100% de cores vivas e vibrantes
+        # 3. A Tela de Despertar é desenhada no topo absoluto após o filtro com 100% de cores vivas e vibrantes
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO":
             self.game.tela_despertar.desenhar(tela)
 
@@ -379,8 +389,29 @@ class PlayingState(State):
                 id_do_item = getattr(item, "id_unico", "desconhecido")
                 if id_do_item not in self.game.itens_coletados:
                     self.game.itens_coletados.append(id_do_item)
-                    
-                self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
+                
+                if id_do_item == "item_moedas":
+                    self.game.halia.ganhar_dinheiro(1000) # 50 Moedas de Prata = 5 Moedas de Ouro
+                    if hasattr(self.game, 'notificacoes'):
+                        self.game.notificacoes.notificar_item_coletado("Bolsa de Moedas", "Recebeu 50 Moedas de Prata (5 de Ouro).")
+                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
+                elif id_do_item == "item_cajado":
+                    cajado = ItemFactory.criar("cajado_espinheiro")
+                    if cajado:
+                        self.game.halia.inventario.equipados["CAJADO"] = cajado
+                    self.game.halia.recalcular_status_derivados()
+                    if hasattr(self.game, 'notificacoes'):
+                        self.game.notificacoes.notificar_item_coletado("Cajado de Espinheiro", "Arma arcana empunhada com sucesso!")
+                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você empunhou o Cajado de Espinheiro."}])
+                elif id_do_item == "item_livro":
+                    tomo = ItemFactory.criar("tomo_chama_ancestral")
+                    if tomo:
+                        self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
+                    if hasattr(self.game, 'notificacoes'):
+                        self.game.notificacoes.notificar_item_coletado("O Livro Antigo", "Tomo antigo guardado no espaço de Grimórios.")
+                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
+                else:
+                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
                 return
         
         if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:

@@ -1,0 +1,100 @@
+{
+  "receitas": {
+    "rec_pocao_vida_menor": {
+      "id": "rec_pocao_vida_menor",
+      "nome": "Receita: Poção de Vida Menor",
+      "tipo": "ALQUIMIA",
+      "resultado_item_id": "pocao_vida_menor",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "erva_lunar": 2
+      },
+      "custo_moedas": 5,
+      "requisito_sincronia": 1,
+      "desbloqueada": true,
+      "descricao": "Maceração simples de pétalas de erva lunar que estanca feridas superficiais."
+    },
+    "rec_elixir_mana_menor": {
+      "id": "rec_elixir_mana_menor",
+      "nome": "Receita: Elixir de Mana Menor",
+      "tipo": "ALQUIMIA",
+      "resultado_item_id": "elixir_mana_menor",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "po_eter": 2
+      },
+      "custo_moedas": 8,
+      "requisito_sincronia": 1,
+      "desbloqueada": true,
+      "descricao": "Destilação de condensado de éter para rápida reposição de mana."
+    },
+    "rec_pocao_vida_maior": {
+      "id": "rec_pocao_vida_maior",
+      "nome": "Receita: Poção de Vida Maior",
+      "tipo": "ALQUIMIA",
+      "resultado_item_id": "pocao_vida_maior",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "erva_lunar": 4,
+        "po_eter": 1
+      },
+      "custo_moedas": 20,
+      "requisito_sincronia": 2,
+      "desbloqueada": false,
+      "descricao": "Elixir potente enriquecido com essência arcana concentrada."
+    },
+    "rec_frasco_fogo_alquimico": {
+      "id": "rec_frasco_fogo_alquimico",
+      "nome": "Receita: Fogo Alquímico",
+      "tipo": "ALQUIMIA",
+      "resultado_item_id": "frasco_fogo_alquimico",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "erva_lunar": 1,
+        "po_eter": 2,
+        "minerio_sombrio": 1
+      },
+      "custo_moedas": 15,
+      "requisito_sincronia": 1,
+      "desbloqueada": true,
+      "descricao": "Mistura combustível volátil para suporte ofensivo."
+    },
+    "rec_cajado_espinheiro": {
+      "id": "rec_cajado_espinheiro",
+      "nome": "Receita: Cajado de Espinheiro",
+      "tipo": "FORJA",
+      "resultado_item_id": "cajado_espinheiro",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "madeira_espinheiro": 3,
+        "po_eter": 1
+      },
+      "custo_moedas": 25,
+      "requisito_sincronia": 1,
+      "desbloqueada": true,
+      "descricao": "Talha arcanista básica de galho de espinheiro encantado."
+    },
+    "rec_manto_arcanista": {
+      "id": "rec_manto_arcanista",
+      "nome": "Receita: Manto Arcanista",
+      "tipo": "TECELAGEM",
+      "resultado_item_id": "manto_arcanista",
+      "resultado_quantidade": 1,
+      "materiais_necessarios": {
+        "tecido_runico": 3,
+        "erva_lunar": 1
+      },
+      "custo_moedas": 20,
+      "requisito_sincronia": 1,
+      "desbloqueada": true,
+      "descricao": "Costura rúnica que confere proteção mística ao portador."
+    }
+  },
+  "custos_upgrade": {
+    "1": { "minerio_sombrio": 1, "moedas": 20 },
+    "2": { "minerio_sombrio": 2, "moedas": 45 },
+    "3": { "minerio_sombrio": 3, "moedas": 80 },
+    "4": { "minerio_sombrio": 5, "moedas": 130 },
+    "5": { "minerio_sombrio": 8, "moedas": 200 }
+  }
+}

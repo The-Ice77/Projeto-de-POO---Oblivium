@@ -72,14 +72,14 @@ class CombatScreen:
         # Fontes Consolidadas do Combate
         self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
         self.fonte_nomes = ResourceManager.carregar_fonte("sunday", 24)
-        self.fonte_status = ResourceManager.carregar_fonte("contrail", 15)
+        self.fonte_status = ResourceManager.carregar_fonte("contrail", 16)
         self.fonte_menu = ResourceManager.carregar_fonte("contrail", 20)
-        self.fonte_log = ResourceManager.carregar_fonte("contrail", 15)
+        self.fonte_log = ResourceManager.carregar_fonte("contrail", 18)
         self.fonte_dano = ResourceManager.carregar_fonte("sunday", 26)
-        self.fonte_tooltip = ResourceManager.carregar_fonte("contrail", 14)
+        self.fonte_tooltip = ResourceManager.carregar_fonte("contrail", 16)
         
         # Estrutura do Menu Principal
-        self.opcoes_menu_principal = ["Atacar", "Magias", "Concentrar", "Fugir"]
+        self.opcoes_menu_principal = ["Atacar", "Magias", "Concentrar", "Itens", "Fugir"]
         self.indice_menu = 0
         
         # Submenu de Ataques Físicos
@@ -93,6 +93,12 @@ class CombatScreen:
         # Submenu de Concentrar (Ações Táticas: Foco Espiritual e Defender)
         self.opcoes_concentrar = []
         self.indice_concentrar = 0
+        
+        # Submenu de Itens Consumíveis de Combate
+        self.itens_combate_disponiveis = []
+        self.indice_item_combate = 0
+        self.scroll_item_combate = 0
+        self.item_combate_selecionado = None
         
         # Seleção de Alvo
         self.indice_alvo = 0
@@ -115,7 +121,7 @@ class CombatScreen:
         
         # Estados do Motor de Combate:
         # "INATIVO", "MENU_PRINCIPAL", "SUBMENU_ATAQUE", "SUBMENU_MAGIA", 
-        # "SUBMENU_CONCENTRAR", "SELECIONANDO_ALVO", "EXECUTANDO_ACAO", "TURNO_INIMIGO", "VITORIA", "DERROTA", "FUGIU"
+        # "SUBMENU_CONCENTRAR", "SUBMENU_ITENS", "SELECIONANDO_ALVO", "EXECUTANDO_ACAO", "TURNO_INIMIGO", "VITORIA", "DERROTA", "FUGIU"
         self.estado_combate = "INATIVO"
         
         # Log e Mensagens de Batalha
@@ -135,6 +141,7 @@ class CombatScreen:
         self.rects_ataques_fisicos = []
         self.rects_magias = []
         self.rects_concentrar = []
+        self.rects_itens_combate = []
         self.rects_inimigos = []
         self.rect_botao_voltar = pygame.Rect(0, 0, 0, 0)
         self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
@@ -194,10 +201,11 @@ class CombatScreen:
         if hasattr(self.jogador, 'entrar_combate'):
             self.jogador.entrar_combate()
 
-        # Carrega ações físicas, grimório e grupo de concentração do jogador
+        # Carrega ações físicas, grimório, itens e grupo de concentração do jogador
         self._carregar_ataques_fisicos_jogador()
         self._carregar_magias_jogador()
         self._carregar_acoes_concentrar()
+        self._carregar_itens_combate_jogador()
 
         # Estabelece a ordem de turnos base uma única vez no início do combate
         participantes = [self.jogador] + [i for i in self.inimigos if getattr(i, 'vivo', True)]
@@ -239,6 +247,16 @@ class CombatScreen:
             self.opcoes_concentrar.append(foco)
         if defesa:
             self.opcoes_concentrar.append(defesa)
+
+    def _carregar_itens_combate_jogador(self):
+        """Carrega os itens consumíveis elegíveis para uso durante a batalha."""
+        self.itens_combate_disponiveis.clear()
+        inv = getattr(self.jogador, 'inventario', None)
+        if inv:
+            for idx_real, item_slot in enumerate(inv.slots):
+                item = item_slot.item
+                if getattr(item, 'categoria', '') == "CONSUMIVEL" and getattr(item, 'usavel_combate', True):
+                    self.itens_combate_disponiveis.append((idx_real, item_slot))
 
     def _iniciar_nova_rodada(self):
         """Prepara a rodada mantendo a ordem consistente de turnos entre participantes vivos."""
@@ -356,6 +374,18 @@ class CombatScreen:
                     self.scroll_concentrar = idx - max_itens + 1
                 self.scroll_concentrar = max(0, min(self.scroll_concentrar, total - max_itens))
 
+        elif estado == "SUBMENU_ITENS":
+            total = len(self.itens_combate_disponiveis)
+            idx = self.indice_item_combate
+            if total <= max_itens:
+                self.scroll_item_combate = 0
+            else:
+                if idx < self.scroll_item_combate:
+                    self.scroll_item_combate = idx
+                elif idx >= self.scroll_item_combate + max_itens:
+                    self.scroll_item_combate = idx - max_itens + 1
+                self.scroll_item_combate = max(0, min(self.scroll_item_combate, total - max_itens))
+
     def _rolar_submenu(self, estado, delta):
         """Rola a visualização do submenu para cima ou para baixo pelo mouse ou botões de seta."""
         max_itens = self.ITENS_POR_PAGINA_SUBMENU
@@ -386,6 +416,15 @@ class CombatScreen:
             elif self.indice_concentrar >= self.scroll_concentrar + max_itens:
                 self.indice_concentrar = self.scroll_concentrar + max_itens - 1
 
+        elif estado == "SUBMENU_ITENS":
+            total = len(self.itens_combate_disponiveis)
+            max_scroll = max(0, total - max_itens)
+            self.scroll_item_combate = max(0, min(max_scroll, self.scroll_item_combate + delta))
+            if self.indice_item_combate < self.scroll_item_combate:
+                self.indice_item_combate = self.scroll_item_combate
+            elif self.indice_item_combate >= self.scroll_item_combate + max_itens:
+                self.indice_item_combate = self.scroll_item_combate + max_itens - 1
+
     def processar_eventos(self, evento):
         # 1. Movimento do Mouse (Hover)
         if evento.type == pygame.MOUSEMOTION:
@@ -414,6 +453,12 @@ class CombatScreen:
                         self.indice_concentrar = real_idx
                         break
 
+            elif self.estado_combate == "SUBMENU_ITENS":
+                for r, real_idx in self.rects_itens_combate:
+                    if r.collidepoint(pos):
+                        self.indice_item_combate = real_idx
+                        break
+
             elif self.estado_combate == "SELECIONANDO_ALVO":
                 for idx, r in enumerate(self.rects_inimigos):
                     if r.collidepoint(pos):
@@ -429,6 +474,8 @@ class CombatScreen:
                 self._rolar_submenu("SUBMENU_MAGIA", delta)
             elif self.estado_combate == "SUBMENU_CONCENTRAR":
                 self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
+            elif self.estado_combate == "SUBMENU_ITENS":
+                self._rolar_submenu("SUBMENU_ITENS", delta)
 
         # 3. Clique do Mouse (Botão Esquerdo e Botões de Scroll)
         elif evento.type == pygame.MOUSEBUTTONDOWN:
@@ -443,6 +490,8 @@ class CombatScreen:
                     self._rolar_submenu("SUBMENU_MAGIA", delta)
                 elif self.estado_combate == "SUBMENU_CONCENTRAR":
                     self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
+                elif self.estado_combate == "SUBMENU_ITENS":
+                    self._rolar_submenu("SUBMENU_ITENS", delta)
                 return
 
             if evento.button == 1:
@@ -506,13 +555,33 @@ class CombatScreen:
                             self._selecionar_acao_concentrar()
                             return
 
+                elif self.estado_combate == "SUBMENU_ITENS":
+                    if self.rect_botao_voltar.collidepoint(pos):
+                        self.estado_combate = "MENU_PRINCIPAL"
+                        return
+                    if self.rect_scroll_cima.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_ITENS", -1)
+                        return
+                    if self.rect_scroll_baixo.collidepoint(pos):
+                        self._rolar_submenu("SUBMENU_ITENS", 1)
+                        return
+                    for r, real_idx in self.rects_itens_combate:
+                        if r.collidepoint(pos):
+                            self.indice_item_combate = real_idx
+                            self._selecionar_item_combate()
+                            return
+
                 elif self.estado_combate == "SELECIONANDO_ALVO":
                     for idx, r in enumerate(self.rects_inimigos):
                         if r.collidepoint(pos):
                             self.indice_alvo = idx
                             inimigos_vivos = self._obter_inimigos_vivos()
                             if idx < len(inimigos_vivos):
-                                self._executar_acao_jogador(self.acao_selecionada, inimigos_vivos[idx])
+                                alvo = inimigos_vivos[idx]
+                                if self.item_combate_selecionado:
+                                    self._executar_uso_item_ofensivo(self.item_combate_selecionado, alvo)
+                                else:
+                                    self._executar_acao_jogador(self.acao_selecionada, alvo)
                             return
 
         # 4. Teclado
@@ -587,6 +656,25 @@ class CombatScreen:
                 elif evento.key == pygame.K_ESCAPE:
                     self.estado_combate = "MENU_PRINCIPAL"
 
+            elif self.estado_combate == "SUBMENU_ITENS":
+                if not self.itens_combate_disponiveis:
+                    self.estado_combate = "MENU_PRINCIPAL"
+                    return
+                if evento.key in [pygame.K_UP, pygame.K_w]:
+                    self.indice_item_combate = (self.indice_item_combate - 1) % len(self.itens_combate_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_ITENS")
+                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
+                    self.indice_item_combate = (self.indice_item_combate + 1) % len(self.itens_combate_disponiveis)
+                    self._ajustar_scroll_submenu("SUBMENU_ITENS")
+                elif evento.key == pygame.K_PAGEUP:
+                    self._rolar_submenu("SUBMENU_ITENS", -self.ITENS_POR_PAGINA_SUBMENU)
+                elif evento.key == pygame.K_PAGEDOWN:
+                    self._rolar_submenu("SUBMENU_ITENS", self.ITENS_POR_PAGINA_SUBMENU)
+                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
+                    self._selecionar_item_combate()
+                elif evento.key == pygame.K_ESCAPE:
+                    self.estado_combate = "MENU_PRINCIPAL"
+
             elif self.estado_combate == "SELECIONANDO_ALVO":
                 inimigos_vivos = self._obter_inimigos_vivos()
                 if not inimigos_vivos:
@@ -598,8 +686,12 @@ class CombatScreen:
                     self.indice_alvo = (self.indice_alvo + 1) % len(inimigos_vivos)
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     alvo = inimigos_vivos[self.indice_alvo]
-                    self._executar_acao_jogador(self.acao_selecionada, alvo)
+                    if self.item_combate_selecionado:
+                        self._executar_uso_item_ofensivo(self.item_combate_selecionado, alvo)
+                    else:
+                        self._executar_acao_jogador(self.acao_selecionada, alvo)
                 elif evento.key == pygame.K_ESCAPE:
+                    self.estado_combate = "MENU_PRINCIPAL"
                     self.estado_combate = "MENU_PRINCIPAL"
 
     # =========================================================================
@@ -627,8 +719,84 @@ class CombatScreen:
             self.indice_concentrar = 0
             self.scroll_concentrar = 0
 
+        elif opcao == "Itens":
+            self._carregar_itens_combate_jogador()
+            if not self.itens_combate_disponiveis:
+                self.adicionar_log("Você não possui consumíveis utilizáveis em combate!")
+                return
+            self.estado_combate = "SUBMENU_ITENS"
+            self.indice_item_combate = 0
+            self.scroll_item_combate = 0
+
         elif opcao == "Fugir":
             self._tentar_fuga()
+
+    def _selecionar_item_combate(self):
+        """Seleciona o item consumível do inventário para uso."""
+        if not self.itens_combate_disponiveis:
+            return
+        idx_real, item_slot = self.itens_combate_disponiveis[self.indice_item_combate]
+        item = item_slot.item
+        
+        if getattr(item, 'tipo_consumivel', '') == "DANO_OFENSIVO":
+            inimigos_vivos = self._obter_inimigos_vivos()
+            if len(inimigos_vivos) == 1:
+                self._executar_uso_item_ofensivo(item, inimigos_vivos[0])
+            else:
+                self.item_combate_selecionado = item
+                self.estado_combate = "SELECIONANDO_ALVO"
+                self.indice_alvo = 0
+        else:
+            self._executar_uso_item_suporte(item)
+
+    def _executar_uso_item_suporte(self, item):
+        """Executa consumível de cura ou suporte em Halia durante o combate."""
+        pode, msg = item.pode_usar(self.jogador, em_combate=True)
+        if not pode:
+            self.adicionar_log(f"Aviso: {msg}")
+            return
+
+        inv = getattr(self.jogador, 'inventario', None)
+        if inv:
+            inv.remover_item(item.id, 1)
+
+        self.estado_combate = "EXECUTANDO_ACAO"
+        self.timer_acao = self._ajustar_timer(60)
+
+        res = item.usar(self.jogador, em_combate=True)
+        if res.get("mensagem"):
+            self.adicionar_log(res["mensagem"])
+
+        if res.get("tipo") == "CURA_HP" and res.get("valor", 0) > 0:
+            self.adicionar_texto_flutuante(f"+{res['valor']}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
+        elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
+            self.adicionar_texto_flutuante(f"+{res['valor']} MP", self.jogador.x + 30, self.jogador.y - 10, BARRA_MANA)
+        elif res.get("tipo") == "CURA_CONDICAO":
+            self.adicionar_texto_flutuante("PURIFICADO", self.jogador.x + 10, self.jogador.y - 10, (160, 230, 200))
+
+    def _executar_uso_item_ofensivo(self, item, alvo):
+        """Arremessa frasco ou item ofensivo em um inimigo durante a batalha."""
+        inv = getattr(self.jogador, 'inventario', None)
+        if inv:
+            inv.remover_item(item.id, 1)
+
+        self.item_combate_selecionado = None
+        self.estado_combate = "EXECUTANDO_ACAO"
+        self.timer_acao = self._ajustar_timer(65)
+
+        res = item.usar(self.jogador, alvo=alvo, em_combate=True)
+        if res.get("mensagem"):
+            self.adicionar_log(res["mensagem"])
+
+        dano = res.get("valor", 0)
+        if dano > 0:
+            self.shake_timers[alvo] = self._ajustar_timer(15)
+            self.adicionar_texto_flutuante(f"-{dano}", alvo.x + 20, alvo.y - 10, (255, 100, 80))
+
+        if not getattr(alvo, 'vivo', True):
+            msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
+            self.adicionar_log(msg_morte)
+            self.adicionar_texto_flutuante("DERROTADO", alvo.x + 10, alvo.y - 30, (255, 60, 60))
 
     def _selecionar_ataque_fisico(self):
         """Seleciona o ataque físico do submenu para execução contra o alvo."""
@@ -1316,9 +1484,39 @@ class CombatScreen:
                 txt = self.fonte_menu.render(f"{marcador}{acao.nome} {sufixo}", True, cor)
                 tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
+        # RENDERIZAR SUBMENU DE ITENS CONSUMÍVEIS
+        self.rects_itens_combate.clear()
+        if self.estado_combate == "SUBMENU_ITENS":
+            total = len(self.itens_combate_disponiveis)
+            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_item_combate, "Bolsa")
+            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
+
+            for slot_i, real_i in enumerate(range(self.scroll_item_combate, min(total, self.scroll_item_combate + self.ITENS_POR_PAGINA_SUBMENU))):
+                idx_real, item_slot = self.itens_combate_disponiveis[real_i]
+                item = item_slot.item
+                qtd = item_slot.quantidade
+                item_y = painel_rect.y + 46 + (slot_i * 44)
+                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
+                self.rects_itens_combate.append((item_rect, real_i))
+                
+                if real_i == self.indice_item_combate:
+                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
+                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
+                    cor = AZUL_HOVER_MENU
+                    marcador = "►  "
+                else:
+                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
+                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
+                    cor = CINZA_LINHO
+                    marcador = "    "
+                    
+                txt_it = self.fonte_menu.render(f"{marcador}{item.nome} (x{qtd})", True, cor)
+                tela.blit(txt_it, (item_rect.x + 10, item_rect.centery - txt_it.get_height() // 2))
+
         # RENDERIZAR SELEÇÃO DE ALVOS
         elif self.estado_combate == "SELECIONANDO_ALVO":
-            txt_alvo = self.fonte_menu.render("Selecione o Inimigo Alvo:", True, TXT_SISTEMA_NARRADOR)
+            titulo_alvo = "Arremessar Item no Inimigo:" if self.item_combate_selecionado else "Selecione o Inimigo Alvo:"
+            txt_alvo = self.fonte_menu.render(titulo_alvo, True, TXT_SISTEMA_NARRADOR)
             tela.blit(txt_alvo, (painel_rect.x + 20, painel_rect.y + 15))
             
             inimigos_vivos = self._obter_inimigos_vivos()
@@ -1355,7 +1553,7 @@ class CombatScreen:
             tela.blit(txt_linha, (pos_log_x, pos_log_y + 26 + (idx * 27)))
 
         # RENDERIZAR TOOLTIP FIXO NA PARTE INFERIOR (Sobrepondo o histórico somente se necessário)
-        if self.estado_combate in ["SUBMENU_ATAQUE", "SUBMENU_MAGIA", "SUBMENU_CONCENTRAR"]:
+        if self.estado_combate in ["SUBMENU_ATAQUE", "SUBMENU_MAGIA", "SUBMENU_CONCENTRAR", "SUBMENU_ITENS"]:
             acao_sel = None
             if self.estado_combate == "SUBMENU_ATAQUE" and self.indice_ataque_fisico < len(self.ataques_fisicos_disponiveis):
                 acao_sel = self.ataques_fisicos_disponiveis[self.indice_ataque_fisico]
@@ -1363,6 +1561,9 @@ class CombatScreen:
                 acao_sel = self.magias_disponiveis[self.indice_magia]
             elif self.estado_combate == "SUBMENU_CONCENTRAR" and self.indice_concentrar < len(self.opcoes_concentrar):
                 acao_sel = self.opcoes_concentrar[self.indice_concentrar]
+            elif self.estado_combate == "SUBMENU_ITENS" and self.indice_item_combate < len(self.itens_combate_disponiveis):
+                _, item_slot = self.itens_combate_disponiveis[self.indice_item_combate]
+                acao_sel = item_slot.item
 
             if acao_sel:
                 largura_tooltip = (painel_rect.right - 15) - (painel_rect.x + largura_secao_menu + 20)
@@ -1388,12 +1589,23 @@ class CombatScreen:
             return
 
         tipo = getattr(acao, 'tipo', '').upper()
+        categoria = getattr(acao, 'categoria', '').upper()
         elemento = getattr(acao, 'elemento', 'NEUTRO').upper()
         desc = getattr(acao, 'descricao', '')
         custo = getattr(acao, 'custo_mana', 0)
         custo_str = f" | Custo: {custo} MP" if custo > 0 else (" | Custo: Grátis" if tipo == "MAGICO" else "")
 
-        if tipo == "MAGICO":
+        if categoria == "CONSUMIVEL":
+            tipo_c = getattr(acao, 'tipo_consumivel', '')
+            if tipo_c == "CURA_HP":
+                detalhe = f"[ITEM CURA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} HP - {desc}"
+            elif tipo_c == "RESTAURA_MP":
+                detalhe = f"[ITEM MANA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} MP - {desc}"
+            elif tipo_c == "DANO_OFENSIVO":
+                detalhe = f"[ITEM OFENSIVO] {acao.nome} | Causa {getattr(acao, 'valor_efeito', 0)} Dano - {desc}"
+            else:
+                detalhe = f"[ITEM] {acao.nome} - {desc}"
+        elif tipo == "MAGICO":
             detalhe = f"[{elemento}] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)} - {desc}"
         elif tipo == "FOCO":
             detalhe = f"[TÁTICO] {acao.nome} - {desc}"

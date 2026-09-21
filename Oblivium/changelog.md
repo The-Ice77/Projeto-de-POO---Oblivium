@@ -98,3 +98,24 @@ Adição do menu de configuração com alteração de teclas e outros
 - **Telas Auxiliares e Interface Geral**:
   - Harmonização das telas de Pausa, Configurações, Controles, Créditos e Gerenciamento de Saves/Slots com a identidade visual unificada.
   - Títulos de seções nos Créditos destacados em azul claro com espaçamento generoso e padronização da fonte de agradecimentos.
+
+### Atualização v[0.5.0] - Sistema Completo de Inventário, Itens Polimórficos, Crafting, Loja e Integração em Combate
+#### Implementação, Correção e Aprimoramento
+- **Hierarquia Polimórfica de Itens (`src/mechanics/items.py` e `src/data/items.json`)**:
+  - Implementação de `ItemBase` e subclasses: `ConsumivelItem` (cura de HP/MP, purificação, frascos de dano elemental com status), `EquipamentoItem` (roupas, mantos, cajados, anéis e amuletos com bônus em atributos primários e stats derivados), `GrimorioItem` (tomos arcanos vinculados a feitiços), `MaterialItem` (ingredientes de alquimia/forja) e `ItemChave` (relíquias e chaves de progressão protegidas contra venda).
+- **Fábrica de Itens Centralizada (`ItemFactory`)**:
+  - Criação dinâmica e tipada com leitura de catálogo JSON e fallback seguro em memória.
+- **Componente de Inventário Funcional (`Inventario`)**:
+  - Controle de capacidade expansível de slots, empilhamento automático de itens acumuláveis, gerenciamento de equipamentos equipados (`ROUPA`, `CAJADO`, `ACESSORIO_1`, `ACESSORIO_2`, `GRIMORIO_1`, `GRIMORIO_2`) e consolidação de bônus dinâmicos nos atributos de Halia.
+- **Interface Editorial de Inventário (`InventoryState`)**:
+  - 5 abas de navegação (`Bolsa`, `Equipamentos`, `Grimórios`, `Materiais`, `Chaves`), visualização da bagagem com contadores de quantidade `xN` e níveis `+N`, suporte completo a Teclado/Mouse (clique esquerdo para equipar/usar e clique direito para desequipar) e tooltips dinâmicos em estilo pergaminho Dark Souls.
+- **Sistema de Crafting e Aprimoramento (`CraftingManager` e `src/data/receitas.json`)**:
+  - Validação de receitas de alquimia, forja e tecelagem com consumo atômico de materiais e moedas, além de aprimoramento progressivo de equipamentos (+1 a +5) consumindo Minério Sombrio.
+- **Sistema de Loja Mercantil com Estoque Limitado (`Loja` e `ShopState`)**:
+  - Mercador itinerante com catálogo e estoque finito, suporte à compra e venda com cálculo em tempo real de moedas e verificação de capacidade da bolsa.
+- **Integração de Consumíveis no Combate por Turnos (`CombatScreen`)**:
+  - Novo `SUBMENU_ITENS` com suporte a itens de suporte direto e frascos arremessáveis contra inimigos vivos, dedução atômica da bolsa, logs contextuais e textos flutuantes.
+- **Sistema de Notificações Push / Toasts (`NotificationManager`)**:
+  - Fila de mensagens no canto superior direito empilhadas sem sobreposição, com animação de slide/fade e temporizadores calibrados.
+- **Persistência Completa nos 4 Slots de Save**:
+  - Serialização e desserialização profunda de inventário, equipamentos equipados e moedas em `salvar_estado`, `carregar_estado` e `resetar_progresso`, garantindo retrocompatibilidade com saves antigos.

@@ -10,6 +10,8 @@ if _raiz_projeto not in sys.path:
 from src.entities.Entity import Entidade
 from src.mechanics.attributes import Atributos
 from src.mechanics.grimorio import GrimorioHalia
+from src.mechanics.inventory import Inventario
+from src.mechanics.item_factory import ItemFactory
 from src.utils.resource_manager import ResourceManager, Animacao
 
 class Player(Entidade):
@@ -42,6 +44,10 @@ class Player(Entidade):
         self.dinheiro = dinheiro
         self.nivel_sincronia = 1
 
+        # Sistema de Inventário & Equipamentos
+        self.inventario = Inventario()
+        self.inicializar_inventario_padrao()
+
         # Ações Físicas Disponíveis (Submenu de Ataque Físico)
         self.ataques_fisicos = ["ataque_basico", "golpe_concentrado"]
 
@@ -58,25 +64,85 @@ class Player(Entidade):
         # Estado de Combate
         self.em_combate = False
 
+    def inicializar_inventario_padrao(self):
+        """No início do jogo, Halia começa sem equipamentos ou moedas até coletá-los na casa."""
+        pass
+
+    @property
+    def moedas_ouro(self):
+        """1 Moeda de Ouro = 10 de Prata = 200 de Cobre."""
+        return self.dinheiro // 200
+
+    @property
+    def moedas_prata(self):
+        """20 Moedas de Cobre = 1 de Prata."""
+        return (self.dinheiro % 200) // 20
+
+    @property
+    def moedas_cobre(self):
+        return self.dinheiro % 20
+
+    def formatar_moedas(self):
+        """Retorna uma string formatada com os valores decompostos de Ouro, Prata e Cobre."""
+        partes = []
+        if self.moedas_ouro > 0:
+            partes.append(f"{self.moedas_ouro} Ouro")
+        if self.moedas_prata > 0:
+            partes.append(f"{self.moedas_prata} Prata")
+        if self.moedas_cobre > 0 or not partes:
+            partes.append(f"{self.moedas_cobre} Cobre")
+        return ", ".join(partes)
+
+    def tem_grimorio_desbloqueado(self):
+        """
+        Retorna se a aba de magias está desbloqueada.
+        Neste momento inicial, o acesso direto à aba de magias permanece selado.
+        """
+        return False
+
+
     def atualizar_grimorio(self):
         """Sincroniza as magias conhecidas por Halia com o Grimório com base nas memórias."""
         self.magias_desbloqueadas = GrimorioHalia.obter_magias_desbloqueadas(self.fragmentos_memoria)
 
+    def obter_atributos_totais(self):
+        """
+        Retorna uma instância temporária de Atributos somando os atributos base de Halia
+        com todos os bônus concedidos por roupas, cajados e acessórios equipados.
+        """
+        bonus_eq = self.inventario.obter_bonus_totais_equipamentos()["atributos"] if hasattr(self, 'inventario') else {}
+        return Atributos(
+            forca=self.atributos.forca + bonus_eq.get("forca", 0),
+            destreza=self.atributos.destreza + bonus_eq.get("destreza", 0),
+            constituicao=self.atributos.constituicao + bonus_eq.get("constituicao", 0),
+            intelecto=self.atributos.intelecto + bonus_eq.get("intelecto", 0),
+            sabedoria=self.atributos.sabedoria + bonus_eq.get("sabedoria", 0),
+            presenca=self.atributos.presenca + bonus_eq.get("presenca", 0)
+        )
+
     def recalcular_status_derivados(self, manter_porcentagem=True):
-        """Atualiza a vida e mana máxima com base nos atributos atuais."""
-        pct_vida = self.vida_atual / self.vida_maxima if self.vida_maxima > 0 else 1.0
-        pct_mana = self.mana_atual / self.mana_maxima if self.mana_maxima > 0 else 1.0
+        """Atualiza a vida e mana máxima com base nos atributos totais (base + equipamentos)."""
+        vida_max_anterior = getattr(self, 'vida_maxima', 100)
+        mana_max_anterior = getattr(self, 'mana_maxima', 50)
+        pct_vida = self.vida_atual / vida_max_anterior if vida_max_anterior > 0 else 1.0
+        pct_mana = self.mana_atual / mana_max_anterior if mana_max_anterior > 0 else 1.0
         
         # Base de HP e MP escala suavemente com a sincronia de memória
         vida_base_ajustada = 40 + (self.fragmentos_memoria * 8)
         mana_base_ajustada = 20 + (self.fragmentos_memoria * 10)
 
-        self.vida_maxima = self.atributos.calcular_vida_maxima(vida_base=vida_base_ajustada)
-        self.mana_maxima = self.atributos.calcular_mana_maxima(mana_base=mana_base_ajustada)
+        attrs_totais = self.obter_atributos_totais()
+        bonus_stats = self.inventario.obter_bonus_totais_equipamentos()["stats"] if hasattr(self, 'inventario') else {}
+
+        self.vida_maxima = attrs_totais.calcular_vida_maxima(vida_base=vida_base_ajustada) + bonus_stats.get("vida_maxima_bonus", 0)
+        self.mana_maxima = attrs_totais.calcular_mana_maxima(mana_base=mana_base_ajustada) + bonus_stats.get("mana_maxima_bonus", 0)
         
         if manter_porcentagem:
-            self.vida_atual = max(1, int(self.vida_maxima * pct_vida))
-            self.mana_atual = max(0, int(self.mana_maxima * pct_mana))
+            # Se a vida máxima aumentou por Constituição/Upgrade, o ganho também é somado à vida atual
+            delta_vida = max(0, self.vida_maxima - vida_max_anterior)
+            delta_mana = max(0, self.mana_maxima - mana_max_anterior)
+            self.vida_atual = min(self.vida_maxima, self.vida_atual + delta_vida)
+            self.mana_atual = min(self.mana_maxima, self.mana_atual + delta_mana)
         else:
             self.vida_atual = min(self.vida_atual, self.vida_maxima)
             self.mana_atual = min(self.mana_atual, self.mana_maxima)
@@ -103,7 +169,7 @@ class Player(Entidade):
     def recuperar_memoria(self, quantidade):
         """
         Ao recuperar fragmentos de memória, Halia reconecta-se com seu passado,
-        aumentando seus atributos essenciais e desbloqueando feitiços esquecidos.
+        aumentando seus atributos essenciais e despertando feitiços esquecidos.
         """
         self.fragmentos_memoria += quantidade
         self.nivel_sincronia = 1 + self.fragmentos_memoria
@@ -115,7 +181,7 @@ class Player(Entidade):
         self.atributos.constituicao += (quantidade * 1)
         self.atributos.destreza += (quantidade * 1)
 
-        # Atualiza limites derivados e recupera vida/mana ganhas
+        # Atualiza limites derivados e ao ganhar CON além da vida máxima também ganha vida atual
         self.recalcular_status_derivados(manter_porcentagem=True)
         self.curar(15 * quantidade)
         self.recuperar_mana(15 * quantidade)
