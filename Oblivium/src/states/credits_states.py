@@ -30,15 +30,15 @@ class CreditsState(State):
             # Secção 1
             {"texto": "— DESENVOLVIMENTO PRINCIPAL —", "tipo": "secao", "centralizado": True, "cor": AZUL_HOVER_MENU},
             {"texto": "Programação e Arquitetura: João Victor", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
-            {"texto": "Design de UI e Sistemas: Equipe Oblivium", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
+            {"texto": "Design de UI e Sistemas: João Victor", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
             
             # Secção 2
             {"texto": "— ARTE E VISUAL —", "tipo": "secao", "centralizado": True, "cor": AZUL_HOVER_MENU},
-            {"texto": "Pixel Art e Cenários: Davi Suassuna", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
+            {"texto": "Pixel Art e Cenários: João Victor", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
             
             # Secção 3
             {"texto": "— ROTEIRO E ÁUDIO —", "tipo": "secao", "centralizado": True, "cor": AZUL_HOVER_MENU},
-            {"texto": "História e Diálogos: Equipe Oblivium", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
+            {"texto": "História e Diálogos: João Victor", "tipo": "normal", "centralizado": False, "cor": CINZA_LINHO},
             
             # Secção 4
             {"texto": "— AGRADECIMENTOS —", "tipo": "secao", "centralizado": True, "cor": AZUL_HOVER_MENU},
