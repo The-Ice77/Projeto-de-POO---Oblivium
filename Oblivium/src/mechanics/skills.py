@@ -9,11 +9,12 @@ _raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
+from abc import ABC, abstractmethod
 from src.mechanics.conditions import Condicao
 
-class AcaoCombate:
+class AcaoCombate(ABC):
     """
-    Classe base para todas as ações executáveis em combate (Ataques, Magias, Foco, Suporte).
+    Classe base abstrata para todas as ações executáveis em combate (Ataques, Magias, Foco, Suporte).
     Implementa o padrão Strategy / Command para execução desacoplada.
     """
     def __init__(self, id_acao, nome, descricao, tipo, elemento="FISICO", custo_mana=0, alvo_tipo="INIMIGO_UNICO", poder_base=10, condicao_aplicada=None):
@@ -124,12 +125,13 @@ class AcaoCombate:
                 return False, "esquiva"
             return False, "erro"
 
+    @abstractmethod
     def executar(self, conjurador, alvos):
         """
         Executa a ação sobre uma lista de alvos.
         Retorna um dicionário com o relatório detalhado da execução para a UI / Combat Log.
         """
-        raise NotImplementedError("Subclasses devem implementar o método executar.")
+        pass
 
 
 # ==============================================================================

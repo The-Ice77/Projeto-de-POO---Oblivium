@@ -9,10 +9,16 @@ _raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
+from abc import ABC, abstractmethod
 from src.utils.resource_manager import Animacao
 from src.mechanics.attributes import Atributos
 
-class Entidade:
+class Entidade(ABC):
+    """
+    Classe base abstrata para todas as entidades vivas e interativas do mundo de Oblivium
+    (Player/Halia, Inimigos comuns, Chefes e NPCs).
+    Centraliza atributos, cálculo de mana/vida, condições e manipulação de sprites.
+    """
     def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None, mana_maxima=None):
         self.nome = nome
         self.atributos = atributos if atributos is not None else Atributos()
@@ -155,7 +161,6 @@ class Entidade:
             cor = (34, 139, 34) if self.vivo else (100, 100, 100)
             pygame.draw.rect(tela, cor, (int(self.x), int(self.y), self.largura, self.altura))
 
-    # (Mantenha os métodos receber_dano, curar e mostrar_status iguais)
     def receber_dano(self, dano):
         if not self.vivo: return
         self.vida_atual = max(0, round(self.vida_atual - dano, 1))
@@ -185,7 +190,7 @@ class Entidade:
         return False
 
     def restaurar_total(self):
-        """Restaura completamente a vida, a mana e remove todas as condições ativas."""
+        """Restaura vida e mana para os valores máximos, limpa estados e reanima a entidade."""
         self.vida_atual = self.vida_maxima
         self.mana_atual = self.mana_maxima
         self.vivo = True
@@ -193,6 +198,7 @@ class Entidade:
         self.vulneravel = False
         self.focado = False
         self.condicoes.clear()
+        self.mudar_estado("idle")
         
     def aplicar_dano(self, dano_bruto, tipo="fisico"):
         """
@@ -210,11 +216,10 @@ class Entidade:
             dano_calculado = max(1, dano_bruto - defesa)
             dano_final = max(1, int(dano_calculado * 0.55))
         else:
-            dano_calculado = max(1, dano_bruto - defesa)
-            dano_final = dano_calculado
+            dano_final = max(1, dano_bruto - defesa)
             
         # Se estiver vulnerável (após Concentrar), sofre +35% de dano amplificado
-        if getattr(self, 'vulneravel', False):
+        if self.vulneravel:
             dano_final = int(dano_final * 1.35) + 2
             
         self.receber_dano(dano_final)
@@ -270,18 +275,8 @@ class Entidade:
         self.vulneravel = False
         self.focado = False
 
-    def restaurar_total(self):
-        """Restaura vida e mana para os valores máximos, limpa estados e reanima a entidade."""
-        self.vida_atual = self.vida_maxima
-        self.mana_atual = self.mana_maxima
-        self.vivo = True
-        self.condicoes.clear()
-        self.defendendo = False
-        self.vulneravel = False
-        self.focado = False
-        self.mudar_estado("idle")
-
     def morrer(self):
+        """Marca a entidade como morta, limpa condições ativas e transiciona para animação de morte."""
         self.vivo = False
         self.condicoes.clear()
         self.mudar_estado("morrer")

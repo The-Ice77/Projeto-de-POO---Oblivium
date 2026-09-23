@@ -36,6 +36,8 @@ class NotificacaoToast:
             self.cor_destaque = (160, 240, 180)
         elif self.tipo == "MISSAO":
             self.cor_destaque = (240, 180, 120)
+        elif self.tipo == "SISTEMA":
+            self.cor_destaque = (170, 225, 205)
         else:
             self.cor_destaque = MARFIM_OFFWHITE
 
@@ -59,9 +61,12 @@ class NotificacaoToast:
         return self.tempo_vida <= 0
 
 
+import json
+
 class NotificationManager:
     """
     Gerenciador global de notificações push em estilo Toast e Histórico de Notificações.
+    - Suporte a catálogo centralizado de notificações padrões (notificacoes.json).
     - Empilhamento vertical suave no canto superior direito.
     - Histórico acessível clicando em qualquer toast ou pressionando a tecla [H].
     - Exibe as últimas 4 notificações com visual editorial.
@@ -71,6 +76,9 @@ class NotificationManager:
         self.altura_tela = altura_tela
         self.notificacoes = []
         self.MAX_SIMULTANEAS = 4
+
+        # Catálogo de Notificações Padrões
+        self.catalogo_padrao = self._carregar_catalogo_padrao()
 
         # Histórico Completo de Notificações
         self.historico = []
@@ -88,8 +96,72 @@ class NotificationManager:
         self.fonte_icone = ResourceManager.carregar_fonte("sunday", 22)
         self.fonte_icone_grande = ResourceManager.carregar_fonte("sunday", 26)
 
-    def notificar(self, titulo, mensagem, tipo="ITEM", duracao_ticks=180, icone="✦"):
-        """Adiciona uma nova notificação push à pilha e ao histórico."""
+    def _carregar_catalogo_padrao(self):
+        caminho = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "notificacoes.json"))
+        if os.path.exists(caminho):
+            try:
+                with open(caminho, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+                    return dados.get("notificacoes", {})
+            except Exception as e:
+                print(f"[NotificationManager] Erro ao carregar notificacoes.json: {e}")
+        # Fallback padrão seguro
+        return {
+            "notificacao_level": {"titulo": "Novo Nível!", "mensagem": "Você alcançou o Nível {nivel}!", "tipo": "MEMORIA", "icone": "✦", "duracao_ticks": 240},
+            "notificacao_sincronia": {"titulo": "Sincronia Aumentada", "mensagem": "Sua sincronia arcana alcançou o Nível {nivel}!", "tipo": "SINCRONIA", "icone": "✦", "duracao_ticks": 240},
+            "notificacao_memoria": {"titulo": "Memória Desperta", "mensagem": "Você alcançou o Estágio {estagio} da sua memória arcana!", "tipo": "MEMORIA", "icone": "✦", "duracao_ticks": 240},
+            "notificacao_item": {"titulo": "Item Adicionado", "mensagem": "Guardou {quantidade}{item} na bolsa.", "tipo": "ITEM", "icone": "✦", "duracao_ticks": 180},
+            "notificacao_receita": {"titulo": "Nova Receita Descoberta", "mensagem": "Aprendeu a confeccionar {receita}.", "tipo": "RECEITA", "icone": "📜", "duracao_ticks": 220},
+            "notificacao_item_fabricado": {"titulo": "Item Fabricado", "mensagem": "Obteve {quantidade}x {nome}.", "tipo": "RECEITA", "icone": "🧪", "duracao_ticks": 200},
+            "notificacao_missao": {"titulo": "Missão Atualizada", "mensagem": "{missao}", "tipo": "MISSAO", "icone": "✦", "duracao_ticks": 220},
+            "notificacao_alerta": {"titulo": "{titulo}", "mensagem": "{mensagem}", "tipo": "ALERTA", "icone": "⚠", "duracao_ticks": 200},
+            "notificacao_salvo": {"titulo": "Jogo Salvo", "mensagem": "Progresso salvo com sucesso no {slot}.", "tipo": "SISTEMA", "icone": "💾", "duracao_ticks": 180},
+            "notificacao_autosave": {"titulo": "Salvamento Automático", "mensagem": "Checkpoint registrado no {slot}.", "tipo": "SISTEMA", "icone": "💾", "duracao_ticks": 160},
+            "notificacao_carregar": {"titulo": "Jogo Carregado", "mensagem": "Progresso carregado com sucesso do {slot}.", "tipo": "SISTEMA", "icone": "📂", "duracao_ticks": 180}
+        }
+
+    def notificar(self, identificador_ou_titulo, mensagem=None, tipo="ITEM", duracao_ticks=180, icone="✦", **kwargs):
+        """
+        Adiciona uma nova notificação push à pilha e ao histórico.
+        Suporta:
+        1. Chamada por chave do catálogo: notificar("notificacao_level", nivel=2)
+        2. Chamada direta clássica: notificar("Título", "Mensagem", tipo="ITEM")
+        """
+        if identificador_ou_titulo in self.catalogo_padrao:
+            template = self.catalogo_padrao[identificador_ou_titulo]
+            substituicoes = dict(kwargs)
+            if mensagem is not None and "mensagem" not in substituicoes:
+                substituicoes["mensagem"] = mensagem
+                substituicoes["item"] = mensagem
+            
+            titulo_raw = template.get("titulo", "")
+            mensagem_raw = template.get("mensagem", "")
+            
+            # Formatação segura sem quebrar se faltar parâmetro
+            try:
+                titulo = titulo_raw.format(**substituicoes)
+            except Exception:
+                titulo = titulo_raw
+                
+            try:
+                mensagem_final = mensagem_raw.format(**substituicoes)
+            except Exception:
+                mensagem_final = mensagem_raw
+                
+            tipo_final = kwargs.get("tipo", template.get("tipo", tipo))
+            duracao_final = kwargs.get("duracao_ticks", template.get("duracao_ticks", duracao_ticks))
+            icone_final = kwargs.get("icone", template.get("icone", icone))
+            
+            self._adicionar_toast(titulo, mensagem_final, tipo_final, duracao_final, icone_final)
+        else:
+            msg_final = mensagem if mensagem is not None else ""
+            self._adicionar_toast(identificador_ou_titulo, msg_final, tipo, duracao_ticks, icone)
+
+    def notificar_padrao(self, chave, **kwargs):
+        """Atalho explícito para disparar notificação padrão a partir do catálogo."""
+        self.notificar(chave, **kwargs)
+
+    def _adicionar_toast(self, titulo, mensagem, tipo, duracao_ticks, icone):
         toast = NotificacaoToast(titulo, mensagem, tipo, duracao_ticks, icone)
         self.notificacoes.append(toast)
         if len(self.notificacoes) > self.MAX_SIMULTANEAS:
@@ -99,7 +171,7 @@ class NotificationManager:
         self.historico.append({
             "titulo": titulo,
             "mensagem": mensagem,
-            "tipo": tipo.upper(),
+            "tipo": str(tipo).upper(),
             "icone": icone,
             "cor_destaque": toast.cor_destaque,
             "cor_borda": toast.cor_borda
@@ -107,44 +179,19 @@ class NotificationManager:
 
     def notificar_item_coletado(self, nome_item, quantidade=1):
         if isinstance(quantidade, str):
-            self.notificar(
-                titulo=nome_item,
-                mensagem=quantidade,
-                tipo="ITEM",
-                duracao_ticks=180,
-                icone="✦"
-            )
+            self.notificar("notificacao_item_especial", item=nome_item, mensagem=quantidade)
         else:
             qtd_str = f"x{quantidade} " if (isinstance(quantidade, (int, float)) and quantidade > 1) else ""
-            self.notificar(
-                titulo="Item Adicionado",
-                mensagem=f"Guardou {qtd_str}{nome_item} na bolsa.",
-                tipo="ITEM",
-                duracao_ticks=180,
-                icone="✦"
-            )
+            self.notificar("notificacao_item", item=nome_item, quantidade=qtd_str)
 
     def notificar_receita_desbloqueada(self, nome_receita):
-        self.notificar(
-            titulo="Nova Receita Descoberta",
-            mensagem=f"Aprendeu a confeccionar {nome_receita}.",
-            tipo="RECEITA",
-            duracao_ticks=220,
-            icone="📜"
-        )
+        self.notificar("notificacao_receita", receita=nome_receita)
 
     def notificar_memoria_desperta(self, estagio):
-        self.notificar(
-            titulo="Memória Desperta",
-            mensagem=f"Você alcançou o Estágio {estagio} da sua memória arcana!",
-            tipo="MEMORIA",
-            duracao_ticks=240,
-            icone="✦"
-        )
+        self.notificar("notificacao_memoria", estagio=estagio)
 
     def notificar_sincronia_aumentada(self, nivel):
-        # Compatibilidade com chamadas anteriores
-        self.notificar_memoria_desperta(nivel)
+        self.notificar("notificacao_sincronia", nivel=nivel)
 
     def alternar_historico(self):
         self.mostrar_historico = not self.mostrar_historico

@@ -43,6 +43,7 @@ class DialogueBox:
 
         # --- SISTEMA DE ESCOLHAS LADO A LADO ---
         self.em_escolha = False
+        self.cabecalho_escolha = "Sobre o que deseja conversar?"
         self.opcoes_disponiveis = []
         self.opcao_selecionada = 0
         self.historico_escolhas = set() 
@@ -92,7 +93,6 @@ class DialogueBox:
             dados_atuais = self.dialogos[self.indice_atual]
             
             if "escolhas" in dados_atuais:
-                self.em_escolha = True
                 self.pode_fechar = dados_atuais.get("pode_fechar", False)
                 self.resultado_fechar = dados_atuais.get("resultado_fechar", [])
                 self.id_cancelamento_no = dados_atuais.get("id_cancelamento", None)
@@ -103,6 +103,24 @@ class DialogueBox:
                     opt for opt in dados_atuais["escolhas"] 
                     if opt.get("id") not in self.historico_escolhas
                 ]
+                
+                # Se todas as opções já foram esgotadas, não exibe a área de escolhas vazia
+                if not self.opcoes_disponiveis:
+                    self.em_escolha = False
+                    if "resultado_sem_opcoes" in dados_atuais and dados_atuais["resultado_sem_opcoes"]:
+                        self.iniciar_dialogo(dados_atuais["resultado_sem_opcoes"])
+                    elif self.resultado_fechar:
+                        self.iniciar_dialogo(self.resultado_fechar)
+                    else:
+                        self.indice_atual += 1
+                        if self.indice_atual >= len(self.dialogos):
+                            self.ativo = False
+                        else:
+                            self._configurar_texto_atual()
+                    return
+
+                self.em_escolha = True
+                self.cabecalho_escolha = dados_atuais.get("cabecalho", dados_atuais.get("titulo", "Sobre o que deseja conversar?"))
                 self.opcao_selecionada = 0
                 self.texto_completo = ""
                 self.linhas_completas = []
@@ -132,6 +150,14 @@ class DialogueBox:
         self.tempo_ultimo_input = tempo_atual
 
         if self.em_escolha:
+            if not self.opcoes_disponiveis:
+                self.em_escolha = False
+                self.indice_atual += 1
+                if self.indice_atual >= len(self.dialogos):
+                    self.ativo = False
+                else:
+                    self._configurar_texto_atual()
+                return
             self.confirmar_escolha()
             return
 
@@ -146,48 +172,146 @@ class DialogueBox:
 
     def confirmar_escolha(self):
         if self.opcoes_disponiveis:
-            escolha = self.opcoes_disponiveis[self.opcao_selecionada]
-            
-            if "id" in escolha and escolha["id"] != "prosseguir" and not escolha.get("repetivel", False):
-                self.historico_escolhas.add(escolha["id"])
-            
-            self.em_escolha = False 
-            self.iniciar_dialogo(escolha["resultado"])
+            if 0 <= self.opcao_selecionada < len(self.opcoes_disponiveis):
+                escolha = self.opcoes_disponiveis[self.opcao_selecionada]
+                
+                if "id" in escolha and escolha["id"] != "prosseguir" and not escolha.get("repetivel", False):
+                    self.historico_escolhas.add(escolha["id"])
+                
+                self.em_escolha = False 
+                self.iniciar_dialogo(escolha["resultado"])
+        else:
+            self.em_escolha = False
+            self.ativo = False
 
     def controlar_menu_escolhas(self, tecla):
-        if not self.ativo or not self.em_escolha or not self.opcoes_disponiveis: return
+        if not self.ativo or not self.em_escolha or not self.opcoes_disponiveis: return False
         
         total_opcoes = len(self.opcoes_disponiveis)
-        total_paginas = (total_opcoes - 1) // self.opcoes_por_pagina + 1
+        total_paginas = max(1, (total_opcoes - 1) // self.opcoes_por_pagina + 1)
 
         inicio = self.pagina_atual * self.opcoes_por_pagina
         fim = min(inicio + self.opcoes_por_pagina, total_opcoes)
         num_opcoes_pagina = fim - inicio
 
-        if num_opcoes_pagina <= 0: return
+        if num_opcoes_pagina <= 0: return False
 
         # Índice local na página atual (0 a num_opcoes_pagina - 1)
         idx_local = self.opcao_selecionada - inicio
         if idx_local < 0 or idx_local >= num_opcoes_pagina:
             idx_local = 0
 
-        # CIMA e BAIXO: Listam as opções sequencialmente na página atual (coluna 1 -> coluna 2 com loop)
-        if tecla in [pygame.K_UP, pygame.K_w]:
-            idx_local = (idx_local - 1) % num_opcoes_pagina
-            self.opcao_selecionada = inicio + idx_local
-        elif tecla in [pygame.K_DOWN, pygame.K_s]:
-            idx_local = (idx_local + 1) % num_opcoes_pagina
-            self.opcao_selecionada = inicio + idx_local
+        col = idx_local % 2
+        row = idx_local // 2
 
-        # ESQUERDA e DIREITA: Mudam a página
+        # 1. Atalhos Numéricos Diretos (1 a 4)
+        teclas_num = {
+            pygame.K_1: 0, pygame.K_KP1: 0,
+            pygame.K_2: 1, pygame.K_KP2: 1,
+            pygame.K_3: 2, pygame.K_KP3: 2,
+            pygame.K_4: 3, pygame.K_KP4: 3
+        }
+        if tecla in teclas_num:
+            offset = teclas_num[tecla]
+            if offset < num_opcoes_pagina:
+                self.opcao_selecionada = inicio + offset
+                return True
+
+        # 2. Tecla TAB (Avanço Cíclico) e Shift+TAB (Retrocesso Cíclico)
+        if tecla == pygame.K_TAB:
+            mods = pygame.key.get_mods()
+            if mods & pygame.KMOD_SHIFT:
+                self.opcao_selecionada = (self.opcao_selecionada - 1) % total_opcoes
+            else:
+                self.opcao_selecionada = (self.opcao_selecionada + 1) % total_opcoes
+            self.pagina_atual = self.opcao_selecionada // self.opcoes_por_pagina
+            return True
+
+        # 3. Navegação Vertical (CIMA / BAIXO ou W / S)
+        if tecla in [pygame.K_UP, pygame.K_w]:
+            if row > 0:
+                self.opcao_selecionada = inicio + (col)
+            else:
+                # Topo da página -> vai para página anterior ou wrap
+                if self.pagina_atual > 0:
+                    self.pagina_atual -= 1
+                    prev_inicio = self.pagina_atual * self.opcoes_por_pagina
+                    prev_fim = min(prev_inicio + self.opcoes_por_pagina, total_opcoes)
+                    prev_count = prev_fim - prev_inicio
+                    target = 2 + col if (2 + col) < prev_count else (prev_count - 1)
+                    self.opcao_selecionada = prev_inicio + target
+                else:
+                    target = 2 + col if (2 + col) < num_opcoes_pagina else (num_opcoes_pagina - 1)
+                    self.opcao_selecionada = inicio + target
+            return True
+
+        elif tecla in [pygame.K_DOWN, pygame.K_s]:
+            if row == 0 and (2 + col) < num_opcoes_pagina:
+                self.opcao_selecionada = inicio + 2 + col
+            elif row == 0 and 2 < num_opcoes_pagina:
+                self.opcao_selecionada = inicio + 2
+            else:
+                # Base da página -> vai para próxima página ou wrap
+                if self.pagina_atual < total_paginas - 1:
+                    self.pagina_atual += 1
+                    next_inicio = self.pagina_atual * self.opcoes_por_pagina
+                    next_fim = min(next_inicio + self.opcoes_por_pagina, total_opcoes)
+                    next_count = next_fim - next_inicio
+                    target = col if col < next_count else 0
+                    self.opcao_selecionada = next_inicio + target
+                else:
+                    self.opcao_selecionada = inicio + col
+            return True
+
+        # 4. Navegação Horizontal (ESQUERDA / DIREITA ou A / D)
         elif tecla in [pygame.K_LEFT, pygame.K_a]:
-            if self.pagina_atual > 0:
-                self.pagina_atual -= 1
-                self.opcao_selecionada = self.pagina_atual * self.opcoes_por_pagina
+            if col > 0:
+                self.opcao_selecionada = inicio + (row * 2)
+            else:
+                if self.pagina_atual > 0:
+                    self.pagina_atual -= 1
+                    prev_inicio = self.pagina_atual * self.opcoes_por_pagina
+                    prev_fim = min(prev_inicio + self.opcoes_por_pagina, total_opcoes)
+                    prev_count = prev_fim - prev_inicio
+                    target = min(prev_count - 1, row * 2 + 1)
+                    self.opcao_selecionada = prev_inicio + target
+                else:
+                    target = row * 2 + 1
+                    if target < num_opcoes_pagina:
+                        self.opcao_selecionada = inicio + target
+                    elif num_opcoes_pagina > 1:
+                        self.opcao_selecionada = inicio + (num_opcoes_pagina - 1)
+            return True
+
         elif tecla in [pygame.K_RIGHT, pygame.K_d]:
-            if self.pagina_atual < total_paginas - 1:
-                self.pagina_atual += 1
-                self.opcao_selecionada = self.pagina_atual * self.opcoes_por_pagina
+            if col == 0 and (row * 2 + 1) < num_opcoes_pagina:
+                self.opcao_selecionada = inicio + (row * 2 + 1)
+            else:
+                if self.pagina_atual < total_paginas - 1:
+                    self.pagina_atual += 1
+                    next_inicio = self.pagina_atual * self.opcoes_por_pagina
+                    next_fim = min(next_inicio + self.opcoes_por_pagina, total_opcoes)
+                    next_count = next_fim - next_inicio
+                    target = min(next_count - 1, row * 2)
+                    self.opcao_selecionada = next_inicio + target
+                else:
+                    self.opcao_selecionada = inicio + (row * 2)
+            return True
+
+        return False
+
+    def rolar_pagina(self, delta_y):
+        """Suporte a roda do mouse (scroll) para mudar páginas de escolhas."""
+        if not self.ativo or not self.em_escolha or not self.opcoes_disponiveis: return
+        total_paginas = max(1, (len(self.opcoes_disponiveis) - 1) // self.opcoes_por_pagina + 1)
+        if total_paginas <= 1: return
+
+        if delta_y > 0 and self.pagina_atual > 0:
+            self.pagina_atual -= 1
+            self.opcao_selecionada = self.pagina_atual * self.opcoes_por_pagina
+        elif delta_y < 0 and self.pagina_atual < total_paginas - 1:
+            self.pagina_atual += 1
+            self.opcao_selecionada = self.pagina_atual * self.opcoes_por_pagina
 
     def atualizar_mouse(self, posicao_mouse):
         if not self.ativo: return
@@ -248,6 +372,10 @@ class DialogueBox:
             return
 
         if self.em_escolha:
+            if not self.opcoes_disponiveis:
+                self.em_escolha = False
+                self.ativo = False
+                return
             self._desenhar_escolhas(tela)
         else:
             self._desenhar_texto_corrido(tela)
@@ -358,8 +486,9 @@ class DialogueBox:
         rect_interno = rect_card.inflate(-8, -8)
         pygame.draw.rect(tela, (24, 24, 30), rect_interno, 1, border_radius=2)
 
-        # 1. Cabeçalho Superior da Escolha: "Sobre o que deseja conversar?"
-        r_cabecalho = self.fonte_titulo_escolha.render("Sobre o que deseja conversar?", True, MARFIM_OFFWHITE)
+        # 1. Cabeçalho Superior da Escolha Dinâmico
+        texto_cabecalho = getattr(self, "cabecalho_escolha", "Sobre o que deseja conversar?")
+        r_cabecalho = self.fonte_titulo_escolha.render(texto_cabecalho, True, MARFIM_OFFWHITE)
         tela.blit(r_cabecalho, (x_card + 22, y_card + 14))
 
         # Divisória do Cabeçalho
