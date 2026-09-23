@@ -190,7 +190,7 @@ class Game:
 
             pygame.display.flip()
             self.clock.tick(60)
-    def salvar_estado(self, slot=None, tipo="manual"):
+    def salvar_estado(self, slot=None, tipo="manual", silenciar_notificacao=False):
         slot_alvo = slot or self.slot_atual
         if not slot_alvo: 
             return 
@@ -239,6 +239,14 @@ class Game:
         }
         
         save_manager.salvar_dados(slot_alvo, dados_save, tipo=tipo)
+        
+        if not silenciar_notificacao and hasattr(self, 'notificacoes') and self.notificacoes:
+            slot_num = str(slot_alvo).replace("slot_", "")
+            slot_str = f"Slot {slot_num}"
+            if tipo == "autosave":
+                self.notificacoes.notificar("notificacao_autosave", slot=slot_str)
+            else:
+                self.notificacoes.notificar("notificacao_salvo", slot=slot_str)
 
     def carregar_estado(self, slot, tipo="manual"):
         dados = save_manager.carregar_dados(slot, tipo=tipo)
@@ -351,7 +359,13 @@ class Game:
         # 5. Blindagem de Autosave: ao carregar um Save Manual, sincroniza o autosave do slot
         # com o checkpoint restaurado, garantindo que o autosave não fique apontando para um "futuro" antigo
         if tipo == "manual" and slot:
-            self.salvar_estado(slot, tipo="autosave")
+            self.salvar_estado(slot, tipo="autosave", silenciar_notificacao=True)
+        
+        # Dispara notificação push de confirmação ao carregar
+        if hasattr(self, 'notificacoes') and self.notificacoes:
+            slot_num = str(slot).replace("slot_", "")
+            slot_str = f"Slot {slot_num}"
+            self.notificacoes.notificar("notificacao_carregar", slot=slot_str)
         
         return True 
 

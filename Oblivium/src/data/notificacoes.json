@@ -1,0 +1,123 @@
+{
+  "notificacoes": {
+    "notificacao_level": {
+      "titulo": "Novo Nível!",
+      "mensagem": "Você alcançou o Nível {nivel}!",
+      "tipo": "MEMORIA",
+      "icone": "✦",
+      "duracao_ticks": 240
+    },
+    "notificacao_sincronia": {
+      "titulo": "Sincronia Aumentada",
+      "mensagem": "Sua sincronia arcana alcançou o Nível {nivel}!",
+      "tipo": "SINCRONIA",
+      "icone": "✦",
+      "duracao_ticks": 240
+    },
+    "notificacao_memoria": {
+      "titulo": "Memória Desperta",
+      "mensagem": "Você alcançou o Estágio {estagio} da sua memória arcana!",
+      "tipo": "MEMORIA",
+      "icone": "✦",
+      "duracao_ticks": 240
+    },
+    "notificacao_item": {
+      "titulo": "Item Adicionado",
+      "mensagem": "Guardou {quantidade}{item} na bolsa.",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    },
+    "notificacao_item_especial": {
+      "titulo": "{item}",
+      "mensagem": "{mensagem}",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    },
+    "notificacao_receita": {
+      "titulo": "Nova Receita Descoberta",
+      "mensagem": "Aprendeu a confeccionar {receita}.",
+      "tipo": "RECEITA",
+      "icone": "📜",
+      "duracao_ticks": 220
+    },
+    "notificacao_item_fabricado": {
+      "titulo": "Item Fabricado",
+      "mensagem": "Obteve {quantidade}x {nome}.",
+      "tipo": "RECEITA",
+      "icone": "🧪",
+      "duracao_ticks": 200
+    },
+    "notificacao_missao": {
+      "titulo": "Missão Atualizada",
+      "mensagem": "{missao}",
+      "tipo": "MISSAO",
+      "icone": "✦",
+      "duracao_ticks": 220
+    },
+    "notificacao_alerta": {
+      "titulo": "{titulo}",
+      "mensagem": "{mensagem}",
+      "tipo": "ALERTA",
+      "icone": "⚠",
+      "duracao_ticks": 200
+    },
+    "notificacao_salvo": {
+      "titulo": "Jogo Salvo",
+      "mensagem": "Progresso salvo com sucesso no {slot}.",
+      "tipo": "SISTEMA",
+      "icone": "💾",
+      "duracao_ticks": 180
+    },
+    "notificacao_autosave": {
+      "titulo": "Salvamento Automático",
+      "mensagem": "Checkpoint registrado no {slot}.",
+      "tipo": "SISTEMA",
+      "icone": "💾",
+      "duracao_ticks": 160
+    },
+    "notificacao_carregar": {
+      "titulo": "Jogo Carregado",
+      "mensagem": "Progresso carregado com sucesso do {slot}.",
+      "tipo": "SISTEMA",
+      "icone": "📂",
+      "duracao_ticks": 180
+    },
+    "notificacao_cura": {
+      "titulo": "Vitalidade Restaurada",
+      "mensagem": "Recuperou {quantidade} pontos de vida.",
+      "tipo": "ITEM",
+      "icone": "♥",
+      "duracao_ticks": 180
+    },
+    "notificacao_mana": {
+      "titulo": "Mana Restaurada",
+      "mensagem": "Recuperou {quantidade} pontos de mana.",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    },
+    "notificacao_bolsa_moedas": {
+      "titulo": "Bolsa de Moedas",
+      "mensagem": "Recebeu 50 Moedas de Prata (5 de Ouro).",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    },
+    "notificacao_cajado_espinheiro": {
+      "titulo": "Cajado de Espinheiro",
+      "mensagem": "Arma arcana empunhada com sucesso!",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    },
+    "notificacao_livro_antigo": {
+      "titulo": "O Livro Antigo",
+      "mensagem": "Tomo antigo guardado no espaço de Grimórios.",
+      "tipo": "ITEM",
+      "icone": "✦",
+      "duracao_ticks": 180
+    }
+  }
+}

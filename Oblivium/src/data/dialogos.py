@@ -28,6 +28,7 @@ resposta_animal = [{"autor": "Carroceiro", "texto": "Sempre fui muito apegado ao
 resposta_cantar = [{"autor": "Carroceiro", "texto": "Só depois de beber muito hidromel na taverna da capital!"}]
 
 no_escolhas_carroceiro = {
+    "cabecalho": "Sobre o que deseja conversar?",
     "pode_fechar": True,  # Habilita o botão [X] especificamente para este menu
     "resultado_fechar": [{"autor": "Carroceiro", "texto": "Tudo bem, estarei aguardando aqui. Me avise quando estiver pronta."}],
     "escolhas": [
@@ -94,6 +95,7 @@ conversa_tentar_levitacao = [
 ]
 
 no_escolhas_magias = {
+    "cabecalho": "Qual magia deseja conjurar?",
     "pode_fechar": True,
     "id_cancelamento": "voltar_magia", 
     "escolhas": [
@@ -103,6 +105,7 @@ no_escolhas_magias = {
 }
 
 no_escolha_inicial_puzzle = {
+    "cabecalho": "O que deseja fazer?",
     "pode_fechar": True,
     "id_cancelamento": "desistir_puzzle", 
     "escolhas": [
@@ -166,6 +169,7 @@ conversa_seguir_capital = [
 ]
 
 no_escolhas_carroceiro_estrada2 = {
+    "cabecalho": "O que deseja fazer?",
     "pode_fechar": True,
     "resultado_fechar": [{"autor": "Carroceiro", "texto": "Estarei pronto quando você estiver. Apenas me avise para partirmos."}],
     "escolhas": [

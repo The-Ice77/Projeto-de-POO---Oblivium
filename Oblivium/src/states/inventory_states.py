@@ -353,10 +353,9 @@ class InventoryState(State):
             self.exibir_mensagem(msg)
             if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
                 self.game.notificacoes.notificar(
-                    titulo="Item Fabricado",
-                    mensagem=f"Obteve {rec.resultado_quantidade}x {rec.nome}.",
-                    tipo="RECEITA",
-                    icone="🧪"
+                    "notificacao_item_fabricado",
+                    quantidade=rec.resultado_quantidade,
+                    nome=rec.nome
                 )
             halia.recalcular_status_derivados(manter_porcentagem=False)
         else:

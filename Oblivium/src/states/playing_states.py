@@ -25,6 +25,10 @@ class PlayingState(State):
             if evento.type == pygame.MOUSEMOTION:
                 self.game.caixa_dialogo.atualizar_mouse(evento.pos)
                 continue
+            elif evento.type == pygame.MOUSEWHEEL:
+                if self.game.caixa_dialogo.ativo and self.game.caixa_dialogo.em_escolha:
+                    self.game.caixa_dialogo.rolar_pagina(evento.y)
+                continue
             
             if evento.type == pygame.KEYDOWN:
                 self._handle_keydown(evento)
@@ -183,7 +187,12 @@ class PlayingState(State):
         elif self.game.caixa_dialogo.ativo:
             if self.game.caixa_dialogo.em_escolha:
                 if evento.key in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT, 
-                                  pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]:
+                                  pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d,
+                                  pygame.K_TAB,
+                                  pygame.K_1, pygame.K_KP1,
+                                  pygame.K_2, pygame.K_KP2,
+                                  pygame.K_3, pygame.K_KP3,
+                                  pygame.K_4, pygame.K_KP4]:
                     self.game.caixa_dialogo.controlar_menu_escolhas(evento.key)
                 elif evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                     self._processar_avanco_dialogo()
@@ -393,7 +402,7 @@ class PlayingState(State):
                 if id_do_item == "item_moedas":
                     self.game.halia.ganhar_dinheiro(1000) # 50 Moedas de Prata = 5 Moedas de Ouro
                     if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar_item_coletado("Bolsa de Moedas", "Recebeu 50 Moedas de Prata (5 de Ouro).")
+                        self.game.notificacoes.notificar("notificacao_bolsa_moedas")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
                 elif id_do_item == "item_cajado":
                     cajado = ItemFactory.criar("cajado_espinheiro")
@@ -401,14 +410,14 @@ class PlayingState(State):
                         self.game.halia.inventario.equipados["CAJADO"] = cajado
                     self.game.halia.recalcular_status_derivados()
                     if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar_item_coletado("Cajado de Espinheiro", "Arma arcana empunhada com sucesso!")
+                        self.game.notificacoes.notificar("notificacao_cajado_espinheiro")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você empunhou o Cajado de Espinheiro."}])
                 elif id_do_item == "item_livro":
                     tomo = ItemFactory.criar("tomo_chama_ancestral")
                     if tomo:
                         self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
                     if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar_item_coletado("O Livro Antigo", "Tomo antigo guardado no espaço de Grimórios.")
+                        self.game.notificacoes.notificar("notificacao_livro_antigo")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
                 else:
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
