@@ -100,7 +100,11 @@ class Enemy(Entidade):
         imagem = getattr(self, 'imagem_atual', None)
             
         if imagem:
-            tela.blit(imagem, (int(self.x), int(self.y)))
+            largura_img = imagem.get_width()
+            altura_img = imagem.get_height()
+            offset_x = (largura_img - getattr(self, 'largura', 40)) / 2
+            offset_y = altura_img - getattr(self, 'altura', 40)
+            tela.blit(imagem, (int(self.x - offset_x), int(self.y - offset_y)))
         else:
             # Fallback limpo
             largura_segura = getattr(self, 'largura', 40)

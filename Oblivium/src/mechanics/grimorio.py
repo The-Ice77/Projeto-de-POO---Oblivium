@@ -8,7 +8,9 @@ _raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
-from src.mechanics.skills import AcaoCombate
+from src.mechanics.skills import (
+    AcaoCombate, AtaqueFisico, MagiaOfensiva, MagiaCura, AcaoDefender, AcaoFoco, SkillsRegistry
+)
 
 class GrimorioHalia:
     """
@@ -80,19 +82,61 @@ class GrimorioHalia:
         cls._garantir_carregamento()
         info = cls._CATALOGO.get(id_magia)
         if not info:
-            return None
+            return SkillsRegistry.get(id_magia)
 
-        return AcaoCombate(
-            id_acao=info["id_acao"],
-            nome=info["nome"],
-            descricao=info["descricao"],
-            tipo=info["tipo"],
-            elemento=info.get("elemento", "ARCANO"),
-            custo_mana=info.get("custo_mana", 0),
-            alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO"),
-            poder_base=info.get("poder_base", 10),
-            condicao_aplicada=info.get("condicao_aplicada", None)
-        )
+        tipo = str(info.get("tipo", "MAGICO")).upper()
+        cond = info.get("condicao_aplicada", None)
+        alvo_tipo = info.get("alvo_tipo", "INIMIGO_UNICO")
+        elemento = info.get("elemento", "ARCANO")
+        custo_mana = info.get("custo_mana", 0)
+        poder_base = info.get("poder_base", 10)
+        nome = info.get("nome", id_magia)
+        descricao = info.get("descricao", "")
+
+        if tipo == "FISICO":
+            return AtaqueFisico(
+                id_acao=info.get("id_acao", id_magia),
+                nome=nome,
+                descricao=descricao,
+                poder_base=poder_base,
+                custo_mana=custo_mana,
+                alvo_tipo=alvo_tipo,
+                elemento=elemento,
+                condicao_aplicada=cond
+            )
+        elif tipo == "CURA":
+            return MagiaCura(
+                id_acao=info.get("id_acao", id_magia),
+                nome=nome,
+                descricao=descricao,
+                custo_mana=custo_mana,
+                poder_base=poder_base,
+                alvo_tipo=alvo_tipo,
+                condicao_aplicada=cond
+            )
+        elif tipo in ("DEFESA", "BUFF"):
+            return AcaoDefender(
+                id_acao=info.get("id_acao", id_magia),
+                nome=nome,
+                descricao=descricao
+            )
+        elif tipo == "FOCO":
+            return AcaoFoco(
+                id_acao=info.get("id_acao", id_magia),
+                nome=nome,
+                descricao=descricao
+            )
+        else:  # MAGICO
+            return MagiaOfensiva(
+                id_acao=info.get("id_acao", id_magia),
+                nome=nome,
+                descricao=descricao,
+                elemento=elemento,
+                custo_mana=custo_mana,
+                poder_base=poder_base,
+                alvo_tipo=alvo_tipo,
+                condicao_aplicada=cond
+            )
 
 # Inicializa o catálogo ao importar o módulo
 GrimorioHalia.carregar_catalogo()

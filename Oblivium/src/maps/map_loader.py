@@ -22,7 +22,7 @@ class Mapa:
         # ==========================================
         # Fundos de Cenário
         self.fundo_casa = ResourceManager.carregar_imagem("assets/maps/fundo_casa.png", (self.largura_tela, self.altura_tela))
-        self.fundo_estrada = ResourceManager.carregar_imagem("assets/maps/fundo_estrada.png", (self.largura_tela, self.altura_tela))
+        self.fundo_estrada = ResourceManager.carregar_imagem("mapas/Estradas/Estrada 1/Estrada_1 - Sprite.webp", (self.largura_tela, self.altura_tela))
         
         # Objetos e Props
         self.sprite_porta_fechada = ResourceManager.carregar_imagem("assets/props/porta_fechada.png", (40, 100))
@@ -185,7 +185,7 @@ class Mapa:
             for item in self.itens_no_chao:
                 item.desenhar(tela)
                 
-        elif self.cenario_atual in ["ESTRADA", "ESTRADA_2"]:
+        elif self.cenario_atual == "ESTRADA":
             if self.fundo_estrada:
                 tela.blit(self.fundo_estrada, (0, 0))
             else:
@@ -193,13 +193,19 @@ class Mapa:
                 pygame.draw.rect(tela, CENARIO_ESTRADA, self.area_estrada)
                 for barreira in self.barreiras_estrada:
                     pygame.draw.rect(tela, CENARIO_BARREIRAS, barreira)
-                    pygame.draw.rect(tela, CENARIO_FUNDO_FORA, barreira, 1) 
-                
-            if self.cenario_atual == "ESTRADA_2":
-                for pedra in self.pedras_deslizamento:
-                    if self.sprite_pedra:
-                        img_escalada = pygame.transform.scale(self.sprite_pedra, (pedra.width, pedra.height))
-                        tela.blit(img_escalada, pedra.topleft)
-                    else:
-                        pygame.draw.rect(tela, COR_PEDRA_DESLIZAMENTO, pedra)
-                        pygame.draw.rect(tela, COR_BORDA_PEDRA, pedra, 2)
+                    pygame.draw.rect(tela, CENARIO_FUNDO_FORA, barreira, 1)
+
+        elif self.cenario_atual == "ESTRADA_2":
+            tela.fill(CENARIO_GRAMA_CINZA)
+            pygame.draw.rect(tela, CENARIO_ESTRADA, self.area_estrada)
+            for barreira in self.barreiras_estrada:
+                pygame.draw.rect(tela, CENARIO_BARREIRAS, barreira)
+                pygame.draw.rect(tela, CENARIO_FUNDO_FORA, barreira, 1)
+
+            for pedra in self.pedras_deslizamento:
+                if self.sprite_pedra:
+                    img_escalada = pygame.transform.scale(self.sprite_pedra, (pedra.width, pedra.height))
+                    tela.blit(img_escalada, pedra.topleft)
+                else:
+                    pygame.draw.rect(tela, COR_PEDRA_DESLIZAMENTO, pedra)
+                    pygame.draw.rect(tela, COR_BORDA_PEDRA, pedra, 2)

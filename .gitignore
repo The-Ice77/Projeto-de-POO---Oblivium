@@ -9,3 +9,5 @@ REGRAS_DO_PROJETO.md
 testes_inventario_loja.py
 test_novas_features.py
 test_atributos.py
+full_audit.py
+scratch/

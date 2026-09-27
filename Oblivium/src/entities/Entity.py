@@ -58,7 +58,8 @@ class Entidade(ABC):
         }
         
         self.estado_atual = "idle"
-        self.virado_direita = True       # Controla o flip horizontal da imagem
+        self.virado_direita = True       # Controla a direção em que a entidade está voltada
+        self.sprite_base_olha_direita = True # True se o sprite original olha para a direita, False se olha para a esquerda
         
         # Imagem atual a ser renderizada
         self.imagem_atual = None
@@ -90,8 +91,9 @@ class Entidade(ABC):
             imagem_base = animacao.get_imagem()
             
             if imagem_base:
-                # Espelha a imagem se estiver virado para a esquerda
-                if not self.virado_direita:
+                # Determina se precisa espelhar horizontalmente baseado na orientação base do sprite
+                precisa_espelhar = (self.virado_direita != getattr(self, 'sprite_base_olha_direita', True))
+                if precisa_espelhar:
                     self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
                 else:
                     self.imagem_atual = imagem_base

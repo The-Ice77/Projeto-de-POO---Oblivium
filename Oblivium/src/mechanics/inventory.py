@@ -69,6 +69,11 @@ class Inventario:
     def esta_cheio(self):
         return len(self.slots) >= self.capacidade
 
+    @property
+    def itens(self):
+        """Retorna a lista de itens armazenados em todos os slots."""
+        return [slot.item for slot in self.slots]
+
     def expandir_bolsa(self, slots_extras):
         """Aumenta a capacidade de armazenamento da bolsa."""
         self.capacidade = min(self.SLOTS_MAXIMOS, self.capacidade + slots_extras)
