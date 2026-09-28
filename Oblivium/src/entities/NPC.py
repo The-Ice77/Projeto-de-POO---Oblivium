@@ -15,7 +15,8 @@ class NPC(Entidade):
 
     def desenhar(self, tela):
         # Utiliza o método desenhar herdado da Entidade se houver sprites
-        if self.imagem_atual or self.animacoes.get(self.estado_atual).frames:
+        anim = self.animacoes.get(self.estado_atual)
+        if self.imagem_atual or (anim and getattr(anim, 'frames', None)):
             super().desenhar(tela)
         else:
             # Retângulo provisório azul-esverdeado para os NPCs do mundo cinza

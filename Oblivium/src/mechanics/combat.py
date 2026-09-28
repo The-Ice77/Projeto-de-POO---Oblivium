@@ -1243,6 +1243,9 @@ class CombatScreen:
 
     def desenhar(self, tela):
         """Renderiza a arena, personagens, HUDs, menus, submenus, tooltips e banners."""
+        if not self.jogador:
+            return
+
         # 1. FUNDO PADRÃO ESCURO DE OBLIVIUM
         tela.fill(UI_FUNDO_PADRAO)
         

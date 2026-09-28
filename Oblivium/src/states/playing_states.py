@@ -352,7 +352,10 @@ class PlayingState(State):
         if not next_h.colliderect(h_halia): self.game.carroceiro.mover(-1, 0, [])
         if self.game.carroceiro.x <= 900 or next_h.colliderect(h_halia):
             if self.game.carroceiro.x <= 900: self.game.carroceiro.x = 900
-            self.game.carroceiro_andando = False; self.game.carroceiro.velocidade = 0
+            self.game.carroceiro_andando = False
+            self.game.carroceiro.velocidade = 0
+            self.game.carroceiro.mudar_estado("idle")
+            self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
             h_npc = pygame.Rect(int(self.game.carroceiro.x), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
             if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
 
@@ -433,6 +436,9 @@ class PlayingState(State):
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
             if area_interacao.colliderect(pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)):
+                # Faz os dois personagens se entreolharem de lado
+                self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
+                self.game.halia.virado_direita = (self.game.carroceiro.x > self.game.halia.x)
                 if self.game.mapa_casa.cenario_atual == "ESTRADA":
                     self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_hub_carroceiro))
                 elif self.game.mapa_casa.cenario_atual == "ESTRADA_2":
@@ -526,6 +532,8 @@ class PlayingState(State):
         self.game.halia.x, self.game.halia.y = 60, 330
         self.game.carroceiro_visivel, self.game.carroceiro_andando = True, False
         self.game.carroceiro.velocidade, self.game.carroceiro.x, self.game.carroceiro.y = 0, 200, 330
+        self.game.carroceiro.mudar_estado("idle")
+        self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
         
         h_npc = pygame.Rect(int(self.game.carroceiro.x), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
         if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
