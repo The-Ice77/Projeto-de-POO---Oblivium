@@ -515,8 +515,101 @@ class ResourceManager:
         return cls.extrair_sprites_individuais(caminho, threshold_fundo=threshold_fundo, min_pixels=min_pixels)
 
     @classmethod
+    def carregar_frames_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, manter_proporcao=False):
+        """
+        Carrega ordenadamente todos os frames de imagem (.png/.jpg) de um diretório.
+        Permite filtrar por prefixo de nome de arquivo e redimensionar.
+        """
+        chave = f"pasta_{caminho_pasta}_{filtro_prefixo}_{tamanho}_{manter_proporcao}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+
+        pasta_absoluta = cls._obter_caminho_absoluto(caminho_pasta)
+        if not os.path.isdir(pasta_absoluta):
+            cls._cache_animacoes[chave] = []
+            return []
+
+        arquivos = sorted([
+            f for f in os.listdir(pasta_absoluta)
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp"))
+            and (not filtro_prefixo or f.lower().startswith(filtro_prefixo.lower()))
+        ])
+
+        frames = []
+        for arq in arquivos:
+            caminho_arq = os.path.join(pasta_absoluta, arq)
+            img = cls.carregar_imagem(caminho_arq, tamanho=tamanho, manter_proporcao=manter_proporcao)
+            if img:
+                frames.append(img)
+
+        cls._cache_animacoes[chave] = frames
+        return frames
+
+    @classmethod
+    def carregar_animacao_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, velocidade=0.15, loop=True, manter_proporcao=False):
+        """
+        Gera uma instância de Animacao diretamente a partir de arquivos de imagem em uma pasta.
+        """
+        frames = cls.carregar_frames_de_pasta(caminho_pasta, filtro_prefixo=filtro_prefixo, tamanho=tamanho, manter_proporcao=manter_proporcao)
+        return Animacao(frames=frames, velocidade=velocidade, loop=loop)
+
+    _cache_sons = {}
+
+    @classmethod
+    def carregar_som(cls, caminho, volume=1.0):
+        """
+        Carrega um efeito sonoro (SFX) em formato WAV/OGG/MP3 com cache e controle de volume.
+        """
+        if caminho in cls._cache_sons:
+            return cls._cache_sons[caminho]
+
+        caminho_absoluto = cls._obter_caminho_absoluto(caminho)
+        if not os.path.exists(caminho_absoluto):
+            return None
+
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            som = pygame.mixer.Sound(caminho_absoluto)
+            som.set_volume(volume)
+            cls._cache_sons[caminho] = som
+            return som
+        except Exception:
+            return None
+
+    @classmethod
+    def tocar_musica(cls, caminho, loop=True, volume=0.5):
+        """
+        Inicia a reprodução de música de fundo em streaming.
+        """
+        caminho_absoluto = cls._obter_caminho_absoluto(caminho)
+        if not os.path.exists(caminho_absoluto):
+            return False
+
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.music.load(caminho_absoluto)
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.play(-1 if loop else 0)
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    def parar_musica(cls):
+        """Interrompe a música de fundo atual."""
+        try:
+            if pygame.mixer.get_init():
+                pygame.mixer.music.stop()
+        except Exception:
+            pass
+
+    @classmethod
     def limpar_cache(cls):
-        """Libera a memória das texturas em cache."""
+        """Libera a memória das texturas e sons em cache."""
         cls._cache_imagens.clear()
         cls._cache_animacoes.clear()
+        cls._cache_fontes.clear()
+        cls._cache_sons.clear()
         cls._arquivos_ausentes_notificados.clear()
