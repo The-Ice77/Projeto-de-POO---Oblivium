@@ -111,6 +111,12 @@ class Mapa:
         if mapa_estrada2:
             mapa_estrada2.desobstruir_estrada(tipo_magia)
 
+    def restaurar_bloqueio_estrada2(self):
+        """Restaura as rochas de bloqueio originais na Estrada 2."""
+        mapa_estrada2 = self.cenarios.get("ESTRADA_2")
+        if mapa_estrada2:
+            mapa_estrada2.restaurar_bloqueio()
+
     def obter_hitboxes(self):
         """Retorna as hitboxes ativas do cenário atual."""
         return self.cenario_objeto.obter_hitboxes()

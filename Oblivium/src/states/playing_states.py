@@ -78,6 +78,10 @@ class PlayingState(State):
         if hasattr(self.game, 'filtro_memoria'):
             self.game.filtro_memoria.atualizar()
 
+        # Atualiza as folhas de outono no cenário
+        if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
+            self.game.efeito_folhas.atualizar()
+
         self.game.caixa_dialogo.atualizar()
         self.cutscene.atualizar_magia()
         self._update_minigames_e_flashbacks()
@@ -100,6 +104,16 @@ class PlayingState(State):
             inimigo.desenhar(tela)
             
         self.cutscene.desenhar_efeitos(tela)
+        
+        # Efeito de folhas caindo pelo cenário (sob a UI, sobre os personagens)
+        # Dentro da casa da Halia não cai folhas (área residencial protegida)
+        if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
+            areas_excluidas = []
+            if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
+                # Delimitação de toda a construção da casa de Halia (paredes norte/oeste/leste/sul e interior)
+                areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
+            self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
+
         self._draw_interactable_prompts(tela)
         self._draw_ui_overlays(tela)
 
@@ -121,6 +135,8 @@ class PlayingState(State):
            (hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO") or \
            (self.game.magia_ativa is not None and self.game.magia_ativa != "CONCLUIDO") or \
            self.game.mg_timing.ativo or self.game.mg_mash.ativo or self.game.cena_inimigos_andando:
+            if not getattr(self.game, 'distanciando_halia', False):
+                self.game.halia.mudar_estado("idle")
             return
             
         dx, dy = 0, 0
@@ -273,23 +289,32 @@ class PlayingState(State):
             self.game.conversa_combate_ativa = False
             self.game.cena_inimigos_andando = True
             
-            # Recua a Halia para a esquerda para dar espaço de visualização
+            # Recua a Halia para a esquerda para dar espaço de visualização e fixa em idle encarando os inimigos
             if self.game.halia.x > 1000:
                 self.game.halia.x = 1000
+            self.game.halia.virado_direita = True
+            self.game.halia.direcao = "direita"
+            self.game.halia.mudar_estado("idle")
                 
-            # Cria os inimigos na beirada visível da tela usando a Factory
+            # Cria os inimigos na beirada visível da tela usando a Factory (virados para a esquerda em direção à Halia)
             if self.game.magia_usada_no_puzzle == "FOGO":
-                sombra1 = EnemyFactory.criar("sombra_menor", x=1180, y=290, nome_custom="Sombra 1")
-                sombra2 = EnemyFactory.criar("sombra_menor", x=1180, y=420, nome_custom="Sombra 2")
-                sombra1.velocidade = 4.0
-                sombra2.velocidade = 4.0
+                sombra1 = EnemyFactory.criar("demonio_inferior", x=1180, y=290, nome_custom="Demônio Inferior 1")
+                sombra2 = EnemyFactory.criar("demonio_inferior", x=1180, y=420, nome_custom="Demônio Inferior 2")
+                sombra1.velocidade = 3.5
+                sombra2.velocidade = 3.5
                 sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
                 sombra2.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
+                sombra1.virado_direita = False
+                sombra2.virado_direita = False
+                sombra1.direcao = "esquerda"
+                sombra2.direcao = "esquerda"
                 self.game.inimigos_em_cena.extend([sombra1, sombra2])
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
-                boss = EnemyFactory.criar_boss("anomalia_maior", x=1180, y=310, nome_custom="Anomalia Maior")
-                boss.velocidade = 4.0
-                boss.recompensas = {"moedas": 45, "memorias": 0, "xp": 80}
+                boss = EnemyFactory.criar_boss("demonio_superior", x=1180, y=310, nome_custom="Demônio Superior (Chefe)")
+                boss.velocidade = 3.5
+                boss.recompensas = {"moedas": 45, "memorias": 1, "xp": 80}
+                boss.virado_direita = False
+                boss.direcao = "esquerda"
                 self.game.inimigos_em_cena.append(boss)
 
         # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
@@ -299,9 +324,12 @@ class PlayingState(State):
             
             for inimigo in self.game.inimigos_em_cena:
                 if not self.game.iniciando_combate:
+                    inimigo.virado_direita = False
+                    inimigo.direcao = "esquerda"
                     if inimigo.x > x_parada:
-                        inimigo.x -= inimigo.velocidade
+                        inimigo.mover(-inimigo.velocidade, 0)
                     else:
+                        inimigo.mover(0, 0)
                         alguem_chegou = True
                         
             if alguem_chegou and not self.game.iniciando_combate:
@@ -495,6 +523,10 @@ class PlayingState(State):
                         self.game.cena_inimigos_andando = False
                         self.game.iniciando_combate = False
                         self.game.halia.restaurar_total()
+                        self.game.magia_ativa = None
+                        self.game.investigou_pedras = False
+                        self.game.bola_fogo_ativa = False
+                        self.game.mapa_casa.restaurar_bloqueio_estrada2()
                     
                     self.game.mudar_estado("JOGANDO")
                     
@@ -525,6 +557,8 @@ class PlayingState(State):
         self.game.transicao.estado = "CLAREANDO"
 
     def _entrar_na_estrada_2(self):
+        if not (self.game.magia_ativa == "CONCLUIDO" or self.game.combate_estrada_concluido):
+            self.game.mapa_casa.restaurar_bloqueio_estrada2()
         self.game.mapa_casa.carregar_cenario("ESTRADA_2")
         self.game.conversa_carroceiro_terminou = False; self.game.aguardando_fim_viagem = False
         self.game.magia_ativa = None; self.game.bola_fogo_ativa = False; self.game.cena_inimigos_andando = False

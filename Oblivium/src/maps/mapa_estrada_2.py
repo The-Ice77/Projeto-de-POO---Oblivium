@@ -24,13 +24,15 @@ class MapaEstrada2(CenarioBase):
         self.limite_oeste = pygame.Rect(0, 0, 20, altura_tela)
 
         # Pedras Principais de Bloqueio (Colisões rígidas do deslizamento no leste)
-        self.pedras_deslizamento = [
+        self.PEDRAS_ORIGINAIS = [
             pygame.Rect(1070, 245, 84, 75),
             pygame.Rect(1140, 280, 95, 85),
             pygame.Rect(1060, 325, 90, 80),
             pygame.Rect(1115, 385, 105, 95),
             pygame.Rect(1040, 395, 75, 65)
         ]
+        self.pedras_deslizamento = [p.copy() for p in self.PEDRAS_ORIGINAIS]
+        self.bloqueio_ativo = True
 
         # Árvores de Pé ao Norte (Model 01 copas cheias de folhas)
         self.arvores_norte = [
@@ -157,7 +159,10 @@ class MapaEstrada2(CenarioBase):
         self.hitboxes.extend(self.barreiras_estrada)
         self.limite_oeste = pygame.Rect(0, 0, 20, self.altura_tela)
         self.hitboxes.append(self.limite_oeste)
-        self.hitboxes.extend(self.pedras_deslizamento)
+        
+        # Só adiciona as rochas de bloqueio se o bloqueio estiver ativo
+        if self.bloqueio_ativo:
+            self.hitboxes.extend(self.pedras_deslizamento)
 
         # Colisões na base dos troncos em pé
         for x, y, w, h, _ in self.arvores_norte:
@@ -172,11 +177,18 @@ class MapaEstrada2(CenarioBase):
 
         self.itens_no_chao = []
 
+    def restaurar_bloqueio(self):
+        """Restaura as rochas de bloqueio originais e suas hitboxes."""
+        self.bloqueio_ativo = True
+        self.pedras_deslizamento = [p.copy() for p in self.PEDRAS_ORIGINAIS]
+        self.inicializar_cenario()
+
     def desobstruir_estrada(self, tipo_magia="FOGO"):
         """
         Remove as pedras de bloqueio das hitboxes e as reposiciona como escombros/laterais
         conforme o feitiço executado no puzzle narrativo.
         """
+        self.bloqueio_ativo = False
         for p in self.pedras_deslizamento:
             if p in self.hitboxes:
                 self.hitboxes.remove(p)

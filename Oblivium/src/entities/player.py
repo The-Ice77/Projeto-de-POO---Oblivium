@@ -39,6 +39,10 @@ class Player(Entidade):
             
         super().__init__(nome, vida_maxima, x, y, velocidade, atributos=atributos, mana_maxima=mana_maxima)
 
+        # Dimensões da Hitbox Física 2.5D (base nos pés de Halia)
+        self.largura = 36
+        self.altura = 36
+
         # Controle de Memórias e Sincronia
         self.fragmentos_memoria = 0
         self.dinheiro = dinheiro
@@ -63,6 +67,86 @@ class Player(Entidade):
 
         # Estado de Combate
         self.em_combate = False
+
+        # Carrega as animações quadridirecionais completas de Halia
+        self.carregar_animacoes()
+
+    def carregar_animacoes(self):
+        """
+        Carrega as animações quadridirecionais de Halia (Frente, Costas, Direita, Esquerda)
+        para os estados Idle e Andar, redimensionadas com proporção estética refinada (46x74).
+        """
+        w_halia, h_halia = 46, 74
+
+        def carregar(caminho_rel):
+            return ResourceManager.carregar_imagem(caminho_rel, (w_halia, h_halia))
+
+        # 1. Frente / Baixo (Sul)
+        f_idle_baixo = [carregar("halia/frente/Halia_frente_parado.png")]
+        f_andar_baixo = [
+            carregar("halia/frente/frame_2_direita.png"),
+            carregar("halia/frente/Halia_frente_parado.png"),
+            carregar("halia/frente/frame_3_passagem.png"),
+            carregar("halia/frente/Halia_frente_parado.png"),
+        ]
+
+        # 2. Costas / Cima (Norte)
+        f_idle_cima = [carregar("halia/costas/Halia_costas_parado.png")]
+        f_andar_cima = [
+            carregar("halia/costas/Halia_costas_andando.png"),
+            carregar("halia/costas/Halia_costas_parado.png"),
+            carregar("halia/costas/Halia_151x240.png"),
+            carregar("halia/costas/Halia_costas_parado.png"),
+        ]
+
+        # 3. Direita (Leste)
+        f_idle_direita = [
+            carregar("halia/andando_direita/Halia_parado_direita.png"),
+            carregar("halia/andando_direita/Halia_parado_direita_02.png"),
+        ]
+        f_andar_direita = [
+            carregar(f"halia/andando_direita/Halia_andando_direita_0{i}.png")
+            for i in range(1, 5)
+        ]
+
+        # 4. Esquerda (Oeste)
+        f_idle_esquerda = [
+            carregar("halia/andando_esquerda/Halia_parado_esquerda.png"),
+            carregar("halia/andando_esquerda/Halia_parado_esquerda_02.png"),
+        ]
+        f_andar_esquerda = [
+            carregar(f"halia/andando_esquerda/Halia_andando_esquerda_0{i}.png")
+            for i in range(1, 5)
+        ]
+
+        # Injeta o pacote completo
+        self.definir_animacao("idle_baixo", Animacao(f_idle_baixo, velocidade=0.15))
+        self.definir_animacao("andar_baixo", Animacao(f_andar_baixo, velocidade=0.15))
+        self.definir_animacao("idle_cima", Animacao(f_idle_cima, velocidade=0.15))
+        self.definir_animacao("andar_cima", Animacao(f_andar_cima, velocidade=0.15))
+        self.definir_animacao("idle_direita", Animacao(f_idle_direita, velocidade=0.04))
+        self.definir_animacao("andar_direita", Animacao(f_andar_direita, velocidade=0.15))
+        self.definir_animacao("idle_esquerda", Animacao(f_idle_esquerda, velocidade=0.04))
+        self.definir_animacao("andar_esquerda", Animacao(f_andar_esquerda, velocidade=0.15))
+
+        # Aliases de compatibilidade total para saves legados e transições
+        self.animacoes["idle"] = self.animacoes["idle_baixo"]
+        self.animacoes["andar"] = self.animacoes["andar_baixo"]
+        self.animacoes["walk"] = self.animacoes["andar_baixo"]
+
+        # Define estado inicial voltada para a frente
+        self.direcao = "baixo"
+        self.virado_direita = True
+        self.mudar_estado("idle_baixo")
+
+    def mover(self, dx, dy, hitboxes_mapa=None):
+        """Move Halia aplicando cadência dinâmica de passos ao andar vs correr."""
+        vel_anim = 0.22 if self.velocidade > 3.5 else 0.15
+        for est in ["andar_baixo", "andar_cima", "andar_direita", "andar_esquerda"]:
+            if est in self.animacoes:
+                self.animacoes[est].velocidade = vel_anim
+
+        super().mover(dx, dy, hitboxes_mapa)
 
     def inicializar_inventario_padrao(self):
         """No início do jogo, Halia começa sem equipamentos ou moedas até coletá-los na casa."""
@@ -162,6 +246,11 @@ class Player(Entidade):
     def restaurar_total(self):
         """Restaura vida e mana para os valores máximos e limpa estados."""
         super().restaurar_total()
+
+    def entrar_combate(self):
+        """Ao entrar em combate, Halia se posiciona voltada para a direita (em direção aos inimigos)."""
+        self.direcao = "direita"
+        self.definir_estado("idle")
 
     # ==========================================
     # SISTEMA DE MEMÓRIA & EVOLUÇÃO

@@ -4,7 +4,8 @@ from src.states.states import State
 from src.utils.colors import (
     PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO, CINZA_ESCURO,
     MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR,
-    BARRA_VIDA_JOGADOR, BARRA_MANA, BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG
+    BARRA_VIDA_JOGADOR, BARRA_MANA, BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG,
+    DOURADO_ENVELHECIDO
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
@@ -240,14 +241,24 @@ class SlotsState(State):
             self.game.mudar_estado("MENU")
 
     def update(self):
-        pass
+        if getattr(self.game, 'origem_slots', 'MENU') == "MENU":
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                dt = self.game.clock.get_time() / 1000.0 if hasattr(self.game, 'clock') else 0.016
+                dt = min(dt, 0.05) if dt > 0 else 0.016
+                self.game.menu.efeito_petalas.atualizar(dt)
 
     def draw(self, tela):
-        if self.game.origem_slots == "PAUSE":
-            self.game.estados["JOGANDO"].draw(tela)
+        if getattr(self.game, 'origem_slots', 'MENU') == "PAUSE":
+            origem = getattr(self.game, 'origem_pause', 'JOGANDO')
+            if origem == "COMBATE" and "COMBATE" in self.game.estados:
+                self.game.estados["COMBATE"].draw(tela)
+            elif "JOGANDO" in self.game.estados:
+                self.game.estados["JOGANDO"].draw(tela)
             tela.blit(self.overlay, (0, 0))
         else:
-            tela.fill(CARVAO_PROFUNDO)
+            tela.fill(PRETO)
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                self.game.menu.efeito_petalas.desenhar(tela)
         
         largura_bloco = 860 
         altura_bloco = 580
@@ -304,9 +315,24 @@ class SlotsState(State):
                 prefixo = "    "
             
             render_nome_slot = self.fonte_opcao.render(f"{prefixo}Slot {slot_num}", True, cor_slot)
-            tela.blit(render_nome_slot, (pos_x + 12, pos_y + 10))
+            tela.blit(render_nome_slot, (pos_x + 18, pos_y + 14))
+
+            # Indicador de Fragmentos de Memória do Slot
+            if tem_save:
+                halia_info = man.get("halia", {}) if man.get("existe") else auto.get("halia", {})
+                mems = halia_info.get("fragmentos_memoria", 0)
+                if mems > 0:
+                    txt_mems = self.fonte_badge.render(f"◈ {mems} Memória(s)", True, (140, 230, 245))
+                    tela.blit(txt_mems, (pos_x + 24, pos_y + 45))
+                else:
+                    txt_mems = self.fonte_badge.render("◈ Inicial", True, CINZA_ARDOSIA)
+                    tela.blit(txt_mems, (pos_x + 24, pos_y + 45))
+            else:
+                txt_vazio_ico = self.fonte_badge.render("✦ Disponível", True, (65, 65, 75))
+                tela.blit(txt_vazio_ico, (pos_x + 24, pos_y + 45))
             
             # Status: Manual e Autosave
+            pos_x_info = pos_x + 185
             if tem_save:
                 if man.get("existe"):
                     fase_m = man.get("cenario", "").replace("_", " ").capitalize()
@@ -318,7 +344,7 @@ class SlotsState(State):
                     cor_man = UI_TEXTO_APAGADO
                     
                 render_man = self.fonte_status.render(txt_man, True, cor_man)
-                tela.blit(render_man, (pos_x + 180, pos_y + 14))
+                tela.blit(render_man, (pos_x_info, pos_y + 14))
                 
                 if auto.get("existe"):
                     fase_a = auto.get("cenario", "").replace("_", " ").capitalize()
@@ -330,10 +356,10 @@ class SlotsState(State):
                     cor_auto = UI_TEXTO_APAGADO
                     
                 render_auto = self.fonte_status.render(txt_auto, True, cor_auto)
-                tela.blit(render_auto, (pos_x + 180, pos_y + 44))
+                tela.blit(render_auto, (pos_x_info, pos_y + 44))
             else:
                 render_vazio = self.fonte_status.render("[ Slot Vazio ]", True, UI_TEXTO_APAGADO)
-                tela.blit(render_vazio, (pos_x + 180, pos_y + 28))
+                tela.blit(render_vazio, (pos_x_info, pos_y + 28))
             
             # Botão Apagar
             if tem_save and self.game.acao_slots != "NOVO_JOGO":
@@ -455,6 +481,17 @@ class SlotsState(State):
                 
                 tela.blit(render_l1, (card_rect.x + 35, card_rect.y + 42))
                 tela.blit(render_l2, (card_rect.x + 35, card_rect.y + 66))
+
+                # Avatar da Halia na versão
+                rect_avatar_m = pygame.Rect(card_rect.right - 58, card_rect.y + 14, 44, 68)
+                pygame.draw.rect(tela, (14, 14, 18), rect_avatar_m, border_radius=2)
+                pygame.draw.rect(tela, DOURADO_ENVELHECIDO if selecionado else CINZA_ARDOSIA, rect_avatar_m, 1, border_radius=2)
+                img_halia = ResourceManager.carregar_imagem("halia/frente/Halia_frente_parado.png", (32, 54))
+                if img_halia:
+                    tela.blit(img_halia, (rect_avatar_m.x + 6, rect_avatar_m.y + 7))
+                if mems > 0:
+                    txt_mems = self.fonte_badge.render(f"◈{mems}", True, (140, 230, 245))
+                    tela.blit(txt_mems, (rect_avatar_m.right - txt_mems.get_width() - 2, rect_avatar_m.bottom - txt_mems.get_height() - 2))
                 
                 self.rects_modal_versao.append(card_rect)
                 y_opcao += alt_card + 12

@@ -11,9 +11,10 @@ if _raiz_projeto not in sys.path:
 
 from src.entities.Entity import Entidade 
 from src.mechanics.attributes import Atributos
+from src.utils.resource_manager import ResourceManager
 
 class Enemy(Entidade):
-    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True, atributos=None, recompensas=None, mana_maxima=None):
+    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=10, agressivo=True, atributos=None, recompensas=None, mana_maxima=None, pasta_sprites=None):
         if atributos is None:
             atributos = Atributos(
                 forca=10,
@@ -38,15 +39,65 @@ class Enemy(Entidade):
         recompensas_padrao = {"moedas": 10, "memorias": 0, "xp": 15}
         self.recompensas = recompensas if recompensas is not None else recompensas_padrao
 
-        # --- ATRIBUTOS DE RENDERIZAÇÃO (FALLBACK) ---
-        if "Anomalia" in self.nome:
-            self.largura = 55
-            self.altura = 75
-            self.cor = (150, 0, 200) 
+        # Configurações visuais e de animação
+        self.pasta_sprites = pasta_sprites
+        self.flutuante = False
+        self.escala_combate = 0.85
+        self.virado_direita = True
+
+        # Inferencia inteligente de sprites se não fornecido
+        if not self.pasta_sprites:
+            nome_low = self.nome.lower()
+            if any(k in nome_low for k in ["superior", "demonio_superior", "gulosao", "gulosão", "anomalia", "boss", "guardiao", "guardião"]):
+                self.pasta_sprites = "demonio_superior"
+            elif any(k in nome_low for k in ["banco", "espectro", "olho", "observador"]):
+                self.pasta_sprites = "banco"
+            else:
+                self.pasta_sprites = "demonio_inferior"
+
+        # Dimensões da Hitbox Física 2.5D e carregamento de artes
+        if self.pasta_sprites:
+            self.carregar_sprites(self.pasta_sprites)
         else:
-            self.largura = 35
-            self.altura = 45
-            self.cor = (150, 30, 50) 
+            self.largura = 36
+            self.altura = 36
+            self.cor = (150, 30, 50)
+
+    def carregar_sprites(self, pasta_sprites):
+        """Carrega o pacote completo de animações do inimigo a partir do ResourceManager."""
+        self.pasta_sprites = pasta_sprites
+        pasta_low = pasta_sprites.lower()
+
+        if "superior" in pasta_low or "gulosao" in pasta_low:
+            escala = 0.70
+            self.largura = 55
+            self.altura = 50
+            self.flutuante = False
+            self.escala_combate = 1.05
+            self.cor = (150, 0, 200)
+        elif "banco" in pasta_low:
+            escala = 0.55
+            self.largura = 36
+            self.altura = 36
+            self.flutuante = True
+            self.escala_combate = 0.85
+            self.cor = (50, 80, 140)
+        else: # demonio_inferior / padrão
+            escala = 0.55
+            self.largura = 36
+            self.altura = 36
+            self.flutuante = False
+            self.escala_combate = 0.85
+            self.cor = (80, 30, 110)
+
+        self.animacoes = ResourceManager.carregar_animacoes_inimigo(pasta_sprites, escala_fator=escala)
+        if "idle" in self.animacoes:
+            self.estado_atual = "idle"
+            self.imagem_atual = self.animacoes["idle"].get_imagem()
+
+    def mover(self, dx, dy, hitboxes_mapa=None):
+        """Move o inimigo atualizando a animação de caminhar e a orientação do olhar."""
+        super().mover(dx, dy, hitboxes_mapa)
 
     # --- SISTEMA DE MOVIMENTO NO MAPA (Pré-Combate) ---
     def atualizar_movimento_mapa(self, alvo_x, alvo_y, lista_inimigos=None):
@@ -83,13 +134,9 @@ class Enemy(Entidade):
             vetor_x = (vetor_x / tamanho_vetor) * self.velocidade
             vetor_y = (vetor_y / tamanho_vetor) * self.velocidade
 
-        if hasattr(self, 'mover'):
-            self.mover(vetor_x, vetor_y, [])
-        else:
-            self.x += vetor_x
-            self.y += vetor_y
+        self.mover(vetor_x, vetor_y, [])
 
-    # --- SISTEMA DE RENDERIZAÇÃO ROBUSTO ---
+    # --- SISTEMA DE RENDERIZAÇÃO ROBUSTO COM ANCORAGEM 2.5D ---
     def desenhar(self, tela):
         if not getattr(self, 'vivo', True):
             return
@@ -102,9 +149,13 @@ class Enemy(Entidade):
         if imagem:
             largura_img = imagem.get_width()
             altura_img = imagem.get_height()
+            
+            # Ancoragem bottom-center na base física dos pés
             offset_x = (largura_img - getattr(self, 'largura', 40)) / 2
             offset_y = altura_img - getattr(self, 'altura', 40)
-            tela.blit(imagem, (int(self.x - offset_x), int(self.y - offset_y)))
+            offset_flutuante = -12 if getattr(self, 'flutuante', False) else 0
+
+            tela.blit(imagem, (int(self.x - offset_x), int(self.y - offset_y + offset_flutuante)))
         else:
             # Fallback limpo
             largura_segura = getattr(self, 'largura', 40)

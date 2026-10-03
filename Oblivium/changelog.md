@@ -1,138 +1,134 @@
-# Changelog Oblivium
-### Atualização v[0.3.0] - Qualidade de Vida
-- Adicionado menu de pausa enquanto o jogador está no jogo
-- Adicionado sistema de save com base na criação de slots ( registra tempo de jogo )
-- Melhorias na caixa de diálogo com opção de sair e outras páginas com opções de conversa
-- Melhorias no inicial com a adição dos créditos e configurações com possibilidade de alterar teclas e velocidade de texto
-Adição do menu de configuração com alteração de teclas e outros
-- Adicionado botão de correr para a Halia
-- Adicionada opção de continuar podendo excluir os dados de um slot com um save e também continuar o progresso do jogo
-- Correção de Bugs causadas pela adição dos novos recursos
-### Atualização v[0.3.5] - Base para a v0.4
-- Adição da base do sistema de inventário ( muito inicial e rudimentar, a ser implementado sua conversa com outros arquivos para melhor funcionalidade )
-- Adição de um hud com acesso ao inventário e que mostra a vida atual e mana da protagonista além da progressão do sistema de memória
-- Melhorias efetuadas no encontro com inimigos que não respeitavam corretamente o espaço da Halia na tela
-- Correção de bugs ocasionados pelo sistema de save implementado na versão anterior e os encontrados graças as alterações, com exemplo: Surgimento dos itens após coletar; permanência de memória; transição falha para a "ESTRADA 2" e inimigos não respeitavam corretamente a Halia.
+# ◈ Changelog Oblivium ◈
+*Histórico de versões, implementações e refinamentos de Oblivium.*
 
-### Atualização v[0.3.6]
+---
+
+### Atualização v[0.3.0] — Qualidade de Vida
 #### Implementação, Correção e Aprimoramento
-- Implementação do suporte a sprites ou criação da base do mesmo para facilitar o trabalho no futuro
-- Gerenciador de sprites adicionado, com capacidade de carregar sprite ( adição para carregar animações em breve )
-- Criação do sistema de combate para progressão da história e solidificação das mecânicas
-- Implementação da classe magia para utilização em áreas distintas do jogo
-- Melhoria no hud com automatização do mesmo, transparência ao explorar uma região que ele ocupa e ficar indisponível em certas cenas
-- Melhoria no indicador de recuperação de memória ( cada fase indicada uma cor )
-- Testes realizados com substituição de partes do jogo por sprites realizadas e bem sucedidas
+- **Menu de Pausa**: Adição de menu de pausa funcional durante a exploração do mundo.
+- **Sistema de Saves**: Criação de múltiplos slots de salvamento com registro do tempo de jogo.
+- **Caixa de Diálogo**: Opção de saída rápida e paginação com ramificações de conversa.
+- **Menu Principal**: Adição de tela de créditos e configurações (teclas e velocidade do texto).
+- **Mecânica de Corrida**: Suporte à tecla de corrida (`Shift`) para a Halia.
+- **Gerenciamento de Slots**: Opções para carregar, continuar e excluir arquivos de save.
+- **Correções**: Estabilização de bugs decorrentes das novas rotinas de interface.
 
-### Atualização v[0.3.7] - Arquitetura de Animações e POO
+---
+
+### Atualização v[0.3.5] — Fundação de Inventário e HUD
 #### Implementação, Correção e Aprimoramento
-- Atualização no `ResourceManager` com a nova classe `Animacao` e métodos para leitura de linhas e recortes precisos de sprites com múltiplas animações.
-- Atualização da classe `Entidade` para funcionar como um molde (injeção de dependência), gerindo as animações nativamente com o método `aplicar_pacote_animacoes`.
-- Limpeza e adequação das classes `Player`, `NPC`, `Enemy` e `Boss` para herdarem puramente da classe `Entidade` sem acoplamento de arquivos fixos.
-**Testes:**
-- Correção de um bug crítico onde a animação de "andar" da personagem continuava executando infinitamente após parar o movimento.
-- Aprimoramento na renderização matemática de `Entidade`, garantindo que imagens gigantes (ex: 160x144) sejam desenhadas centralizadas na hitbox de colisão (40x40) sem quebrar o contato com o mapa.
-- Condução e validação de testes temporários utilizando pacotes completos de animações (Idle, Walk, Attack, Death) redimensionadas corretamente na escala do jogo.
+- **Base de Inventário**: Estruturação inicial do sistema de itens e bagagem da protagonista.
+- **HUD Dinâmico**: Exibição de barras de vida, mana e progressão dos fragmentos de memória.
+- **Ajuste de Encontros**: Correção do distanciamento e da zona de colisão dos inimigos.
+- **Persistência de Coletas**: Fim da duplicação de itens após a coleta e correções na transição para a Estrada 2.
 
-### Atualização v[0.3.8] - Adição de Artes e Melhoria no Sistema de Save
-#### Implementação
-- Atualização da classe `Item` para trabalhar utilizando o novo gerenciador de sprites.
-- Atualização da classe `Game` para salvar novos parâmetros no sistema de save do jogo.
-- Atualização da classe `HUD` para trabalhar com as novas artes para o menu, sendo ela a bolsa para o inventário e o amuleto da progressão de memória.
-- Atualização do `maploader` para trabalhar com as novas sprites dos itens.
-#### Testes
-- Rodando o código algumas vezes para verificação do tamanho das sprites e seu posicionamento.
+---
 
-### Atualização v[0.3.8.5] Correção de erros
-- Correção de bugs encontrados devido as atualizações da versão anterior
-
-### Atualização v[0.4.0] - Sistema Completo de Combate por Turnos, Puzzles e Persistência
+### Atualização v[0.3.6] — Estrutura de Sprites e Combate
 #### Implementação, Correção e Aprimoramento
-- **Sistema de 6 Atributos (POO)**: Implementação de Força, Destreza, Constituição, Intelecto, Sabedoria e Presença na classe `Entidade` e derivadas (`Player`, `Enemy`, `Boss`).
-- **Catálogo de Habilidades e Bestiário JSON**: Carregamento dinâmico e desacoplado de `skills.json`, `bestiario.json` e `condicoes.json`.
-- **Motor e Interface de Combate por Turnos**: Batalha por turnos com controles híbridos (Mouse/Teclado), HUD estilizado de acordo com a identidade visual de Oblivium, barras interpoladas, tremor de impacto e textos flutuantes.
-- **Sistema de Mana para Inimigos e Chefes**: Atribuição de `mana_base` e `mana_maxima` para todos os monstros, permitindo ao Boss conjurar seus ataques especiais (*Impacto Anômalo*, *Onda Corrosiva*) com dedução de MP e IA inteligente.
-- **Harmonização de Puzzles e Overworld**: Interação direta com a tecla `[E]` nas rochas da Estrada 2 e remoção física de obstáculos via `mapa_casa.desobstruir_estrada()`.
-- **Correção no Sistema de Save/Load**: Preservação total de saves manuais sem auto-saves indesejados pós-batalha, desobstrução automática de cenários concluídos ao carregar, e reset estrito de memórias para 0 em Novos Jogos.
-- **Suporte Standalone**: Configuração de resolução de raiz nos módulos para permitir execução direta via terminal sem `ModuleNotFoundError`.
+- **Gerenciador de Recursos**: Base centralizada para carregamento de texturas e imagens 32-bit.
+- **Sistema de Combate**: Criação do primeiro protótipo funcional de batalhas por turnos.
+- **Módulo de Magias**: Implementação da classe base para conjurações arcanas.
+- **HUD Inteligente**: Ocultação dinâmica durante cutscenes e transparência contextual.
+- **Filtro de Memória**: Indicação visual de cores no mapa de acordo com o estágio de despertar.
 
-### Atualização v[0.4.1] - Submenu de Ações Táticas, Feedback de Esquiva e Ordem de Turnos
-#### Implementação, Correção e Aprimoramento
-- **Submenu Concentrar (Ações Táticas)**: Agrupamento da opção *"Concentrar"* no menu principal de combate em um submenu contendo:
-  - *Foco Espiritual*: Canaliza energia espiritual para recuperar MP, deixando a personagem vulnerável (+35% de dano sofrido).
-  - *Defender*: Assume postura de guarda total, reduzindo danos recebidos pela metade e aumentando expressivamente a evasão (+45% de esquiva).
-- **Consistência na Fila de Turnos (Fim dos Ataques Duplos)**: A iniciativa agora é calculada uma única vez no início do combate (`ordem_turnos_base`), garantindo que cada participante aja estritamente uma vez por rodada em ordem round-robin, eliminando o comportamento onde inimigos (como o Boss ou a Sombra 2) atacavam duas vezes seguidas na virada de rodada.
-- **Destaque Visual e Log de Esquivas**: Mensagens de esquiva no histórico de combate e textos flutuantes (`"ESQUIVOU!"` em Cyan e `"EM GUARDA!"`) destacados com animação suave e cores distintas para feedback imediato das ações defensivas.
+---
 
-### Atualização v[0.4.2] - Nova Tela Inicial, Sistema de Partículas e Botões Gráficos
+### Atualização v[0.3.7] — Arquitetura de Animações e POO
 #### Implementação, Correção e Aprimoramento
-- **Nova Identidade Visual da Tela Inicial**: Implementação completa dos novos assets em 32-bit RGBA com fundo preto puro, título estilizado de destaque, versão posicionada no canto inferior direito e texto especial alinhado na base.
-- **Componente POO `BotaoGrafico` com Cross-Fade Suave**: Botões com substituição fluida de opacidade entre os estados normal e hover com respiração luminosa orgânica, hitboxes centralizadas e desativação automática quando o cursor não está sobre opções.
-- **Motor de Partículas Genérico (`animations.py`)**: Implementação de `ParticulaFlutuante` e `EfeitoChuvaParticulas`, simulando uma chuva orgânica com física independente, oscilação senoidal (*sway*) e rotação individual.
-- **Extração C-Accelerated em `ResourceManager`**: Adição de `extrair_sprites_individuais` e `carregar_imagem_com_transparencia` acelerados via máscaras nativas em C (`pygame.mask`), isolando automaticamente 66 pétalas únicas e reduzindo o tempo de carregamento para uma fração de segundo.
+- **Motor de Animações**: Introdução da classe `Animacao` e recorte de spritesheets no `ResourceManager`.
+- **Herança de Entidades**: Classes `Player`, `NPC`, `Enemy` e `Boss` refatoradas como derivadas puras de `Entity`.
+- **Fim da Marcha Infinita**: Correção onde a animação de corrida prosseguia mesmo com a personagem parada.
+- **Ancoragem 2.5D**: Centralização matemática de sprites grandes sobre a base física de colisão.
 
-### Atualização v[0.4.3] - Alinhamento Visual Editorial, Diálogos com Retratos e Refinamento de Sistemas
-#### Implementação, Correção e Aprimoramento
-- **Alinhamento Estético Editorial e Dark Fantasy**:
-  - Padronização completa da paleta de cores em todas as telas com Carvão Profundo (`#0A0A0E`), Marfim Off-White (`#F6F3EC`), Cinza Linho (`#C4BFB6`) e destaques em azul claro suave (`AZUL_HOVER_MENU`).
-  - Consolidação tipográfica universal com *Sunday* para títulos/nomes, *Just Breathe* para passagens poéticas/narrativas e *Contrail One* para estatísticas, opções e interfaces funcionais.
-- **Caixa de Diálogos com Retratos e Sistema de Escolhas em 2 Colunas**:
-  - Suporte universal a retratos (Portraits) para NPCs (Torvin, Carroceiro) e Halia com moldura interna escura e avatar fallback estilizado.
-  - Menu de escolhas organizado lado a lado em 2 colunas com navegação intuitiva por teclado (setas/WASD para alternar entre opções e páginas), cabeçalho de conversa e botão de fechar `[X]` sem sobreposições.
-  - Indicador de avanço limpo e estático no rodapé (`▼ [ ENTER ou Clique para avançar ]`), removendo caixas azuis flutuantes.
-- **Mapeamento de Controles Unificado e Intuitivo**:
-  - **Minigames**: Operação exclusiva via tecla **ESPAÇO**, eliminando interferências de cliques acidentais de mouse.
-  - **Avançar / Pular (Diálogos, Intro, Flashbacks, Memórias)**: Operação consistente através de **ENTER** ou **CLIQUE DO MOUSE**.
-- **Minigames Mágicos & Cutscenes**:
-  - Correção na validação de vitória da Levitação Gravitacional (`MinigameMash`), garantindo o encerramento imediato ao alcançar 100% e transição contínua para a cutscene de desobstrução das pedras.
-  - Animação da cutscene de levitação com limites de frame rate seguros (`timer >= 50`), prevenindo travamentos no overworld.
-- **Sequência Solene de Despertar de Memória (`TelaDespertarMemoria`)**:
-  - Estruturação em 5 etapas com *crossfades* suaves de opacidade (`alpha_conteudo`):
-    1. *Título*: Exibição minimalista de *"✦ MEMÓRIA RESTAURADA ✦"* com flor botânica decorativa.
-    2. *Estágio*: Exibição destacada de *"Estágio X de 7 — [Nome]"* com a cor temática do fragmento.
-    3. *Impacto do Amuleto*: Animação centralizada com contração, *screen shake* e dispersão de partículas etéreas.
-    4. *Detalhes*: Layout lateral aberto exibindo a narrativa em *Just Breathe*, o anseio de Halia e novos feitiços despertados.
-    5. *Retorno*: *Fade out* suave de volta à exploração do mapa.
-- **Pop-up de Interação no Overworld**:
-  - Indicador `[ Pressione E para ... ]` posicionado diretamente acima do alvo interagível (itens no chão, porta, Carroceiro e pedras) e renderizado na camada superior (*Z-Index*) sobre os sprites do cenário e personagens.
-- **Telas Auxiliares e Interface Geral**:
-  - Harmonização das telas de Pausa, Configurações, Controles, Créditos e Gerenciamento de Saves/Slots com a identidade visual unificada.
-  - Títulos de seções nos Créditos destacados em azul claro com espaçamento generoso e padronização da fonte de agradecimentos.
+---
 
-### Atualização v[0.5.0] - Sistema Completo de Inventário, Itens Polimórficos, Crafting, Loja e Integração em Combate
+### Atualização v[0.3.8] — Artes dos Itens e Persistência
 #### Implementação, Correção e Aprimoramento
-- **Hierarquia Polimórfica de Itens (`src/mechanics/items.py` e `src/data/items.json`)**:
-  - Implementação de `ItemBase` e subclasses: `ConsumivelItem` (cura de HP/MP, purificação, frascos de dano elemental com status), `EquipamentoItem` (roupas, mantos, cajados, anéis e amuletos com bônus em atributos primários e stats derivados), `GrimorioItem` (tomos arcanos vinculados a feitiços), `MaterialItem` (ingredientes de alquimia/forja) e `ItemChave` (relíquias e chaves de progressão protegidas contra venda).
-- **Fábrica de Itens Centralizada (`ItemFactory`)**:
-  - Criação dinâmica e tipada com leitura de catálogo JSON e fallback seguro em memória.
-- **Componente de Inventário Funcional (`Inventario`)**:
-  - Controle de capacidade expansível de slots, empilhamento automático de itens acumuláveis, gerenciamento de equipamentos equipados (`ROUPA`, `CAJADO`, `ACESSORIO_1`, `ACESSORIO_2`, `GRIMORIO_1`, `GRIMORIO_2`) e consolidação de bônus dinâmicos nos atributos de Halia.
-- **Interface Editorial de Inventário (`InventoryState`)**:
-  - 5 abas de navegação (`Bolsa`, `Equipamentos`, `Grimórios`, `Materiais`, `Chaves`), visualização da bagagem com contadores de quantidade `xN` e níveis `+N`, suporte completo a Teclado/Mouse (clique esquerdo para equipar/usar e clique direito para desequipar) e tooltips dinâmicos em estilo pergaminho Dark Souls.
-- **Sistema de Crafting e Aprimoramento (`CraftingManager` e `src/data/receitas.json`)**:
-  - Validação de receitas de alquimia, forja e tecelagem com consumo atômico de materiais e moedas, além de aprimoramento progressivo de equipamentos (+1 a +5) consumindo Minério Sombrio.
-- **Sistema de Loja Mercantil com Estoque Limitado (`Loja` e `ShopState`)**:
-  - Mercador itinerante com catálogo e estoque finito, suporte à compra e venda com cálculo em tempo real de moedas e verificação de capacidade da bolsa.
-- **Integração de Consumíveis no Combate por Turnos (`CombatScreen`)**:
-  - Novo `SUBMENU_ITENS` com suporte a itens de suporte direto e frascos arremessáveis contra inimigos vivos, dedução atômica da bolsa, logs contextuais e textos flutuantes.
-- **Sistema de Notificações Push / Toasts (`NotificationManager`)**:
-  - Fila de mensagens no canto superior direito empilhadas sem sobreposição, com animação de slide/fade e temporizadores calibrados.
-- **Persistência Completa nos 4 Slots de Save**:
-  - Serialização e desserialização profunda de inventário, equipamentos equipados e moedas em `salvar_estado`, `carregar_estado` e `resetar_progresso`, garantindo retrocompatibilidade com saves antigos.
+- **Sprites nos Itens**: Integração da classe `Item` ao novo carregador de texturas.
+- **HUD Renovado**: Novas artes desenhadas para a bolsa de inventário e o amuleto de memórias.
+- **Persistência Expandida**: Registro de novos parâmetros de status e flags na classe `Game`.
+- **Cenário e Objetos**: Atualização do `MapLoader` para suportar os novos ícones do mapa.
 
-### Atualização v[0.6.0] - Reformulação Visual dos Cenários, Autotiling e Modo Desenvolvedor
+---
+
+### Atualização v[0.3.8.5] — Correções e Estabilidade
 #### Implementação, Correção e Aprimoramento
-- **Reformulação dos Cenários e Autotiling Orgânico (`mapa_casa.py`, `mapa_estrada.py`, `mapa_estrada_2.py`)**:
-  - Substituição de tijolos genéricos por texturas autênticas de grama e terra.
-  - Implementação de bordas e dentes de transição suave entre a terra e a grama nas estradas.
-  - Construção de lago sereno com margens e quinas angulares conectadas perfeitamente.
-  - Bosque denso com árvores de copa cheia (*Model 01*) e arbustos na área externa da casa.
-  - Cenário da Estrada 2 repaginado como área de deslizamento, contendo árvores caídas e densa barreira rochosa.
-- **Interior da Residência de Halia e Arquitetura Modular**:
-  - Paredes modulares legítimas de madeira com recortes limpos e sem saliências verticais.
-  - Porta frontal em madeira rústica nivelada com exatidão à espessura da parede sul (34px de altura e vão de 64px), com sprite de estado aberto/fechado e trava automática pós-saída.
-  - Redimensionamento proporcional dos móveis (cama de casal, cômoda de madeira) e inclusão de tapete ornamental elegante.
-  - Ajuste nas hitboxes 2.5D dos móveis e colisão para delimitação cênica do lago/floresta.
-- **Painel Secreto de Comandos de Desenvolvedor (`DevCommands`)**:
-  - Ativação in-game pela tecla de aspas (`"`) ou apóstrofo (`'`).
-  - Funções de depuração rápida: alternar filtro de atmosfera/memória, pular cutscenes, curar personagem, adicionar ouro e teletransporte direto entre cenários.
+- **Polimento Geral**: Resolução de inconsistências de posicionamento e bugs apontados nas artes anteriores.
+
+---
+
+### Atualização v[0.4.0] — Combate por Turnos, Atributos e Puzzles
+#### Implementação, Correção e Aprimoramento
+- **Sistema de 6 Atributos**: Implementação de Força, Destreza, Constituição, Intelecto, Sabedoria e Presença.
+- **Catálogo JSON**: Carregamento dinâmico de `skills.json`, `bestiario.json` e `condicoes.json`.
+- **Arena de Batalha**: Combate por turnos com controles híbridos (Mouse/Teclado), barras interpoladas e textos flutuantes.
+- **Gestão de Mana Inimiga**: Inimigos e Chefes agora consomem MP para habilidades especiais.
+- **Puzzles no Overworld**: Desobstrução física de rochas na Estrada 2 via magia e interação direta `[E]`.
+- **Blindagem de Saves**: Preservação de saves manuais sem sobreescrita indesejada e reinício estrito de memórias em Novos Jogos.
+
+---
+
+### Atualização v[0.4.1] — Ações Táticas e Balanceamento de Turnos
+#### Implementação, Correção e Aprimoramento
+- **Submenu Concentrar**: Inclusão de ações táticas (*Foco Espiritual* para recuperar MP e *Defender* para mitigar dano e esquivar).
+- **Fila Única de Iniciativa**: Cálculo de turnos round-robin impedindo ataques duplos de inimigos consecutivos.
+- **Feedback de Evasão**: Destaque visual e mensagens dinâmicas de esquiva no histórico de combate.
+
+---
+
+### Atualização v[0.4.2] — Tela Inicial, Partículas e Otimizações
+#### Implementação, Correção e Aprimoramento
+- **Nova Identidade Visual da Tela Inicial**: Arte 32-bit RGBA com fundo preto puro e tipografia institucional.
+- **Botões Gráficos Interativos**: Componente `BotaoGrafico` com cross-fade suave e respiração luminosa no hover.
+- **Motor de Partículas**: Simulação orgânica de chuva com física senoidal e rotação individual (`animations.py`).
+- **Aceleração em C**: Recorte ultrarrápido de sprites via máscaras nativas (`pygame.mask`) no `ResourceManager`.
+
+---
+
+### Atualização v[0.4.3] — Padrão Editorial, Diálogos e Sequências Solenes
+#### Implementação, Correção e Aprimoramento
+- **Estética Editorial Dark Fantasy**: Paleta padronizada (Carvão Profundo, Marfim e Cinza Linho) e fontes consolidadas (*Sunday*, *Contrail* e *Just Breathe*).
+- **Diálogos com Retratos**: Suporte universal a retratos de NPCs/Halia e menu de escolhas em duas colunas.
+- **Controles Unificados**: Minigames operados exclusivamente por **ESPAÇO** e avanços de diálogo por **ENTER/Mouse**.
+- **Sequência de Memória**: Tela de despertar em 5 etapas com screen shake e partículas etéreas.
+- **Indicadores de Interação**: Prompts flutuantes `[E]` renderizados na camada superior sobre alvos no mapa.
+
+---
+
+### Atualização v[0.5.0] — Inventário Completo, Crafting e Economia
+#### Implementação, Correção e Aprimoramento
+- **Hierarquia Polimórfica de Itens**: Classes especializadas para consumíveis, equipamentos, grimórios e materiais.
+- **Interface de Bolsa**: 5 abas organizadas, contadores de quantidade/nível e tooltips dinâmicos em pergaminho.
+- **Forja e Alquimia**: Sistema de crafting de receitas e aprimoramento de equipamentos até +5.
+- **Mercador e Loja**: Sistema de compra e venda com estoque limitado e cálculo financeiro em tempo real.
+- **Consumíveis em Combate**: Uso de poções de cura e frascos arremessáveis via submenu de itens.
+- **Notificações Push**: Fila de toasts animados no topo da tela sem poluição visual.
+
+---
+
+### Atualização v[0.6.0] — Cenários Orgânicos, Arquitetura e Autotiling
+#### Implementação, Correção e Aprimoramento
+- **Autotiling Orgânico**: Transições suaves entre grama e terra, lago sereno com quinas curvadas e floresta densa.
+- **Residência de Halia**: Paredes de madeira modulares, móveis proporcionais e porta frontal rústica nivelada.
+- **Estrada 2 Repaginada**: Área de deslizamento com árvores caídas e barreira rochosa detalhada.
+- **Filtro de Memória Dinâmico**: Transição suave e contínua de saturação conforme a recuperação da protagonista.
+
+---
+
+### Atualização v[0.7.0] — Refinamento Visual de Sprites, Demônios e Menu Dev
+#### Implementação, Correção e Aprimoramento
+- **Limpeza Completa de Sprites**: Remoção minuciosa de halos, ruídos e bordas brancas/cinzas em todas as 103 sprites de Halia e dos inimigos.
+- **Demônios Inferior e Superior**: Renomeação oficial das criaturas (antigos Gulosinho e Gulosão) e reestruturação completa de suas pastas e fichas no Bestiário.
+- **Correção da Marcha dos Inimigos**: Fim do bug onde monstros andavam de costas; ciclo de caminhada agora executa de forma suave e contínua encarando o jogador.
+- **Repouso da Halia em Cutscenes**: Halia agora permanece imóvel em repouso direcional durante diálogos, cenas e marcha de inimigos, eliminando a corrida no lugar.
+- **Redesign do Console de Desenvolvedor**: Painel interativo com filigranas pergaminho, fontes do jogo, suporte a mouse/teclado e remoção de emojis crus.
+- **Sistema de Saves Aprimorado**: Registro da direção e estado de repouso no save, com miniaturas das sprites e indicadores de progresso na tela de slots.
+
+---
+
+### Atualização v[0.7.1] — Ambientação Florestal e Efeitos de Folhas
+#### Implementação, Correção e Aprimoramento
+- **Efeito de Folhas Verdes no Cenário**: Partículas orgânicas flutuando com velocidade senoidal, brisa suave e giro contínuo para enriquecer a atmosfera do overworld.
+- **Isolamento da Residência de Halia**: Exclusão da área interna da casa contra a queda de folhas, garantindo que o quarto e móveis fiquem protegidos sob o teto.
+- **Limpeza Tática de Combate**: Manutenção da arena de batalha limpa e sem interferência visual de folhas caindo durante os turnos de combate.

@@ -55,6 +55,7 @@ class MenuState(State):
             self.game.mudar_estado("CONFIGURACOES")
             
         elif opcao == "Créditos":
+            self.game.origem_creditos = "MENU"
             self.game.mudar_estado("CREDITOS")
             
         elif opcao == "Sair":

@@ -19,6 +19,7 @@ from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.tela_despertar import TelaDespertarMemoria
 from src.ui.notification_manager import NotificationManager
 from src.utils.dev_commands import ComandosDev
+from src.utils.animations import EfeitoFolhas
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -55,6 +56,7 @@ class Game:
         self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
+        self.efeito_folhas = EfeitoFolhas(self.LARGURA, self.ALTURA, quantidade_folhas=28)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
@@ -139,6 +141,7 @@ class Game:
         }
         self.estado_atual = self.estados["MENU"]
         self.origem_configuracoes = "MENU"
+        self.origem_creditos = "MENU"
         # Rastreia em que ponto da conversa cada NPC está
         self.progresso_npcs = {
             "carroceiro": 0  # 0: Início, 1: Falou com ele, 2: Viagem liberada, etc.
@@ -217,8 +220,10 @@ class Game:
                 "nome": self.halia.nome,
                 "x": self.halia.x,
                 "y": self.halia.y,
+                "direcao": getattr(self.halia, 'direcao', "baixo"),
+                "virado_direita": getattr(self.halia, 'virado_direita', True),
                 "vivo": getattr(self.halia, 'vivo', True),
-                "estado_animacao": getattr(self.halia, 'estado_atual', "idle"),
+                "estado_animacao": "idle",
                 "vida_atual": getattr(self.halia, 'vida_atual', 100),
                 "vida_maxima": getattr(self.halia, 'vida_maxima', 100),
                 "mana_atual": getattr(self.halia, 'mana_atual', 50),
@@ -295,6 +300,7 @@ class Game:
         
         # 2. Carrega o cenário e desobstrui caminhos se já resolvidos
         cenario_salvo = dados.get("cenario_atual", "CASA")
+        self.mapa_casa.restaurar_bloqueio_estrada2()
         self.mapa_casa.carregar_cenario(cenario_salvo)
         
         if cenario_salvo == "ESTRADA_2":
@@ -306,6 +312,8 @@ class Game:
         halia_dados = dados.get("halia", {})
         self.halia.x = halia_dados.get("x", 210)
         self.halia.y = halia_dados.get("y", 280)
+        self.halia.direcao = halia_dados.get("direcao", "baixo")
+        self.halia.virado_direita = halia_dados.get("virado_direita", True)
         self.halia.fragmentos_memoria = halia_dados.get("fragmentos_memoria", 0)
         self.halia.nivel_sincronia = halia_dados.get("nivel_sincronia", 1 + self.halia.fragmentos_memoria)
         self.halia.dinheiro = halia_dados.get("dinheiro", 0)
@@ -338,12 +346,15 @@ class Game:
         self.halia.focado = False
         
         if self.halia.vivo:
-            estado_salvo = halia_dados.get("estado_animacao", "idle")
-            if estado_salvo == "morrer":
-                estado_salvo = "idle"
-            self.halia.mudar_estado(estado_salvo)
+            direcao = getattr(self.halia, 'direcao', 'baixo')
+            estado_idle = f"idle_{direcao}" if f"idle_{direcao}" in self.halia.animacoes else "idle_baixo"
+            self.halia.mudar_estado(estado_idle)
         else:
             self.halia.mudar_estado("morrer")
+
+        # Atualiza a animação imediatamente para desenhar o sprite correto de imediato
+        if hasattr(self.halia, 'atualizar_animacao'):
+            self.halia.atualizar_animacao()
         
         if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
             self.halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
@@ -427,6 +438,8 @@ class Game:
         self.conversa_combate_ativa = False
         self.inimigos_em_cena = []
         self.transicao.estado = "INATIVO"
+        self.mapa_casa.restaurar_bloqueio_estrada2()
+        self.mapa_casa.carregar_cenario("CASA")
 
         # Sincroniza e reseta o Filtro de Memória (100% P&B / Estágio 0), HUD e Cutscenes
         if hasattr(self, 'filtro_memoria') and self.filtro_memoria:

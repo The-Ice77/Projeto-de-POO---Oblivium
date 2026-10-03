@@ -318,6 +318,82 @@ class ResourceManager:
             return []
 
     @classmethod
+    def carregar_animacoes_inimigo(cls, pasta_inimigo, escala_fator=None, tamanho=None):
+        """
+        Carrega automaticamente todas as animações de um inimigo da pasta assets/inimigos/<pasta_inimigo>.
+        Mapeia os arquivos PackX_Estado_YY.png para instâncias de Animacao nos estados:
+        'idle', 'walk'/'andar', 'attack'/'ataque', 'hurt'/'dano', 'dead'/'morte', 'projectile'.
+        """
+        alias_pastas = {
+            "gulosao": "demonio_superior",
+            "gulosinho": "demonio_inferior"
+        }
+        pasta_inimigo = alias_pastas.get(str(pasta_inimigo).lower(), str(pasta_inimigo))
+
+        chave = f"anim_inimigo_{pasta_inimigo}_{escala_fator}_{tamanho}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+
+        pasta_absoluta = cls._obter_caminho_absoluto(os.path.join("inimigos", pasta_inimigo))
+        if not os.path.exists(pasta_absoluta) or not os.path.isdir(pasta_absoluta):
+            pasta_direta = os.path.join(PASTA_ASSETS, "inimigos", pasta_inimigo)
+            if os.path.exists(pasta_direta) and os.path.isdir(pasta_direta):
+                pasta_absoluta = pasta_direta
+            else:
+                return {}
+
+        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png")])
+        grupos = {}
+        for nome_arq in arquivos:
+            partes = os.path.splitext(nome_arq)[0].split("_")
+            if len(partes) >= 2:
+                estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
+                grupos.setdefault(estado, []).append(nome_arq)
+
+        # Configurações de velocidade e repetição por estado
+        config_estados = {
+            "idle": {"vel": 0.12, "loop": True},
+            "walk": {"vel": 0.15, "loop": True},
+            "attack": {"vel": 0.18, "loop": False},
+            "hurt": {"vel": 0.20, "loop": False},
+            "dead": {"vel": 0.15, "loop": False},
+            "projectile": {"vel": 0.20, "loop": True}
+        }
+
+        dicionario_animacoes = {}
+        for estado, lista_arqs in grupos.items():
+            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
+            frames = []
+            for nome_arq in lista_arqs:
+                caminho_rel = os.path.join("inimigos", pasta_inimigo, nome_arq).replace("\\", "/")
+                img = cls.carregar_imagem(caminho_rel)
+                if img:
+                    if escala_fator and escala_fator != 1.0:
+                        nw = max(1, int(img.get_width() * escala_fator))
+                        nh = max(1, int(img.get_height() * escala_fator))
+                        img = pygame.transform.scale(img, (nw, nh))
+                    elif tamanho:
+                        img = pygame.transform.scale(img, tamanho)
+                    frames.append(img)
+            
+            if frames:
+                anim = Animacao(frames, velocidade=cfg["vel"], loop=cfg["loop"])
+                dicionario_animacoes[estado] = anim
+
+        # Aliases de compatibilidade em português
+        if "walk" in dicionario_animacoes and "andar" not in dicionario_animacoes:
+            dicionario_animacoes["andar"] = dicionario_animacoes["walk"]
+        if "attack" in dicionario_animacoes and "ataque" not in dicionario_animacoes:
+            dicionario_animacoes["ataque"] = dicionario_animacoes["attack"]
+        if "hurt" in dicionario_animacoes and "dano" not in dicionario_animacoes:
+            dicionario_animacoes["dano"] = dicionario_animacoes["hurt"]
+        if "dead" in dicionario_animacoes and "morte" not in dicionario_animacoes:
+            dicionario_animacoes["morte"] = dicionario_animacoes["dead"]
+
+        cls._cache_animacoes[chave] = dicionario_animacoes
+        return dicionario_animacoes
+
+    @classmethod
     def carregar_imagem_com_transparencia(cls, caminho, tamanho=None, escala_fator=None, manter_proporcao=False, auto_crop=True, threshold_corte=4):
         """
         Carrega uma imagem em 32-bit RGBA de alta fidelidade visual, removendo o fundo preto/escuro

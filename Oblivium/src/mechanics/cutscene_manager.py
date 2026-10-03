@@ -14,8 +14,15 @@ class CutsceneManager:
         if self.game.distanciando_halia:
             if self.game.halia.x > 850:
                 self.game.halia.x -= 4
+                self.game.halia.virado_direita = False
+                self.game.halia.direcao = "esquerda"
+                self.game.halia.mudar_estado("andar")
+                self.game.halia.atualizar_animacao()
             else:
                 self.game.distanciando_halia = False
+                self.game.halia.virado_direita = True
+                self.game.halia.direcao = "direita"
+                self.game.halia.mudar_estado("idle")
                 if self.game.magia_ativa == "FOGO":
                     self.game.magia_usada_no_puzzle = "FOGO"
                     self.game.bola_fogo_ativa = True

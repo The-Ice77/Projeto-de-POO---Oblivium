@@ -55,7 +55,11 @@ class CreditsState(State):
                     self.game.mudar_estado("MENU")
 
     def update(self):
-        pass
+        if getattr(self.game, 'origem_creditos', 'MENU') == "MENU":
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                dt = self.game.clock.get_time() / 1000.0 if hasattr(self.game, 'clock') else 0.016
+                dt = min(dt, 0.05) if dt > 0 else 0.016
+                self.game.menu.efeito_petalas.atualizar(dt)
 
     def _quebrar_texto(self, texto, fonte, largura_maxima):
         """Função auxiliar para quebrar textos longos automaticamente sem cortar na borda"""
@@ -75,7 +79,12 @@ class CreditsState(State):
         return linhas
 
     def draw(self, tela):
-        tela.fill(CARVAO_PROFUNDO)
+        if getattr(self.game, 'origem_creditos', 'MENU') == "MENU":
+            tela.fill(PRETO)
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                self.game.menu.efeito_petalas.desenhar(tela)
+        else:
+            tela.fill(CARVAO_PROFUNDO)
         
         largura_bloco = 840
         altura_bloco = 580
