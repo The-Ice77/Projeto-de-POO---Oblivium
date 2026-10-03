@@ -18,6 +18,7 @@ from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.tela_despertar import TelaDespertarMemoria
 from src.ui.notification_manager import NotificationManager
+from src.utils.dev_commands import ComandosDev
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -57,6 +58,7 @@ class Game:
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
+        self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido
         self.opcoes_velocidade = ["Lento", "Normal", "Rápido"]
@@ -175,8 +177,16 @@ class Game:
                 if evento.type == pygame.QUIT:
                     self.running = False
 
-            
+            # Interceptação global de notificações e comandos do dev
             eventos = self.notificacoes.handle_events(eventos)
+
+            if hasattr(self, 'dev_commands') and self.dev_commands:
+                eventos_restantes = []
+                for ev in eventos:
+                    if not self.dev_commands.processar_evento(ev):
+                        eventos_restantes.append(ev)
+                eventos = eventos_restantes
+
             self.estado_atual.handle_events(eventos, teclas)
             self.estado_atual.update()
             self.notificacoes.update()
@@ -184,9 +194,12 @@ class Game:
             self.tela.fill((0, 0, 0))
             self.estado_atual.draw(self.tela)
             
-            # Se o estado atual for o MENU principal, desenha eventuais notificações pendentes
-            if self.estado_atual == self.estados.get("MENU"):
-                self.notificacoes.draw(self.tela)
+            # Se os comandos do dev estiverem ativos, desenha o overlay por cima de tudo
+            if hasattr(self, 'dev_commands') and self.dev_commands:
+                self.dev_commands.desenhar(self.tela)
+
+            # Notificações globais desenhadas no topo
+            self.notificacoes.draw(self.tela)
 
             pygame.display.flip()
             self.clock.tick(60)

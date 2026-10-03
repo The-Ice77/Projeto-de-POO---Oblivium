@@ -119,3 +119,20 @@ Adição do menu de configuração com alteração de teclas e outros
   - Fila de mensagens no canto superior direito empilhadas sem sobreposição, com animação de slide/fade e temporizadores calibrados.
 - **Persistência Completa nos 4 Slots de Save**:
   - Serialização e desserialização profunda de inventário, equipamentos equipados e moedas em `salvar_estado`, `carregar_estado` e `resetar_progresso`, garantindo retrocompatibilidade com saves antigos.
+
+### Atualização v[0.6.0] - Reformulação Visual dos Cenários, Autotiling e Modo Desenvolvedor
+#### Implementação, Correção e Aprimoramento
+- **Reformulação dos Cenários e Autotiling Orgânico (`mapa_casa.py`, `mapa_estrada.py`, `mapa_estrada_2.py`)**:
+  - Substituição de tijolos genéricos por texturas autênticas de grama e terra.
+  - Implementação de bordas e dentes de transição suave entre a terra e a grama nas estradas.
+  - Construção de lago sereno com margens e quinas angulares conectadas perfeitamente.
+  - Bosque denso com árvores de copa cheia (*Model 01*) e arbustos na área externa da casa.
+  - Cenário da Estrada 2 repaginado como área de deslizamento, contendo árvores caídas e densa barreira rochosa.
+- **Interior da Residência de Halia e Arquitetura Modular**:
+  - Paredes modulares legítimas de madeira com recortes limpos e sem saliências verticais.
+  - Porta frontal em madeira rústica nivelada com exatidão à espessura da parede sul (34px de altura e vão de 64px), com sprite de estado aberto/fechado e trava automática pós-saída.
+  - Redimensionamento proporcional dos móveis (cama de casal, cômoda de madeira) e inclusão de tapete ornamental elegante.
+  - Ajuste nas hitboxes 2.5D dos móveis e colisão para delimitação cênica do lago/floresta.
+- **Painel Secreto de Comandos de Desenvolvedor (`DevCommands`)**:
+  - Ativação in-game pela tecla de aspas (`"`) ou apóstrofo (`'`).
+  - Funções de depuração rápida: alternar filtro de atmosfera/memória, pular cutscenes, curar personagem, adicionar ouro e teletransporte direto entre cenários.

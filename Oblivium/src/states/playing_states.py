@@ -314,12 +314,13 @@ class PlayingState(State):
         if self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or self.game.cena_inimigos_andando:
             return
 
-        if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.x > 580:
-            self.game.mapa_casa.porta_aberta = False; self.game.halia.x = 550; self.game.fechando_porta = True
+        # Saída da Casa: Halia passa pela porta frontal e vai para o jardim
+        if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
+            self.game.mapa_casa.fechar_porta()
             self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_fechar_porta))
             
-        if self.game.fechando_porta and not self.game.caixa_dialogo.ativo:
-            self.game.fechando_porta = False
+        # Prosseguir viagem: Halia caminha pela pequena estrada de terra até o limite leste do jardim
+        if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.mapa_casa.porta_aberta and self.game.halia.x > 1220:
             self.game.transicao.iniciar("Seguindo viagem...")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA" and not self.game.carroceiro_visivel and self.game.halia.x > 640:

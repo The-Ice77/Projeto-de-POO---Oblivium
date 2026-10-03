@@ -99,11 +99,25 @@ class Mapa:
         if mapa_casa:
             mapa_casa.abrir_porta()
 
+    def fechar_porta(self):
+        """Dispara o fechamento e tranca da porta na casa."""
+        mapa_casa = self.cenarios.get("CASA")
+        if mapa_casa:
+            mapa_casa.fechar_porta()
+
     def desobstruir_estrada(self, tipo_magia="FOGO"):
         """Desobstrui o deslizamento de rochas na Estrada 2."""
         mapa_estrada2 = self.cenarios.get("ESTRADA_2")
         if mapa_estrada2:
             mapa_estrada2.desobstruir_estrada(tipo_magia)
+
+    def obter_hitboxes(self):
+        """Retorna as hitboxes ativas do cenário atual."""
+        return self.cenario_objeto.obter_hitboxes()
+
+    def obter_itens(self):
+        """Retorna os itens no chão do cenário atual."""
+        return self.cenario_objeto.obter_itens()
 
     # =========================================================================
     # CICLO DE RENDERIZAÇÃO
