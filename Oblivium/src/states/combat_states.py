@@ -26,6 +26,7 @@ class CombatState(State):
     def draw(self, tela):
         # Desenha a arena de combate, HUD, menus e efeitos
         self.game.tela_combate.desenhar(tela)
+
         # Transições de tela
         if hasattr(self.game, 'transicao') and self.game.transicao.estado != "INATIVO":
             self.game.transicao.desenhar(tela)

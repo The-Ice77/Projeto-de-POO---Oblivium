@@ -318,6 +318,82 @@ class ResourceManager:
             return []
 
     @classmethod
+    def carregar_animacoes_inimigo(cls, pasta_inimigo, escala_fator=None, tamanho=None):
+        """
+        Carrega automaticamente todas as animações de um inimigo da pasta assets/inimigos/<pasta_inimigo>.
+        Mapeia os arquivos PackX_Estado_YY.png para instâncias de Animacao nos estados:
+        'idle', 'walk'/'andar', 'attack'/'ataque', 'hurt'/'dano', 'dead'/'morte', 'projectile'.
+        """
+        alias_pastas = {
+            "gulosao": "demonio_superior",
+            "gulosinho": "demonio_inferior"
+        }
+        pasta_inimigo = alias_pastas.get(str(pasta_inimigo).lower(), str(pasta_inimigo))
+
+        chave = f"anim_inimigo_{pasta_inimigo}_{escala_fator}_{tamanho}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+
+        pasta_absoluta = cls._obter_caminho_absoluto(os.path.join("inimigos", pasta_inimigo))
+        if not os.path.exists(pasta_absoluta) or not os.path.isdir(pasta_absoluta):
+            pasta_direta = os.path.join(PASTA_ASSETS, "inimigos", pasta_inimigo)
+            if os.path.exists(pasta_direta) and os.path.isdir(pasta_direta):
+                pasta_absoluta = pasta_direta
+            else:
+                return {}
+
+        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png")])
+        grupos = {}
+        for nome_arq in arquivos:
+            partes = os.path.splitext(nome_arq)[0].split("_")
+            if len(partes) >= 2:
+                estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
+                grupos.setdefault(estado, []).append(nome_arq)
+
+        # Configurações de velocidade e repetição por estado
+        config_estados = {
+            "idle": {"vel": 0.12, "loop": True},
+            "walk": {"vel": 0.15, "loop": True},
+            "attack": {"vel": 0.18, "loop": False},
+            "hurt": {"vel": 0.20, "loop": False},
+            "dead": {"vel": 0.15, "loop": False},
+            "projectile": {"vel": 0.20, "loop": True}
+        }
+
+        dicionario_animacoes = {}
+        for estado, lista_arqs in grupos.items():
+            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
+            frames = []
+            for nome_arq in lista_arqs:
+                caminho_rel = os.path.join("inimigos", pasta_inimigo, nome_arq).replace("\\", "/")
+                img = cls.carregar_imagem(caminho_rel)
+                if img:
+                    if escala_fator and escala_fator != 1.0:
+                        nw = max(1, int(img.get_width() * escala_fator))
+                        nh = max(1, int(img.get_height() * escala_fator))
+                        img = pygame.transform.scale(img, (nw, nh))
+                    elif tamanho:
+                        img = pygame.transform.scale(img, tamanho)
+                    frames.append(img)
+            
+            if frames:
+                anim = Animacao(frames, velocidade=cfg["vel"], loop=cfg["loop"])
+                dicionario_animacoes[estado] = anim
+
+        # Aliases de compatibilidade em português
+        if "walk" in dicionario_animacoes and "andar" not in dicionario_animacoes:
+            dicionario_animacoes["andar"] = dicionario_animacoes["walk"]
+        if "attack" in dicionario_animacoes and "ataque" not in dicionario_animacoes:
+            dicionario_animacoes["ataque"] = dicionario_animacoes["attack"]
+        if "hurt" in dicionario_animacoes and "dano" not in dicionario_animacoes:
+            dicionario_animacoes["dano"] = dicionario_animacoes["hurt"]
+        if "dead" in dicionario_animacoes and "morte" not in dicionario_animacoes:
+            dicionario_animacoes["morte"] = dicionario_animacoes["dead"]
+
+        cls._cache_animacoes[chave] = dicionario_animacoes
+        return dicionario_animacoes
+
+    @classmethod
     def carregar_imagem_com_transparencia(cls, caminho, tamanho=None, escala_fator=None, manter_proporcao=False, auto_crop=True, threshold_corte=4):
         """
         Carrega uma imagem em 32-bit RGBA de alta fidelidade visual, removendo o fundo preto/escuro
@@ -515,8 +591,207 @@ class ResourceManager:
         return cls.extrair_sprites_individuais(caminho, threshold_fundo=threshold_fundo, min_pixels=min_pixels)
 
     @classmethod
+    def obter_tile(cls, caminho_tileset, col, lin, tamanho_tile=16, escala=None):
+        """
+        Extrai um tile individual (16x16 por padrão) de uma folha de tileset com cache.
+        """
+        chave = f"tile_{caminho_tileset}_{col}x{lin}_{tamanho_tile}_{escala}"
+        if chave in cls._cache_imagens:
+            return cls._cache_imagens[chave]
+
+        img_sheet = cls.carregar_imagem(caminho_tileset)
+        if not img_sheet:
+            return None
+
+        rect = pygame.Rect(col * tamanho_tile, lin * tamanho_tile, tamanho_tile, tamanho_tile)
+        if rect.right > img_sheet.get_width() or rect.bottom > img_sheet.get_height():
+            return None
+
+        tile = img_sheet.subsurface(rect).copy()
+        if escala and escala != 1.0:
+            nw = int(tamanho_tile * escala)
+            nh = int(tamanho_tile * escala)
+            tile = pygame.transform.scale(tile, (nw, nh))
+
+        cls._cache_imagens[chave] = tile
+        return tile
+
+    @classmethod
+    def criar_superficie_tiled(cls, caminho_tileset, largura_total, altura_total, col=0, lin=0, tamanho_tile=16, escala_tile=2):
+        """
+        Cria uma superfície contínua preenchida pela repetição de um tile específico de um tileset.
+        Ideal para gerar pisos de grama, terra, pedra ou madeira com alta performance de renderização.
+        """
+        chave = f"tiled_{caminho_tileset}_{col}x{lin}_{largura_total}x{altura_total}_{escala_tile}"
+        if chave in cls._cache_imagens:
+            return cls._cache_imagens[chave]
+
+        tile = cls.obter_tile(caminho_tileset, col, lin, tamanho_tile=tamanho_tile, escala=escala_tile)
+        if not tile:
+            # Fallback seguro
+            surf = cls.criar_superficie_32bit(largura_total, altura_total)
+            surf.fill((35, 55, 30))
+            return surf
+
+        tw, th = tile.get_size()
+        superficie_final = cls.criar_superficie_32bit(largura_total, altura_total)
+
+        for y in range(0, altura_total, th):
+            for x in range(0, largura_total, tw):
+                superficie_final.blit(tile, (x, y))
+
+        cls._cache_imagens[chave] = superficie_final
+        return superficie_final
+
+    @classmethod
+    def gerar_chao_com_estrada_e_transicao(cls, largura_total, altura_total, y_estrada=240, h_estrada=240):
+        """
+        Gera uma superfície rica de chão com base de grama verde exuberante, caminho central de terra
+        e faixas de transição orgânica (bordas recortadas de grama que avançam sobre a terra).
+        """
+        chave = f"chao_estrada_transicao_{largura_total}x{altura_total}_{y_estrada}_{h_estrada}"
+        if chave in cls._cache_imagens:
+            return cls._cache_imagens[chave]
+
+        p_ext = "assets/cenario/02_Pisos_Externos"
+        p_grama = f"{p_ext}/01_Grama_Verde"
+        p_terra = f"{p_ext}/03_Terra_Marrom"
+
+        # 1. Tiles base (32x32 com escala=2)
+        tile_grama = cls.carregar_imagem(f"{p_grama}/piso_grama_r10_c01.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/grama/Floors_Tiles.png", 1, 10, tamanho_tile=16, escala=2)
+        tile_terra = cls.carregar_imagem(f"{p_terra}/piso_terra_r10_c11.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/terra/Floors_Tiles.png", 11, 10, tamanho_tile=16, escala=2)
+
+        # Transições nativas (piso_grama_r00_c02: grama no topo, dentes descendo; piso_grama_r04_c02: dentes subindo, grama na base)
+        tile_trans_norte = cls.carregar_imagem(f"{p_grama}/piso_grama_r00_c02.png", (32, 32))
+        tile_trans_sul = cls.carregar_imagem(f"{p_grama}/piso_grama_r04_c02.png", (32, 32))
+
+        surf_final = cls.criar_superficie_32bit(largura_total, altura_total)
+        tw = 32
+        th = 32
+
+        # 2. Preenche todo o mapa com grama verde viçosa
+        if tile_grama:
+            for y in range(0, altura_total, th):
+                for x in range(0, largura_total, tw):
+                    surf_final.blit(tile_grama, (x, y))
+
+        # 3. Preenche a faixa da estrada em superfície estritamente delimitada (evita qualquer vazamento de terra)
+        surf_estrada = cls.criar_superficie_32bit(largura_total, h_estrada)
+        if tile_terra:
+            for y in range(0, h_estrada, th):
+                for x in range(0, largura_total, tw):
+                    surf_estrada.blit(tile_terra, (x, y))
+
+        # 4. Desenha as transições recortadas de grama sobre a terra (norte e sul)
+        if tile_trans_norte:
+            for x in range(0, largura_total, tw):
+                surf_estrada.blit(tile_trans_norte, (x, 0))
+
+        if tile_trans_sul:
+            for x in range(0, largura_total, tw):
+                surf_estrada.blit(tile_trans_sul, (x, h_estrada - th))
+
+        surf_final.blit(surf_estrada, (0, y_estrada))
+
+        cls._cache_imagens[chave] = surf_final
+        return surf_final
+
+    @classmethod
+    def carregar_frames_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, manter_proporcao=False):
+        """
+        Carrega ordenadamente todos os frames de imagem (.png/.jpg) de um diretório.
+        Permite filtrar por prefixo de nome de arquivo e redimensionar.
+        """
+        chave = f"pasta_{caminho_pasta}_{filtro_prefixo}_{tamanho}_{manter_proporcao}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+
+        pasta_absoluta = cls._obter_caminho_absoluto(caminho_pasta)
+        if not os.path.isdir(pasta_absoluta):
+            cls._cache_animacoes[chave] = []
+            return []
+
+        arquivos = sorted([
+            f for f in os.listdir(pasta_absoluta)
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp"))
+            and (not filtro_prefixo or f.lower().startswith(filtro_prefixo.lower()))
+        ])
+
+        frames = []
+        for arq in arquivos:
+            caminho_arq = os.path.join(pasta_absoluta, arq)
+            img = cls.carregar_imagem(caminho_arq, tamanho=tamanho, manter_proporcao=manter_proporcao)
+            if img:
+                frames.append(img)
+
+        cls._cache_animacoes[chave] = frames
+        return frames
+
+    @classmethod
+    def carregar_animacao_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, velocidade=0.15, loop=True, manter_proporcao=False):
+        """
+        Gera uma instância de Animacao diretamente a partir de arquivos de imagem em uma pasta.
+        """
+        frames = cls.carregar_frames_de_pasta(caminho_pasta, filtro_prefixo=filtro_prefixo, tamanho=tamanho, manter_proporcao=manter_proporcao)
+        return Animacao(frames=frames, velocidade=velocidade, loop=loop)
+
+    _cache_sons = {}
+
+    @classmethod
+    def carregar_som(cls, caminho, volume=1.0):
+        """
+        Carrega um efeito sonoro (SFX) em formato WAV/OGG/MP3 com cache e controle de volume.
+        """
+        if caminho in cls._cache_sons:
+            return cls._cache_sons[caminho]
+
+        caminho_absoluto = cls._obter_caminho_absoluto(caminho)
+        if not os.path.exists(caminho_absoluto):
+            return None
+
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            som = pygame.mixer.Sound(caminho_absoluto)
+            som.set_volume(volume)
+            cls._cache_sons[caminho] = som
+            return som
+        except Exception:
+            return None
+
+    @classmethod
+    def tocar_musica(cls, caminho, loop=True, volume=0.5):
+        """
+        Inicia a reprodução de música de fundo em streaming.
+        """
+        caminho_absoluto = cls._obter_caminho_absoluto(caminho)
+        if not os.path.exists(caminho_absoluto):
+            return False
+
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            pygame.mixer.music.load(caminho_absoluto)
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.play(-1 if loop else 0)
+            return True
+        except Exception:
+            return False
+
+    @classmethod
+    def parar_musica(cls):
+        """Interrompe a música de fundo atual."""
+        try:
+            if pygame.mixer.get_init():
+                pygame.mixer.music.stop()
+        except Exception:
+            pass
+
+    @classmethod
     def limpar_cache(cls):
-        """Libera a memória das texturas em cache."""
+        """Libera a memória das texturas e sons em cache."""
         cls._cache_imagens.clear()
         cls._cache_animacoes.clear()
+        cls._cache_fontes.clear()
+        cls._cache_sons.clear()
         cls._arquivos_ausentes_notificados.clear()

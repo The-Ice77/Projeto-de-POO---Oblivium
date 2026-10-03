@@ -33,6 +33,11 @@ class SettingsState(State):
         self.fonte_sub = ResourceManager.carregar_fonte("contrail", 16)
         
         self.rects_opcoes = []
+        
+        # Película escura para sobreposição caso aberto pelo Pause
+        self.overlay = pygame.Surface((self.game.LARGURA, self.game.ALTURA))
+        self.overlay.fill((10, 10, 12))
+        self.overlay.set_alpha(190)
 
     def handle_events(self, eventos, teclas):
         for evento in eventos:
@@ -95,10 +100,24 @@ class SettingsState(State):
             self.game.mudar_estado("MENU")
 
     def update(self):
-        pass
+        if getattr(self.game, 'origem_configuracoes', 'MENU') == "MENU":
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                dt = self.game.clock.get_time() / 1000.0 if hasattr(self.game, 'clock') else 0.016
+                dt = min(dt, 0.05) if dt > 0 else 0.016
+                self.game.menu.efeito_petalas.atualizar(dt)
 
     def draw(self, tela):
-        tela.fill(CARVAO_PROFUNDO)
+        if getattr(self.game, 'origem_configuracoes', 'MENU') == "PAUSE":
+            origem = getattr(self.game, 'origem_pause', 'JOGANDO')
+            if origem == "COMBATE" and "COMBATE" in self.game.estados:
+                self.game.estados["COMBATE"].draw(tela)
+            elif "JOGANDO" in self.game.estados:
+                self.game.estados["JOGANDO"].draw(tela)
+            tela.blit(self.overlay, (0, 0))
+        else:
+            tela.fill(PRETO)
+            if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
+                self.game.menu.efeito_petalas.desenhar(tela)
         
         largura_bloco = 740
         altura_bloco = 470

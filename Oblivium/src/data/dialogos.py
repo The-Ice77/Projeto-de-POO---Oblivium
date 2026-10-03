@@ -131,8 +131,8 @@ dialogo_falha_mash = [
 
 # --- Triggers do Overworld ---
 dialogo_fechar_porta = [
-    {"autor": "Pensamento", "texto": "Quem sai de casa sem fechar a porta? Não posso deixar tudo aberto..."},
-    {"autor": "Sistema", "texto": "Você fechou a porta de casa de forma segura."}
+    {"autor": "Pensamento", "texto": "Porta trancada com segurança... Agora devo caminhar pela pequena estrada de terra para prosseguir viagem."},
+    {"autor": "Sistema", "texto": "Siga pela pequena estrada de terra através do jardim até a saída leste."}
 ]
 
 dialogo_avistar_carroceiro = [
@@ -141,7 +141,7 @@ dialogo_avistar_carroceiro = [
 
 dialogo_porta_abriu = [
     {"autor": "Halia", "texto": "Pronto, estou com tudo. A porta destrancou."},
-    {"autor": "Sistema", "texto": "A porta está aberta. Use o direcional para sair para a varanda."}
+    {"autor": "Sistema", "texto": "A porta está aberta. Saia pelo jardim e siga pela pequena estrada de terra."}
 ]
 
 dialogo_porta_trancada = [

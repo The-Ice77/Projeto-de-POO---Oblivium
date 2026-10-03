@@ -58,6 +58,7 @@ class Entidade(ABC):
         }
         
         self.estado_atual = "idle"
+        self.direcao = "baixo"           # Direção atual: "baixo", "cima", "direita", "esquerda"
         self.virado_direita = True       # Controla a direção em que a entidade está voltada
         self.sprite_base_olha_direita = True # True se o sprite original olha para a direita, False se olha para a esquerda
         
@@ -73,7 +74,7 @@ class Entidade(ABC):
 
     def aplicar_pacote_animacoes(self, pacote):
         """
-        Recebe um dicionário onde a chave é o estado ("idle", "andar")
+        Recebe um dicionário onde a chave é o estado ("idle", "andar", etc.)
         e o valor é o objeto Animacao.
         """
         for estado, animacao in pacote.items():
@@ -91,10 +92,14 @@ class Entidade(ABC):
             imagem_base = animacao.get_imagem()
             
             if imagem_base:
-                # Determina se precisa espelhar horizontalmente baseado na orientação base do sprite
-                precisa_espelhar = (self.virado_direita != getattr(self, 'sprite_base_olha_direita', True))
-                if precisa_espelhar:
-                    self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
+                # Se o estado for quadridirecional explícito (ex: esquerda/direita próprias), não espelha
+                tem_direcao_explicita = any(self.estado_atual.endswith(suf) for suf in ["_baixo", "_cima", "_direita", "_esquerda"])
+                if not tem_direcao_explicita:
+                    precisa_espelhar = (self.virado_direita != getattr(self, 'sprite_base_olha_direita', True))
+                    if precisa_espelhar:
+                        self.imagem_atual = pygame.transform.flip(imagem_base, True, False)
+                    else:
+                        self.imagem_atual = imagem_base
                 else:
                     self.imagem_atual = imagem_base
             else:
@@ -104,26 +109,50 @@ class Entidade(ABC):
 
     def mudar_estado(self, novo_estado):
         """Altera o estado da animação e reseta o frame se o estado for novo."""
+        # Suporte inteligente a mapeamento quadridirecional se disponível
+        if novo_estado == "idle" and f"idle_{self.direcao}" in self.animacoes:
+            novo_estado = f"idle_{self.direcao}"
+        elif novo_estado in ["andar", "walk"] and f"andar_{self.direcao}" in self.animacoes:
+            novo_estado = f"andar_{self.direcao}"
+        elif novo_estado == "walk" and "andar" in self.animacoes and "walk" not in self.animacoes:
+            novo_estado = "andar"
+        elif novo_estado == "andar" and "andar" not in self.animacoes and "walk" in self.animacoes:
+            novo_estado = "walk"
+
         if self.estado_atual != novo_estado:
+            anim_atual = self.animacoes.get(self.estado_atual)
+            anim_nova = self.animacoes.get(novo_estado)
             self.estado_atual = novo_estado
-            if novo_estado in self.animacoes:
-                self.animacoes[novo_estado].resetar()
+            # Se for a mesma animação subjacente (ex: alias andar/walk), preserva o frame
+            if anim_nova and anim_nova is not anim_atual:
+                anim_nova.resetar()
 
     def mover(self, dx, dy, hitboxes_mapa=None):
         if hitboxes_mapa is None:
             hitboxes_mapa = []
             
         if not self.vivo or (dx == 0 and dy == 0):
-            self.mudar_estado("idle")
+            if f"idle_{self.direcao}" in self.animacoes:
+                self.mudar_estado(f"idle_{self.direcao}")
+            else:
+                self.mudar_estado("idle")
             return
             
-        self.mudar_estado("andar")
-        
-        # Define para onde a entidade está a olhar
-        if dx > 0:
-            self.virado_direita = True
-        elif dx < 0:
-            self.virado_direita = False
+        # Determina a direção predominante de movimento
+        if abs(dx) >= abs(dy):
+            self.direcao = "direita" if dx > 0 else "esquerda"
+            self.virado_direita = (dx > 0)
+        else:
+            self.direcao = "baixo" if dy > 0 else "cima"
+
+        if f"andar_{self.direcao}" in self.animacoes:
+            self.mudar_estado(f"andar_{self.direcao}")
+        elif "andar" in self.animacoes:
+            self.mudar_estado("andar")
+        elif "walk" in self.animacoes:
+            self.mudar_estado("walk")
+        else:
+            self.mudar_estado("andar")
             
         tamanho = math.hypot(dx, dy)
         dx = dx / tamanho

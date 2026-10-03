@@ -943,6 +943,17 @@ class CombatScreen:
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
                 self.adicionar_texto_flutuante(f"-{dano_fmt}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
+                # Ativa animação de dano ou morte no inimigo
+                if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
+                    if not getattr(alvo_r, 'vivo', True) and ("dead" in alvo_r.animacoes or "morte" in alvo_r.animacoes):
+                        est_m = "dead" if "dead" in alvo_r.animacoes else "morte"
+                        alvo_r.definir_estado(est_m)
+                    elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
+                        est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
+                        alvo_r.definir_estado(est_h)
+                        if hasattr(alvo_r.animacoes[est_h], 'resetar'):
+                            alvo_r.animacoes[est_h].resetar()
+
                 # Feedback narrativo se o alvo foi derrotado
                 if not getattr(alvo_r, 'vivo', True):
                     msg_morte = self._gerar_mensagem_morte_acao(alvo_r, acao)
@@ -972,6 +983,14 @@ class CombatScreen:
                 acao = random.choice(acoes_disponiveis)
         else:
             acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio") or SkillsRegistry.get("investida_sombria") or SkillsRegistry.get("ataque_basico")
+
+        # Ativa animação de ataque no inimigo
+        if hasattr(inimigo, 'definir_estado') and hasattr(inimigo, 'animacoes'):
+            if "attack" in inimigo.animacoes or "ataque" in inimigo.animacoes:
+                est_a = "attack" if "attack" in inimigo.animacoes else "ataque"
+                inimigo.definir_estado(est_a)
+                if hasattr(inimigo.animacoes[est_a], 'resetar'):
+                    inimigo.animacoes[est_a].resetar()
 
         resultado = acao.executar(inimigo, self.jogador)
         
@@ -1258,14 +1277,19 @@ class CombatScreen:
         total_inimigos = len(inimigos_vivos)
 
         for idx, inimigo in enumerate(inimigos_vivos):
-            pos_x = self.largura - 350
-            
             if total_inimigos == 1:
-                pos_y = 150
+                pos_x, pos_y = self.largura - 350, 150
             elif total_inimigos == 2:
-                pos_y = 75 + (idx * 175)
+                pos_x = self.largura - 350
+                pos_y = 65 if idx == 0 else 235
             else:
-                pos_y = 50 + (idx * 130)
+                # Formação tática em cunha: sem sobreposição entre barras de HP/MP e nomes
+                if idx == 0:
+                    pos_x, pos_y = self.largura - 260, 48
+                elif idx == 1:
+                    pos_x, pos_y = self.largura - 430, 155
+                else:
+                    pos_x, pos_y = self.largura - 260, 262
             
             offset_shake_x = random.randint(-3, 3) if self.shake_timers.get(inimigo, 0) > 0 else 0
             offset_shake_y = random.randint(-2, 2) if self.shake_timers.get(inimigo, 0) > 0 else 0
@@ -1286,11 +1310,41 @@ class CombatScreen:
                 tela.blit(cursor_txt, (draw_x - 30, draw_y + 15))
                 pygame.draw.rect(tela, TXT_SISTEMA_NARRADOR, rect_hitbox, 1)
 
+            # Atualiza Animações do Inimigo
+            if hasattr(inimigo, 'atualizar_animacao'):
+                # Transição automática de estados hurt/attack para idle quando finalizados
+                if getattr(inimigo, 'estado_atual', 'idle') == 'hurt' and getattr(inimigo.animacoes.get('hurt', None), 'concluida', False):
+                    inimigo.definir_estado('idle')
+                elif getattr(inimigo, 'estado_atual', 'idle') in ['attack', 'ataque'] and getattr(inimigo.animacoes.get('attack', inimigo.animacoes.get('ataque', None)), 'concluida', False):
+                    inimigo.definir_estado('idle')
+                inimigo.atualizar_animacao()
+
             # Renderiza Imagem ou Bloco Colorido
             imagem = getattr(inimigo, 'imagem_atual', None)
             if imagem:
-                img_combate = pygame.transform.scale(imagem, (inimigo.largura * 2, inimigo.altura * 2))
-                tela.blit(img_combate, (draw_x, draw_y))
+                # Inimigos na direita da arena encaram Halia na esquerda
+                if getattr(inimigo, 'virado_direita', True):
+                    img_virada = pygame.transform.flip(imagem, True, False)
+                else:
+                    img_virada = imagem
+                escala_c = getattr(inimigo, 'escala_combate', 0.85)
+                nw = max(1, int(img_virada.get_width() * escala_c))
+                nh = max(1, int(img_virada.get_height() * escala_c))
+                img_combate = pygame.transform.scale(img_virada, (nw, nh))
+
+                # Ancoragem bottom-center acima da elipse da plataforma
+                cx = draw_x + 40
+                cy = draw_y + 90
+                offset_flutuante = -16 if getattr(inimigo, 'flutuante', False) else 0
+                bx = cx - (nw // 2)
+                by = cy - nh + offset_flutuante
+
+                if self.shake_timers.get(inimigo, 0) > 6:
+                    flash_surf = img_combate.copy()
+                    flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
+                    tela.blit(flash_surf, (bx, by))
+                else:
+                    tela.blit(img_combate, (bx, by))
             else:
                 rect_inimigo = pygame.Rect(draw_x, draw_y, getattr(inimigo, 'largura', 40) * 2, getattr(inimigo, 'altura', 40) * 2)
                 cor_bloco = BRANCO if self.shake_timers.get(inimigo, 0) > 6 else getattr(inimigo, 'cor', (140, 40, 50))
@@ -1309,21 +1363,21 @@ class CombatScreen:
                 offset_icone_x += txt_badge.get_width() + 6
 
             # Barra de Vida Suave Interpolada
-            base_bar_y = draw_y + (getattr(inimigo, 'altura', 40) * 2) + 16
+            base_bar_y = draw_y + 105
             larg_bar_inimigo = 150
             alt_bar = 12
             vida_v = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
-            self.desenhar_barra(tela, draw_x, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
+            self.desenhar_barra(tela, draw_x - 15, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
             txt_hp = self.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_hp, (draw_x + larg_bar_inimigo + 10, base_bar_y - 2))
+            tela.blit(txt_hp, (draw_x - 15 + larg_bar_inimigo + 10, base_bar_y - 2))
 
             # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
             mana_max = getattr(inimigo, 'mana_maxima', 20)
             mana_v = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
             mp_bar_y = base_bar_y + 20
-            self.desenhar_barra(tela, draw_x, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
+            self.desenhar_barra(tela, draw_x - 15, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
             txt_mp = self.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_mp, (draw_x + larg_bar_inimigo + 10, mp_bar_y - 2))
+            tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
 
         # 3. RENDERIZAR HALIA (Lado Esquerdo)
         halia_x, halia_y = 160, 160
@@ -1336,13 +1390,34 @@ class CombatScreen:
         # Plataforma / Sombra sutil no chão sob Halia
         pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 10, draw_hy + 90, 105, 22))
 
-        # Imagem ou Bloco da Halia
-        img_halia = getattr(self.jogador, 'imagem_atual', None)
+        # Imagem ou Bloco da Halia (Sempre voltada para a direita durante o combate)
+        img_halia = None
+        if hasattr(self.jogador, 'animacoes') and "idle_direita" in self.jogador.animacoes:
+            anim_h = self.jogador.animacoes["idle_direita"]
+            anim_h.atualizar()
+            img_halia = anim_h.get_imagem()
+        elif hasattr(self.jogador, 'animacoes') and "andar_direita" in self.jogador.animacoes:
+            anim_h = self.jogador.animacoes["andar_direita"]
+            img_halia = anim_h.get_imagem()
+        
+        if not img_halia:
+            img_halia = ResourceManager.carregar_imagem("halia/andando_direita/Halia_parado_direita.png")
+        if not img_halia:
+            img_halia = getattr(self.jogador, 'imagem_atual', None)
+
+        larg_h = 64
+        alt_h = 96
+
         if img_halia:
-            img_c = pygame.transform.scale(img_halia, (self.jogador.largura * 2, self.jogador.altura * 2))
-            tela.blit(img_c, (draw_hx, draw_hy))
+            img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
+            if self.shake_timers.get(self.jogador, 0) > 6:
+                flash_surf = img_c.copy()
+                flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
+                tela.blit(flash_surf, (draw_hx, draw_hy))
+            else:
+                tela.blit(img_c, (draw_hx, draw_hy))
         else:
-            rect_h = pygame.Rect(draw_hx, draw_hy, 75, 95)
+            rect_h = pygame.Rect(draw_hx, draw_hy, larg_h, alt_h)
             cor_h = BRANCO if self.shake_timers.get(self.jogador, 0) > 6 else (34, 139, 34)
             pygame.draw.rect(tela, cor_h, rect_h)
             pygame.draw.rect(tela, CINZA_CLARO, rect_h, 2)
