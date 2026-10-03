@@ -30,6 +30,7 @@ class FiltroMemoria:
         
         self.estagio_atual = 0
         self.alpha_visual = float(self.ESTAGIOS[0]["alpha_cinza"])
+        self.desativado = False
         
         # Superfície de Flash / Onda de Expansão de Cor ao absorver memória
         self.overlay_flash = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
@@ -88,6 +89,9 @@ class FiltroMemoria:
         Gera uma cópia em escala de cinza real (Luminância) e a mescla com a tela original
         de acordo com o estágio de sincronia de memórias atual.
         """
+        if getattr(self, 'desativado', False):
+            return
+
         # Se estiver no estágio final (100% de cor) e sem transição, não precisa processar
         if self.alpha_visual < 1.0 and self.flash_alpha <= 0 and not self.onda_ativa:
             return

@@ -120,6 +120,7 @@ class EnemyFactory:
         mana_base = template.get("mana_base", atributos.calcular_mana_maxima(mana_base=20))
         mana_maxima = int(mana_base * fator_nivel)
 
+        pasta_sprites = template.get("pasta_sprites")
         inimigo = classe_instancia(
             nome=nome,
             vida_maxima=vida_maxima,
@@ -130,13 +131,15 @@ class EnemyFactory:
             dano=dano,
             atributos=atributos,
             recompensas=recompensas,
-            mana_maxima=mana_maxima
+            mana_maxima=mana_maxima,
+            pasta_sprites=pasta_sprites
         )
 
         inimigo.habilidades = list(template.get("habilidades", ["ataque_basico"]))
-        dimensoes = template.get("dimensoes", [40, 40])
-        inimigo.largura = dimensoes[0]
-        inimigo.altura = dimensoes[1]
+        if "dimensoes" in template and not inimigo.animacoes:
+            dimensoes = template.get("dimensoes", [40, 40])
+            inimigo.largura = dimensoes[0]
+            inimigo.altura = dimensoes[1]
         
         cor = template.get("cor", [150, 30, 50])
         inimigo.cor = tuple(cor)

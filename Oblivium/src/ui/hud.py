@@ -42,7 +42,7 @@ class HUD:
         
         # --- SUPORTE A SPRITES ---
         self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (75, 75))
-        self.sprite_halia = ResourceManager.carregar_imagem("Halia/halia_portrait.png", (52, 60))
+        self.sprite_halia = None  # Temporariamente desativado a pedido do usuário (aguardando novas artes)
         
         # Pré-carrega as 8 fases do amuleto
         self.sprites_memorias = {

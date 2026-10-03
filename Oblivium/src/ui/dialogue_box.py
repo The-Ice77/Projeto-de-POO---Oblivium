@@ -69,7 +69,7 @@ class DialogueBox:
 
         # -- RETRATOS EM CACHE --
         self.retratos = {
-            "Halia": ResourceManager.carregar_imagem("Halia/halia_portrait.png", (96, 124)),
+            "Halia": None,  # Temporariamente desativado a pedido do usuário (aguardando novas artes)
             "Torvin": ResourceManager.carregar_imagem("elementos/torvin_portrait.png", (96, 124)),
             "Carroceiro": ResourceManager.carregar_imagem("elementos/carroceiro_portrait.png", (96, 124))
         }

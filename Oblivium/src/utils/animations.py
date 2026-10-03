@@ -59,9 +59,15 @@ class ParticulaFlutuante:
         if self.y > self.altura_tela + 40 or self.x < -60 or self.x > self.largura_tela + 60:
             self.reset(inicializar_na_tela=False)
 
-    def desenhar(self, superficie):
+    def desenhar(self, superficie, areas_excluidas=None):
         if not self.sprite_base:
             return
+
+        # Verificação rápida por ponto central antes de aplicar transformações pesadas
+        if areas_excluidas:
+            for area in areas_excluidas:
+                if area.collidepoint(self.x, self.y):
+                    return
 
         rot_surf = pygame.transform.rotozoom(self.sprite_base, self.angulo, self.escala)
         if self.alpha < 255:
@@ -69,6 +75,14 @@ class ParticulaFlutuante:
             
         pos_x = int(self.x - rot_surf.get_width() // 2)
         pos_y = int(self.y - rot_surf.get_height() // 2)
+
+        # Verificação precisa de colisão com a área da superfície para evitar qualquer sobreposição indesejada
+        if areas_excluidas:
+            rect_particula = pygame.Rect(pos_x, pos_y, rot_surf.get_width(), rot_surf.get_height())
+            for area in areas_excluidas:
+                if area.colliderect(rect_particula):
+                    return
+
         superficie.blit(rot_surf, (pos_x, pos_y))
 
 
@@ -99,9 +113,9 @@ class EfeitoChuvaParticulas:
         for p in self.particulas:
             p.atualizar(dt)
 
-    def desenhar(self, superficie):
+    def desenhar(self, superficie, areas_excluidas=None):
         for p in self.particulas:
-            p.desenhar(superficie)
+            p.desenhar(superficie, areas_excluidas=areas_excluidas)
 
 
 class EfeitoPetalas(EfeitoChuvaParticulas):
@@ -116,3 +130,52 @@ class EfeitoPetalas(EfeitoChuvaParticulas):
             altura_tela=altura_tela,
             quantidade=quantidade_petalas
         )
+
+
+class EfeitoFolhas(EfeitoChuvaParticulas):
+    """
+    Efeito de chuva de folhas caindo e flutuando suavemente pelos cenários de Oblivium.
+    Neste início da jornada, utiliza exclusivamente as folhas verdes (frame 1 da spritesheet 'autumn leaf.png')
+    com variações espelhadas naturais para ambientação florestal viva.
+    """
+    def __init__(self, largura_tela=1280, altura_tela=720, quantidade_folhas=28, apenas_verdes=True):
+        todas_sprites = ResourceManager.carregar_spritesheet_grid(
+            "efeitos/folhas/autumn leaf.png",
+            colunas=4,
+            linhas=1
+        )
+        self.todas_sprites = todas_sprites
+        self.apenas_verdes = apenas_verdes
+
+        sprites_finais = self._obter_sprites_filtradas(apenas_verdes)
+
+        super().__init__(
+            sprites_ou_caminho=sprites_finais,
+            largura_tela=largura_tela,
+            altura_tela=altura_tela,
+            quantidade=quantidade_folhas,
+            velocidade_y=(20.0, 56.0),         # Queda suave e orgânica
+            vento_x=(-26.0, -8.0),             # Brisa constante soprando para a esquerda
+            sway_amplitude=(24.0, 50.0),       # Oscilação horizontal orgânica
+            sway_speed=(1.4, 2.6),             # Velocidade do balanço no vento
+            velocidade_rotacao=(-42.0, 42.0),  # Giro suave da folha
+            escala=(0.95, 1.45),               # Escala adequada para 16x16 pixels
+            alpha=(175, 245)                   # Transparência suave para profundidade 2.5D
+        )
+
+    def _obter_sprites_filtradas(self, apenas_verdes):
+        if apenas_verdes and len(self.todas_sprites) > 1:
+            # Frame 1 é a folha verde viva. Adiciona também versão espelhada horizontalmente
+            folha_verde = self.todas_sprites[1]
+            folha_verde_flip = pygame.transform.flip(folha_verde, True, False)
+            return [folha_verde, folha_verde_flip]
+        return self.todas_sprites
+
+    def definir_apenas_verdes(self, apenas_verdes=True):
+        """Alterna dinamicamente entre folhas estritamente verdes e o conjunto completo outonal."""
+        self.apenas_verdes = apenas_verdes
+        sprites_finais = self._obter_sprites_filtradas(apenas_verdes)
+        self.sprites = sprites_finais
+        for p in self.particulas:
+            p.sprites = sprites_finais
+            p.sprite_base = random.choice(sprites_finais)
