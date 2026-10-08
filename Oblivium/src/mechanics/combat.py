@@ -1101,6 +1101,10 @@ class CombatScreen:
             if self.timer_acao > 0:
                 self.timer_acao -= 1
             else:
+                # Se Halia foi derrotada nesta ação, transiciona diretamente para DERROTA
+                if not getattr(self.jogador, 'vivo', True) or self.jogador.vida_atual <= 0:
+                    self._finalizar_derrota()
+                    return self.estado_combate
                 self.indice_turno_atual += 1
                 self._avancar_para_proximo_turno()
 
@@ -1109,11 +1113,19 @@ class CombatScreen:
             if self.timer_acao > 0:
                 self.timer_acao -= 1
             else:
+                if not getattr(self.jogador, 'vivo', True) or self.jogador.vida_atual <= 0:
+                    self._finalizar_derrota()
+                    return self.estado_combate
                 if self.indice_turno_atual < len(self.ordem_turnos):
                     inimigo_atual = self.ordem_turnos[self.indice_turno_atual]
                     self._executar_turno_inimigo(inimigo_atual)
                 else:
                     self._avancar_para_proximo_turno()
+
+        # Checagem de segurança geral de derrota
+        if (not getattr(self.jogador, 'vivo', True) or self.jogador.vida_atual <= 0) and self.estado_combate not in ["DERROTA", "VITORIA", "FUGIU"]:
+            if getattr(self, 'timer_acao', 0) <= 0:
+                self._finalizar_derrota()
 
         return self.estado_combate
 
@@ -1441,7 +1453,8 @@ class CombatScreen:
         base_h_bar_y = draw_hy + 105
 
         self.desenhar_barra(tela, draw_hx, base_h_bar_y, vida_h_v, self.jogador.vida_maxima, BARRA_VIDA_JOGADOR, largura=larg_h_bar, altura=alt_h_bar)
-        tela.blit(self.fonte_status.render(f"HP {int(vida_h_v)}/{self.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y - 2))
+        hp_mostrado = 0 if (self.jogador.vida_atual <= 0 or not getattr(self.jogador, 'vivo', True)) else max(1, int(round(vida_h_v)))
+        tela.blit(self.fonte_status.render(f"HP {hp_mostrado}/{self.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y - 2))
 
         self.desenhar_barra(tela, draw_hx, base_h_bar_y + 20, mana_h_v, self.jogador.mana_maxima, BARRA_MANA, largura=larg_h_bar, altura=alt_h_bar)
         tela.blit(self.fonte_status.render(f"MP {int(mana_h_v)}/{self.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))

@@ -139,6 +139,7 @@ class Game:
             "LOJA": ShopState(self),
             "SLOTS": SlotsState(self) 
         }
+        self.nome_estado_atual = "MENU"
         self.estado_atual = self.estados["MENU"]
         self.origem_configuracoes = "MENU"
         self.origem_creditos = "MENU"
@@ -150,6 +151,7 @@ class Game:
     def mudar_estado(self, novo_estado):
         """Altera dinamicamente o comportamento e as telas do jogo"""
         if novo_estado in self.estados:
+            self.nome_estado_atual = novo_estado
             self.estado_atual = self.estados[novo_estado]
             if novo_estado == "MENU":
                 self.menu.atualizar_opcoes()
@@ -183,14 +185,19 @@ class Game:
             # Interceptação global de notificações e comandos do dev
             eventos = self.notificacoes.handle_events(eventos)
 
+            dev_ativo = False
             if hasattr(self, 'dev_commands') and self.dev_commands:
                 eventos_restantes = []
                 for ev in eventos:
                     if not self.dev_commands.processar_evento(ev):
                         eventos_restantes.append(ev)
                 eventos = eventos_restantes
+                dev_ativo = getattr(self.dev_commands, 'ativo', False)
 
-            self.estado_atual.handle_events(eventos, teclas)
+            # Silencia comandos de movimento contínuo da Halia se o console dev estiver na tela
+            teclas_ativas = [False] * len(teclas) if dev_ativo else teclas
+
+            self.estado_atual.handle_events(eventos, teclas_ativas)
             self.estado_atual.update()
             self.notificacoes.update()
             
@@ -201,8 +208,10 @@ class Game:
             if hasattr(self, 'dev_commands') and self.dev_commands:
                 self.dev_commands.desenhar(self.tela)
 
-            # Notificações globais desenhadas no topo
-            self.notificacoes.draw(self.tela)
+            # Notificações globais desenhadas no topo apenas em telas que NÃO possuem filtro de memória próprio
+            # (Em PlayingState e CombatState, as notificações são desenhadas antes do filtro para serem afetadas por ele)
+            if getattr(self, 'nome_estado_atual', '') not in ["JOGANDO", "COMBATE"]:
+                self.notificacoes.draw(self.tela)
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -365,10 +374,28 @@ class Game:
             self.halia.ataques_fisicos = list(halia_dados["ataques_fisicos"])
         
         carroceiro_dados = dados.get("carroceiro", {})
-        self.carroceiro.x = carroceiro_dados.get("x", 200)
-        self.carroceiro.y = carroceiro_dados.get("y", 330)
-        self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
-        self.carroceiro_andando = carroceiro_dados.get("andando", False)
+        conversa_terminou = carroceiro_dados.get("conversa_terminou", flags.get("conversa_carroceiro_terminou", False))
+        self.conversa_carroceiro_terminou = conversa_terminou
+
+        if cenario_salvo == "CASA":
+            self.carroceiro.x = carroceiro_dados.get("x", 1350)
+            self.carroceiro.y = carroceiro_dados.get("y", 330)
+            self.carroceiro_visivel = carroceiro_dados.get("visivel", False)
+            self.carroceiro_andando = False
+            self.carroceiro.velocidade = 2
+        elif cenario_salvo == "ESTRADA":
+            padrao_x = 900 if conversa_terminou else 1350
+            self.carroceiro.x = carroceiro_dados.get("x", padrao_x)
+            self.carroceiro.y = carroceiro_dados.get("y", 330)
+            self.carroceiro_visivel = carroceiro_dados.get("visivel", conversa_terminou)
+            self.carroceiro_andando = carroceiro_dados.get("andando", False)
+            self.carroceiro.velocidade = 2 if not conversa_terminou else 0
+        else:  # ESTRADA_2
+            self.carroceiro.x = carroceiro_dados.get("x", 200)
+            self.carroceiro.y = carroceiro_dados.get("y", 330)
+            self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
+            self.carroceiro_andando = False
+            self.carroceiro.velocidade = 0
         
         # 4. Sincroniza imediatamente o Filtro de Memória, HUD e telas visuais com o save carregado
         if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
@@ -418,6 +445,7 @@ class Game:
         
         # Reset do Carroceiro
         self.carroceiro.x, self.carroceiro.y = 1350, 330
+        self.carroceiro.velocidade = 2
         self.carroceiro_visivel = False
         self.carroceiro_andando = False
         self.conversa_carroceiro_terminou = False
