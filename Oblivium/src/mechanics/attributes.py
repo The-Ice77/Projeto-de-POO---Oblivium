@@ -81,6 +81,10 @@ class Atributos:
         """Calcula recuperação de mana durante a ação de Concentrar."""
         return max(5, 5 + self.mod_pre * 2 + self.mod_sab)
 
+    def calcular_regeneracao_mana(self, base=3):
+        """Calcula a regeneração passiva de mana por turno baseada em Sabedoria e Presença."""
+        return max(base, base + self.mod_sab + (self.mod_pre // 2))
+
     # ==========================================
     # TESTES DE PERÍCIA / DESAFIOS
     # ==========================================

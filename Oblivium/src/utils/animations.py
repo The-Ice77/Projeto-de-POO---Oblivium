@@ -59,8 +59,8 @@ class ParticulaFlutuante:
         if self.y > self.altura_tela + 40 or self.x < -60 or self.x > self.largura_tela + 60:
             self.reset(inicializar_na_tela=False)
 
-    def desenhar(self, superficie, areas_excluidas=None):
-        if not self.sprite_base:
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+        if not self.sprite_base or alpha_multiplicador <= 0.01:
             return
 
         # Verificação rápida por ponto central antes de aplicar transformações pesadas
@@ -70,8 +70,9 @@ class ParticulaFlutuante:
                     return
 
         rot_surf = pygame.transform.rotozoom(self.sprite_base, self.angulo, self.escala)
-        if self.alpha < 255:
-            rot_surf.set_alpha(self.alpha)
+        alpha_final = int(self.alpha * alpha_multiplicador)
+        if alpha_final < 255:
+            rot_surf.set_alpha(max(0, min(255, alpha_final)))
             
         pos_x = int(self.x - rot_surf.get_width() // 2)
         pos_y = int(self.y - rot_surf.get_height() // 2)
@@ -109,13 +110,20 @@ class EfeitoChuvaParticulas:
             for _ in range(quantidade)
         ]
 
+    def reiniciar(self, inicializar_na_tela=True):
+        """Reinicia e redistribui todas as partículas na tela."""
+        for p in self.particulas:
+            p.reset(inicializar_na_tela=inicializar_na_tela)
+
     def atualizar(self, dt=0.016):
         for p in self.particulas:
             p.atualizar(dt)
 
-    def desenhar(self, superficie, areas_excluidas=None):
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+        if alpha_multiplicador <= 0.01:
+            return
         for p in self.particulas:
-            p.desenhar(superficie, areas_excluidas=areas_excluidas)
+            p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
 
 
 class EfeitoPetalas(EfeitoChuvaParticulas):
@@ -123,12 +131,13 @@ class EfeitoPetalas(EfeitoChuvaParticulas):
     Efeito de chuva de pétalas em segundo plano para o menu e cenas de Oblivium.
     Reutiliza a base de EfeitoChuvaParticulas e ResourceManager.
     """
-    def __init__(self, largura_tela=1280, altura_tela=720, quantidade_petalas=30):
+    def __init__(self, largura_tela=1280, altura_tela=720, quantidade_petalas=30, **kwargs):
         super().__init__(
             sprites_ou_caminho="menu inicial/Spritesheet - Petálas Caindo.png",
             largura_tela=largura_tela,
             altura_tela=altura_tela,
-            quantidade=quantidade_petalas
+            quantidade=quantidade_petalas,
+            **kwargs
         )
 
 

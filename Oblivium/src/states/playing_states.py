@@ -209,13 +209,17 @@ class PlayingState(State):
                 return
 
         # MINIGAMES: Exclusivamente tecla ESPAÇO
-        if self.game.mg_timing.ativo:
+        if hasattr(self.game, 'transicao') and self.game.transicao.estado == "EXIBINDO_TEXTO":
+            if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
+                self.game.transicao.avancar()
+                return
+        elif self.game.mg_timing.ativo:
             if evento.key == pygame.K_SPACE:
                 self._checar_sucesso_timing()
         elif self.game.mg_mash.ativo:
             if evento.key == pygame.K_SPACE:
                 self.game.mg_mash.esmagar()
-        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
             if self.game.caixa_dialogo.em_escolha:
@@ -258,7 +262,10 @@ class PlayingState(State):
                 self.game.mudar_estado("INVENTARIO")
                 return
                 
-        if self.game.flashback_sistema.estado == "ESCURIDAO":
+        if hasattr(self.game, 'transicao') and self.game.transicao.estado == "EXIBINDO_TEXTO":
+            self.game.transicao.avancar()
+            return
+        elif self.game.flashback_sistema.estado == "ESCURIDAO":
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
             if self.game.caixa_dialogo.em_escolha:
