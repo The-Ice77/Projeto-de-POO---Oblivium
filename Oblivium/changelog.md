@@ -132,3 +132,13 @@
 - **Efeito de Folhas Verdes no Cenário**: Partículas orgânicas flutuando com velocidade senoidal, brisa suave e giro contínuo para enriquecer a atmosfera do overworld.
 - **Isolamento da Residência de Halia**: Exclusão da área interna da casa contra a queda de folhas, garantindo que o quarto e móveis fiquem protegidos sob o teto.
 - **Limpeza Tática de Combate**: Manutenção da arena de batalha limpa e sem interferência visual de folhas caindo durante os turnos de combate.
+
+---
+
+### Atualização v[0.7.2] — Poética Visual: Pétalas, Datilografia e Ritmo de Combate
+#### Implementação, Correção e Aprimoramento
+- **Introdução Datilografada com Pétalas**: Narrativa de abertura com efeito máquina de escrever (typewriter), layout estável anti-oscilação, cursor editorial piscante e chuva de pétalas do menu principal sob fundo Carvão Profundo.
+- **Memórias e Flashbacks Imersivos**: Textos do *Eco do Passado* e pensamentos de Halia agora são revelados caractere por caractere com chuva suave de pétalas de memória e aceleração interativa (`Enter`, `Espaço` ou clique do mouse).
+- **Transição de Cenários Aprimorada**: Brisa atmosférica de pétalas flutuando durante o fade, acompanhada de títulos de capítulos e locais datilografados sobre ornamentação botânica com opção de avanço dinâmico.
+- **Motor de Partículas Modular**: Adicionado `alpha_multiplicador` dinâmico em tempo real, método `reiniciar()` para reposicionamento instantâneo e suporte a `**kwargs` em `EfeitoPetalas` para escalas e velocidades personalizadas.
+- **Regeneração de Mana em Combate**: Inimigos agora regeneram mana adequadamente a cada passagem de turno baseando-se no atributo de Sabedoria, com animação de barra interpolada, feedback flutuante na arena e IA tática para concentração.
