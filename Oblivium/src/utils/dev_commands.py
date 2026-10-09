@@ -171,19 +171,36 @@ class ComandosDev:
         idx = (mapas_ciclo.index(cenario_atual) + 1) % len(mapas_ciclo) if cenario_atual in mapas_ciclo else 0
         novo_mapa = mapas_ciclo[idx]
 
+        # Limpa diálogos e transições pendentes
+        if hasattr(self.game, 'caixa_dialogo'):
+            self.game.caixa_dialogo.ativo = False
+        if hasattr(self.game, 'transicao'):
+            self.game.transicao.estado = "INATIVO"
+
         self.game.mudar_estado("JOGANDO")
         self.game.mapa_casa.carregar_cenario(novo_mapa)
 
         if novo_mapa == "CASA":
             self.game.halia.x, self.game.halia.y = 210, 280
+            self.game.carroceiro_visivel = False
+            self.game.carroceiro_andando = False
+            self.game.carroceiro.x, self.game.carroceiro.y = 1350, 330
+            self.game.carroceiro.velocidade = 2
+            self.game.carroceiro.mudar_estado("idle")
         elif novo_mapa == "ESTRADA":
             self.game.halia.x, self.game.halia.y = 100, 350
             self.game.carroceiro_visivel = True
+            self.game.carroceiro_andando = False
             self.game.carroceiro.x, self.game.carroceiro.y = 900, 330
+            self.game.carroceiro.velocidade = 0
+            self.game.carroceiro.mudar_estado("idle")
         elif novo_mapa == "ESTRADA_2":
             self.game.halia.x, self.game.halia.y = 100, 350
             self.game.carroceiro_visivel = True
+            self.game.carroceiro_andando = False
             self.game.carroceiro.x, self.game.carroceiro.y = 200, 330
+            self.game.carroceiro.velocidade = 0
+            self.game.carroceiro.mudar_estado("idle")
 
         self.game.inimigos_em_cena.clear()
         self.game.cena_inimigos_andando = False
@@ -195,13 +212,11 @@ class ComandosDev:
     def cmd_curar_total(self):
         """Restaura Vida e Mana totais da Halia."""
         if hasattr(self.game, 'halia'):
-            self.game.halia.vida_atual = self.game.halia.vida_maxima
-            self.game.halia.mana_atual = self.game.halia.mana_maxima
-            self.game.halia.vivo = True
-            self.game.halia.condicoes.clear()
-            self.game.halia.defendendo = False
-            self.game.halia.vulneravel = False
-            self.game.halia.focado = False
+            self.game.halia.restaurar_total()
+            # Sincroniza barras de combate caso esteja na arena de batalha
+            if hasattr(self.game, 'tela_combate') and hasattr(self.game.tela_combate, 'vidas_visuais'):
+                self.game.tela_combate.vidas_visuais[self.game.halia] = float(self.game.halia.vida_atual)
+                self.game.tela_combate.manas_visuais[self.game.halia] = float(self.game.halia.mana_atual)
         self._notificar("Restauração", "Vida e Mana restauradas ao máximo!", icone="✦")
 
     def cmd_adicionar_moedas(self):
@@ -220,9 +235,16 @@ class ComandosDev:
                 self.game.halia.fragmentos_memoria = 0
                 msg = "Memórias resetadas para o estado inicial (0/7)."
 
+            self.game.halia.nivel_sincronia = 1 + self.game.halia.fragmentos_memoria
+            self.game.halia.recalcular_status_derivados(manter_porcentagem=False)
             self.game.halia.atualizar_grimorio()
             if hasattr(self.game, 'filtro_memoria'):
                 self.game.filtro_memoria.definir_estagio(self.game.halia.fragmentos_memoria, com_transicao_suave=True)
+            # Sincroniza a memória anterior do PlayingState e do HUD para evitar disparo indevido da tela solene
+            if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
+                self.game.estados["JOGANDO"].memoria_anterior_registrada = self.game.halia.fragmentos_memoria
+            if hasattr(self.game, 'hud') and self.game.hud:
+                self.game.hud.memorias_coletadas = self.game.halia.fragmentos_memoria
             self._notificar("Despertar de Memórias", msg, icone="◈")
 
     def cmd_desobstruir_estrada(self):
@@ -241,6 +263,10 @@ class ComandosDev:
 
     def cmd_iniciar_combate(self):
         """Dispara a transição para a tela de combate com um inimigo de teste."""
+        if getattr(self.game, 'nome_estado_atual', '') == "COMBATE":
+            self._notificar("Arena de Batalha", "Você já está em combate!", icone="⚠")
+            return
+
         from src.entities.enemy_factory import EnemyFactory
         inimigo_teste = EnemyFactory.criar("demonio_inferior", x=900, y=360, nome_custom="Demônio de Treino")
 

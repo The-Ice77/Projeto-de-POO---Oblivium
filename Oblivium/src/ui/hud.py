@@ -142,7 +142,8 @@ class HUD:
             vida_atual, vida_maxima,
             BARRA_VIDA_JOGADOR, (50, 16, 18), BORDA_PADRAO
         )
-        txt_hp_num = self.fonte_status.render(f"HP {int(vida_atual)}/{int(vida_maxima)}", True, MARFIM_OFFWHITE)
+        hp_num = 0 if (vida_atual <= 0 or not getattr(halia, 'vivo', True)) else max(1, int(round(vida_atual)))
+        txt_hp_num = self.fonte_status.render(f"HP {hp_num}/{int(vida_maxima)}", True, MARFIM_OFFWHITE)
         surface_hud.blit(txt_hp_num, (x_conteudo + w_barra + 8, y_hp - 1))
 
         # Barra de Mana (MP)

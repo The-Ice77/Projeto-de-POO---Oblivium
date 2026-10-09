@@ -38,11 +38,30 @@ class PlayingState(State):
     def update(self):
         # Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo)
         self.game.tempo_jogado += 1 / 60.0
+
+        # Verificação de Morte de Halia no Overworld
+        if not getattr(self.game.halia, 'vivo', True) or self.game.halia.vida_atual <= 0:
+            if hasattr(self.game, 'transicao'):
+                if self.game.transicao.estado == "INATIVO":
+                    self.game.transicao.iniciar("Halia sucumbiu... Retornando ao último marco.")
+                elif self.game.transicao.estado == "ESCURO":
+                    from src.utils import save_manager
+                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
+                        self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
+                    elif self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="manual"):
+                        self.game.carregar_estado(self.game.slot_atual, tipo="manual")
+                    else:
+                        self.game.halia.restaurar_total()
+                        self.game.mapa_casa.carregar_cenario("CASA")
+                        self.game.halia.x, self.game.halia.y = 210, 280
+                    self.game.transicao.estado = "CLAREANDO"
+            return
         
         # Gerencia e dispara a tela solene de despertar de memória
         mem_atual = getattr(self.game.halia, 'fragmentos_memoria', 0)
         if mem_atual > self.memoria_anterior_registrada:
-            if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado == "INATIVO":
+            # Só inicia o despertar se não houver diálogos ativos
+            if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado == "INATIVO" and not self.game.caixa_dialogo.ativo:
                 self.game.tela_despertar.iniciar(self.memoria_anterior_registrada, mem_atual)
         elif mem_atual < self.memoria_anterior_registrada:
             # Caso ocorra regressão de memórias, ajusta o filtro imediatamente de forma suave
@@ -312,7 +331,7 @@ class PlayingState(State):
             elif self.game.magia_usada_no_puzzle == "LEVITAR":
                 boss = EnemyFactory.criar_boss("demonio_superior", x=1180, y=310, nome_custom="Demônio Superior (Chefe)")
                 boss.velocidade = 3.5
-                boss.recompensas = {"moedas": 45, "memorias": 1, "xp": 80}
+                boss.recompensas = {"moedas": 45, "memorias": 0, "xp": 80}
                 boss.virado_direita = False
                 boss.direcao = "esquerda"
                 self.game.inimigos_em_cena.append(boss)
@@ -352,7 +371,10 @@ class PlayingState(State):
             self.game.transicao.iniciar("Seguindo viagem...")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA" and not self.game.carroceiro_visivel and self.game.halia.x > 640:
-            self.game.carroceiro_visivel = True; self.game.carroceiro_andando = True
+            self.game.carroceiro_visivel = True
+            self.game.carroceiro_andando = True
+            self.game.carroceiro.velocidade = 2
+            self.game.carroceiro.mudar_estado("andar")
             self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_avistar_carroceiro))
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and not self.game.investigou_pedras and self.game.halia.x > 1000:
@@ -550,6 +572,12 @@ class PlayingState(State):
     def _entrar_na_estrada_1(self):
         self.game.mapa_casa.carregar_cenario("ESTRADA")
         self.game.halia.x, self.game.halia.y = 40, 330
+        if not getattr(self.game, 'conversa_carroceiro_terminou', False):
+            self.game.carroceiro_visivel = False
+            self.game.carroceiro_andando = False
+            self.game.carroceiro.x, self.game.carroceiro.y = 1350, 330
+            self.game.carroceiro.velocidade = 2
+            self.game.carroceiro.mudar_estado("idle")
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
         pygame.event.clear()
