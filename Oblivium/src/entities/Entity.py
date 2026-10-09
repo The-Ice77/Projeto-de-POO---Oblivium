@@ -23,7 +23,7 @@ class Entidade(ABC):
         self.nome = nome
         self.atributos = atributos if atributos is not None else Atributos()
         self.vida_maxima = vida_maxima
-        self.vida_atual = vida_maxima
+        self._vida_atual = float(vida_maxima)
         
         # Sistema de Mana baseada em Atributos ou valor explícito
         if mana_maxima is not None:
@@ -64,6 +64,24 @@ class Entidade(ABC):
         
         # Imagem atual a ser renderizada
         self.imagem_atual = None
+
+    @property
+    def vida_atual(self):
+        return self._vida_atual
+
+    @vida_atual.setter
+    def vida_atual(self, valor):
+        try:
+            val = round(float(valor), 1)
+        except (ValueError, TypeError):
+            val = 0.0
+        if val <= 0.0:
+            self._vida_atual = 0.0
+            if getattr(self, 'vivo', True):
+                self.vivo = False
+                self.morrer()
+        else:
+            self._vida_atual = min(float(self.vida_maxima), val)
 
     def definir_animacao(self, estado, animacao):
         """
@@ -194,19 +212,15 @@ class Entidade(ABC):
 
     def receber_dano(self, dano):
         if not self.vivo: return
-        self.vida_atual = max(0, round(self.vida_atual - dano, 1))
-        if self.vida_atual <= 0:
-            self.vida_atual = 0
-            self.vivo = False
-            self.morrer()
+        self.vida_atual = self._vida_atual - float(dano)
             
     def esta_vivo(self):
         """Retorna se a entidade está viva e com pontos de vida."""
-        return self.vivo and self.vida_atual > 0
+        return self.vivo and self._vida_atual > 0.0
 
     def curar(self, cura):
         if not self.vivo: return
-        self.vida_atual = min(self.vida_maxima, round(self.vida_atual + cura, 1))
+        self.vida_atual = self._vida_atual + float(cura)
 
     def recuperar_mana(self, quantidade):
         """Recupera mana sem ultrapassar o limite máximo."""
@@ -222,9 +236,9 @@ class Entidade(ABC):
 
     def restaurar_total(self):
         """Restaura vida e mana para os valores máximos, limpa estados e reanima a entidade."""
-        self.vida_atual = self.vida_maxima
-        self.mana_atual = self.mana_maxima
         self.vivo = True
+        self._vida_atual = float(self.vida_maxima)
+        self.mana_atual = self.mana_maxima
         self.defendendo = False
         self.vulneravel = False
         self.focado = False
