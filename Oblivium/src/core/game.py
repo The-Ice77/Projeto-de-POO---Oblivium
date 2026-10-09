@@ -172,6 +172,10 @@ class Game:
             on_fuga=on_fuga
         )
 
+    def iniciar_dialogo(self, id_ou_dados):
+        """Inicia uma conversa ou fala através da caixa de diálogo central."""
+        self.caixa_dialogo.iniciar_dialogo(id_ou_dados)
+
     def run(self):
         """Loop principal e delegação de controle para o estado ativo"""
         while self.running:

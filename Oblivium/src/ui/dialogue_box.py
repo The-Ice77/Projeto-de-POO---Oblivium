@@ -11,16 +11,19 @@ from src.utils.colors import (
     AZUL_HOVER_MENU, AZUL_HOVER_BG, AZUL_HOVER_BORDA
 )
 from src.utils.resource_manager import ResourceManager
+from src.mechanics.dialogue_manager import DialogueManager
 
 class DialogueBox:
     """
-    Caixa de Diálogo e Sistema de Escolhas de Oblivium:
+    Caixa de Diálogo e Sistema de Escolhas de Oblivium (Visual + POO):
+    - Conectada ao DialogueManager (leitura de JSON estruturado em nós)
     - Fundo escuro em Carvão Profundo com contorno sutil de 1px
     - Suporte universal a Retrato (Portrait) para NPCs e Halia
-    - Sistema de Escolhas lado a lado (grade 2 colunas) com cabeçalho de conversa
+    - Sistema de Escolhas lado a lado (grade 2 colunas) com cabeçalho dinâmico
     - Destaques visuais e hover no padrão azul clarinho do menu inicial
+    - Totalmente retrocompatível com chamadas legadas de listas de falas
     """
-    def __init__(self, largura_tela):
+    def __init__(self, largura_tela, manager=None):
         self.fonte_texto = ResourceManager.carregar_fonte("contrail", 20)
         self.fonte_nome = ResourceManager.carregar_fonte("sunday", 24)
         self.fonte_titulo_escolha = ResourceManager.carregar_fonte("sunday", 20)
@@ -30,8 +33,10 @@ class DialogueBox:
         self.largura_tela = largura_tela
         self.largura_maxima = largura_tela - 220 
         self.ativo = False
-        self.dialogos = [] 
-        self.indice_atual = 0
+        
+        # Gerenciador de Diálogos por Nós
+        self.manager = manager or DialogueManager()
+        self.dados_atuais = None
         
         # --- MÁQUINA DE ESCREVER ---
         self.texto_completo = ""
@@ -46,7 +51,6 @@ class DialogueBox:
         self.cabecalho_escolha = "Sobre o que deseja conversar?"
         self.opcoes_disponiveis = []
         self.opcao_selecionada = 0
-        self.historico_escolhas = set() 
         self.rects_opcoes = []
         self.opcoes_por_pagina = 4
 
@@ -63,7 +67,6 @@ class DialogueBox:
         
         # -- CONTROLE DE CANCELAMENTO --
         self.pode_fechar = False
-        self.resultado_fechar = []
         self.id_cancelamento_no = None
         self.opcao_cancelada_id = None
 
@@ -74,75 +77,99 @@ class DialogueBox:
             "Carroceiro": ResourceManager.carregar_imagem("elementos/carroceiro_portrait.png", (96, 124))
         }
 
-    def iniciar_dialogo(self, lista_dialogos):
-        self.dialogos = lista_dialogos
-        self.indice_atual = 0
+    @property
+    def historico_escolhas(self):
+        """Compartilha o histórico de escolhas diretamente com o DialogueManager."""
+        return self.manager.historico_escolhas
+
+    @historico_escolhas.setter
+    def historico_escolhas(self, novo_historico):
+        """Permite que o save_manager restaure o histórico de escolhas perfeitamente."""
+        self.manager.historico_escolhas = set(novo_historico)
+
+    def iniciar_dialogo(self, origem_dialogo):
+        """
+        Inicia uma conversa:
+        - `origem_dialogo` pode ser o ID do diálogo no JSON ("hub_carroceiro")
+        - ou uma lista de dicionários [{"autor": "...", "texto": "..."}] (modo legado)
+        """
+        if isinstance(origem_dialogo, str):
+            sucesso = self.manager.iniciar_conversa(origem_dialogo)
+        elif isinstance(origem_dialogo, list):
+            sucesso = self.manager.iniciar_lista_direta(origem_dialogo)
+        elif isinstance(origem_dialogo, dict):
+            sucesso = self.manager.iniciar_lista_direta([origem_dialogo])
+        else:
+            sucesso = False
+
+        if not sucesso:
+            self.ativo = False
+            return
+
         self.ativo = True
-        
-        self.em_escolha = False
-        self.texto_completo = ""
-        self.linhas_completas = []
-        self.tamanho_total = 0
-        self.caractere_atual = 0
-        self.tempo_ultimo_input = pygame.time.get_ticks() 
-        
-        self._configurar_texto_atual()
+        self.opcao_cancelada_id = None
+        self.tempo_ultimo_input = pygame.time.get_ticks()
+        self._sincronizar_com_manager()
 
-    def _configurar_texto_atual(self):
-        if self.indice_atual < len(self.dialogos):
-            dados_atuais = self.dialogos[self.indice_atual]
-            
-            if "escolhas" in dados_atuais:
-                self.pode_fechar = dados_atuais.get("pode_fechar", False)
-                self.resultado_fechar = dados_atuais.get("resultado_fechar", [])
-                self.id_cancelamento_no = dados_atuais.get("id_cancelamento", None)
-                self.opcao_cancelada_id = None 
-                self.pagina_atual = 0
-                
-                self.opcoes_disponiveis = [
-                    opt for opt in dados_atuais["escolhas"] 
-                    if opt.get("id") not in self.historico_escolhas
-                ]
-                
-                # Se todas as opções já foram esgotadas, não exibe a área de escolhas vazia
-                if not self.opcoes_disponiveis:
-                    self.em_escolha = False
-                    if "resultado_sem_opcoes" in dados_atuais and dados_atuais["resultado_sem_opcoes"]:
-                        self.iniciar_dialogo(dados_atuais["resultado_sem_opcoes"])
-                    elif self.resultado_fechar:
-                        self.iniciar_dialogo(self.resultado_fechar)
-                    else:
-                        self.indice_atual += 1
-                        if self.indice_atual >= len(self.dialogos):
-                            self.ativo = False
-                        else:
-                            self._configurar_texto_atual()
-                    return
+    def _sincronizar_com_manager(self):
+        """Lê o nó ativo do DialogueManager e ajusta o estado da UI correspondente."""
+        no = self.manager.obter_no_atual()
+        if not self.manager.ativo or not no:
+            self.ativo = False
+            self.em_escolha = False
+            self.dados_atuais = None
+            return
 
-                self.em_escolha = True
-                self.cabecalho_escolha = dados_atuais.get("cabecalho", dados_atuais.get("titulo", "Sobre o que deseja conversar?"))
-                self.opcao_selecionada = 0
-                self.texto_completo = ""
-                self.linhas_completas = []
-                self.tamanho_total = 0
-                self.caractere_atual = 0
-                self.rects_opcoes = [] 
+        self.ativo = True
+        self.dados_atuais = no
+
+        tipo_no = no.get("tipo", "fala")
+        if tipo_no == "escolha" or "escolhas" in no:
+            self.em_escolha = True
+            self.pode_fechar = no.get("pode_fechar", False)
+            self.id_cancelamento_no = no.get("id_cancelamento", None)
+            self.cabecalho_escolha = no.get("cabecalho", no.get("titulo", "Sobre o que deseja conversar?"))
+            self.pagina_atual = 0
+            self.opcao_selecionada = 0
+            self.rects_opcoes = []
+            self.texto_completo = ""
+            self.linhas_completas = []
+            self.tamanho_total = 0
+            self.caractere_atual = 0
+
+            if "opcoes" in no:
+                self.opcoes_disponiveis = self.manager.obter_opcoes_filtradas()
             else:
-                self.em_escolha = False
-                self.pode_fechar = False 
-                self.texto_completo = dados_atuais.get("texto", "")
-                
-                # Largura disponível com espaço para o retrato e margens confortáveis
-                autor = dados_atuais.get("autor", "Narrador")
-                tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])
-                largura_caixa = min(960, self.largura_tela - 80)
-                largura_util = largura_caixa - (180 if tem_retrato else 70)
-                
-                self.linhas_completas = quebrar_texto_em_linhas(self.texto_completo, self.fonte_texto, largura_util)
-                self.tamanho_total = sum(len(l) for l in self.linhas_completas)
-                self.caractere_atual = 0
+                # Suporte a listas legadas com 'escolhas'
+                self.opcoes_disponiveis = [
+                    opt for opt in no.get("escolhas", [])
+                    if opt.get("id") not in self.manager.historico_escolhas
+                ]
+
+            # Caso todas as opções já tenham sido consumidas
+            if not self.opcoes_disponiveis:
+                if self.pode_fechar:
+                    self.manager.cancelar_escolha()
+                    self._sincronizar_com_manager()
+                else:
+                    self.manager.avancar()
+                    self._sincronizar_com_manager()
+        else:
+            self.em_escolha = False
+            self.pode_fechar = False
+            self.texto_completo = no.get("texto", "")
+
+            autor = no.get("autor", "Narrador")
+            tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])
+            largura_caixa = min(960, self.largura_tela - 80)
+            largura_util = largura_caixa - (180 if tem_retrato else 70)
+
+            self.linhas_completas = quebrar_texto_em_linhas(self.texto_completo, self.fonte_texto, largura_util)
+            self.tamanho_total = sum(len(l) for l in self.linhas_completas)
+            self.caractere_atual = 0
 
     def proximo_texto(self):
+        """Avança o texto (máquina de escrever -> próximo nó da narrativa)."""
         if not self.ativo: return
 
         tempo_atual = pygame.time.get_ticks()
@@ -151,12 +178,8 @@ class DialogueBox:
 
         if self.em_escolha:
             if not self.opcoes_disponiveis:
-                self.em_escolha = False
-                self.indice_atual += 1
-                if self.indice_atual >= len(self.dialogos):
-                    self.ativo = False
-                else:
-                    self._configurar_texto_atual()
+                self.manager.avancar()
+                self._sincronizar_com_manager()
                 return
             self.confirmar_escolha()
             return
@@ -164,25 +187,34 @@ class DialogueBox:
         if self.caractere_atual < self.tamanho_total:
             self.caractere_atual = self.tamanho_total
         else:
-            self.indice_atual += 1
-            if self.indice_atual >= len(self.dialogos):
-                self.ativo = False 
+            continua = self.manager.avancar()
+            if continua:
+                self._sincronizar_com_manager()
             else:
-                self._configurar_texto_atual()
+                self.ativo = False
 
     def confirmar_escolha(self):
-        if self.opcoes_disponiveis:
-            if 0 <= self.opcao_selecionada < len(self.opcoes_disponiveis):
-                escolha = self.opcoes_disponiveis[self.opcao_selecionada]
-                
-                if "id" in escolha and escolha["id"] != "prosseguir" and not escolha.get("repetivel", False):
-                    self.historico_escolhas.add(escolha["id"])
-                
-                self.em_escolha = False 
-                self.iniciar_dialogo(escolha["resultado"])
-        else:
-            self.em_escolha = False
+        """Confirma a opção atualmente selecionada no menu de escolhas."""
+        if not self.opcoes_disponiveis:
             self.ativo = False
+            self.em_escolha = False
+            return
+
+        if 0 <= self.opcao_selecionada < len(self.opcoes_disponiveis):
+            escolha = self.opcoes_disponiveis[self.opcao_selecionada]
+            
+            # Se for legado (contém chave "resultado" em dict/list)
+            if "resultado" in escolha:
+                opt_id = escolha.get("id")
+                if opt_id and opt_id != "prosseguir" and not escolha.get("repetivel", False):
+                    self.manager.historico_escolhas.add(opt_id)
+                self.iniciar_dialogo(escolha["resultado"])
+            else:
+                self.manager.escolher_opcao(escolha)
+                self._sincronizar_com_manager()
+        else:
+            self.ativo = False
+            self.em_escolha = False
 
     def controlar_menu_escolhas(self, tecla):
         if not self.ativo or not self.em_escolha or not self.opcoes_disponiveis: return False
@@ -230,9 +262,8 @@ class DialogueBox:
         # 3. Navegação Vertical (CIMA / BAIXO ou W / S)
         if tecla in [pygame.K_UP, pygame.K_w]:
             if row > 0:
-                self.opcao_selecionada = inicio + (col)
+                self.opcao_selecionada = inicio + col
             else:
-                # Topo da página -> vai para página anterior ou wrap
                 if self.pagina_atual > 0:
                     self.pagina_atual -= 1
                     prev_inicio = self.pagina_atual * self.opcoes_por_pagina
@@ -251,7 +282,6 @@ class DialogueBox:
             elif row == 0 and 2 < num_opcoes_pagina:
                 self.opcao_selecionada = inicio + 2
             else:
-                # Base da página -> vai para próxima página ou wrap
                 if self.pagina_atual < total_paginas - 1:
                     self.pagina_atual += 1
                     next_inicio = self.pagina_atual * self.opcoes_por_pagina
@@ -301,7 +331,7 @@ class DialogueBox:
         return False
 
     def rolar_pagina(self, delta_y):
-        """Suporte a roda do mouse (scroll) para mudar páginas de escolhas."""
+        """Suporte à roda do mouse (scroll) para mudar páginas de escolhas."""
         if not self.ativo or not self.em_escolha or not self.opcoes_disponiveis: return
         total_paginas = max(1, (len(self.opcoes_disponiveis) - 1) // self.opcoes_por_pagina + 1)
         if total_paginas <= 1: return
@@ -333,13 +363,9 @@ class DialogueBox:
         
         if self.em_escolha:
             if self.pode_fechar and self.rect_botao_x.collidepoint(posicao_mouse):
-                self.em_escolha = False
-                self.opcao_cancelada_id = self.id_cancelamento_no 
-                if self.resultado_fechar:
-                    self.iniciar_dialogo(self.resultado_fechar)
-                else:
-                    self.ativo = False
-                    self.opcoes_disponiveis = []
+                self.opcao_cancelada_id = self.id_cancelamento_no
+                self.manager.cancelar_escolha()
+                self._sincronizar_com_manager()
                 return
                 
             total_paginas = (len(self.opcoes_disponiveis) - 1) // self.opcoes_por_pagina + 1
@@ -367,7 +393,7 @@ class DialogueBox:
                 self.caractere_atual = self.tamanho_total
 
     def desenhar(self, tela):
-        if not self.ativo or self.indice_atual >= len(self.dialogos) or self.indice_atual < 0:
+        if not self.ativo or not self.dados_atuais:
             self.ativo = False 
             return
 
@@ -392,7 +418,7 @@ class DialogueBox:
         return MARFIM_OFFWHITE
 
     def _desenhar_texto_corrido(self, tela):
-        dados = self.dialogos[self.indice_atual]
+        dados = self.dados_atuais or {}
         autor = dados.get("autor", "Narrador")
         tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])
 
@@ -430,7 +456,6 @@ class DialogueBox:
                 sprite_redim = pygame.transform.smoothscale(sprite_retrato, (w_ret - 2, h_ret - 2))
                 tela.blit(sprite_redim, (x_ret + 1, y_ret + 1))
             else:
-                # Avatar estilizado com inicial do NPC
                 f_ini = ResourceManager.carregar_fonte("sunday", 36)
                 txt_ini = f_ini.render(autor[0].upper() if autor else "?", True, MARFIM_OFFWHITE)
                 tela.blit(txt_ini, txt_ini.get_rect(center=rect_ret.center))
@@ -463,7 +488,7 @@ class DialogueBox:
                 tela.blit(render_texto, (pos_x_texto, y_linha))
             y_linha += 26
 
-        # 5. Indicador de Avanço Estático e Limpo (sem caixa azul ao redor)
+        # 5. Indicador de Avanço Estático e Limpo
         if self.caractere_atual >= self.tamanho_total:
             txt_avanco = self.fonte_rodape.render("▼  [ ENTER ou Clique para avançar ]", True, UI_TEXTO_APAGADO)
             pos_x_av = x_caixa + largura_caixa - txt_avanco.get_width() - 24

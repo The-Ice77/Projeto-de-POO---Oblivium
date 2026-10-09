@@ -1,7 +1,5 @@
 # src/mechanics/cutscene_manager.py
 import pygame
-import copy
-from src.data.dialogos import conversa_pos_fogo, conversa_pos_levitar
 
 class CutsceneManager:
     def __init__(self, game):
@@ -43,8 +41,7 @@ class CutsceneManager:
             if self.game.bola_fogo_x >= 1100:
                 self.game.bola_fogo_ativa = False
                 self.game.mapa_casa.desobstruir_estrada("FOGO")
-                dialogo_completo = [{"autor": "Narrador", "texto": "BOOM! A bola de fogo estilhaça o bloqueio em mil pedaços."}] + copy.deepcopy(conversa_pos_fogo)
-                self.game.caixa_dialogo.iniciar_dialogo(dialogo_completo)
+                self.game.caixa_dialogo.iniciar_dialogo("pos_fogo")
                 self.game.magia_ativa = "CONCLUIDO"
                 self.game.conversa_combate_ativa = True
 
@@ -56,8 +53,7 @@ class CutsceneManager:
                     else: pedra.y += 3; pedra.x += 1
         else:
             self.game.mapa_casa.desobstruir_estrada("LEVITAR")
-            dialogo_completo = [{"autor": "Narrador", "texto": "Com um gesto suave, as pedras erguem-se no ar e organizam-se nas margens da estrada."}] + copy.deepcopy(conversa_pos_levitar)
-            self.game.caixa_dialogo.iniciar_dialogo(dialogo_completo)
+            self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
             self.game.magia_ativa = "CONCLUIDO"
             self.game.conversa_combate_ativa = True
 
