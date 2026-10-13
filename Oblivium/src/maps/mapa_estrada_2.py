@@ -96,6 +96,27 @@ class MapaEstrada2(CenarioBase):
             (610, 485, "tufo_grama"), (780, 490, "arbusto"),
         ]
 
+        # 6. Poças d'Água Acumuladas no Deslizamento e Estrada de Terra
+        self.pocas_agua = [
+            # Perto da barreira de pedras e terra (no trecho livre antes do bloqueio)
+            (810, 330, "poca_grande_02"),
+            (830, 270, "poca_pequena_01"),
+            (850, 400, "poca_pequena_03"),
+            # Poças no trecho intermediário da estrada
+            (560, 360, "poca_media_01"),
+            (420, 280, "poca_media_02"),
+            (680, 290, "poca_ondulacao_01"),
+            (690, 405, "poca_pequena_02"),
+            # Poças no início oeste da estrada
+            (210, 335, "poca_grande_03"),
+            (110, 400, "poca_media_03"),
+            (150, 265, "poca_pequena_01"),
+            (360, 385, "poca_mini_01"),
+        ]
+
+        self.timer_pocas = 0.0
+        self.frame_poca_atual = 0
+
         super().__init__(game, largura_tela, altura_tela, nome="ESTRADA_2")
 
     def carregar_recursos(self):
@@ -153,6 +174,42 @@ class MapaEstrada2(CenarioBase):
             "flor_silvestre": ResourceManager.carregar_imagem(f"{p_veg}/Vegetation_012.png", (20, 20)),
         }
 
+        # 6. Poças de Água (Estáticas e Ondulações Animadas)
+        p_pocas = "assets/cenario/pisos_externos/agua/pocas_agua"
+        p_anim = f"{p_pocas}/animadas"
+        self.sprites_pocas = {
+            "poca_lagoa_01": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_lagoa_01.png"),
+            "poca_grande_02": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_grande_02.png"),
+            "poca_grande_03": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_grande_03.png"),
+            "poca_media_01": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_media_01.png"),
+            "poca_media_02": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_media_02.png"),
+            "poca_media_03": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_media_03.png"),
+            "poca_pequena_01": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_pequena_01.png"),
+            "poca_pequena_02": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_pequena_02.png"),
+            "poca_pequena_03": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_pequena_03.png"),
+            "poca_pequena_04": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_pequena_04.png"),
+            "poca_mini_01": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_mini_01.png"),
+            "poca_ondulacao_01": ResourceManager.carregar_imagem(f"{p_pocas}/poca_agua_ondulacao_01.png"),
+        }
+
+        self.anim_pocas = {}
+        for chave in ["poca_grande_02", "poca_grande_03", "poca_media_01", "poca_media_02", "poca_pequena_02", "poca_ondulacao_01"]:
+            frames = []
+            nome_arq = f"poca_agua_{chave.replace('poca_', '')}"
+            for fr in range(6):
+                f_img = ResourceManager.carregar_imagem(f"{p_anim}/{nome_arq}_f{fr}.png")
+                if f_img:
+                    frames.append(f_img)
+            if frames:
+                self.anim_pocas[chave] = frames
+
+    def atualizar(self, dt=0.016):
+        """Atualiza a taxa de ondulação da água nas poças do deslizamento."""
+        self.timer_pocas += dt
+        if self.timer_pocas >= 0.18:
+            self.timer_pocas = 0.0
+            self.frame_poca_atual = (self.frame_poca_atual + 1) % 6
+
     def inicializar_cenario(self):
         """Configura hitboxes das barreiras, árvores em pé e pedras do deslizamento."""
         self.hitboxes = []
@@ -206,20 +263,31 @@ class MapaEstrada2(CenarioBase):
             ]
 
     def desenhar_camada_inferior(self, tela):
-        """Renderiza chão com estrada, vegetação e cascalho do deslizamento."""
+        """Renderiza chão com estrada, poças d'água com ondulações, vegetação e cascalho do deslizamento."""
         if self.chao_completo:
             tela.blit(self.chao_completo, (0, 0))
         else:
             tela.fill(CENARIO_GRAMA_CINZA)
             pygame.draw.rect(tela, CENARIO_ESTRADA, self.area_estrada)
 
-        # 1. Vegetação sobrevivente nas margens
+        # 1. Poças d'água acumuladas pelo deslizamento de terra (com ondulação suave e reflexos)
+        frame_poca = self.frame_poca_atual
+        for px, py, chave in self.pocas_agua:
+            frames = self.anim_pocas.get(chave)
+            if frames:
+                sprite = frames[frame_poca % len(frames)]
+            else:
+                sprite = self.sprites_pocas.get(chave)
+            if sprite:
+                tela.blit(sprite, (px, py))
+
+        # 2. Vegetação sobrevivente nas margens
         for px, py, chave in self.vegetacao_margem:
             sprite = self.sprites_veg.get(chave)
             if sprite:
                 tela.blit(sprite, (px, py))
 
-        # 2. Cascalho e detritos menores da avalanche
+        # 3. Cascalho e detritos menores da avalanche
         for px, py, chave in self.pedras_espalhadas:
             sprite = self.sprites_detritos.get(chave)
             if sprite:

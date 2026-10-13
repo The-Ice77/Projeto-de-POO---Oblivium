@@ -99,6 +99,10 @@ class PlayingState(State):
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
             self.game.efeito_folhas.atualizar()
 
+        # Atualiza o cenário ativo (animações de ambiente como poças de água)
+        if hasattr(self.game, 'mapa_casa') and self.game.mapa_casa:
+            self.game.mapa_casa.atualizar(0.016)
+
         self.game.caixa_dialogo.atualizar()
         self.cutscene.atualizar_magia()
         self._update_minigames_e_flashbacks()
