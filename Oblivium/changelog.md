@@ -187,3 +187,14 @@
 - **Validação Rigorosa de 100% dos Assets**: Teste automatizado de integridade via Pygame em todas as 739 imagens de efeitos (`fogo`: 60 pastas / 473 frames, `explosao`: 3 pastas / 116 frames, `sangue`: 5 pastas / 150 frames), confirmando 0 erros e ausência de cortes nas bordas.
 - **Exclusão Segura da Pasta Estrangeira**: Comprovação de que todos os sprites e animações foram devidamente transferidos e recortados, seguida da remoção definitiva da pasta temporária `assets/fogo, explosão e sangue`, mantendo o diretório `assets/` limpo e padronizado.
 - **Aumento Proporcional do Pássaro**: Introduzido suporte a fator de escala dinâmica na hierarquia de `Animal(Entidade, ABC)`. O `Passaro` foi ajustado com escala `1.35x` (passando de ~14px para ~19px na tela), com raio de sombra 2.5D ampliado proporcionalmente (`w=8`, `h=4`) e ancoragem perfeita no solo, garantindo presença visual mais nítida e harmoniosa na Estrada 1 sem perder o charme da pixel art.
+
+---
+
+### Atualização v[0.7.7] — Aerodinâmica Orgânica e Voo Tranquilo da Fauna
+#### Implementação, Correção e Aprimoramento
+- **Voo Tranquilo, Sereno e Contemplativo (`Passaro`)**: Reformulação completa da velocidade de voo e ritmo de asas. A velocidade horizontal foi calibrada para uma faixa calma de 62 a 78 px/s (com elevação suave de 22 a 28 px/s), permitindo ao jogador apreciar a travessia aérea do pássaro pelo cenário sem disparar como um míssil.
+- **Cadência Suave de Batimento de Asas**: Redução da velocidade da animação (`0.15`), conferindo um ritmo relaxado e elegante às asas (~2.3 batimentos por segundo), com ciclos visíveis de abertura e sustentação.
+- **Micro-Flutuação Orgânica em Sincronia de Asas**: Flutuação vertical puramente sincronizada com a fase de empuxo das asas ($\pm 1.2\text{px}$ casado com a batida para baixo), simulando sustentação biológica real e eliminando tremores ou oscilações de alta frequência.
+- **Preservação e Nitidez da Pixel Art**: Eliminação de rotações angulares fracionárias contínuas que causavam distorção de pixel e tremor em 1px. O pássaro utiliza sua postura diagonal nativa desenhada pelo artista ($20^\circ$ ascendente), mantendo a silhueta 100% nítida e estável.
+- **Pouso em Planeio Gracioso**: Ao descer para o ninho (`pousando`), o pássaro plana com batimentos mais espaçados (`0.12`), desacelerando gradualmente nos últimos metros até pousar delicadamente na relva.
+- **Correção dos Frames de Animação de Voo**: Restauração da opacidade total nos frames `voo_06.png` e `voo_07.png`, eliminando o bug de semi-transparência intermitente.

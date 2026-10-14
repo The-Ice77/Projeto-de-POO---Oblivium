@@ -38,6 +38,8 @@ class Animal(Entidade, ABC):
         self.virado_direita = (direcao_inicial == "direita")
         self.escala = float(escala)
         self.visivel = True
+        self.angulo = 0.0  # Inclinação angular (graus) para alinhamento aerodinâmico à trajetória
+        self.offset_y_ondulacao = 0.0  # Micro-flutuação senoidal vertical acompanhando as asas
 
         # Temporizador e máquina de estados do animal
         self.timer_acao = random.uniform(1.5, 3.5)
@@ -108,7 +110,7 @@ class Animal(Entidade, ABC):
             tela.blit(surf_sombra, (pos_sombra_x, pos_sombra_y))
 
     def desenhar(self, tela):
-        """Renderiza a sombra suave no solo e a sprite animada da criatura."""
+        """Renderiza a sombra suave no solo e a sprite animada da criatura com rotação de trajetória."""
         if not self.visivel:
             return
 
@@ -130,9 +132,15 @@ class Animal(Entidade, ABC):
             sh = max(1, int(img.get_height() * self.escala))
             img = pygame.transform.scale(img, (sw, sh))
 
-        # Posicionamento com compensação da altitude Z (voo ou salto)
+        # Aplica rotação para alinhamento corporal à direção exata de voo
+        angulo = getattr(self, 'angulo', 0.0)
+        if abs(angulo) > 0.5:
+            img = pygame.transform.rotate(img, angulo)
+
+        # Posicionamento com compensação da altitude Z (voo ou salto) e micro-ondulação das asas
+        ondulacao = getattr(self, 'offset_y_ondulacao', 0.0)
         pos_x = int(self.x - img.get_width() // 2)
-        pos_y = int((self.y - self.altitude) - img.get_height() // 2)
+        pos_y = int((self.y - self.altitude + ondulacao) - img.get_height() // 2)
 
         tela.blit(img, (pos_x, pos_y))
 
@@ -172,10 +180,13 @@ class Passaro(Animal):
         self.sombra_raio_h = 4
         self.sombra_alpha = 75
 
-        # Física de voo
+        # Física e aerodinâmica de voo orgânico e tranquilo
         self.vx = 0.0
         self.vy = 0.0
-        self.taxa_subida = 75.0
+        self.vx_alvo = 0.0
+        self.taxa_subida_atual = 0.0
+        self.taxa_subida_alvo = 25.0
+        self.tempo_voo = 0.0
         self.timer_retorno = 0.0
         self.alvo_x = self.x_origem
         self.alvo_y = self.y_origem
@@ -186,39 +197,59 @@ class Passaro(Animal):
         frames_bicar = ResourceManager.carregar_frames_pasta("animais/passaro/animacoes/bicar")
         frames_voo = ResourceManager.carregar_frames_pasta("animais/passaro/animacoes/voo")
 
-        # Configura as animações na estrutura herdada de Entidade
+        # Configura as animações na estrutura herdada de Entidade com cadência calma e serena
         self.animacoes["idle"] = Animacao(frames_idle, velocidade=0.15, loop=True)
         self.animacoes["pulo"] = Animacao(frames_pulo, velocidade=0.16, loop=False)
         self.animacoes["bicar"] = Animacao(frames_bicar, velocidade=0.18, loop=False)
-        self.animacoes["voo"] = Animacao(frames_voo, velocidade=0.28, loop=True)
+        self.animacoes["voo"] = Animacao(frames_voo, velocidade=0.15, loop=True)
 
         self.estado_atual = "idle"
 
     def reagir_ao_jogador(self, pos_jogador):
-        """Ao notar a aproximação de Halia, alça voo em curva diagonal batendo asas."""
+        """Ao notar a aproximação de Halia, alça voo sereno e tranquilo batendo asas suavemente."""
         if self.estado_atual in ["idle", "pulo", "bicar"]:
             self.estado_atual = "voo"
-            px, _ = pos_jogador
+            self.tempo_voo = 0.0
+            px, py = pos_jogador
             
-            # Foge na direção oposta ao jogador
-            if px < self.x:
-                self.virado_direita = True
-                self.vx = random.uniform(115.0, 150.0)
-            else:
-                self.virado_direita = False
-                self.vx = random.uniform(-150.0, -115.0)
+            # Foge na direção oposta ao jogador (vetor relativo no plano 2.5D)
+            dx = self.x - px
+            dy = self.y - py
+            if abs(dx) < 1.0:
+                dx = random.choice([-1.0, 1.0])
 
-            self.vy = random.uniform(-65.0, -45.0)
+            self.virado_direita = (dx > 0)
+            
+            # Velocidade horizontal tranquila e contemplativa (sem disparar como foguete)
+            vel_h = random.uniform(62.0, 78.0)
+            self.vx_alvo = (1.0 if self.virado_direita else -1.0) * vel_h
+            self.vx = self.vx_alvo * 0.45
+            
+            # Deslocamento calmo no plano do chão afastando-se suavemente de Halia
+            dir_y = 1.0 if dy > 0 else -0.8
+            self.vy = random.uniform(-10.0, -3.0) + dir_y * random.uniform(2.0, 5.0)
+            
+            # Subida suave e graciosa (elevação calma)
+            self.taxa_subida_atual = random.uniform(38.0, 48.0)
+            self.taxa_subida_alvo = random.uniform(22.0, 28.0)
             self.altitude = 4.0
+            self.angulo = 0.0
+            self.offset_y_ondulacao = 0.0
+
             voo_anim = self.animacoes.get("voo")
             if voo_anim:
+                voo_anim.velocidade = 0.16  # Batimento calmo e cadenciado
                 voo_anim.resetar()
 
     def atualizar_comportamento(self, dt):
-        """Executa a máquina de estados do pássaro com física 2.5D de salto e voo."""
+        """Executa a máquina de estados do pássaro com física fluida e batimento orgânico de asas."""
         anim_atual = self.animacoes.get(self.estado_atual)
         if anim_atual:
             anim_atual.atualizar()
+
+        if self.estado_atual in ["idle", "bicar", "pulo"]:
+            self.offset_y_ondulacao = 0.0
+            self.angulo = 0.0
 
         if self.estado_atual == "idle":
             self.altitude = 0.0
@@ -248,16 +279,37 @@ class Passaro(Animal):
                     anim_atual.resetar()
 
         elif self.estado_atual == "voo":
+            self.tempo_voo += dt
+
+            # Aceleração serena até a velocidade de cruzeiro tranquila
+            self.vx += (self.vx_alvo - self.vx) * min(1.0, 3.0 * dt)
+            self.taxa_subida_atual += (self.taxa_subida_alvo - self.taxa_subida_atual) * min(1.0, 2.5 * dt)
+
+            if abs(self.vx) > 0.5:
+                self.virado_direita = (self.vx > 0)
+
             self.x += self.vx * dt
             self.y += self.vy * dt
-            self.altitude += self.taxa_subida * dt
+            self.altitude += self.taxa_subida_atual * dt
+
+            # Sprite permanece com sua pixel art original 100% nítida e sem distorção angular
+            self.angulo = 0.0
+
+            # Flutuação vertical orgânica em sincronia exata com o ciclo das asas (fase de sustentação)
+            if anim_atual:
+                fase_asa = ((anim_atual.frame_atual % 4.0) / 4.0) * 2.0 * math.pi
+                self.offset_y_ondulacao = -math.cos(fase_asa) * 1.2
+            else:
+                self.offset_y_ondulacao = 0.0
 
             # Só desaparece ao sair fisicamente dos limites da tela
             altura_efetiva = self.y - self.altitude
-            if self.x < -60 or self.x > 1340 or altura_efetiva < -60:
+            if self.x < -80 or self.x > 1360 or altura_efetiva < -80:
                 self.visivel = False
-                self.timer_retorno = random.uniform(8.0, 15.0)
+                self.timer_retorno = random.uniform(10.0, 18.0)
                 self.estado_atual = "fora_da_tela"
+                self.angulo = 0.0
+                self.offset_y_ondulacao = 0.0
 
         elif self.estado_atual == "fora_da_tela":
             self.timer_retorno -= dt
@@ -265,20 +317,44 @@ class Passaro(Animal):
                 self._iniciar_pouso()
 
         elif self.estado_atual == "pousando":
-            # Descida suave em direção ao ninho/origem
+            self.tempo_voo += dt
             dx = self.alvo_x - self.x
             dy = self.alvo_y - self.y
             dist = math.hypot(dx, dy)
-            if dist > 6.0 and self.altitude > 2.0:
-                self.x += (dx / dist) * (self.velocidade * 0.8) * dt
-                self.y += (dy / dist) * (self.velocidade * 0.8) * dt
-                self.altitude = max(0.0, self.altitude - (self.taxa_subida * 0.85) * dt)
+
+            # Orienta suavemente na direção do ninho/solo
+            if abs(dx) > 3.0:
+                self.virado_direita = (dx > 0)
+
+            if dist > 5.0 and self.altitude > 1.5:
+                # Aproximação suave e desaceleração progressiva ao chegar perto do solo
+                fator_prox = min(1.0, dist / 45.0)
+                vel_descida = max(24.0, 56.0 * fator_prox)
+                
+                passo_x = (dx / dist) * vel_descida * dt
+                passo_y = (dy / dist) * vel_descida * dt
+                self.x += passo_x
+                self.y += passo_y
+
+                taxa_descida = max(12.0, 26.0 * min(1.0, self.altitude / 30.0))
+                self.altitude = max(0.0, self.altitude - taxa_descida * dt)
+                self.angulo = 0.0
+
+                # Micro-ondulação suave das asas enquanto plana
+                if anim_atual:
+                    fase_asa = ((anim_atual.frame_atual % 4.0) / 4.0) * 2.0 * math.pi
+                    self.offset_y_ondulacao = -math.cos(fase_asa) * 0.8 * min(1.0, self.altitude / 20.0)
             else:
                 self.x = self.alvo_x
                 self.y = self.alvo_y
                 self.altitude = 0.0
+                self.angulo = 0.0
+                self.offset_y_ondulacao = 0.0
                 self.estado_atual = "idle"
-                self.timer_acao = random.uniform(2.0, 4.0)
+                self.timer_acao = random.uniform(2.5, 4.5)
+                voo_anim = self.animacoes.get("voo")
+                if voo_anim:
+                    voo_anim.velocidade = 0.15
 
     def _sortear_acao_solo(self):
         """Alterna entre olhar para o outro lado, bicar o chão ou dar pulinho curto."""
@@ -309,17 +385,27 @@ class Passaro(Animal):
                 pulo_anim.resetar()
 
     def _iniciar_pouso(self):
-        """Prepara o retorno do pássaro para descer no cenário."""
+        """Prepara o retorno do pássaro para descer no cenário em planeio suave."""
         self.visivel = True
         self.estado_atual = "pousando"
-        self.alvo_x = self.x_origem + random.uniform(-40.0, 40.0)
+        self.tempo_voo = 0.0
+        self.alvo_x = self.x_origem + random.uniform(-35.0, 35.0)
         self.alvo_y = self.y_origem + random.uniform(-10.0, 10.0)
         
-        # Nasce no céu descendo suavemente
-        self.x = self.alvo_x + random.choice([-150.0, 150.0])
-        self.y = self.alvo_y - 120.0
-        self.altitude = 120.0
+        # Nasce suavemente no céu próximo em direção ao ninho
+        dist_x = random.uniform(100.0, 140.0)
+        sinal = random.choice([-1.0, 1.0])
+        self.x = self.alvo_x + (sinal * dist_x)
+        self.y = self.alvo_y - 45.0
+        self.altitude = 65.0
         self.virado_direita = (self.alvo_x > self.x)
+        self.angulo = 0.0
+        self.offset_y_ondulacao = 0.0
+
+        voo_anim = self.animacoes.get("voo")
+        if voo_anim:
+            voo_anim.velocidade = 0.12  # Voo sereno e planado ao descer
+            voo_anim.resetar()
 
 
 class Gato(Animal):
