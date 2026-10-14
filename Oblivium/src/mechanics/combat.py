@@ -301,7 +301,8 @@ class CombatScreen:
                 if r.get("mensagem"):
                     self.adicionar_log(r["mensagem"])
                 if r.get("dano", 0) > 0:
-                    self.adicionar_texto_flutuante(f"-{r['dano']}", entidade_atual.x + 20, entidade_atual.y, TEXTO_ALERTA_COMBATE)
+                    ex, ey = self._obter_posicao_combate(entidade_atual)
+                    self.adicionar_texto_flutuante(f"-{r['dano']}", ex + 20, ey, TEXTO_ALERTA_COMBATE)
                     self.shake_timers[entidade_atual] = 8
 
             if not getattr(entidade_atual, 'vivo', True):
@@ -323,11 +324,30 @@ class CombatScreen:
             if self.jogador.mana_atual < self.jogador.mana_maxima:
                 mana_reg = max(4, 4 + self.jogador.atributos.mod_sab + (self.jogador.atributos.mod_pre // 2))
                 self.jogador.recuperar_mana(mana_reg)
-                self.adicionar_texto_flutuante(f"+{mana_reg} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA, duracao=60)
+                hx, hy = self._obter_posicao_combate(self.jogador)
+                self.adicionar_texto_flutuante(f"+{mana_reg} MP", hx + 30, hy + 15, BARRA_MANA, duracao=60)
 
             self.estado_combate = "MENU_PRINCIPAL"
             self.indice_menu = 0
         else:
+            # Regeneração passiva natural de mana por turno do Inimigo conforme os turnos avançam
+            mana_atual = getattr(entidade_atual, 'mana_atual', 0)
+            mana_max = getattr(entidade_atual, 'mana_maxima', 20)
+            if mana_atual < mana_max and hasattr(entidade_atual, 'recuperar_mana'):
+                if hasattr(entidade_atual, 'atributos') and hasattr(entidade_atual.atributos, 'calcular_regeneracao_mana'):
+                    bonus_chefe = 2 if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, 'eh_chefe', False)) else 0
+                    mana_reg = entidade_atual.atributos.calcular_regeneracao_mana(base=3 + bonus_chefe)
+                else:
+                    mod_sab = getattr(entidade_atual.atributos, 'mod_sab', 0) if hasattr(entidade_atual, 'atributos') else 0
+                    mod_pre = getattr(entidade_atual.atributos, 'mod_pre', 0) if hasattr(entidade_atual, 'atributos') else 0
+                    bonus_chefe = 2 if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, 'eh_chefe', False)) else 0
+                    mana_reg = max(3, 3 + mod_sab + (mod_pre // 2) + bonus_chefe)
+
+                mana_efetiva = min(mana_max - mana_atual, mana_reg)
+                entidade_atual.recuperar_mana(mana_reg)
+                ex, ey = self._obter_posicao_combate(entidade_atual)
+                self.adicionar_texto_flutuante(f"+{int(mana_efetiva)} MP", ex + 30, ey + 15, BARRA_MANA, duracao=60)
+
             self.estado_combate = "TURNO_INIMIGO"
             self.timer_acao = self._ajustar_timer(55)
 
@@ -767,12 +787,13 @@ class CombatScreen:
         if res.get("mensagem"):
             self.adicionar_log(res["mensagem"])
 
+        hx, hy = self._obter_posicao_combate(self.jogador)
         if res.get("tipo") == "CURA_HP" and res.get("valor", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{res['valor']}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
+            self.adicionar_texto_flutuante(f"+{res['valor']}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{res['valor']} MP", self.jogador.x + 30, self.jogador.y - 10, BARRA_MANA)
+            self.adicionar_texto_flutuante(f"+{res['valor']} MP", hx + 30, hy - 10, BARRA_MANA)
         elif res.get("tipo") == "CURA_CONDICAO":
-            self.adicionar_texto_flutuante("PURIFICADO", self.jogador.x + 10, self.jogador.y - 10, (160, 230, 200))
+            self.adicionar_texto_flutuante("PURIFICADO", hx + 10, hy - 10, (160, 230, 200))
 
     def _executar_uso_item_ofensivo(self, item, alvo):
         """Arremessa frasco ou item ofensivo em um inimigo durante a batalha."""
@@ -789,14 +810,15 @@ class CombatScreen:
             self.adicionar_log(res["mensagem"])
 
         dano = res.get("valor", 0)
+        ax, ay = self._obter_posicao_combate(alvo)
         if dano > 0:
             self.shake_timers[alvo] = self._ajustar_timer(15)
-            self.adicionar_texto_flutuante(f"-{dano}", alvo.x + 20, alvo.y - 10, (255, 100, 80))
+            self.adicionar_texto_flutuante(f"-{dano}", ax + 20, ay - 10, (255, 100, 80))
 
         if not getattr(alvo, 'vivo', True):
             msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
             self.adicionar_log(msg_morte)
-            self.adicionar_texto_flutuante("DERROTADO", alvo.x + 10, alvo.y - 30, (255, 60, 60))
+            self.adicionar_texto_flutuante("DERROTADO", ax + 10, ay - 30, (255, 60, 60))
 
     def _selecionar_ataque_fisico(self):
         """Seleciona o ataque físico do submenu para execução contra o alvo."""
@@ -908,19 +930,20 @@ class CombatScreen:
         if resultado.get("mensagem"):
             self.adicionar_log(resultado["mensagem"])
 
+        hx, hy = self._obter_posicao_combate(self.jogador)
         cura_direta = float(resultado.get("cura", 0) or 0)
         if cura_direta > 0:
             cura_fmt = int(cura_direta) if cura_direta.is_integer() else f"{cura_direta:.1f}"
-            self.adicionar_texto_flutuante(f"+{cura_fmt}", self.jogador.x + 30, self.jogador.y - 10, BARRA_VIDA_JOGADOR)
+            self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
             mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
-            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", self.jogador.x + 30, self.jogador.y + 15, BARRA_MANA, duracao=80)
+            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
-            self.adicionar_texto_flutuante("EM GUARDA!", self.jogador.x + 30, self.jogador.y - 10, (100, 210, 255), duracao=80)
+            self.adicionar_texto_flutuante("EM GUARDA!", hx + 30, hy - 10, (100, 210, 255), duracao=80)
         if resultado.get("vulneravel"):
-            self.adicionar_texto_flutuante("VULNERÁVEL!", self.jogador.x + 30, self.jogador.y - 10, (240, 130, 130), duracao=80)
+            self.adicionar_texto_flutuante("VULNERÁVEL!", hx + 30, hy - 10, (240, 130, 130), duracao=80)
 
         # 2. Trata lista de resultados de alvos (ataques e magias)
         for r in resultado.get("resultados", []):
@@ -930,6 +953,7 @@ class CombatScreen:
             alvo_r = r.get("alvo")
             dano_r = float(r.get("dano", 0) or 0)
             cura_r = float(r.get("cura", 0) or 0)
+            ax, ay = self._obter_posicao_combate(alvo_r) if alvo_r else (self.largura - 350, 150)
 
             if r.get("errou", False) and alvo_r:
                 if r.get("motivo") == "esquiva":
@@ -938,10 +962,10 @@ class CombatScreen:
                 else:
                     texto_erro = "ERROU!"
                     cor_erro = (240, 160, 100) # Âmbar
-                self.adicionar_texto_flutuante(texto_erro, alvo_r.x + 20, alvo_r.y - 15, cor_erro, duracao=80)
+                self.adicionar_texto_flutuante(texto_erro, ax + 20, ay - 15, cor_erro, duracao=80)
             elif dano_r > 0 and alvo_r:
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
-                self.adicionar_texto_flutuante(f"-{dano_fmt}", alvo_r.x + 20, alvo_r.y, TEXTO_ALERTA_COMBATE)
+                self.adicionar_texto_flutuante(f"-{dano_fmt}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
                 # Ativa animação de dano ou morte no inimigo
                 if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
@@ -960,7 +984,7 @@ class CombatScreen:
                     self.adicionar_log(msg_morte)
             elif cura_r > 0 and alvo_r:
                 cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
-                self.adicionar_texto_flutuante(f"+{cura_fmt}", alvo_r.x + 20, alvo_r.y - 10, BARRA_VIDA_JOGADOR)
+                self.adicionar_texto_flutuante(f"+{cura_fmt}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
 
     def _executar_turno_inimigo(self, inimigo):
         """IA do inimigo: seleciona habilidade temática e executa contra Halia."""
@@ -975,6 +999,15 @@ class CombatScreen:
             if acao_cand and acao_cand.pode_usar(inimigo):
                 acoes_disponiveis.append(acao_cand)
                 
+        # IA Tática de Mana: se o monstro/chefe possui magias no kit, mas está sem mana suficiente,
+        # possui uma chance de canalizar energia (Concentrar) para recarregar mana
+        if hasattr(inimigo, 'atributos') and (isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo.atributos, 'intelecto', 0) >= 12):
+            tem_magia_kit = any(getattr(SkillsRegistry.get(h), 'custo_mana', 0) > 0 for h in kit)
+            if tem_magia_kit and getattr(inimigo, 'mana_atual', 0) < 10 and random.random() < 0.25:
+                foco_cand = SkillsRegistry.get("concentrar")
+                if foco_cand:
+                    acoes_disponiveis.append(foco_cand)
+
         if acoes_disponiveis:
             magias_com_custo = [a for a in acoes_disponiveis if a.custo_mana > 0]
             if magias_com_custo and random.random() < 0.65:
@@ -984,6 +1017,9 @@ class CombatScreen:
         else:
             acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio") or SkillsRegistry.get("investida_sombria") or SkillsRegistry.get("ataque_basico")
 
+        # Alvo apropriado conforme o tipo da habilidade
+        alvo_acao = inimigo if getattr(acao, 'tipo_alvo', '') in ["proprio", "aliado"] or getattr(acao, 'alvo_tipo', '') in ["PROPRIO", "ALIADO"] else self.jogador
+
         # Ativa animação de ataque no inimigo
         if hasattr(inimigo, 'definir_estado') and hasattr(inimigo, 'animacoes'):
             if "attack" in inimigo.animacoes or "ataque" in inimigo.animacoes:
@@ -992,15 +1028,30 @@ class CombatScreen:
                 if hasattr(inimigo.animacoes[est_a], 'resetar'):
                     inimigo.animacoes[est_a].resetar()
 
-        resultado = acao.executar(inimigo, self.jogador)
+        resultado = acao.executar(inimigo, alvo_acao)
         
         if resultado.get("mensagem"):
             self.adicionar_log(resultado["mensagem"])
             
+        # Feedback de mana recuperada e vulnerabilidade na própria entidade conjuradora
+        mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
+        if mana_rec > 0:
+            mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
+            ix, iy = self._obter_posicao_combate(inimigo)
+            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", ix + 30, iy + 15, BARRA_MANA, duracao=80)
+
+        if resultado.get("vulneravel"):
+            ix, iy = self._obter_posicao_combate(inimigo)
+            self.adicionar_texto_flutuante("VULNERÁVEL!", ix + 30, iy - 10, (240, 130, 130), duracao=80)
+
         for r in resultado.get("resultados", []):
             if r.get("mensagem") and r.get("mensagem") != resultado.get("mensagem"):
                 self.adicionar_log(r["mensagem"])
+            alvo_r = r.get("alvo", self.jogador)
             dano_r = float(r.get("dano", 0) or 0)
+            cura_r = float(r.get("cura", 0) or 0)
+            hx, hy = self._obter_posicao_combate(alvo_r) if alvo_r else (160, 160)
+
             if r.get("errou", False):
                 if r.get("motivo") == "esquiva":
                     texto_erro = "ESQUIVOU!"
@@ -1008,15 +1059,19 @@ class CombatScreen:
                 else:
                     texto_erro = "ERROU!"
                     cor_erro = (240, 160, 100) # Âmbar
-                self.adicionar_texto_flutuante(texto_erro, self.jogador.x + 30, self.jogador.y - 15, cor_erro, duracao=80)
+                self.adicionar_texto_flutuante(texto_erro, hx + 30, hy - 15, cor_erro, duracao=80)
             elif dano_r > 0:
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
-                self.adicionar_texto_flutuante(f"-{dano_fmt}", self.jogador.x + 30, self.jogador.y, TEXTO_ALERTA_COMBATE)
-                self.shake_timers[self.jogador] = 12
+                self.adicionar_texto_flutuante(f"-{dano_fmt}", hx + 30, hy, TEXTO_ALERTA_COMBATE)
+                self.shake_timers[alvo_r] = 12
                 # Feedback narrativo se Halia foi derrotada
-                if not getattr(self.jogador, 'vivo', True):
+                if alvo_r is self.jogador and not getattr(self.jogador, 'vivo', True):
                     msg_morte = self._gerar_mensagem_morte_acao(self.jogador, acao)
                     self.adicionar_log(msg_morte)
+            elif cura_r > 0:
+                cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
+                cor_cura = BARRA_VIDA_JOGADOR if alvo_r is self.jogador else BARRA_VIDA_INIMIGO
+                self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, cor_cura)
 
     def _tentar_fuga(self):
         """Calcula a probabilidade de fuga baseada na Destreza, quantidade e força dos inimigos."""
@@ -1026,10 +1081,11 @@ class CombatScreen:
             return
 
         # 1. Chefes e oponentes imponentes não permitem fuga
+        hx, hy = self._obter_posicao_combate(self.jogador)
         for inimigo in inimigos_vivos:
             if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo, 'atributos', None) and inimigo.atributos.forca >= 28:
                 self.adicionar_log("Halia tentou recuar, mas a presenca imponente do inimigo impede qualquer fuga!")
-                self.adicionar_texto_flutuante("FUGA IMPOSSÍVEL!", self.jogador.x + 20, self.jogador.y - 15, TEXTO_ALERTA_COMBATE, duracao=75)
+                self.adicionar_texto_flutuante("FUGA IMPOSSÍVEL!", hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
                 self.timer_acao = self._ajustar_timer(60)
                 self.estado_combate = "EXECUTANDO_ACAO"
                 return
@@ -1057,7 +1113,7 @@ class CombatScreen:
             self.adicionar_log("Halia recuou com agilidade e escapou do combate com sucesso!")
             self.estado_combate = "FUGIU"
         else:
-            self.adicionar_texto_flutuante("FUGA FALHOU!", self.jogador.x + 30, self.jogador.y - 15, (245, 150, 80), duracao=75)
+            self.adicionar_texto_flutuante("FUGA FALHOU!", hx + 30, hy - 15, (245, 150, 80), duracao=75)
             self.adicionar_log("Tentativa de fuga falhou! Os inimigos bloquearam a passagem e cercaram Halia.")
             # Perde a ação do turno e os inimigos atacam em seguida
             self.timer_acao = self._ajustar_timer(65)
@@ -1212,6 +1268,29 @@ class CombatScreen:
     def _obter_inimigos_vivos(self):
         return [i for i in self.inimigos if getattr(i, 'vivo', True)]
 
+    def _obter_posicao_combate(self, entidade):
+        """Retorna as coordenadas (x, y) de base na arena de combate para uma entidade."""
+        if entidade is self.jogador:
+            return 160, 160
+
+        inimigos_vivos = self._obter_inimigos_vivos()
+        if entidade in inimigos_vivos:
+            idx = inimigos_vivos.index(entidade)
+            total = len(inimigos_vivos)
+            if total == 1:
+                return self.largura - 350, 150
+            elif total == 2:
+                return self.largura - 350, 65 if idx == 0 else 235
+            else:
+                if idx == 0:
+                    return self.largura - 260, 48
+                elif idx == 1:
+                    return self.largura - 430, 155
+                else:
+                    return self.largura - 260, 262
+
+        return getattr(entidade, 'x', 160), getattr(entidade, 'y', 160)
+
     # =========================================================================
     # RENDERIZAÇÃO GRÁFICA
     # =========================================================================
@@ -1289,19 +1368,7 @@ class CombatScreen:
         total_inimigos = len(inimigos_vivos)
 
         for idx, inimigo in enumerate(inimigos_vivos):
-            if total_inimigos == 1:
-                pos_x, pos_y = self.largura - 350, 150
-            elif total_inimigos == 2:
-                pos_x = self.largura - 350
-                pos_y = 65 if idx == 0 else 235
-            else:
-                # Formação tática em cunha: sem sobreposição entre barras de HP/MP e nomes
-                if idx == 0:
-                    pos_x, pos_y = self.largura - 260, 48
-                elif idx == 1:
-                    pos_x, pos_y = self.largura - 430, 155
-                else:
-                    pos_x, pos_y = self.largura - 260, 262
+            pos_x, pos_y = self._obter_posicao_combate(inimigo)
             
             offset_shake_x = random.randint(-3, 3) if self.shake_timers.get(inimigo, 0) > 0 else 0
             offset_shake_y = random.randint(-2, 2) if self.shake_timers.get(inimigo, 0) > 0 else 0

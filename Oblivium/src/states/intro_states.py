@@ -9,7 +9,7 @@ class IntroState(State):
     def handle_events(self, eventos, teclas):
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
-                if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+                if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_e]:
                     self.game.intro.avancar()
                 elif evento.key == pygame.K_ESCAPE:
                     self.game.intro.pular()

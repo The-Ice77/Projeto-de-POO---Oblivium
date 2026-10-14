@@ -117,6 +117,12 @@ class Mapa:
         if mapa_estrada2:
             mapa_estrada2.restaurar_bloqueio()
 
+    def atualizar_levitacao_minigame(self, progresso_pct):
+        """Atualiza a posição em tempo real e os efeitos visuais das rochas no minigame de levitação."""
+        mapa_estrada2 = self.cenarios.get("ESTRADA_2")
+        if mapa_estrada2 and hasattr(mapa_estrada2, "atualizar_levitacao_minigame"):
+            mapa_estrada2.atualizar_levitacao_minigame(progresso_pct)
+
     def obter_hitboxes(self):
         """Retorna as hitboxes ativas do cenário atual."""
         return self.cenario_objeto.obter_hitboxes()

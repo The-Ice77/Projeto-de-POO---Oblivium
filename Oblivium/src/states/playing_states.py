@@ -1,6 +1,5 @@
 # src/states/playing_states.py
 import pygame
-import copy
 from src.states.states import State
 from src.entities.Enemy import Enemy
 from src.entities.enemy_factory import EnemyFactory
@@ -8,7 +7,6 @@ from src.mechanics.item_factory import ItemFactory
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.utils.colors import INDICADOR_INTERACAO
 from src.utils import save_manager
-from src.data.dialogos import *
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
@@ -101,6 +99,14 @@ class PlayingState(State):
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
             self.game.efeito_folhas.atualizar()
 
+        # Atualiza o efeito de clima e chuva no cenário
+        if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva:
+            self.game.efeito_chuva.atualizar(0.016)
+
+        # Atualiza o cenário ativo (animações de ambiente como poças de água)
+        if hasattr(self.game, 'mapa_casa') and self.game.mapa_casa:
+            self.game.mapa_casa.atualizar(0.016)
+
         self.game.caixa_dialogo.atualizar()
         self.cutscene.atualizar_magia()
         self._update_minigames_e_flashbacks()
@@ -132,6 +138,13 @@ class PlayingState(State):
                 # Delimitação de toda a construção da casa de Halia (paredes norte/oeste/leste/sul e interior)
                 areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
             self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
+
+        # Efeito de clima (chuva comum ou chuva pesada com relâmpagos)
+        if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva and self.game.efeito_chuva.ativo:
+            areas_excluidas_chuva = []
+            if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
+                areas_excluidas_chuva.append(pygame.Rect(0, 0, 505, 545))
+            self.game.efeito_chuva.desenhar(tela, areas_excluidas=areas_excluidas_chuva)
 
         self._draw_interactable_prompts(tela)
         self._draw_ui_overlays(tela)
@@ -211,13 +224,17 @@ class PlayingState(State):
                 return
 
         # MINIGAMES: Exclusivamente tecla ESPAÇO
-        if self.game.mg_timing.ativo:
+        if hasattr(self.game, 'transicao') and self.game.transicao.estado == "EXIBINDO_TEXTO":
+            if evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
+                self.game.transicao.avancar()
+                return
+        elif self.game.mg_timing.ativo:
             if evento.key == pygame.K_SPACE:
                 self._checar_sucesso_timing()
         elif self.game.mg_mash.ativo:
             if evento.key == pygame.K_SPACE:
                 self.game.mg_mash.esmagar()
-        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
+        elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
             if self.game.caixa_dialogo.em_escolha:
@@ -244,8 +261,11 @@ class PlayingState(State):
 
         pos = evento.pos
         
-        # Durante minigames, cliques de mouse não interferem (minigames são apenas ESPAÇO)
-        if self.game.mg_timing.ativo or self.game.mg_mash.ativo:
+        # Se o minigame de levitação estiver ativo, cliques do mouse impulsionam a magia
+        if self.game.mg_mash.ativo:
+            self.game.mg_mash.esmagar()
+            return
+        elif self.game.mg_timing.ativo:
             return
 
         # Clicar na bolsa do HUD abre o inventário
@@ -260,7 +280,10 @@ class PlayingState(State):
                 self.game.mudar_estado("INVENTARIO")
                 return
                 
-        if self.game.flashback_sistema.estado == "ESCURIDAO":
+        if hasattr(self.game, 'transicao') and self.game.transicao.estado == "EXIBINDO_TEXTO":
+            self.game.transicao.avancar()
+            return
+        elif self.game.flashback_sistema.estado == "ESCURIDAO":
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
             if self.game.caixa_dialogo.em_escolha:
@@ -274,25 +297,40 @@ class PlayingState(State):
             self.game.distanciando_halia = True
             self.game.timer_magia = 0
         else:
-            self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_falha_timing))
+            self.game.caixa_dialogo.iniciar_dialogo("falha_timing")
 
     def _update_minigames_e_flashbacks(self):
         if self.game.flashback_sistema.atualizar():
             self.game.flashback_magia_concluido = True 
             if self.game.slot_atual:
                 self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-            self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)])
+            self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
 
         if self.game.mg_timing.ativo:
             self.game.mg_timing.atualizar()
         elif self.game.mg_mash.ativo:
             res = self.game.mg_mash.atualizar()
+
+            # As pedras vão se movendo com os cliques; caso o jogador deixe diminuir, elas vão voltando
+            pct = self.game.mg_mash.get_progresso_pct()
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+
             if res == "VENCEU":
-                self.game.magia_ativa = "LEVITAR"
-                self.game.distanciando_halia = True
+                # As pedras já foram levitadas até as margens pelo esforço do jogador no minigame.
+                # Elas apenas pousam com impacto firme no solo onde estão e o jogo segue em frente!
+                if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
+                    self.game.mapa_casa.desobstruir_estrada("LEVITAR")
+                self.game.magia_usada_no_puzzle = "LEVITAR"
+                self.game.magia_ativa = "CONCLUIDO"
+                self.game.distanciando_halia = False
                 self.game.timer_magia = 0
+                self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
+                self.game.conversa_combate_ativa = True
             elif res == "PERDEU":
-                self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_falha_mash))
+                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                    self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
+                self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and not self.game.caixa_dialogo.ativo and self.game.magia_ativa is None and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo:
             if self.game.magia_selecionada_temporaria == "FOGO":
@@ -364,7 +402,7 @@ class PlayingState(State):
         # Saída da Casa: Halia passa pela porta frontal e vai para o jardim
         if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
             self.game.mapa_casa.fechar_porta()
-            self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_fechar_porta))
+            self.game.caixa_dialogo.iniciar_dialogo("fechar_porta")
             
         # Prosseguir viagem: Halia caminha pela pequena estrada de terra até o limite leste do jardim
         if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.mapa_casa.porta_aberta and self.game.halia.x > 1220:
@@ -375,11 +413,11 @@ class PlayingState(State):
             self.game.carroceiro_andando = True
             self.game.carroceiro.velocidade = 2
             self.game.carroceiro.mudar_estado("andar")
-            self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_avistar_carroceiro))
+            self.game.caixa_dialogo.iniciar_dialogo("avistar_carroceiro")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and not self.game.investigou_pedras and self.game.halia.x > 1000:
             self.game.investigou_pedras = True; self.game.halia.x = 980
-            self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)]) if self.game.flashback_magia_concluido else self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_investigar_pedras))
+            self.game.caixa_dialogo.iniciar_dialogo("escolha_magias" if self.game.flashback_magia_concluido else "investigar_pedras")
 
         if self.game.carroceiro_andando:
             self._mover_carroceiro_autonomo()
@@ -412,22 +450,25 @@ class PlayingState(State):
 
     def _processar_avanco_dialogo(self):
         if self.game.caixa_dialogo.em_escolha:
-            opcao_atual = self.game.caixa_dialogo.opcoes_disponiveis[self.game.caixa_dialogo.opcao_selecionada]
-            if opcao_atual["id"] == "analisar_pedras":
-                self.game.caixa_dialogo.ativo = False
-                self.game.caixa_dialogo.em_escolha = False
-                self.game.flashback_sistema.iniciar(textos_flashback_magia)
-                return
-            elif opcao_atual["id"] == "escolha_fogo":
-                self.game.magia_selecionada_temporaria = "FOGO"
-            elif opcao_atual["id"] == "escolha_levitar":
-                self.game.magia_selecionada_temporaria = "LEVITAR"
-            elif opcao_atual["id"] in ["voltar_magia", "desistir_puzzle"]:
-                self.game.investigou_pedras = False
-            elif opcao_atual["id"] == "prosseguir":
-                self.game.aguardando_fim_viagem = True
-            elif opcao_atual["id"] == "seguir_capital":
-                self.game.partindo_estrada2 = True
+            if self.game.caixa_dialogo.opcoes_disponiveis and 0 <= self.game.caixa_dialogo.opcao_selecionada < len(self.game.caixa_dialogo.opcoes_disponiveis):
+                opcao_atual = self.game.caixa_dialogo.opcoes_disponiveis[self.game.caixa_dialogo.opcao_selecionada]
+                opt_id = opcao_atual.get("id")
+                if opt_id == "analisar_pedras":
+                    self.game.caixa_dialogo.ativo = False
+                    self.game.caixa_dialogo.em_escolha = False
+                    seq_flashback = self.game.caixa_dialogo.manager.obter_sequencia_linear("flashback_magia")
+                    self.game.flashback_sistema.iniciar(seq_flashback)
+                    return
+                elif opt_id == "escolha_fogo":
+                    self.game.magia_selecionada_temporaria = "FOGO"
+                elif opt_id == "escolha_levitar":
+                    self.game.magia_selecionada_temporaria = "LEVITAR"
+                elif opt_id in ["voltar_magia", "desistir_puzzle"]:
+                    self.game.investigou_pedras = False
+                elif opt_id == "prosseguir":
+                    self.game.aguardando_fim_viagem = True
+                elif opt_id == "seguir_capital":
+                    self.game.partindo_estrada2 = True
         self.game.caixa_dialogo.proximo_texto()
 
     def _processar_clique_escolha(self, pos):
@@ -480,9 +521,9 @@ class PlayingState(State):
         if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
             if len(self.game.mapa_casa.itens_no_chao) == 0:
                 self.game.mapa_casa.abrir_porta()
-                self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_porta_abriu))
+                self.game.caixa_dialogo.iniciar_dialogo("porta_abriu")
             else:
-                self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_porta_trancada))
+                self.game.caixa_dialogo.iniciar_dialogo("porta_trancada")
             return
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
@@ -491,14 +532,14 @@ class PlayingState(State):
                 self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
                 self.game.halia.virado_direita = (self.game.carroceiro.x > self.game.halia.x)
                 if self.game.mapa_casa.cenario_atual == "ESTRADA":
-                    self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_hub_carroceiro))
+                    self.game.caixa_dialogo.iniciar_dialogo("hub_carroceiro")
                 elif self.game.mapa_casa.cenario_atual == "ESTRADA_2":
                     if getattr(self.game, 'combate_estrada_concluido', False):
-                        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_pos_combate))
+                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_pos_combate")
                     elif self.game.magia_ativa == "CONCLUIDO":
-                        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_pos_puzzle))
+                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_pos_puzzle")
                     else:
-                        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_carroceiro_impedimento))
+                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_impedimento")
                 return
 
         # Interação direta com as rochas na Estrada 2
@@ -506,9 +547,9 @@ class PlayingState(State):
             if self.game.halia.x >= 950:
                 self.game.investigou_pedras = True
                 if self.game.flashback_magia_concluido:
-                    self.game.caixa_dialogo.iniciar_dialogo([copy.deepcopy(no_escolhas_magias)])
+                    self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
                 else:
-                    self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_investigar_pedras))
+                    self.game.caixa_dialogo.iniciar_dialogo("investigar_pedras")
                 return
 
     def _update_transitions(self):
@@ -524,7 +565,7 @@ class PlayingState(State):
                     self.game.inimigos_em_cena.clear()
                     self.game.cena_inimigos_andando = False
                     self.game.mudar_estado("JOGANDO")
-                    self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_pos_combate_vitoria))
+                    self.game.caixa_dialogo.iniciar_dialogo("pos_combate_vitoria")
                     
                 def on_derrota():
                     # Ao ser derrotada, retorna ao último checkpoint carregando o autosave do slot ativo
@@ -581,7 +622,7 @@ class PlayingState(State):
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
         pygame.event.clear()
-        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada1))
+        self.game.caixa_dialogo.iniciar_dialogo("entrada_estrada1")
         self.game.transicao.estado = "CLAREANDO"
 
     def _entrar_na_estrada_2(self):
@@ -605,7 +646,7 @@ class PlayingState(State):
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
             
         pygame.event.clear()
-        self.game.caixa_dialogo.iniciar_dialogo(copy.deepcopy(dialogo_entrada_estrada2))
+        self.game.caixa_dialogo.iniciar_dialogo("entrada_estrada2")
         self.game.transicao.estado = "CLAREANDO"
 
     def _draw_interactable_prompts(self, tela):

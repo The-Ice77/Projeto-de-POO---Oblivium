@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo de Sprites da Vila - Pixel Art</title>
+<style>
+:root {
+  --bg-color: #0d1117;
+  --panel-bg: #161b22;
+  --card-bg: #21262d;
+  --border-color: #30363d;
+  --text-main: #c9d1d9;
+  --text-bright: #f0f6fc;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --tag-bg: #1f6feb22;
+  --tag-border: #388bfd66;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  padding: 24px;
+}
+
+header {
+  max-width: 1400px;
+  margin: 0 auto 24px auto;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+h1 {
+  color: var(--text-bright);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+input[type="text"] {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-bright);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 280px;
+  outline: none;
+}
+input[type="text"]:focus {
+  border-color: var(--accent);
+}
+
+.filter-btn {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: var(--accent);
+  color: #0d1117;
+  font-weight: 600;
+  border-color: var(--accent);
+}
+
+.gallery {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.card-header {
+  padding: 12px 14px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+  word-break: break-all;
+}
+.card-category {
+  font-size: 11px;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-images {
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-around;
+  align-items: flex-end;
+  background-image: linear-gradient(45deg, #1b2028 25%, transparent 25%),
+                    linear-gradient(-45deg, #1b2028 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #1b2028 75%),
+                    linear-gradient(-45deg, transparent 75%, #1b2028 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #11151c;
+  min-height: 180px;
+}
+
+.sprite-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sprite-img {
+  max-width: 160px;
+  max-height: 140px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+  transition: transform 0.15s;
+}
+.sprite-img:hover {
+  transform: scale(1.1);
+  cursor: zoom-in;
+}
+
+.view-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+}
+
+.card-footer {
+  padding: 10px 14px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.copy-btn:hover {
+  background: var(--card-bg);
+  color: var(--text-bright);
+}
+
+/* Modal for full size */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.modal.active { display: flex; }
+.modal img {
+  max-width: 85vw;
+  max-height: 80vh;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background-image: linear-gradient(45deg, #2b303c 25%, transparent 25%),
+                    linear-gradient(-45deg, #2b303c 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #2b303c 75%),
+                    linear-gradient(-45deg, transparent 75%, #2b303c 75%);
+  background-size: 20px 20px;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+.modal-close {
+  position: absolute;
+  top: 20px; right: 24px;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Catálogo de Sprites da Vila <span class="badge">106 Itens Recortados</span></h1>
+  <p>Todas as sprites foram recortadas com bounding box preciso, fundo transparente em formato PNG (mantendo intactas as paredes e elementos internos), e organizadas em pastas temáticas.</p>
+  
+  <div class="controls">
+    <input type="text" id="search" placeholder="Buscar por nome..." oninput="filterCards()">
+    <button class="filter-btn active" onclick="setCategory('all')">Todas</button>
+    <button class="filter-btn" onclick="setCategory('Casas')">Casas</button>
+    <button class="filter-btn" onclick="setCategory('Lojas')">Lojas</button>
+    <button class="filter-btn" onclick="setCategory('Barracas')">Barracas</button>
+    <button class="filter-btn" onclick="setCategory('Props')">Props</button>
+  </div>
+</header>
+
+<main class="gallery" id="gallery">
+
+  <div class="card" data-category="Barracas" data-name="barraca_01_hortifruti_legumes">
+    <div class="card-header">
+      <span class="card-title">barraca_01_hortifruti_legumes</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (537x425px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_01_hortifruti_legumes.png" alt="barraca_01_hortifruti_legumes Frente" onclick="openModal('Barracas/Frente/barraca_01_hortifruti_legumes.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (515x411px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_01_hortifruti_legumes.png" alt="barraca_01_hortifruti_legumes Costas" onclick="openModal('Barracas/Costas/barraca_01_hortifruti_legumes.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_01_hortifruti_legumes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_02_padaria_paes_queijos">
+    <div class="card-header">
+      <span class="card-title">barraca_02_padaria_paes_queijos</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (524x421px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_02_padaria_paes_queijos.png" alt="barraca_02_padaria_paes_queijos Frente" onclick="openModal('Barracas/Frente/barraca_02_padaria_paes_queijos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (463x434px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_02_padaria_paes_queijos.png" alt="barraca_02_padaria_paes_queijos Costas" onclick="openModal('Barracas/Costas/barraca_02_padaria_paes_queijos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_02_padaria_paes_queijos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_03_peixaria_carnes">
+    <div class="card-header">
+      <span class="card-title">barraca_03_peixaria_carnes</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (525x426px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_03_peixaria_carnes.png" alt="barraca_03_peixaria_carnes Frente" onclick="openModal('Barracas/Frente/barraca_03_peixaria_carnes.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (524x432px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_03_peixaria_carnes.png" alt="barraca_03_peixaria_carnes Costas" onclick="openModal('Barracas/Costas/barraca_03_peixaria_carnes.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_03_peixaria_carnes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_04_floricultura_vasos">
+    <div class="card-header">
+      <span class="card-title">barraca_04_floricultura_vasos</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (540x426px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_04_floricultura_vasos.png" alt="barraca_04_floricultura_vasos Frente" onclick="openModal('Barracas/Frente/barraca_04_floricultura_vasos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (536x419px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_04_floricultura_vasos.png" alt="barraca_04_floricultura_vasos Costas" onclick="openModal('Barracas/Costas/barraca_04_floricultura_vasos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_04_floricultura_vasos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_05_alquimia_pocoes">
+    <div class="card-header">
+      <span class="card-title">barraca_05_alquimia_pocoes</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (522x432px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_05_alquimia_pocoes.png" alt="barraca_05_alquimia_pocoes Frente" onclick="openModal('Barracas/Frente/barraca_05_alquimia_pocoes.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (522x415px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_05_alquimia_pocoes.png" alt="barraca_05_alquimia_pocoes Costas" onclick="openModal('Barracas/Costas/barraca_05_alquimia_pocoes.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_05_alquimia_pocoes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_06_magia_cristais">
+    <div class="card-header">
+      <span class="card-title">barraca_06_magia_cristais</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (524x410px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_06_magia_cristais.png" alt="barraca_06_magia_cristais Frente" onclick="openModal('Barracas/Frente/barraca_06_magia_cristais.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (523x414px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_06_magia_cristais.png" alt="barraca_06_magia_cristais Costas" onclick="openModal('Barracas/Costas/barraca_06_magia_cristais.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_06_magia_cristais.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_07_ceramica_esculturas">
+    <div class="card-header">
+      <span class="card-title">barraca_07_ceramica_esculturas</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (525x423px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_07_ceramica_esculturas.png" alt="barraca_07_ceramica_esculturas Frente" onclick="openModal('Barracas/Frente/barraca_07_ceramica_esculturas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (523x416px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_07_ceramica_esculturas.png" alt="barraca_07_ceramica_esculturas Costas" onclick="openModal('Barracas/Costas/barraca_07_ceramica_esculturas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_07_ceramica_esculturas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_08_alfaiataria_tecidos">
+    <div class="card-header">
+      <span class="card-title">barraca_08_alfaiataria_tecidos</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (523x416px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_08_alfaiataria_tecidos.png" alt="barraca_08_alfaiataria_tecidos Frente" onclick="openModal('Barracas/Frente/barraca_08_alfaiataria_tecidos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (523x413px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_08_alfaiataria_tecidos.png" alt="barraca_08_alfaiataria_tecidos Costas" onclick="openModal('Barracas/Costas/barraca_08_alfaiataria_tecidos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_08_alfaiataria_tecidos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_09_ferraria_ferramentas">
+    <div class="card-header">
+      <span class="card-title">barraca_09_ferraria_ferramentas</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (482x388px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_09_ferraria_ferramentas.png" alt="barraca_09_ferraria_ferramentas Frente" onclick="openModal('Barracas/Frente/barraca_09_ferraria_ferramentas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (480x389px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_09_ferraria_ferramentas.png" alt="barraca_09_ferraria_ferramentas Costas" onclick="openModal('Barracas/Costas/barraca_09_ferraria_ferramentas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_09_ferraria_ferramentas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_10_livros_mapas_pergaminhos">
+    <div class="card-header">
+      <span class="card-title">barraca_10_livros_mapas_pergaminhos</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (377x394px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_10_livros_mapas_pergaminhos.png" alt="barraca_10_livros_mapas_pergaminhos Frente" onclick="openModal('Barracas/Frente/barraca_10_livros_mapas_pergaminhos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (377x385px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_10_livros_mapas_pergaminhos.png" alt="barraca_10_livros_mapas_pergaminhos Costas" onclick="openModal('Barracas/Costas/barraca_10_livros_mapas_pergaminhos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_10_livros_mapas_pergaminhos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_11_aventureiro_equipamentos">
+    <div class="card-header">
+      <span class="card-title">barraca_11_aventureiro_equipamentos</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (488x403px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_11_aventureiro_equipamentos.png" alt="barraca_11_aventureiro_equipamentos Frente" onclick="openModal('Barracas/Frente/barraca_11_aventureiro_equipamentos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (487x387px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_11_aventureiro_equipamentos.png" alt="barraca_11_aventureiro_equipamentos Costas" onclick="openModal('Barracas/Costas/barraca_11_aventureiro_equipamentos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_11_aventureiro_equipamentos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_12_joalheria_pedras_preciosas">
+    <div class="card-header">
+      <span class="card-title">barraca_12_joalheria_pedras_preciosas</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (371x381px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_12_joalheria_pedras_preciosas.png" alt="barraca_12_joalheria_pedras_preciosas Frente" onclick="openModal('Barracas/Frente/barraca_12_joalheria_pedras_preciosas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (371x381px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_12_joalheria_pedras_preciosas.png" alt="barraca_12_joalheria_pedras_preciosas Costas" onclick="openModal('Barracas/Costas/barraca_12_joalheria_pedras_preciosas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_12_joalheria_pedras_preciosas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_13_utilidades_panelas">
+    <div class="card-header">
+      <span class="card-title">barraca_13_utilidades_panelas</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (371x407px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_13_utilidades_panelas.png" alt="barraca_13_utilidades_panelas Frente" onclick="openModal('Barracas/Frente/barraca_13_utilidades_panelas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (371x381px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_13_utilidades_panelas.png" alt="barraca_13_utilidades_panelas Costas" onclick="openModal('Barracas/Costas/barraca_13_utilidades_panelas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_13_utilidades_panelas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_14_ruina_saqueada">
+    <div class="card-header">
+      <span class="card-title">barraca_14_ruina_saqueada</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (726x383px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_14_ruina_saqueada.png" alt="barraca_14_ruina_saqueada Frente" onclick="openModal('Barracas/Frente/barraca_14_ruina_saqueada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (726x382px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_14_ruina_saqueada.png" alt="barraca_14_ruina_saqueada Costas" onclick="openModal('Barracas/Costas/barraca_14_ruina_saqueada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_14_ruina_saqueada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_15_ruina_queimada">
+    <div class="card-header">
+      <span class="card-title">barraca_15_ruina_queimada</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (613x391px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_15_ruina_queimada.png" alt="barraca_15_ruina_queimada Frente" onclick="openModal('Barracas/Frente/barraca_15_ruina_queimada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (613x390px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_15_ruina_queimada.png" alt="barraca_15_ruina_queimada Costas" onclick="openModal('Barracas/Costas/barraca_15_ruina_queimada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_15_ruina_queimada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Barracas" data-name="barraca_16_ruina_pedra_destruida">
+    <div class="card-header">
+      <span class="card-title">barraca_16_ruina_pedra_destruida</span>
+      <span class="card-category">Barracas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (561x392px)</span>
+              <img class="sprite-img" src="Barracas/Frente/barraca_16_ruina_pedra_destruida.png" alt="barraca_16_ruina_pedra_destruida Frente" onclick="openModal('Barracas/Frente/barraca_16_ruina_pedra_destruida.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (561x392px)</span>
+              <img class="sprite-img" src="Barracas/Costas/barraca_16_ruina_pedra_destruida.png" alt="barraca_16_ruina_pedra_destruida Costas" onclick="openModal('Barracas/Costas/barraca_16_ruina_pedra_destruida.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Barracas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Barracas/Frente/barraca_16_ruina_pedra_destruida.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_01_artigos_magicos_pocoes">
+    <div class="card-header">
+      <span class="card-title">loja_01_artigos_magicos_pocoes</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (430x380px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_01_artigos_magicos_pocoes.png" alt="loja_01_artigos_magicos_pocoes Frente" onclick="openModal('Lojas/Frente/loja_01_artigos_magicos_pocoes.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (430x366px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_01_artigos_magicos_pocoes.png" alt="loja_01_artigos_magicos_pocoes Costas" onclick="openModal('Lojas/Costas/loja_01_artigos_magicos_pocoes.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_01_artigos_magicos_pocoes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_02_botanica_ervas_alquimia">
+    <div class="card-header">
+      <span class="card-title">loja_02_botanica_ervas_alquimia</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (473x342px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_02_botanica_ervas_alquimia.png" alt="loja_02_botanica_ervas_alquimia Frente" onclick="openModal('Lojas/Frente/loja_02_botanica_ervas_alquimia.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (462x325px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_02_botanica_ervas_alquimia.png" alt="loja_02_botanica_ervas_alquimia Costas" onclick="openModal('Lojas/Costas/loja_02_botanica_ervas_alquimia.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_02_botanica_ervas_alquimia.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_03_ceramica_vasos_olaria">
+    <div class="card-header">
+      <span class="card-title">loja_03_ceramica_vasos_olaria</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (392x385px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_03_ceramica_vasos_olaria.png" alt="loja_03_ceramica_vasos_olaria Frente" onclick="openModal('Lojas/Frente/loja_03_ceramica_vasos_olaria.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (392x366px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_03_ceramica_vasos_olaria.png" alt="loja_03_ceramica_vasos_olaria Costas" onclick="openModal('Lojas/Costas/loja_03_ceramica_vasos_olaria.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_03_ceramica_vasos_olaria.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_04_madeira_carpintaria">
+    <div class="card-header">
+      <span class="card-title">loja_04_madeira_carpintaria</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (576x337px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_04_madeira_carpintaria.png" alt="loja_04_madeira_carpintaria Frente" onclick="openModal('Lojas/Frente/loja_04_madeira_carpintaria.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (575x337px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_04_madeira_carpintaria.png" alt="loja_04_madeira_carpintaria Costas" onclick="openModal('Lojas/Costas/loja_04_madeira_carpintaria.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_04_madeira_carpintaria.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_05_empório_frutas_mercearia">
+    <div class="card-header">
+      <span class="card-title">loja_05_empório_frutas_mercearia</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (543x477px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_05_emporio_frutas_mercearia.png" alt="loja_05_emporio_frutas_mercearia.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (543x473px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_05_emporio_frutas_mercearia.png" alt="loja_05_emporio_frutas_mercearia.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_05_emporio_frutas_mercearia.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_06_padaria_forno_pedra">
+    <div class="card-header">
+      <span class="card-title">loja_06_padaria_forno_pedra</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (542x462px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_06_padaria_forno_pedra.png" alt="loja_06_padaria_forno_pedra Frente" onclick="openModal('Lojas/Frente/loja_06_padaria_forno_pedra.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (542x462px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_06_padaria_forno_pedra.png" alt="loja_06_padaria_forno_pedra Costas" onclick="openModal('Lojas/Costas/loja_06_padaria_forno_pedra.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_06_padaria_forno_pedra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_07_acougue_carnes">
+    <div class="card-header">
+      <span class="card-title">loja_07_acougue_carnes</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (590x390px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_07_acougue_carnes.png" alt="loja_07_acougue_carnes Frente" onclick="openModal('Lojas/Frente/loja_07_acougue_carnes.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (589x353px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_07_acougue_carnes.png" alt="loja_07_acougue_carnes Costas" onclick="openModal('Lojas/Costas/loja_07_acougue_carnes.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_07_acougue_carnes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_08_quitanda_hortifruti">
+    <div class="card-header">
+      <span class="card-title">loja_08_quitanda_hortifruti</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (519x423px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_08_quitanda_hortifruti.png" alt="loja_08_quitanda_hortifruti Frente" onclick="openModal('Lojas/Frente/loja_08_quitanda_hortifruti.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (520x423px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_08_quitanda_hortifruti.png" alt="loja_08_quitanda_hortifruti Costas" onclick="openModal('Lojas/Costas/loja_08_quitanda_hortifruti.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_08_quitanda_hortifruti.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_09_floricultura">
+    <div class="card-header">
+      <span class="card-title">loja_09_floricultura</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (350x437px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_09_floricultura.png" alt="loja_09_floricultura Frente" onclick="openModal('Lojas/Frente/loja_09_floricultura.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (331x409px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_09_floricultura.png" alt="loja_09_floricultura Costas" onclick="openModal('Lojas/Costas/loja_09_floricultura.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_09_floricultura.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_10_alfaiataria_tecidos">
+    <div class="card-header">
+      <span class="card-title">loja_10_alfaiataria_tecidos</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (332x422px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_10_alfaiataria_tecidos.png" alt="loja_10_alfaiataria_tecidos Frente" onclick="openModal('Lojas/Frente/loja_10_alfaiataria_tecidos.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (332x410px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_10_alfaiataria_tecidos.png" alt="loja_10_alfaiataria_tecidos Costas" onclick="openModal('Lojas/Costas/loja_10_alfaiataria_tecidos.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_10_alfaiataria_tecidos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_11_livraria_biblioteca">
+    <div class="card-header">
+      <span class="card-title">loja_11_livraria_biblioteca</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (462x366px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_11_livraria_biblioteca.png" alt="loja_11_livraria_biblioteca Frente" onclick="openModal('Lojas/Frente/loja_11_livraria_biblioteca.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (462x365px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_11_livraria_biblioteca.png" alt="loja_11_livraria_biblioteca Costas" onclick="openModal('Lojas/Costas/loja_11_livraria_biblioteca.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_11_livraria_biblioteca.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_12_armeria_ferraria">
+    <div class="card-header">
+      <span class="card-title">loja_12_armeria_ferraria</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (510x420px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_12_armeria_ferraria.png" alt="loja_12_armeria_ferraria Frente" onclick="openModal('Lojas/Frente/loja_12_armeria_ferraria.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (509x409px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_12_armeria_ferraria.png" alt="loja_12_armeria_ferraria Costas" onclick="openModal('Lojas/Costas/loja_12_armeria_ferraria.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_12_armeria_ferraria.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_13_taverna_estalagem_grande">
+    <div class="card-header">
+      <span class="card-title">loja_13_taverna_estalagem_grande</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (674x428px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_13_taverna_estalagem_grande.png" alt="loja_13_taverna_estalagem_grande Frente" onclick="openModal('Lojas/Frente/loja_13_taverna_estalagem_grande.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (674x428px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_13_taverna_estalagem_grande.png" alt="loja_13_taverna_estalagem_grande Costas" onclick="openModal('Lojas/Costas/loja_13_taverna_estalagem_grande.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_13_taverna_estalagem_grande.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_14_ruina_telhado_danificado">
+    <div class="card-header">
+      <span class="card-title">loja_14_ruina_telhado_danificado</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (504x361px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_14_ruina_telhado_danificado.png" alt="loja_14_ruina_telhado_danificado Frente" onclick="openModal('Lojas/Frente/loja_14_ruina_telhado_danificado.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (504x343px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_14_ruina_telhado_danificado.png" alt="loja_14_ruina_telhado_danificado Costas" onclick="openModal('Lojas/Costas/loja_14_ruina_telhado_danificado.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_14_ruina_telhado_danificado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_15_ruina_incendio_telhado">
+    <div class="card-header">
+      <span class="card-title">loja_15_ruina_incendio_telhado</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (401x346px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_15_ruina_incendio_telhado.png" alt="loja_15_ruina_incendio_telhado Frente" onclick="openModal('Lojas/Frente/loja_15_ruina_incendio_telhado.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (401x346px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_15_ruina_incendio_telhado.png" alt="loja_15_ruina_incendio_telhado Costas" onclick="openModal('Lojas/Costas/loja_15_ruina_incendio_telhado.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_15_ruina_incendio_telhado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_16_ruina_grande_desabada">
+    <div class="card-header">
+      <span class="card-title">loja_16_ruina_grande_desabada</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (748x406px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_16_ruina_grande_desabada.png" alt="loja_16_ruina_grande_desabada Frente" onclick="openModal('Lojas/Frente/loja_16_ruina_grande_desabada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (748x407px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_16_ruina_grande_desabada.png" alt="loja_16_ruina_grande_desabada Costas" onclick="openModal('Lojas/Costas/loja_16_ruina_grande_desabada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_16_ruina_grande_desabada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Lojas" data-name="loja_17_ruina_chamine_escombros">
+    <div class="card-header">
+      <span class="card-title">loja_17_ruina_chamine_escombros</span>
+      <span class="card-category">Lojas</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (561x400px)</span>
+              <img class="sprite-img" src="Lojas/Frente/loja_17_ruina_chamine_escombros.png" alt="loja_17_ruina_chamine_escombros Frente" onclick="openModal('Lojas/Frente/loja_17_ruina_chamine_escombros.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (561x401px)</span>
+              <img class="sprite-img" src="Lojas/Costas/loja_17_ruina_chamine_escombros.png" alt="loja_17_ruina_chamine_escombros Costas" onclick="openModal('Lojas/Costas/loja_17_ruina_chamine_escombros.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Lojas</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Lojas/Frente/loja_17_ruina_chamine_escombros.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_01_pequena_empena">
+    <div class="card-header">
+      <span class="card-title">casa_01_pequena_empena</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (316x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_01_pequena_empena.png" alt="casa_01_pequena_empena Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_01_pequena_empena.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (316x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_01_pequena_empena.png" alt="casa_01_pequena_empena Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_01_pequena_empena.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_01_pequena_empena.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_02_com_forja_chamine">
+    <div class="card-header">
+      <span class="card-title">casa_02_com_forja_chamine</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (462x390px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_02_com_forja_chamine.png" alt="casa_02_com_forja_chamine Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_02_com_forja_chamine.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (373x337px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_02_com_forja_chamine.png" alt="casa_02_com_forja_chamine Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_02_com_forja_chamine.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_02_com_forja_chamine.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_03_com_hera_jardim">
+    <div class="card-header">
+      <span class="card-title">casa_03_com_hera_jardim</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (392x384px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_03_com_hera_jardim.png" alt="casa_03_com_hera_jardim Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_03_com_hera_jardim.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (392x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_03_com_hera_jardim.png" alt="casa_03_com_hera_jardim Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_03_com_hera_jardim.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_03_com_hera_jardim.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_04_com_alpendre_lateral">
+    <div class="card-header">
+      <span class="card-title">casa_04_com_alpendre_lateral</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (575x312px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_04_com_alpendre_lateral.png" alt="casa_04_com_alpendre_lateral Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_04_com_alpendre_lateral.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (580x318px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_04_com_alpendre_lateral.png" alt="casa_04_com_alpendre_lateral Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_04_com_alpendre_lateral.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_04_com_alpendre_lateral.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_05_sobrado_com_varanda">
+    <div class="card-header">
+      <span class="card-title">casa_05_sobrado_com_varanda</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (543x476px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_05_sobrado_com_varanda.png" alt="casa_05_sobrado_com_varanda Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_05_sobrado_com_varanda.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (544x465px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_05_sobrado_com_varanda.png" alt="casa_05_sobrado_com_varanda Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_05_sobrado_com_varanda.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_05_sobrado_com_varanda.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_06_dois_andares_janelas">
+    <div class="card-header">
+      <span class="card-title">casa_06_dois_andares_janelas</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (556x437px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_06_dois_andares_janelas.png" alt="casa_06_dois_andares_janelas Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_06_dois_andares_janelas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (556x440px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_06_dois_andares_janelas.png" alt="casa_06_dois_andares_janelas Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_06_dois_andares_janelas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_06_dois_andares_janelas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_07_celeiro_portao_largo">
+    <div class="card-header">
+      <span class="card-title">casa_07_celeiro_portao_largo</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (590x353px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_07_celeiro_portao_largo.png" alt="casa_07_celeiro_portao_largo Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_07_celeiro_portao_largo.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (588x353px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_07_celeiro_portao_largo.png" alt="casa_07_celeiro_portao_largo Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_07_celeiro_portao_largo.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_07_celeiro_portao_largo.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_08_casa_comercial_vitrines">
+    <div class="card-header">
+      <span class="card-title">casa_08_casa_comercial_vitrines</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (520x353px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_08_casa_comercial_vitrines.png" alt="casa_08_casa_comercial_vitrines Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_08_casa_comercial_vitrines.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (501x441px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_08_casa_comercial_vitrines.png" alt="casa_08_casa_comercial_vitrines Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_08_casa_comercial_vitrines.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_08_casa_comercial_vitrines.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_09_mansarda_danificada">
+    <div class="card-header">
+      <span class="card-title">casa_09_mansarda_danificada</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (556x383px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_09_mansarda_danificada.png" alt="casa_09_mansarda_danificada Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_09_mansarda_danificada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (554x364px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_09_mansarda_danificada.png" alt="casa_09_mansarda_danificada Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_09_mansarda_danificada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_09_mansarda_danificada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_10_chamine_telhado_quebrado">
+    <div class="card-header">
+      <span class="card-title">casa_10_chamine_telhado_quebrado</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (446x434px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_10_chamine_telhado_quebrado.png" alt="casa_10_chamine_telhado_quebrado Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_10_chamine_telhado_quebrado.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (446x434px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_10_chamine_telhado_quebrado.png" alt="casa_10_chamine_telhado_quebrado Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_10_chamine_telhado_quebrado.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_10_chamine_telhado_quebrado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_11_telhado_aberto_rompido">
+    <div class="card-header">
+      <span class="card-title">casa_11_telhado_aberto_rompido</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (484x383px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_11_telhado_aberto_rompido.png" alt="casa_11_telhado_aberto_rompido Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_11_telhado_aberto_rompido.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (485x364px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_11_telhado_aberto_rompido.png" alt="casa_11_telhado_aberto_rompido Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_11_telhado_aberto_rompido.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_11_telhado_aberto_rompido.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_12_lateral_destruida">
+    <div class="card-header">
+      <span class="card-title">casa_12_lateral_destruida</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (614x362px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_12_lateral_destruida.png" alt="casa_12_lateral_destruida Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_12_lateral_destruida.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (613x362px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_12_lateral_destruida.png" alt="casa_12_lateral_destruida Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_12_lateral_destruida.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_12_lateral_destruida.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_13_arvore_vigas_desabadas">
+    <div class="card-header">
+      <span class="card-title">casa_13_arvore_vigas_desabadas</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (579x407px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_13_arvore_vigas_desabadas.png" alt="casa_13_arvore_vigas_desabadas Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_13_arvore_vigas_desabadas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (579x407px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_13_arvore_vigas_desabadas.png" alt="casa_13_arvore_vigas_desabadas Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_13_arvore_vigas_desabadas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_13_arvore_vigas_desabadas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_14_estrutura_queimada">
+    <div class="card-header">
+      <span class="card-title">casa_14_estrutura_queimada</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (518x406px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_14_estrutura_queimada.png" alt="casa_14_estrutura_queimada Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_14_estrutura_queimada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (517x406px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_14_estrutura_queimada.png" alt="casa_14_estrutura_queimada Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_14_estrutura_queimada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_14_estrutura_queimada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 2" data-name="casa_15_chamine_escombros">
+    <div class="card-header">
+      <span class="card-title">casa_15_chamine_escombros</span>
+      <span class="card-category">Casas - Conjunto 2</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (561x401px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Frente/casa_15_chamine_escombros.png" alt="casa_15_chamine_escombros Frente" onclick="openModal('Casas/Conjunto_2/Frente/casa_15_chamine_escombros.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (561x401px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_2/Costas/casa_15_chamine_escombros.png" alt="casa_15_chamine_escombros Costas" onclick="openModal('Casas/Conjunto_2/Costas/casa_15_chamine_escombros.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 2</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_2/Frente/casa_15_chamine_escombros.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_01_empena_simples">
+    <div class="card-header">
+      <span class="card-title">casa_01_empena_simples</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (316x372px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_01_empena_simples.png" alt="casa_01_empena_simples Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_01_empena_simples.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (333x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_01_empena_simples.png" alt="casa_01_empena_simples Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_01_empena_simples.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_01_empena_simples.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_02_retangular_duas_janelas">
+    <div class="card-header">
+      <span class="card-title">casa_02_retangular_duas_janelas</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (385x307px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_02_retangular_duas_janelas.png" alt="casa_02_retangular_duas_janelas Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_02_retangular_duas_janelas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (352x329px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_02_retangular_duas_janelas.png" alt="casa_02_retangular_duas_janelas Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_02_retangular_duas_janelas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_02_retangular_duas_janelas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_03_empena_chamine_puxadinho">
+    <div class="card-header">
+      <span class="card-title">casa_03_empena_chamine_puxadinho</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (449x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_03_empena_chamine_puxadinho.png" alt="casa_03_empena_chamine_puxadinho Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_03_empena_chamine_puxadinho.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (325x371px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_03_empena_chamine_puxadinho.png" alt="casa_03_empena_chamine_puxadinho Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_03_empena_chamine_puxadinho.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_03_empena_chamine_puxadinho.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_04_retangular_varanda_coberta">
+    <div class="card-header">
+      <span class="card-title">casa_04_retangular_varanda_coberta</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (384x347px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_04_retangular_varanda_coberta.png" alt="casa_04_retangular_varanda_coberta Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_04_retangular_varanda_coberta.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (418x368px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_04_retangular_varanda_coberta.png" alt="casa_04_retangular_varanda_coberta Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_04_retangular_varanda_coberta.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_04_retangular_varanda_coberta.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_05_bancada_alpendre">
+    <div class="card-header">
+      <span class="card-title">casa_05_bancada_alpendre</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (534x355px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_05_bancada_alpendre.png" alt="casa_05_bancada_alpendre Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_05_bancada_alpendre.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (576x423px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_05_bancada_alpendre.png" alt="casa_05_bancada_alpendre Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_05_bancada_alpendre.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_05_bancada_alpendre.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_06_casa_grande_chamine_central">
+    <div class="card-header">
+      <span class="card-title">casa_06_casa_grande_chamine_central</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (524x460px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_06_casa_grande_chamine_central.png" alt="casa_06_casa_grande_chamine_central Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_06_casa_grande_chamine_central.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (524x491px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_06_casa_grande_chamine_central.png" alt="casa_06_casa_grande_chamine_central Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_06_casa_grande_chamine_central.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_06_casa_grande_chamine_central.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_07_forno_pedra_lareira">
+    <div class="card-header">
+      <span class="card-title">casa_07_forno_pedra_lareira</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (590x410px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_07_forno_pedra_lareira.png" alt="casa_07_forno_pedra_lareira Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_07_forno_pedra_lareira.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (506x380px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_07_forno_pedra_lareira.png" alt="casa_07_forno_pedra_lareira Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_07_forno_pedra_lareira.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_07_forno_pedra_lareira.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_08_celeiro_enxaimel">
+    <div class="card-header">
+      <span class="card-title">casa_08_celeiro_enxaimel</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (520x353px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_08_celeiro_enxaimel.png" alt="casa_08_celeiro_enxaimel Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_08_celeiro_enxaimel.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (270x409px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_08_celeiro_enxaimel.png" alt="casa_08_celeiro_enxaimel Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_08_celeiro_enxaimel.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_08_celeiro_enxaimel.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_09_mansarda_danificada">
+    <div class="card-header">
+      <span class="card-title">casa_09_mansarda_danificada</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (555x385px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_09_mansarda_danificada.png" alt="casa_09_mansarda_danificada Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_09_mansarda_danificada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (554x395px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_09_mansarda_danificada.png" alt="casa_09_mansarda_danificada Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_09_mansarda_danificada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_09_mansarda_danificada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_10_telhado_quebrado">
+    <div class="card-header">
+      <span class="card-title">casa_10_telhado_quebrado</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (538x359px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_10_telhado_quebrado.png" alt="casa_10_telhado_quebrado Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_10_telhado_quebrado.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (773x416px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_10_telhado_quebrado.png" alt="casa_10_telhado_quebrado Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_10_telhado_quebrado.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_10_telhado_quebrado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_11_telhado_aberto_anexo">
+    <div class="card-header">
+      <span class="card-title">casa_11_telhado_aberto_anexo</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (614x363px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_11_telhado_aberto_anexo.png" alt="casa_11_telhado_aberto_anexo Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_11_telhado_aberto_anexo.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (614x362px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_11_telhado_aberto_anexo.png" alt="casa_11_telhado_aberto_anexo Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_11_telhado_aberto_anexo.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_11_telhado_aberto_anexo.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_12_ruina_vigas_desabadas">
+    <div class="card-header">
+      <span class="card-title">casa_12_ruina_vigas_desabadas</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (580x408px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_12_ruina_vigas_desabadas.png" alt="casa_12_ruina_vigas_desabadas Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_12_ruina_vigas_desabadas.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (579x407px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_12_ruina_vigas_desabadas.png" alt="casa_12_ruina_vigas_desabadas Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_12_ruina_vigas_desabadas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_12_ruina_vigas_desabadas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_13_ruina_estrutura_queimada">
+    <div class="card-header">
+      <span class="card-title">casa_13_ruina_estrutura_queimada</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (518x406px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_13_ruina_estrutura_queimada.png" alt="casa_13_ruina_estrutura_queimada Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_13_ruina_estrutura_queimada.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (518x406px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_13_ruina_estrutura_queimada.png" alt="casa_13_ruina_estrutura_queimada Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_13_ruina_estrutura_queimada.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_13_ruina_estrutura_queimada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1" data-name="casa_14_ruina_chamine_escombros">
+    <div class="card-header">
+      <span class="card-title">casa_14_ruina_chamine_escombros</span>
+      <span class="card-category">Casas - Conjunto 1</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (561x400px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Frente/casa_14_ruina_chamine_escombros.png" alt="casa_14_ruina_chamine_escombros Frente" onclick="openModal('Casas/Conjunto_1/Frente/casa_14_ruina_chamine_escombros.png')">
+            </div>
+            
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (561x401px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_14_ruina_chamine_escombros.png" alt="casa_14_ruina_chamine_escombros Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_14_ruina_chamine_escombros.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Frente/casa_14_ruina_chamine_escombros.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1 (Extras Costas)" data-name="casa_extra_01_empena_enxaimel_costas">
+    <div class="card-header">
+      <span class="card-title">casa_extra_01_empena_enxaimel_costas</span>
+      <span class="card-category">Casas - Conjunto 1 (Extras Costas)</span>
+    </div>
+    <div class="card-images">
+      
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (334x410px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_extra_01_empena_enxaimel_costas.png" alt="casa_extra_01_empena_enxaimel_costas Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_extra_01_empena_enxaimel_costas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1 (Extras Costas)</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Costas/casa_extra_01_empena_enxaimel_costas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Casas - Conjunto 1 (Extras Costas)" data-name="casa_extra_02_varanda_alpendre_costas">
+    <div class="card-header">
+      <span class="card-title">casa_extra_02_varanda_alpendre_costas</span>
+      <span class="card-category">Casas - Conjunto 1 (Extras Costas)</span>
+    </div>
+    <div class="card-images">
+      
+      
+            <div class="sprite-view">
+              <span class="view-label">Costas (410x428px)</span>
+              <img class="sprite-img" src="Casas/Conjunto_1/Costas/casa_extra_02_varanda_alpendre_costas.png" alt="casa_extra_02_varanda_alpendre_costas Costas" onclick="openModal('Casas/Conjunto_1/Costas/casa_extra_02_varanda_alpendre_costas.png')">
+            </div>
+            
+    </div>
+    <div class="card-footer">
+      <span>Casas - Conjunto 1 (Extras Costas)</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Casas/Conjunto_1/Costas/casa_extra_02_varanda_alpendre_costas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Fontes" data-name="fonte_pedra_intacta">
+    <div class="card-header">
+      <span class="card-title">fonte_pedra_intacta</span>
+      <span class="card-category">Props / Fontes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (487x439px)</span>
+              <img class="sprite-img" src="Props/Fontes/fonte_pedra_intacta.png" alt="fonte_pedra_intacta Frente" onclick="openModal('Props/Fontes/fonte_pedra_intacta.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Fontes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Fontes/fonte_pedra_intacta.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Fontes" data-name="fonte_pedra_danificada">
+    <div class="card-header">
+      <span class="card-title">fonte_pedra_danificada</span>
+      <span class="card-category">Props / Fontes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (487x439px)</span>
+              <img class="sprite-img" src="Props/Fontes/fonte_pedra_danificada.png" alt="fonte_pedra_danificada Frente" onclick="openModal('Props/Fontes/fonte_pedra_danificada.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Fontes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Fontes/fonte_pedra_danificada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Bancos" data-name="banco_madeira">
+    <div class="card-header">
+      <span class="card-title">banco_madeira</span>
+      <span class="card-category">Props / Bancos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (304x175px)</span>
+              <img class="sprite-img" src="Props/Bancos/banco_madeira.png" alt="banco_madeira Frente" onclick="openModal('Props/Bancos/banco_madeira.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Bancos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Bancos/banco_madeira.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Bancos" data-name="banco_pedra">
+    <div class="card-header">
+      <span class="card-title">banco_pedra</span>
+      <span class="card-category">Props / Bancos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (292x178px)</span>
+              <img class="sprite-img" src="Props/Bancos/banco_pedra.png" alt="banco_pedra Frente" onclick="openModal('Props/Bancos/banco_pedra.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Bancos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Bancos/banco_pedra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Bancos" data-name="banco_madeira_quebrado">
+    <div class="card-header">
+      <span class="card-title">banco_madeira_quebrado</span>
+      <span class="card-category">Props / Bancos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (303x175px)</span>
+              <img class="sprite-img" src="Props/Bancos/banco_madeira_quebrado.png" alt="banco_madeira_quebrado Frente" onclick="openModal('Props/Bancos/banco_madeira_quebrado.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Bancos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Bancos/banco_madeira_quebrado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Monumentos" data-name="monumento_herois_intacto">
+    <div class="card-header">
+      <span class="card-title">monumento_herois_intacto</span>
+      <span class="card-category">Props / Monumentos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (1309x493px)</span>
+              <img class="sprite-img" src="Props/Monumentos/monumento_herois_intacto.png" alt="monumento_herois_intacto Frente" onclick="openModal('Props/Monumentos/monumento_herois_intacto.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Monumentos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Monumentos/monumento_herois_intacto.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Monumentos" data-name="monumento_espada_fincada">
+    <div class="card-header">
+      <span class="card-title">monumento_espada_fincada</span>
+      <span class="card-category">Props / Monumentos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (216x201px)</span>
+              <img class="sprite-img" src="Props/Monumentos/monumento_espada_fincada.png" alt="monumento_espada_fincada Frente" onclick="openModal('Props/Monumentos/monumento_espada_fincada.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Monumentos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Monumentos/monumento_espada_fincada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Monumentos" data-name="monumento_herois_danificado">
+    <div class="card-header">
+      <span class="card-title">monumento_herois_danificado</span>
+      <span class="card-category">Props / Monumentos</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (595x490px)</span>
+              <img class="sprite-img" src="Props/Monumentos/monumento_herois_danificado.png" alt="monumento_herois_danificado Frente" onclick="openModal('Props/Monumentos/monumento_herois_danificado.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Monumentos</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Monumentos/monumento_herois_danificado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="poste_lanterna_madeira">
+    <div class="card-header">
+      <span class="card-title">poste_lanterna_madeira</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (159x334px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/poste_lanterna_madeira.png" alt="poste_lanterna_madeira Frente" onclick="openModal('Props/Iluminacao_e_Postes/poste_lanterna_madeira.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/poste_lanterna_madeira.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="poste_ferro">
+    <div class="card-header">
+      <span class="card-title">poste_ferro</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (141x334px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/poste_ferro.png" alt="poste_ferro Frente" onclick="openModal('Props/Iluminacao_e_Postes/poste_ferro.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/poste_ferro.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="pilar_pedra">
+    <div class="card-header">
+      <span class="card-title">pilar_pedra</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (67x319px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/pilar_pedra.png" alt="pilar_pedra Frente" onclick="openModal('Props/Iluminacao_e_Postes/pilar_pedra.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/pilar_pedra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="lanterna_parede">
+    <div class="card-header">
+      <span class="card-title">lanterna_parede</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (97x145px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/lanterna_parede.png" alt="lanterna_parede Frente" onclick="openModal('Props/Iluminacao_e_Postes/lanterna_parede.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/lanterna_parede.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="placa_madeira_vazia">
+    <div class="card-header">
+      <span class="card-title">placa_madeira_vazia</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (183x257px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/placa_madeira_vazia.png" alt="placa_madeira_vazia Frente" onclick="openModal('Props/Placas_e_Estandartes/placa_madeira_vazia.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/placa_madeira_vazia.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="placa_direcional">
+    <div class="card-header">
+      <span class="card-title">placa_direcional</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (170x266px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/placa_direcional.png" alt="placa_direcional Frente" onclick="openModal('Props/Placas_e_Estandartes/placa_direcional.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/placa_direcional.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="lapide_pedra">
+    <div class="card-header">
+      <span class="card-title">lapide_pedra</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (138x219px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/lapide_pedra.png" alt="lapide_pedra Frente" onclick="openModal('Props/Placas_e_Estandartes/lapide_pedra.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/lapide_pedra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="quadro_avisos">
+    <div class="card-header">
+      <span class="card-title">quadro_avisos</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (285x266px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/quadro_avisos.png" alt="quadro_avisos Frente" onclick="openModal('Props/Placas_e_Estandartes/quadro_avisos.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/quadro_avisos.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="estandarte_vermelho">
+    <div class="card-header">
+      <span class="card-title">estandarte_vermelho</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (173x314px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/estandarte_vermelho.png" alt="estandarte_vermelho Frente" onclick="openModal('Props/Placas_e_Estandartes/estandarte_vermelho.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/estandarte_vermelho.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Placas_e_Estandartes" data-name="estandarte_rasgado">
+    <div class="card-header">
+      <span class="card-title">estandarte_rasgado</span>
+      <span class="card-category">Props / Placas_e_Estandartes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (173x314px)</span>
+              <img class="sprite-img" src="Props/Placas_e_Estandartes/estandarte_rasgado.png" alt="estandarte_rasgado Frente" onclick="openModal('Props/Placas_e_Estandartes/estandarte_rasgado.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Placas_e_Estandartes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Placas_e_Estandartes/estandarte_rasgado.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="barris_pilha">
+    <div class="card-header">
+      <span class="card-title">barris_pilha</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (217x214px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/barris_pilha.png" alt="barris_pilha Frente" onclick="openModal('Props/Cargas_e_Transporte/barris_pilha.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/barris_pilha.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="caixas_madeira_pilha">
+    <div class="card-header">
+      <span class="card-title">caixas_madeira_pilha</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (233x193px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/caixas_madeira_pilha.png" alt="caixas_madeira_pilha Frente" onclick="openModal('Props/Cargas_e_Transporte/caixas_madeira_pilha.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/caixas_madeira_pilha.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="carroca_quatro_rodas">
+    <div class="card-header">
+      <span class="card-title">carroca_quatro_rodas</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (313x180px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/carroca_quatro_rodas.png" alt="carroca_quatro_rodas Frente" onclick="openModal('Props/Cargas_e_Transporte/carroca_quatro_rodas.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/carroca_quatro_rodas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="pilha_lenha_organizada">
+    <div class="card-header">
+      <span class="card-title">pilha_lenha_organizada</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (140x169px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/pilha_lenha_organizada.png" alt="pilha_lenha_organizada Frente" onclick="openModal('Props/Cargas_e_Transporte/pilha_lenha_organizada.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/pilha_lenha_organizada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="pilha_lenha_bruta">
+    <div class="card-header">
+      <span class="card-title">pilha_lenha_bruta</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (169x128px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/pilha_lenha_bruta.png" alt="pilha_lenha_bruta Frente" onclick="openModal('Props/Cargas_e_Transporte/pilha_lenha_bruta.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/pilha_lenha_bruta.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="carroca_destruida">
+    <div class="card-header">
+      <span class="card-title">carroca_destruida</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (259x174px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/carroca_destruida.png" alt="carroca_destruida Frente" onclick="openModal('Props/Cargas_e_Transporte/carroca_destruida.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/carroca_destruida.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="carrinho_de_mao">
+    <div class="card-header">
+      <span class="card-title">carrinho_de_mao</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (245x179px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/carrinho_de_mao.png" alt="carrinho_de_mao Frente" onclick="openModal('Props/Cargas_e_Transporte/carrinho_de_mao.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/carrinho_de_mao.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="caixa_madeira_individual">
+    <div class="card-header">
+      <span class="card-title">caixa_madeira_individual</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (179x159px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/caixa_madeira_individual.png" alt="caixa_madeira_individual Frente" onclick="openModal('Props/Cargas_e_Transporte/caixa_madeira_individual.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/caixa_madeira_individual.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Cargas_e_Transporte" data-name="caixa_madeira_quebrada">
+    <div class="card-header">
+      <span class="card-title">caixa_madeira_quebrada</span>
+      <span class="card-category">Props / Cargas_e_Transporte</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (146x143px)</span>
+              <img class="sprite-img" src="Props/Cargas_e_Transporte/caixa_madeira_quebrada.png" alt="caixa_madeira_quebrada Frente" onclick="openModal('Props/Cargas_e_Transporte/caixa_madeira_quebrada.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Cargas_e_Transporte</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Cargas_e_Transporte/caixa_madeira_quebrada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_flores_azul">
+    <div class="card-header">
+      <span class="card-title">vaso_flores_azul</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (103x180px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_flores_azul.png" alt="vaso_flores_azul Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_flores_azul.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_flores_azul.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_flores_vermelho">
+    <div class="card-header">
+      <span class="card-title">vaso_flores_vermelho</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (90x166px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_flores_vermelho.png" alt="vaso_flores_vermelho Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_flores_vermelho.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_flores_vermelho.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_arbusto_pequeno">
+    <div class="card-header">
+      <span class="card-title">vaso_arbusto_pequeno</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (130x182px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_arbusto_pequeno.png" alt="vaso_arbusto_pequeno Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_arbusto_pequeno.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_arbusto_pequeno.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_planta_folhagem">
+    <div class="card-header">
+      <span class="card-title">vaso_planta_folhagem</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (107x185px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_planta_folhagem.png" alt="vaso_planta_folhagem Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_planta_folhagem.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_planta_folhagem.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="jardineira_madeira_flores">
+    <div class="card-header">
+      <span class="card-title">jardineira_madeira_flores</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (105x153px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/jardineira_madeira_flores.png" alt="jardineira_madeira_flores Frente" onclick="openModal('Props/Vegetacao_e_Jardim/jardineira_madeira_flores.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/jardineira_madeira_flores.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="jardineira_madeira_arbusto">
+    <div class="card-header">
+      <span class="card-title">jardineira_madeira_arbusto</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (108x140px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/jardineira_madeira_arbusto.png" alt="jardineira_madeira_arbusto Frente" onclick="openModal('Props/Vegetacao_e_Jardim/jardineira_madeira_arbusto.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/jardineira_madeira_arbusto.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="hera_trepadeira">
+    <div class="card-header">
+      <span class="card-title">hera_trepadeira</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (138x170px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/hera_trepadeira.png" alt="hera_trepadeira Frente" onclick="openModal('Props/Vegetacao_e_Jardim/hera_trepadeira.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/hera_trepadeira.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_rachado_flores">
+    <div class="card-header">
+      <span class="card-title">vaso_rachado_flores</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (88x160px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_rachado_flores.png" alt="vaso_rachado_flores Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_rachado_flores.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_rachado_flores.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="canteiro_flores_roxas">
+    <div class="card-header">
+      <span class="card-title">canteiro_flores_roxas</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (214x142px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/canteiro_flores_roxas.png" alt="canteiro_flores_roxas Frente" onclick="openModal('Props/Vegetacao_e_Jardim/canteiro_flores_roxas.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/canteiro_flores_roxas.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="canteiro_ervas_verdes">
+    <div class="card-header">
+      <span class="card-title">canteiro_ervas_verdes</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (215x137px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/canteiro_ervas_verdes.png" alt="canteiro_ervas_verdes Frente" onclick="openModal('Props/Vegetacao_e_Jardim/canteiro_ervas_verdes.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/canteiro_ervas_verdes.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_arbusto_grande">
+    <div class="card-header">
+      <span class="card-title">vaso_arbusto_grande</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (125x188px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_arbusto_grande.png" alt="vaso_arbusto_grande Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_arbusto_grande.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_arbusto_grande.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="bebedouro_tanque_pedra">
+    <div class="card-header">
+      <span class="card-title">bebedouro_tanque_pedra</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (225x144px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/bebedouro_tanque_pedra.png" alt="bebedouro_tanque_pedra Frente" onclick="openModal('Props/Vegetacao_e_Jardim/bebedouro_tanque_pedra.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/bebedouro_tanque_pedra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Vegetacao_e_Jardim" data-name="vaso_quebrado_terra">
+    <div class="card-header">
+      <span class="card-title">vaso_quebrado_terra</span>
+      <span class="card-category">Props / Vegetacao_e_Jardim</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (153x145px)</span>
+              <img class="sprite-img" src="Props/Vegetacao_e_Jardim/vaso_quebrado_terra.png" alt="vaso_quebrado_terra Frente" onclick="openModal('Props/Vegetacao_e_Jardim/vaso_quebrado_terra.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Vegetacao_e_Jardim</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Vegetacao_e_Jardim/vaso_quebrado_terra.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="viga_madeira_inclinada">
+    <div class="card-header">
+      <span class="card-title">viga_madeira_inclinada</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (229x216px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/viga_madeira_inclinada.png" alt="viga_madeira_inclinada Frente" onclick="openModal('Props/Iluminacao_e_Postes/viga_madeira_inclinada.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/viga_madeira_inclinada.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+  <div class="card" data-category="Props / Iluminacao_e_Postes" data-name="lanterna_cristal_magica">
+    <div class="card-header">
+      <span class="card-title">lanterna_cristal_magica</span>
+      <span class="card-category">Props / Iluminacao_e_Postes</span>
+    </div>
+    <div class="card-images">
+      
+            <div class="sprite-view">
+              <span class="view-label">Frente (127x165px)</span>
+              <img class="sprite-img" src="Props/Iluminacao_e_Postes/lanterna_cristal_magica.png" alt="lanterna_cristal_magica Frente" onclick="openModal('Props/Iluminacao_e_Postes/lanterna_cristal_magica.png')">
+            </div>
+            
+      
+    </div>
+    <div class="card-footer">
+      <span>Props / Iluminacao_e_Postes</span>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('Props/Iluminacao_e_Postes/lanterna_cristal_magica.png')">Copiar Caminho</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="modal" id="modal" onclick="closeModal()">
+  <span class="modal-close">&times;</span>
+  <img id="modal-img" src="" alt="Zoom">
+</div>
+
+<script>
+let currentCategory = 'all';
+
+function setCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === (cat === 'all' ? 'todas' : cat.toLowerCase()));
+  });
+  filterCards();
+}
+
+function filterCards() {
+  const query = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.card').forEach(card => {
+    const cardCat = card.getAttribute('data-category');
+    const cardName = card.getAttribute('data-name');
+    const catMatch = currentCategory === 'all' || cardCat.toLowerCase().includes(currentCategory.toLowerCase());
+    const queryMatch = cardName.includes(query);
+    card.style.display = (catMatch && queryMatch) ? 'flex' : 'none';
+  });
+}
+
+function openModal(src) {
+  document.getElementById('modal-img').src = src;
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+</script>
+
+</body>
+</html>

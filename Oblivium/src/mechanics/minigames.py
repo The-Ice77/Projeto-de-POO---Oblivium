@@ -205,6 +205,22 @@ class MinigameMash:
             
         return None
 
+    def get_progresso_pct(self):
+        """Retorna o percentual normalizado de progresso (0.0 a 1.0) para mover as pedras."""
+        return max(0.0, min(1.0, self.progresso / 100.0))
+
+    def processar_evento(self, evento):
+        """Permite avançar o minigame tanto pela tecla ESPAÇO quanto por cliques do Mouse."""
+        if not self.ativo:
+            return False
+        if evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
+            self.esmagar()
+            return True
+        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            self.esmagar()
+            return True
+        return False
+
     def esmagar(self):
         if self.ativo:
             self.progresso = min(100.0, self.progresso + self.ganho_por_clique)
@@ -246,6 +262,6 @@ class MinigameMash:
         r_pct = self.fonte_status.render(f"{int(self.progresso)}%", True, MARFIM_OFFWHITE)
         tela.blit(r_pct, (self.bx + self.largura_barra + 10, self.by + 4))
 
-        # 5. Rodapé Informativo
-        r_rod = self.fonte_rodape.render("[ Pressione ESPAÇO repetidamente ]", True, UI_TEXTO_APAGADO)
+        # 5. Rodapé Informativo (Híbrido: Teclado ou Clique)
+        r_rod = self.fonte_rodape.render("[ Pressione ESPAÇO ou CLIQUE repetidamente ]", True, UI_TEXTO_APAGADO)
         tela.blit(r_rod, (rect_painel.centerx - r_rod.get_width() // 2, self.py + self.altura_painel - 24))

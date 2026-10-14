@@ -1,0 +1,564 @@
+{
+  "hub_carroceiro": {
+    "no_inicial": "cumprimento",
+    "nos": {
+      "cumprimento": {
+        "autor": "Carroceiro",
+        "texto": "Ah, finalmente nos encontramos! Demorei um pouco para achar sua casa.",
+        "proximo": "menu_principal"
+      },
+      "menu_principal": {
+        "tipo": "escolha",
+        "cabecalho": "Sobre o que deseja conversar?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_conversa",
+        "resultado_fechar": "despedida_fechar",
+        "opcoes": [
+          {
+            "id": "sobre_mundo",
+            "texto": "O mundo sempre foi tão cinza assim?",
+            "proximo": "fala_mundo_1"
+          },
+          {
+            "id": "criticar_demora",
+            "texto": "Pensei que você sabia se orientar...",
+            "proximo": "fala_critica_1"
+          },
+          {
+            "id": "sobre_passado",
+            "texto": "Falar sobre outra coisa (Meu passado)",
+            "proximo": "fala_passado_1"
+          },
+          {
+            "id": "sobre_clima",
+            "texto": "Sobre o clima de hoje...",
+            "proximo": "fala_clima_1"
+          },
+          {
+            "id": "perguntar_lanche",
+            "texto": "Você tem um lanche na carroça?",
+            "proximo": "fala_lanche_1"
+          },
+          {
+            "id": "sobre_estradas",
+            "texto": "Por que as estradas estão tão perigosas?",
+            "proximo": "fala_estradas_1"
+          },
+          {
+            "id": "sobre_animal",
+            "texto": "Qual o seu animal favorito?",
+            "proximo": "fala_animal_1"
+          },
+          {
+            "id": "sobre_cantar",
+            "texto": "Você gosta de cantar?",
+            "proximo": "fala_cantar_1"
+          },
+          {
+            "id": "prosseguir",
+            "texto": "Deseja prosseguir viagem",
+            "proximo": "fala_prosseguir_1",
+            "repetivel": true
+          }
+        ]
+      },
+      "despedida_fechar": {
+        "autor": "Carroceiro",
+        "texto": "Tudo bem, estarei aguardando aqui. Me avise quando estiver pronta."
+      },
+      "fala_mundo_1": {
+        "autor": "Carroceiro",
+        "texto": "Bem, na época de inverno é realmente cinzento, mas estamos em pleno verão, a grama é verde e o sol brilha, não entendi o que quis dizer.",
+        "proximo": "fala_mundo_2"
+      },
+      "fala_mundo_2": {
+        "autor": "Pensamento",
+        "texto": "O mundo só é assim pra mim?...",
+        "proximo": "menu_principal"
+      },
+      "fala_critica_1": {
+        "autor": "Carroceiro",
+        "texto": "Me perdoe... É que a senhorita mora bem longe. (Ele claramente fica deprimido).",
+        "proximo": "fala_critica_2"
+      },
+      "fala_critica_2": {
+        "autor": "Pensamento",
+        "texto": "Por que eu falei isso?...",
+        "proximo": "menu_principal"
+      },
+      "fala_passado_1": {
+        "autor": "Carroceiro",
+        "texto": "A senhorita é a elfa que salvou o mundo do tirano rei demônio! Os anciões da vila devem saber mais, aprendi apenas um pouco em minhas viagens.",
+        "proximo": "fala_passado_2"
+      },
+      "fala_passado_2": {
+        "autor": "Pensamento",
+        "texto": "Eu salvei o mundo?... Tenho muitas perguntas a fazer.",
+        "proximo": "submenu_passado"
+      },
+      "submenu_passado": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja perguntar sobre o passado?",
+        "pode_fechar": false,
+        "opcoes": [
+          {
+            "id": "passado_rei_demonio",
+            "texto": "O que você sabe sobre a queda do rei demônio?",
+            "proximo": "fala_detalhe_demonio"
+          },
+          {
+            "id": "passado_ancioes",
+            "texto": "Onde posso encontrar esses anciões?",
+            "proximo": "fala_detalhe_ancioes"
+          },
+          {
+            "id": "passado_voltar",
+            "texto": "« Voltar aos outros assuntos",
+            "proximo": "menu_principal",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_detalhe_demonio": {
+        "autor": "Carroceiro",
+        "texto": "Dizem que o confronto final consumiu quase toda a mana do continente. Muitos heróis não voltaram... mas você sobreviveu, embora pareça ter esquecido.",
+        "proximo": "submenu_passado"
+      },
+      "fala_detalhe_ancioes": {
+        "autor": "Carroceiro",
+        "texto": "Eles habitam o Santuário da Capital. Se alguém guarda os registros daquela era, são eles.",
+        "proximo": "submenu_passado"
+      },
+      "fala_clima_1": {
+        "autor": "Carroceiro",
+        "texto": "Pelo menos não está chovendo. Um tempo nublado é melhor para viajar.",
+        "proximo": "menu_principal"
+      },
+      "fala_lanche_1": {
+        "autor": "Carroceiro",
+        "texto": "Tenho apenas pão duro e uma maçã pela metade. Aceita?",
+        "proximo": "menu_principal"
+      },
+      "fala_estradas_1": {
+        "autor": "Carroceiro",
+        "texto": "Desde a queda do tirano, monstros menores andam famintos pela região.",
+        "proximo": "menu_principal"
+      },
+      "fala_animal_1": {
+        "autor": "Carroceiro",
+        "texto": "Sempre fui muito apegado aos cavalos. O meu se chama Trovão.",
+        "proximo": "menu_principal"
+      },
+      "fala_cantar_1": {
+        "autor": "Carroceiro",
+        "texto": "Só depois de beber muito hidromel na taverna da capital!",
+        "proximo": "menu_principal"
+      },
+      "fala_prosseguir_1": {
+        "autor": "Carroceiro",
+        "texto": "Aperte os cintos. Suba na carroça, o caminho até a capital é longo e parece que vai neblinar.",
+        "proximo": "fala_prosseguir_2"
+      },
+      "fala_prosseguir_2": {
+        "autor": "Sistema",
+        "texto": "Iniciando viagem rumo à capital...",
+        "evento": "prosseguir"
+      }
+    }
+  },
+
+  "investigar_pedras": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Estas pedras são enormes... Força física não vai resolver isto.",
+        "proximo": "menu_puzzle"
+      },
+      "menu_puzzle": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja fazer?",
+        "pode_fechar": true,
+        "id_cancelamento": "desistir_puzzle",
+        "opcoes": [
+          {
+            "id": "analisar_pedras",
+            "texto": "Analisar as pedras caídas detalhadamente",
+            "evento": "analisar_pedras"
+          }
+        ]
+      }
+    }
+  },
+
+  "escolha_magias": {
+    "no_inicial": "menu_magias",
+    "nos": {
+      "menu_magias": {
+        "tipo": "escolha",
+        "cabecalho": "Qual magia deseja conjurar?",
+        "pode_fechar": true,
+        "id_cancelamento": "voltar_magia",
+        "opcoes": [
+          {
+            "id": "escolha_fogo",
+            "texto": "Conjurar Magia de Fogo (Puzzle de Mira)",
+            "proximo": "fala_fogo_1",
+            "repetivel": true
+          },
+          {
+            "id": "escolha_levitar",
+            "texto": "Conjurar Magia de Levitação (Puzzle de Concentração)",
+            "proximo": "fala_levitar_1",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_fogo_1": {
+        "autor": "Pensamento",
+        "texto": "Se eu me concentrar, talvez consiga conjurar uma explosão para estilhaçar estas rochas!",
+        "proximo": "fala_fogo_2"
+      },
+      "fala_fogo_2": {
+        "autor": "Sistema",
+        "texto": "Magia de Fogo selecionada. Prepare-se para mirar!",
+        "evento": "escolha_fogo"
+      },
+      "fala_levitar_1": {
+        "autor": "Pensamento",
+        "texto": "Se eu canalizar a energia ao redor das fendas, posso fazer estas pedras flutuarem para fora da estrada.",
+        "proximo": "fala_levitar_2"
+      },
+      "fala_levitar_2": {
+        "autor": "Sistema",
+        "texto": "Magia de Levitação selecionada. Prepare-se para concentrar a mana!",
+        "evento": "escolha_levitar"
+      }
+    }
+  },
+
+  "flashback_magia": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Narrador",
+        "texto": "Ao tocar na pedra fria, o som do vento ao teu redor desaparece...",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Eco do Passado",
+        "texto": "Halia... Lembra-te do teu nome. Lembra-te de quem eras antes do silêncio cinzento.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Pensamento",
+        "texto": "A minha mente... Está a arder. Eu consigo ver fardos de luz e calor nas minhas mãos... Eu sei usar magia!",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Sistema",
+        "texto": "A tua ligação com a mana ancestral foi reestabelecida."
+      }
+    }
+  },
+
+  "pos_fogo": {
+    "no_inicial": "fala_narrador",
+    "nos": {
+      "fala_narrador": {
+        "autor": "Narrador",
+        "texto": "BOOM! A bola de fogo estilhaça o bloqueio em mil pedaços.",
+        "proximo": "fala_1"
+      },
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Pelos deuses, que explosão foi essa? Meus ouvidos ainda estão zumbindo!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "O caminho está livre. Podemos prosseguir.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Carroceiro",
+        "texto": "Sim, vamos rápido... Espera. Você ouviu isso? O estrondo atraiu algo!",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Narrador",
+        "texto": "Das sombras da estrada, duas criaturas rastejam na sua direção!",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Sistema",
+        "texto": "PREPARE-SE PARA O COMBATE! (2 Inimigos)"
+      }
+    }
+  },
+
+  "pos_levitar": {
+    "no_inicial": "fala_narrador",
+    "nos": {
+      "fala_narrador": {
+        "autor": "Narrador",
+        "texto": "Com um gesto suave, as pedras erguem-se no ar e organizam-se nas margens da estrada.",
+        "proximo": "fala_1"
+      },
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Você moveu toneladas de rocha como se fossem folhas secas... Incrível.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "O caminho está livre. Podemos prosseguir.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Carroceiro",
+        "texto": "Vamos antes que a neblina... shhh. Algo muito grande está vindo.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Narrador",
+        "texto": "A forte concentração de mana atraiu uma anomalia poderosa...",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Sistema",
+        "texto": "PREPARE-SE PARA O COMBATE! (1 Inimigo Forte)"
+      }
+    }
+  },
+
+  "falha_timing": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "A magia dissipou-se nas minhas mãos... Perdi o tempo certo. Preciso focar-me e tentar novamente.",
+        "proximo": "menu_magias"
+      },
+      "menu_magias": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "escolha_magias"
+      }
+    }
+  },
+
+  "falha_mash": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "As pedras ficaram pesadas demais... Perdi a concentração. Preciso tentar novamente.",
+        "proximo": "menu_magias"
+      },
+      "menu_magias": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "escolha_magias"
+      }
+    }
+  },
+
+  "porta_abriu": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Pronto, estou com tudo. A porta destrancou.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Sistema",
+        "texto": "A porta está aberta. Saia pelo jardim e siga pela pequena estrada de terra."
+      }
+    }
+  },
+
+  "porta_trancada": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Ainda não peguei tudo o que preciso. Não posso sair de mãos vazias."
+      }
+    }
+  },
+
+  "fechar_porta": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Porta trancada com segurança... Agora devo caminhar pela pequena estrada de terra para prosseguir viagem.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Sistema",
+        "texto": "Siga pela pequena estrada de terra através do jardim até a saída leste."
+      }
+    }
+  },
+
+  "avistar_carroceiro": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Tem alguém vindo com uma carroça... É ele!"
+      }
+    }
+  },
+
+  "entrada_estrada1": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Que vento frio... O mundo continua completamente cinzento e sem vida por aqui fora.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Pensamento",
+        "texto": "Onde estará aquele homem com a carroça? Ele disse que me esperaria ao longo desta estrada de terra.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Sistema",
+        "texto": "Objetivo: Siga para a direita ao longo da estrada para procurar o carroceiro."
+      }
+    }
+  },
+
+  "entrada_estrada2": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Narrador",
+        "texto": "Algumas horas de viagem depois... A carroça para abruptamente.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Carroceiro",
+        "texto": "Pelos deuses... Um deslizamento de terra! Olhe o tamanho daquelas pedras bloqueando o caminho.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Pensamento",
+        "texto": "Preciso dar uma olhada de perto nessas pedras para ver se encontro uma solução."
+      }
+    }
+  },
+
+  "carroceiro_estrada2": {
+    "no_inicial": "menu_estrada2",
+    "nos": {
+      "menu_estrada2": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja fazer?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_estrada2",
+        "resultado_fechar": "fala_fechar_estrada2",
+        "opcoes": [
+          {
+            "id": "seguir_capital",
+            "texto": "Subir na carroça e seguir viagem para a Capital",
+            "proximo": "fala_seguir_1",
+            "repetivel": true
+          },
+          {
+            "id": "falar_batalha",
+            "texto": "Essas criaturas... o que eram elas?",
+            "proximo": "fala_batalha_1"
+          }
+        ]
+      },
+      "fala_fechar_estrada2": {
+        "autor": "Carroceiro",
+        "texto": "Estarei pronto quando você estiver. Apenas me avise para partirmos."
+      },
+      "fala_seguir_1": {
+        "autor": "Carroceiro",
+        "texto": "Excelente! Suba na carroça, a capital nos espera do outro lado deste vale.",
+        "proximo": "fala_seguir_2"
+      },
+      "fala_seguir_2": {
+        "autor": "Narrador",
+        "texto": "Com as ameaças derrotadas e o caminho liberado, Halia sobe na carroça e a viagem é retomada...",
+        "proximo": "fala_seguir_3"
+      },
+      "fala_seguir_3": {
+        "autor": "Pensamento",
+        "texto": "Conforme nos distanciamos deste vale esquecido... sinto uma chama há muito adormecida voltar a queimar em meu peito.",
+        "evento": "seguir_capital"
+      },
+      "fala_batalha_1": {
+        "autor": "Carroceiro",
+        "texto": "Anomalias da névoa sombria. Desde a queda do lorde demônio, resquícios do poder dele ainda vagam sem rumo pelas estradas.",
+        "proximo": "fala_batalha_2"
+      },
+      "fala_batalha_2": {
+        "autor": "Halia",
+        "texto": "Entendo... Devo me manter alerta.",
+        "proximo": "menu_estrada2"
+      }
+    }
+  },
+
+  "pos_combate_vitoria": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Incrível, Halia! Você derrotou as ameaças e a passagem está completamente desimpedida.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Carroceiro",
+        "texto": "Podemos continuar viagem quando você quiser.",
+        "proximo": "menu_redirecionar"
+      },
+      "menu_redirecionar": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "carroceiro_estrada2"
+      }
+    }
+  },
+
+  "carroceiro_pos_combate": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "A passagem está livre. Pronta para seguir viagem até a capital?",
+        "proximo": "menu_redirecionar"
+      },
+      "menu_redirecionar": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "carroceiro_estrada2"
+      }
+    }
+  },
+
+  "carroceiro_pos_puzzle": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Cuidado com essas criaturas, Halia!"
+      }
+    }
+  },
+
+  "carroceiro_impedimento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Não há como passar com a carroça por aqui. Precisamos de dar um jeito nestas pedras!"
+      }
+    }
+  }
+}

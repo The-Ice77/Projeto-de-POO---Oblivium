@@ -3,18 +3,21 @@ import pygame
 from src.maps.cenario_base import CenarioBase
 from src.utils.resource_manager import ResourceManager
 from src.utils.colors import CENARIO_GRAMA_CINZA, CENARIO_ESTRADA
+from src.entities.animal import Passaro
 
 
 class MapaEstrada(CenarioBase):
     """
     Representa o primeiro trecho da Estrada Rural de Oblivium.
     Ambiente florestal denso e verdejante. A estrada de terra batida é contornada
-    por transições suaves de grama sem emendas, margens com vegetação e fileiras
+    por transições suaves de grama sem emendas, margens com vegetação, fauna viva
+    (passarinhos empoleirados na grama que voam com a aproximação) e fileiras
     densas de árvores ancestrais cheias de folhas (Model 01).
     """
 
     def __init__(self, game, largura_tela, altura_tela):
         self.area_estrada = pygame.Rect(0, 240, largura_tela, 240)
+        self.passaros = []
 
         # Barreiras ajustadas rigorosamente para manter o jogador na pista sem invadir o bosque
         self.barreiras_estrada = [
@@ -80,6 +83,7 @@ class MapaEstrada(CenarioBase):
         ]
 
         super().__init__(game, largura_tela, altura_tela, nome="ESTRADA")
+        self.inicializar_cenario()
 
     def carregar_recursos(self):
         """Carrega e prepara chão com estrada e transições orgânicas sem costuras, árvores e vegetação."""
@@ -116,7 +120,7 @@ class MapaEstrada(CenarioBase):
         }
 
     def inicializar_cenario(self):
-        """Configura as hitboxes das barreiras e troncos 2.5D."""
+        """Configura as hitboxes das barreiras, troncos 2.5D e a fauna da estrada."""
         self.hitboxes = []
         self.hitboxes.extend(self.barreiras_estrada)
         self.hitboxes.append(self.limite_oeste)
@@ -130,6 +134,21 @@ class MapaEstrada(CenarioBase):
             self.hitboxes.append(pygame.Rect(x + (w // 2) - 16, y + h - 28, 32, 24))
 
         self.itens_no_chao = []
+
+        # Fauna viva: passarinhos empoleirados na grama da estrada rural
+        self.passaros = [
+            Passaro(370, 218, direcao_inicial="direita"),
+            Passaro(820, 482, direcao_inicial="esquerda")
+        ]
+
+    def atualizar(self, dt=0.016):
+        """Atualiza a IA e o comportamento de voo e pulo dos passarinhos."""
+        pos_jogador = None
+        if hasattr(self.game, 'halia') and self.game.halia:
+            pos_jogador = (self.game.halia.x + 20, self.game.halia.y + 30)
+
+        for p in self.passaros:
+            p.atualizar(dt, pos_jogador=pos_jogador)
 
     def desenhar_camada_inferior(self, tela):
         """Renderiza o chão e toda a vegetação das margens."""
@@ -145,8 +164,13 @@ class MapaEstrada(CenarioBase):
                 tela.blit(sprite, (px, py))
 
     def desenhar_props(self, tela):
-        """Renderiza as árvores."""
+        """Renderiza as árvores e a fauna de passarinhos na cena."""
         for x, y, w, h, k in self.arvores_norte + self.arvores_sul:
             sprite = self.sprites_arvores.get(k)
             if sprite:
                 tela.blit(sprite, (x, y))
+
+        # Passarinhos na estrada (renderizados com Y-Sort natural sobre o solo)
+        for p in self.passaros:
+            p.desenhar(tela)
+

@@ -6,12 +6,15 @@ class NPC(Entidade):
     def __init__(self, nome, x, y, velocidade=0, vida_maxima=999):
         super().__init__(nome, vida_maxima, x, y, velocidade)
         
-        # Lista de falas que este NPC vai dizer ao jogador
+        # Identificador do diálogo no JSON ou lista de falas diretas
         self.dialogos = []
+        self.dialogo_id = None
 
-    def definir_dialogos(self, lista_dialogos):
-        """Define o que o NPC vai falar ao interagir."""
-        self.dialogos = lista_dialogos
+    def definir_dialogos(self, lista_ou_id):
+        """Define o que o NPC vai falar ao interagir (aceita ID em string ou lista)."""
+        if isinstance(lista_ou_id, str):
+            self.dialogo_id = lista_ou_id
+        self.dialogos = lista_ou_id
 
     def desenhar(self, tela):
         # Utiliza o método desenhar herdado da Entidade se houver sprites
