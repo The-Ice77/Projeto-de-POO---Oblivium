@@ -99,6 +99,10 @@ class PlayingState(State):
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
             self.game.efeito_folhas.atualizar()
 
+        # Atualiza o efeito de clima e chuva no cenário
+        if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva:
+            self.game.efeito_chuva.atualizar(0.016)
+
         # Atualiza o cenário ativo (animações de ambiente como poças de água)
         if hasattr(self.game, 'mapa_casa') and self.game.mapa_casa:
             self.game.mapa_casa.atualizar(0.016)
@@ -134,6 +138,13 @@ class PlayingState(State):
                 # Delimitação de toda a construção da casa de Halia (paredes norte/oeste/leste/sul e interior)
                 areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
             self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
+
+        # Efeito de clima (chuva comum ou chuva pesada com relâmpagos)
+        if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva and self.game.efeito_chuva.ativo:
+            areas_excluidas_chuva = []
+            if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
+                areas_excluidas_chuva.append(pygame.Rect(0, 0, 505, 545))
+            self.game.efeito_chuva.desenhar(tela, areas_excluidas=areas_excluidas_chuva)
 
         self._draw_interactable_prompts(tela)
         self._draw_ui_overlays(tela)
@@ -250,8 +261,11 @@ class PlayingState(State):
 
         pos = evento.pos
         
-        # Durante minigames, cliques de mouse não interferem (minigames são apenas ESPAÇO)
-        if self.game.mg_timing.ativo or self.game.mg_mash.ativo:
+        # Se o minigame de levitação estiver ativo, cliques do mouse impulsionam a magia
+        if self.game.mg_mash.ativo:
+            self.game.mg_mash.esmagar()
+            return
+        elif self.game.mg_timing.ativo:
             return
 
         # Clicar na bolsa do HUD abre o inventário
@@ -296,11 +310,26 @@ class PlayingState(State):
             self.game.mg_timing.atualizar()
         elif self.game.mg_mash.ativo:
             res = self.game.mg_mash.atualizar()
+
+            # As pedras vão se movendo com os cliques; caso o jogador deixe diminuir, elas vão voltando
+            pct = self.game.mg_mash.get_progresso_pct()
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+
             if res == "VENCEU":
-                self.game.magia_ativa = "LEVITAR"
-                self.game.distanciando_halia = True
+                # As pedras já foram levitadas até as margens pelo esforço do jogador no minigame.
+                # Elas apenas pousam com impacto firme no solo onde estão e o jogo segue em frente!
+                if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
+                    self.game.mapa_casa.desobstruir_estrada("LEVITAR")
+                self.game.magia_usada_no_puzzle = "LEVITAR"
+                self.game.magia_ativa = "CONCLUIDO"
+                self.game.distanciando_halia = False
                 self.game.timer_magia = 0
+                self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
+                self.game.conversa_combate_ativa = True
             elif res == "PERDEU":
+                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                    self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
                 self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and not self.game.caixa_dialogo.ativo and self.game.magia_ativa is None and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo:

@@ -99,6 +99,8 @@ class ComandosDev:
                 pygame.K_6: 6, pygame.K_KP6: 6,
                 pygame.K_7: 7, pygame.K_KP7: 7,
                 pygame.K_8: 8, pygame.K_KP8: 8,
+                pygame.K_9: 9, pygame.K_KP9: 9,
+                pygame.K_c: 9,
             }
             if evento.key in mapeamento:
                 self._executar_por_indice(mapeamento[evento.key])
@@ -119,7 +121,8 @@ class ComandosDev:
             5: self.cmd_adicionar_moedas,
             6: self.cmd_desbloquear_grimorio,
             7: self.cmd_desobstruir_estrada,
-            8: self.cmd_iniciar_combate
+            8: self.cmd_iniciar_combate,
+            9: self.cmd_alternar_clima
         }
         if indice in acoes:
             acoes[indice]()
@@ -287,6 +290,20 @@ class ComandosDev:
         self.game.iniciar_combate([inimigo_teste], on_vitoria=on_vitoria, on_derrota=on_derrota, on_fuga=on_fuga)
         self._notificar("Arena de Batalha", "Iniciando combate de teste com Demônio Inferior...", icone="⚔")
 
+    def cmd_alternar_clima(self):
+        """Alterna ciclicamente entre Tempo Limpo, Chuva Comum, Chuva Pesada, Neve Suave e Nevasca."""
+        if hasattr(self.game, 'alternar_clima'):
+            modo = self.game.alternar_clima()
+            rotulos = {
+                "limpo": ("Tempo Limpo (Céu Claro)", "☀️"),
+                "comum": ("Chuva Comum (Gotas e Splashes)", "🌧"),
+                "pesada": ("Chuva Pesada (Tempestade e Relâmpagos)", "⛈"),
+                "neve": ("Neve Suave (Flocos Flutuantes)", "❄"),
+                "nevasca": ("Nevasca (Vento Gélido Cortante)", "🌨")
+            }
+            nome_clima, icone_clima = rotulos.get(modo, (modo, "🌧"))
+            self._notificar("Sistema de Clima", f"Clima: {nome_clima}", icone=icone_clima)
+
     def _notificar(self, titulo, mensagem, icone="◈"):
         if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
             try:
@@ -426,5 +443,5 @@ class ComandosDev:
         y_rodape = y + altura_painel - 36
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y_rodape - 10), (x + largura_painel - 34, y_rodape - 10), 1)
 
-        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 8 ] Executar Atalho   •   [ Mouse ] Clicar na Opção", True, UI_TEXTO_APAGADO)
+        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 8 ] Executar   •   [ C / 9 ] Clima (Chuva/Sol)   •   [ Mouse ] Clicar", True, UI_TEXTO_APAGADO)
         tela.blit(txt_rodape, (x + (largura_painel - txt_rodape.get_width()) // 2, y_rodape))

@@ -144,16 +144,21 @@ class ResourceManager:
     @classmethod
     def _obter_caminho_absoluto(cls, caminho_relativo):
         caminho_limpo = caminho_relativo.lstrip("/\\")
-        if caminho_limpo.startswith("assets/"):
-            caminho_limpo = caminho_limpo[len("assets/"):]
+        if caminho_limpo.startswith("assets/") or caminho_limpo.startswith("assets\\"):
+            caminho_limpo = caminho_limpo[7:].lstrip("/\\")
         
+        # 1. Prioriza caminho relativo direto se a pasta assets estiver no CWD
+        caminho_rel = os.path.join("assets", caminho_limpo)
+        if os.path.exists(caminho_rel):
+            return caminho_rel
+
         caminho_direto = os.path.join(PASTA_ASSETS, caminho_limpo)
         if os.path.exists(caminho_direto):
             return caminho_direto
             
         # Fallback para resolver variações de codificação e acentuação no sistema de arquivos
         partes = caminho_limpo.replace("\\", "/").split("/")
-        pasta_atual = PASTA_ASSETS
+        pasta_atual = "assets" if os.path.exists("assets") else PASTA_ASSETS
         for parte in partes:
             if not os.path.exists(pasta_atual):
                 return caminho_direto
@@ -311,6 +316,50 @@ class ResourceManager:
                     frame = pygame.transform.smoothscale(frame, tamanho_final)
                 frames.append(frame)
                 
+            cls._cache_animacoes[chave] = frames
+            return frames
+        except Exception:
+            cls._cache_animacoes[chave] = []
+            return []
+
+    @classmethod
+    def carregar_frames_pasta(cls, caminho_pasta, filtro=None, tamanho=None):
+        """
+        Carrega ordenadamente todos os arquivos PNG de uma pasta com filtro opcional.
+        Útil para carregar animações quadro a quadro (passarinho, chamas de fogo, splashes, etc.).
+        """
+        chave = f"frames_pasta_{caminho_pasta}_{filtro}_{tamanho}"
+        if chave in cls._cache_animacoes:
+            return cls._cache_animacoes[chave]
+
+        pasta_abs = cls._obter_caminho_absoluto(caminho_pasta)
+        if not os.path.exists(pasta_abs) or not os.path.isdir(pasta_abs):
+            pasta_direta = os.path.join(PASTA_ASSETS, caminho_pasta.lstrip("/\\"))
+            if os.path.exists(pasta_direta) and os.path.isdir(pasta_direta):
+                pasta_abs = pasta_direta
+            else:
+                cls._cache_animacoes[chave] = []
+                return []
+
+        try:
+            import re
+            def _chave_natural(nome):
+                return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', nome)]
+
+            arquivos = sorted([
+                f for f in os.listdir(pasta_abs)
+                if f.lower().endswith(".png") and (filtro is None or filtro in f)
+            ], key=_chave_natural)
+            frames = []
+            for arq in arquivos:
+                caminho_completo = os.path.join(pasta_abs, arq)
+                try:
+                    img = pygame.image.load(caminho_completo).convert_alpha()
+                except pygame.error:
+                    img = pygame.image.load(caminho_completo)
+                if tamanho:
+                    img = pygame.transform.scale(img, tamanho)
+                frames.append(img)
             cls._cache_animacoes[chave] = frames
             return frames
         except Exception:

@@ -20,6 +20,7 @@ from src.ui.tela_despertar import TelaDespertarMemoria
 from src.ui.notification_manager import NotificationManager
 from src.utils.dev_commands import ComandosDev
 from src.utils.animations import EfeitoFolhas
+from src.utils.clima import EfeitoChuva
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -57,6 +58,7 @@ class Game:
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.efeito_folhas = EfeitoFolhas(self.LARGURA, self.ALTURA, quantidade_folhas=28)
+        self.efeito_chuva = EfeitoChuva(self.LARGURA, self.ALTURA)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
@@ -516,3 +518,14 @@ class Game:
         tempo_inicio = pygame.time.get_ticks()
         while pygame.time.get_ticks() - tempo_inicio < 800:
             pygame.event.pump()
+
+    def definir_clima(self, tipo):
+        """Define o clima ativo: 'limpo', 'comum' (ou 'chuva'), 'pesada' (ou 'tempestade')."""
+        if hasattr(self, 'efeito_chuva'):
+            self.efeito_chuva.definir_clima(tipo)
+
+    def alternar_clima(self):
+        """Alterna ciclicamente entre: Limpo -> Chuva Comum -> Chuva Pesada -> Limpo."""
+        if hasattr(self, 'efeito_chuva'):
+            return self.efeito_chuva.alternar_clima()
+        return "limpo"
