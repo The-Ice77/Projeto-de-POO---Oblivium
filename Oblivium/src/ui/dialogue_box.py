@@ -1,14 +1,13 @@
 # src/ui/dialogue_box.py
 import pygame
-import math
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_painel_padrao
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, BRANCO, CINZA_CLARO, CINZA_LINHO, CINZA_ARDOSIA,
+    BRANCO, CINZA_LINHO, CINZA_ARDOSIA,
     UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO, 
-    NOME_HALIA, NOME_MALDICAO, UI_TEXTO_DESTAQUE,
-    BOTAO_FECHAR_NORMAL, BOTAO_FECHAR_HOVER,
-    CARVAO_PROFUNDO, MARFIM_OFFWHITE, BORDA_PADRAO, BORDA_DESTAQUE,
-    AZUL_HOVER_MENU, AZUL_HOVER_BG, AZUL_HOVER_BORDA
+    NOME_HALIA, NOME_MALDICAO,
+    BOTAO_FECHAR_HOVER,
+    CARVAO_PROFUNDO, MARFIM_OFFWHITE,
+    AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
 from src.mechanics.dialogue_manager import DialogueManager

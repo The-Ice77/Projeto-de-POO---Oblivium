@@ -1,6 +1,6 @@
 # src/ui/transition.py
 import pygame
-from src.utils.colors import PRETO, MARFIM_OFFWHITE, CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO
+from src.utils.colors import MARFIM_OFFWHITE, CINZA_LINHO, CARVAO_PROFUNDO
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.ui.ui_utils import desenhar_flor_botanica

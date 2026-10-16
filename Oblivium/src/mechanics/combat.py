@@ -1,7 +1,6 @@
 # src/mechanics/combat.py
 import pygame
 import random
-import math
 import os
 import sys
 
@@ -11,21 +10,18 @@ if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
 from src.mechanics.skills import SkillsRegistry
-from src.mechanics.conditions import Condicao
-from src.mechanics.grimorio import GrimorioHalia
-from src.entities.Enemy import Enemy
 from src.entities.Boss import Boss
 from src.ui.ui_utils import (
-    desenhar_painel_padrao, desenhar_barra_status_interpolada,
-    quebrar_texto_em_linhas, desenhar_tooltip_formatado, desenhar_badge_status
+    desenhar_barra_status_interpolada,
+    quebrar_texto_em_linhas
 )
 from src.utils.colors import (
     UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_ESCURO, CINZA_LINHO, CINZA_ARDOSIA,
     UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO,
-    NOME_HALIA, NOME_MALDICAO, TEXTO_ALERTA_COMBATE,
+    NOME_HALIA, TEXTO_ALERTA_COMBATE,
     BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA,
-    BRANCO, PRETO, CARVAO_PROFUNDO, MARFIM_OFFWHITE,
-    AZUL_HOVER_MENU, AZUL_HOVER_BG, BOTAO_FECHAR_NORMAL, BOTAO_FECHAR_HOVER
+    BRANCO, PRETO,
+    AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
 
@@ -1365,7 +1361,6 @@ class CombatScreen:
         # 2. RENDERIZAR INIMIGOS (Lado Direito)
         self.rects_inimigos.clear()
         inimigos_vivos = self._obter_inimigos_vivos()
-        total_inimigos = len(inimigos_vivos)
 
         for idx, inimigo in enumerate(inimigos_vivos):
             pos_x, pos_y = self._obter_posicao_combate(inimigo)

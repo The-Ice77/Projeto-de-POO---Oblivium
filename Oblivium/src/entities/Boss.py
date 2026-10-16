@@ -1,5 +1,4 @@
 # src/entities/Boss.py
-import pygame
 import os
 import sys
 

@@ -5,7 +5,7 @@ from src.entities.item import Item
 from src.utils.resource_manager import ResourceManager
 from src.utils.colors import (
     CENARIO_FUNDO_FORA, CENARIO_PAREDE_CASA,
-    CENARIO_CHAO_CASA, CENARIO_PORTA, CENARIO_MOVEIS,
+    CENARIO_CHAO_CASA, CENARIO_MOVEIS,
     COLOR_BOLSA_MOEDAS, COLOR_LIVRO_ANTIGO, COLOR_CAJADO_MAGICO
 )
 

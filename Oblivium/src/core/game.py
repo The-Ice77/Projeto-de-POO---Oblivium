@@ -13,7 +13,6 @@ from src.ui.flashback import Flashback
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
 from src.utils import save_manager
-from src.utils.resource_manager import ResourceManager, Animacao
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.tela_despertar import TelaDespertarMemoria

@@ -1,11 +1,9 @@
 # src/states/playing_states.py
 import pygame
 from src.states.states import State
-from src.entities.Enemy import Enemy
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.item_factory import ItemFactory
 from src.mechanics.cutscene_manager import CutsceneManager
-from src.utils.colors import INDICADOR_INTERACAO
 from src.utils import save_manager
 from src.ui.ui_utils import desenhar_indicador_tecla
 

@@ -1,5 +1,5 @@
 # src/mechanics/magia.py
-from src.mechanics.skills import MagiaOfensiva, SkillsRegistry
+from src.mechanics.skills import MagiaOfensiva
 
 class Magia(MagiaOfensiva):
     """

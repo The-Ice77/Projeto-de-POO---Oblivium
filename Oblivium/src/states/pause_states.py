@@ -2,13 +2,12 @@
 import pygame
 from src.states.states import State
 from src.utils.colors import (
-    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
-    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, BORDA_PADRAO, BORDA_DESTAQUE,
+    CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
+    MARFIM_OFFWHITE, UI_TEXTO_APAGADO,
     AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
-from src.utils import save_manager
 
 class PauseState(State):
     """

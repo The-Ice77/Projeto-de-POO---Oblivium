@@ -1,5 +1,4 @@
 # src/maps/map_loader.py
-import pygame
 from src.maps.mapa_casa import MapaCasa
 from src.maps.mapa_estrada import MapaEstrada
 from src.maps.mapa_estrada_2 import MapaEstrada2

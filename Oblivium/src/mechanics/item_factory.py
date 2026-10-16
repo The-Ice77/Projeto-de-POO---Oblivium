@@ -8,7 +8,7 @@ if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
 from src.mechanics.items import (
-    ItemBase, ConsumivelItem, EquipamentoItem, GrimorioItem, MaterialItem, ItemChave
+    ConsumivelItem, EquipamentoItem, GrimorioItem, MaterialItem, ItemChave
 )
 
 class ItemFactory:

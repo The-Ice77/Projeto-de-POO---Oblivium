@@ -1,6 +1,5 @@
 # src/states/states.py
 from abc import ABC, abstractmethod
-import pygame
 
 class State(ABC):
     """

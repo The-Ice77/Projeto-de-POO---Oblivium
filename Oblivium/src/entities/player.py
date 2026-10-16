@@ -11,7 +11,6 @@ from src.entities.Entity import Entidade
 from src.mechanics.attributes import Atributos
 from src.mechanics.grimorio import GrimorioHalia
 from src.mechanics.inventory import Inventario
-from src.mechanics.item_factory import ItemFactory
 from src.utils.resource_manager import ResourceManager, Animacao
 
 class Player(Entidade):
@@ -208,8 +207,6 @@ class Player(Entidade):
         """Atualiza a vida e mana máxima com base nos atributos totais (base + equipamentos)."""
         vida_max_anterior = getattr(self, 'vida_maxima', 100)
         mana_max_anterior = getattr(self, 'mana_maxima', 50)
-        pct_vida = self.vida_atual / vida_max_anterior if vida_max_anterior > 0 else 1.0
-        pct_mana = self.mana_atual / mana_max_anterior if mana_max_anterior > 0 else 1.0
         
         # Base de HP e MP escala suavemente com a sincronia de memória
         vida_base_ajustada = 40 + (self.fragmentos_memoria * 8)
@@ -248,9 +245,14 @@ class Player(Entidade):
         super().restaurar_total()
 
     def entrar_combate(self):
-        """Ao entrar em combate, Halia se posiciona voltada para a direita (em direção aos inimigos)."""
+        """Ao entrar em combate, Halia se posiciona voltada para a direita e inicializa flags de combate."""
         self.direcao = "direita"
         self.definir_estado("idle")
+        self.em_combate = True
+        self.defendendo = False
+        self.vulneravel = False
+        self.focado = False
+        print(f"{self.nome} entrou em combate!")
 
     # ==========================================
     # SISTEMA DE MEMÓRIA & EVOLUÇÃO
@@ -307,12 +309,6 @@ class Player(Entidade):
     # ==========================================
     # CICLO DE COMBATE
     # ==========================================
-    def entrar_combate(self):
-        self.em_combate = True
-        self.defendendo = False
-        self.vulneravel = False
-        self.focado = False
-        print(f"{self.nome} entrou em combate!")
 
     def sair_combate(self):
         self.em_combate = False
