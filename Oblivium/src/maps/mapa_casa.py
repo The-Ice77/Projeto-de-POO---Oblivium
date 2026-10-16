@@ -346,7 +346,7 @@ class MapaCasa(CenarioBase):
             tela.blit(self.sprite_tapete, self.rect_tapete.topleft)
 
         # 6. Paredes Modulares Legítimas de Madeira (Recorte limpo sem saliências verticais)
-        if self.top_mid:
+        if self.top_mid and self.side_l and self.side_r and self.bot_mid and self.tl and self.tr and self.bl and self.br:
             # Parede Norte:
             tela.blit(self.tl, (60, 60))
             for x in range(76, 484, 64):

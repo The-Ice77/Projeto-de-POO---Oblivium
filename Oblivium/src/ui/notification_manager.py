@@ -133,8 +133,8 @@ class NotificationManager:
                 substituicoes["mensagem"] = mensagem
                 substituicoes["item"] = mensagem
             
-            titulo_raw = template.get("titulo", "")
-            mensagem_raw = template.get("mensagem", "")
+            titulo_raw = str(template.get("titulo", ""))
+            mensagem_raw = str(template.get("mensagem", ""))
             
             # Formatação segura sem quebrar se faltar parâmetro
             try:

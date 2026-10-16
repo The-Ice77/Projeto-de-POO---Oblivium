@@ -197,7 +197,7 @@ class ChamaIndependente(ElementoCenario):
         if self.frames:
             self.frame_idx = random.uniform(0.0, float(len(self.frames) - 1))
 
-    def atualizar(self, dt=0.016, vento_x=0.0):
+    def atualizar(self, dt=0.016, vento_x=0.0, **kwargs):
         """Atualiza a labareda, iluminação de solo e emissão de fagulhas."""
         self.atualizar_animacao(dt)
         self.atualizar_glow(dt)

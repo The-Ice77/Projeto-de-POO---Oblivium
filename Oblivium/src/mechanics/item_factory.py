@@ -58,7 +58,7 @@ class ItemFactory:
             print(f"[ItemFactory] Item '{item_id}' não encontrado no catálogo!")
             return None
 
-        categoria = info.get("categoria", "").upper()
+        categoria = str(info.get("categoria", "")).upper()
 
         if categoria == "CONSUMIVEL":
             return ConsumivelItem(
