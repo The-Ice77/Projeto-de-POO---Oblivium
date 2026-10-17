@@ -1,11 +1,10 @@
 # src/ui/hud.py
 import pygame
 import math
-import os
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO,
-    MARFIM_OFFWHITE, BRANCO, BARRA_VIDA_JOGADOR, BARRA_MANA, BARRA_EXP,
-    BARRA_FUNDO_ESCURO, BORDA_PADRAO, BORDA_DESTAQUE, AZUL_HOVER_MENU, AZUL_HOVER_BG,
+    CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO,
+    MARFIM_OFFWHITE, BARRA_VIDA_JOGADOR, BARRA_MANA,
+    BORDA_PADRAO, AZUL_HOVER_MENU, AZUL_HOVER_BG,
     AMULETO_COR_FASE_1, AMULETO_COR_FASE_2, AMULETO_COR_FASE_3, AMULETO_COR_FASE_4,
     AMULETO_COR_FASE_5, AMULETO_COR_FASE_6, AMULETO_COR_FASE_7
 )
@@ -180,9 +179,9 @@ class HUD:
             txt_b = self.fonte_nome.render("Bolsa", True, MARFIM_OFFWHITE)
             surface_hud.blit(txt_b, txt_b.get_rect(center=self.rect_bolsa.center))
 
-        # Atalho de Tecla [B] no canto superior do botão
+        # Atalho de Tecla [TAB] no canto superior do botão da bolsa
         cor_atalho = AZUL_HOVER_MENU if self.hover_bolsa else MARFIM_OFFWHITE
-        txt_atalho = self.fonte_slots.render("[B]", True, cor_atalho)
+        txt_atalho = self.fonte_slots.render("[TAB]", True, cor_atalho)
         surface_hud.blit(txt_atalho, (self.rect_bolsa.x + 6, self.rect_bolsa.y + 4))
 
         # Aplica a transparência final em toda a superfície do HUD e pinta na tela principal

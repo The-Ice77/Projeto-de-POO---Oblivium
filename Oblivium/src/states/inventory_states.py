@@ -1,23 +1,19 @@
 # src/states/inventory_states.py
 import pygame
-import math
 from src.states.states import State
 from src.utils.colors import (
-    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
-    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, BORDA_PADRAO, BORDA_DESTAQUE,
-    PERGAMINHO_BG, PERGAMINHO_BORDA, PERGAMINHO_TINTA, BARRA_VIDA_JOGADOR, BARRA_MANA,
-    AZUL_HOVER_BG, AZUL_HOVER_MENU
+    CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
+    MARFIM_OFFWHITE, BORDA_DESTAQUE,
+    BARRA_VIDA_JOGADOR, BARRA_MANA
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
-    desenhar_painel_padrao, desenhar_tooltip_formatado, desenhar_flor_botanica,
+    desenhar_painel_padrao, desenhar_flor_botanica,
     desenhar_barra_status_interpolada, desenhar_card_pergaminho, quebrar_texto_em_linhas
 )
-from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem, MaterialItem, ItemChave
+from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem
 from src.mechanics.skills import ActionCatalog
-from src.mechanics.grimorio import GrimorioHalia
-from src.mechanics.crafting import CraftingManager, Receita
-from src.mechanics.item_factory import ItemFactory
+from src.mechanics.crafting import CraftingManager
 
 class InventoryState(State):
     """
@@ -184,7 +180,7 @@ class InventoryState(State):
         # Processamento de Teclado e Mouse
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
-                tecla_inv = self.game.controles.get("Inventário", pygame.K_i)
+                tecla_inv = self.game.controles.get("Inventário", pygame.K_TAB)
                 if evento.key in [pygame.K_ESCAPE, tecla_inv]:
                     self.game.mudar_estado("JOGANDO")
                     return
@@ -201,10 +197,10 @@ class InventoryState(State):
                 elif evento.key == pygame.K_4:
                     self.aba_principal_ativa = 3
                 
-                # Alternar abas com Q / E ou TAB
+                # Alternar abas com Q / E
                 elif evento.key == pygame.K_q:
                     self.aba_principal_ativa = (self.aba_principal_ativa - 1) % len(self.abas_principais)
-                elif evento.key in [pygame.K_e, pygame.K_TAB]:
+                elif evento.key == pygame.K_e:
                     self.aba_principal_ativa = (self.aba_principal_ativa + 1) % len(self.abas_principais)
 
                 # Navegação vertical na lista de magias

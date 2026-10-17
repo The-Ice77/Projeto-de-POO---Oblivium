@@ -2,17 +2,16 @@
 import pygame
 from src.states.states import State
 from src.utils.colors import (
-    PRETO, BRANCO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, CINZA_CLARO,
-    MARFIM_OFFWHITE, UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, BORDA_PADRAO, BORDA_DESTAQUE,
-    PERGAMINHO_BG, PERGAMINHO_BORDA, PERGAMINHO_TINTA, BARRA_VIDA_JOGADOR
+    CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
+    MARFIM_OFFWHITE, BORDA_DESTAQUE
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
-    desenhar_painel_padrao, desenhar_tooltip_formatado, desenhar_flor_botanica,
+    desenhar_painel_padrao, desenhar_flor_botanica,
     desenhar_card_pergaminho
 )
 from src.mechanics.shop import Loja
-from src.mechanics.items import ConsumivelItem, EquipamentoItem, ItemChave
+from src.mechanics.items import ConsumivelItem, EquipamentoItem
 
 class ShopState(State):
     """

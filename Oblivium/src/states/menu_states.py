@@ -45,10 +45,8 @@ class MenuState(State):
             self.game.mudar_estado("SLOTS")
             
         elif opcao == "Novo Jogo" or opcao == "Jogar":
-            # Abre a tela de saves exigindo que o jogador escolha um slot vazio
-            self.game.acao_slots = "NOVO_JOGO"
-            self.game.origem_slots = "MENU"
-            self.game.mudar_estado("SLOTS")
+            # Apresenta a seleção de esquema de controles (WASD ou Setinhas) antes de iniciar
+            self.game.mudar_estado("SELECAO_CONTROLES")
             
         elif opcao == "Configurações":
             self.game.origem_configuracoes = "MENU"

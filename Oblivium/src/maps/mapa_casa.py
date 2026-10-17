@@ -5,7 +5,7 @@ from src.entities.item import Item
 from src.utils.resource_manager import ResourceManager
 from src.utils.colors import (
     CENARIO_FUNDO_FORA, CENARIO_PAREDE_CASA,
-    CENARIO_CHAO_CASA, CENARIO_PORTA, CENARIO_MOVEIS,
+    CENARIO_CHAO_CASA, CENARIO_MOVEIS,
     COLOR_BOLSA_MOEDAS, COLOR_LIVRO_ANTIGO, COLOR_CAJADO_MAGICO
 )
 
@@ -346,7 +346,7 @@ class MapaCasa(CenarioBase):
             tela.blit(self.sprite_tapete, self.rect_tapete.topleft)
 
         # 6. Paredes Modulares Legítimas de Madeira (Recorte limpo sem saliências verticais)
-        if self.top_mid:
+        if self.top_mid and self.side_l and self.side_r and self.bot_mid and self.tl and self.tr and self.bl and self.br:
             # Parede Norte:
             tela.blit(self.tl, (60, 60))
             for x in range(76, 484, 64):

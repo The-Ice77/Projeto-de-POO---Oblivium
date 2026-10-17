@@ -8,11 +8,10 @@ if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
 from src.utils.colors import (
-    CARVAO_PROFUNDO, MARFIM_OFFWHITE, CINZA_LINHO, CINZA_ARDOSIA, BORDA_DESTAQUE,
-    BARRA_VIDA_JOGADOR, BARRA_MANA, UI_TEXTO_DESTAQUE, AZUL_HOVER_BG, AZUL_HOVER_MENU
+    CARVAO_PROFUNDO, MARFIM_OFFWHITE, CINZA_LINHO, CINZA_ARDOSIA, BORDA_DESTAQUE
 )
 from src.utils.resource_manager import ResourceManager
-from src.ui.ui_utils import desenhar_painel_padrao, desenhar_card_pergaminho, quebrar_texto_em_linhas
+from src.ui.ui_utils import desenhar_painel_padrao, quebrar_texto_em_linhas
 
 class NotificacaoToast:
     """Representa um banner individual de notificação push."""
@@ -134,8 +133,8 @@ class NotificationManager:
                 substituicoes["mensagem"] = mensagem
                 substituicoes["item"] = mensagem
             
-            titulo_raw = template.get("titulo", "")
-            mensagem_raw = template.get("mensagem", "")
+            titulo_raw = str(template.get("titulo", ""))
+            mensagem_raw = str(template.get("mensagem", ""))
             
             # Formatação segura sem quebrar se faltar parâmetro
             try:

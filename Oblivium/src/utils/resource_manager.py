@@ -2,6 +2,9 @@
 import pygame
 import os
 import unicodedata
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Configuração de caminhos para localizar a pasta assets a partir da raiz do projeto
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
@@ -805,7 +808,8 @@ class ResourceManager:
             som.set_volume(volume)
             cls._cache_sons[caminho] = som
             return som
-        except Exception:
+        except (pygame.error, OSError) as e:
+            logger.warning("Falha ao carregar som '%s': %s", caminho, e)
             return None
 
     @classmethod
@@ -824,7 +828,8 @@ class ResourceManager:
             pygame.mixer.music.set_volume(volume)
             pygame.mixer.music.play(-1 if loop else 0)
             return True
-        except Exception:
+        except (pygame.error, OSError) as e:
+            logger.warning("Falha ao tocar música '%s': %s", caminho, e)
             return False
 
     @classmethod
@@ -833,8 +838,8 @@ class ResourceManager:
         try:
             if pygame.mixer.get_init():
                 pygame.mixer.music.stop()
-        except Exception:
-            pass
+        except (pygame.error, OSError) as e:
+            logger.warning("Falha ao interromper a música de fundo: %s", e)
 
     @classmethod
     def limpar_cache(cls):

@@ -9,7 +9,7 @@ if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
 from src.mechanics.skills import (
-    AcaoCombate, AtaqueFisico, MagiaOfensiva, MagiaCura, AcaoDefender, AcaoFoco, SkillsRegistry
+    AtaqueFisico, MagiaOfensiva, MagiaCura, AcaoDefender, AcaoFoco, SkillsRegistry
 )
 
 class GrimorioHalia:

@@ -1,10 +1,9 @@
 # src/mechanics/minigames.py
 import pygame
-import math
 import random
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO, MARFIM_OFFWHITE,
-    AZUL_HOVER_MENU, AZUL_HOVER_BG, DOURADO_ENVELHECIDO, UI_TEXTO_APAGADO
+    AZUL_HOVER_MENU, UI_TEXTO_APAGADO
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao

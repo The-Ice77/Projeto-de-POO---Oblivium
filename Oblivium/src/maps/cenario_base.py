@@ -1,6 +1,5 @@
 # src/maps/cenario_base.py
 from abc import ABC, abstractmethod
-import pygame
 
 
 class CenarioBase(ABC):

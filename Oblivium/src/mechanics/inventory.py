@@ -6,7 +6,7 @@ _raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 if _raiz_projeto not in sys.path:
     sys.path.insert(0, _raiz_projeto)
 
-from src.mechanics.items import ItemBase, ConsumivelItem, EquipamentoItem, GrimorioItem, MaterialItem, ItemChave
+from src.mechanics.items import EquipamentoItem, GrimorioItem
 from src.mechanics.item_factory import ItemFactory
 
 class ItemSlot:

@@ -1,5 +1,5 @@
 # src/mechanics/items.py
-from abc import ABC, abstractmethod
+from abc import ABC
 
 class ItemBase(ABC):
     """

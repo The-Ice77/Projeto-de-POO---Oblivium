@@ -1,5 +1,4 @@
 # src/ui/menu.py
-import pygame
 from src.utils.colors import PRETO
 from src.utils import save_manager
 from src.utils.resource_manager import ResourceManager

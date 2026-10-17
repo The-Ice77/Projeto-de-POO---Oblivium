@@ -2,7 +2,7 @@
 import pygame
 from src.utils.colors import (
     PRETO, TXT_ECO_PASSADO, TXT_PENSAMENTO_FANTASMA, 
-    TXT_SISTEMA_NARRADOR, UI_TEXTO_APAGADO, MARFIM_OFFWHITE
+    TXT_SISTEMA_NARRADOR, UI_TEXTO_APAGADO
 )
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
