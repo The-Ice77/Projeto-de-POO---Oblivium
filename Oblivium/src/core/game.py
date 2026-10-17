@@ -73,9 +73,17 @@ class Game:
         self.opcoes_velocidade_combate = ["1.0x (Normal)", "1.5x (Rápido)", "2.0x (Ultra)"]
         self.valores_velocidade_combate = [1.0, 1.5, 2.0]
         
-        self.config_audio = 100            # De 0 a 100%
+        # --- Configurações de Áudio por Área (0 a 100%) ---
+        self.config_audio = 100            # Volume Geral (Master)
+        self.config_audio_musica = 80      # Volume da Música de Fundo (BGM)
+        self.config_audio_sfx = 90         # Volume dos Efeitos Sonoros (SFX)
+        self.config_audio_ambiente = 75    # Volume dos Sons de Ambiente (BGS / Clima)
+        
         self.audio = AudioManager(self)
         self.audio.definir_volume_master(self.config_audio)
+        self.audio.definir_volume_musica(self.config_audio_musica)
+        self.audio.definir_volume_sfx(self.config_audio_sfx)
+        self.audio.definir_volume_ambiente(self.config_audio_ambiente)
         self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
         self.redefinindo_tecla = False     # Flag para escutar a nova tecla
        # --- CONTROLE DE SAVES / SLOTS ---

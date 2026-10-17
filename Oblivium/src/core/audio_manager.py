@@ -90,30 +90,34 @@ class AudioManager:
     # CONTROLE DE VOLUMES
     # =========================================================================
 
-    def definir_volume_master(self, valor):
-        """
-        Define o volume geral.
-        Aceita tanto percentual (0 a 100) quanto fração (0.0 a 1.0).
-        """
-        if valor > 1.0:
-            self.volume_master = max(0.0, min(1.0, valor / 100.0))
-        else:
-            self.volume_master = max(0.0, min(1.0, float(valor)))
+    @staticmethod
+    def _normalizar_volume(valor):
+        """Converte valor percentual (0 a 100) ou unitário (0.0 a 1.0) para float normalizado [0.0, 1.0]."""
+        try:
+            val = float(valor)
+            if val > 1.0:
+                val = val / 100.0
+            return max(0.0, min(1.0, val))
+        except (ValueError, TypeError):
+            return 1.0
 
+    def definir_volume_master(self, valor):
+        """Define o volume geral (Master)."""
+        self.volume_master = self._normalizar_volume(valor)
         self._aplicar_volumes()
 
     def definir_volume_musica(self, valor):
         """Define o volume da música de fundo (BGM)."""
-        self.volume_musica = max(0.0, min(1.0, valor / 100.0 if valor > 1.0 else float(valor)))
+        self.volume_musica = self._normalizar_volume(valor)
         self._aplicar_volume_musica()
 
     def definir_volume_sfx(self, valor):
         """Define o volume dos efeitos sonoros (SFX)."""
-        self.volume_sfx = max(0.0, min(1.0, valor / 100.0 if valor > 1.0 else float(valor)))
+        self.volume_sfx = self._normalizar_volume(valor)
 
     def definir_volume_ambiente(self, valor):
         """Define o volume do som de ambiente contínuo (BGS)."""
-        self.volume_ambiente = max(0.0, min(1.0, valor / 100.0 if valor > 1.0 else float(valor)))
+        self.volume_ambiente = self._normalizar_volume(valor)
         self._aplicar_volume_ambiente()
 
     def _aplicar_volumes(self):
