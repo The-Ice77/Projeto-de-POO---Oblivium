@@ -38,14 +38,21 @@ class SettingsState(State):
         self.overlay = pygame.Surface((self.game.LARGURA, self.game.ALTURA))
         self.overlay.fill((10, 10, 12))
         self.overlay.set_alpha(190)
+        self.hover_anterior = -1
+
+    def _tocar_sfx(self, alias):
+        if hasattr(self.game, 'audio') and self.game.audio:
+            self.game.audio.tocar_sfx(alias)
 
     def handle_events(self, eventos, teclas):
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
                 if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.selecionada = (self.selecionada - 1) % len(self.opcoes)
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.selecionada = (self.selecionada + 1) % len(self.opcoes)
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_LEFT, pygame.K_a]:
                     self.alterar_valor(-1)
                 elif evento.key in [pygame.K_RIGHT, pygame.K_d]:
@@ -53,12 +60,17 @@ class SettingsState(State):
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self.executar_acao()
                 elif evento.key == pygame.K_ESCAPE:
+                    self._tocar_sfx("ui_voltar")
                     self.voltar_origem()
                     
             elif evento.type == pygame.MOUSEMOTION:
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
-                        self.selecionada = i
+                        if self.hover_anterior != i:
+                            self.hover_anterior = i
+                            self.selecionada = i
+                            self._tocar_sfx("ui_cursor")
+                        break
                             
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 for i, rect in enumerate(self.rects_opcoes):
@@ -75,26 +87,33 @@ class SettingsState(State):
             self.game.config_velocidade_indice = (self.game.config_velocidade_indice + direcao) % len(self.game.opcoes_velocidade)
             novo_valor = self.game.valores_velocidade[self.game.config_velocidade_indice]
             self.game.caixa_dialogo.velocidade_texto = novo_valor
+            self._tocar_sfx("ui_cursor")
 
         # 1: Velocidade do Combate
         elif self.selecionada == 1:
             self.game.config_velocidade_combate_indice = (self.game.config_velocidade_combate_indice + direcao) % len(self.game.opcoes_velocidade_combate)
             novo_fator = self.game.valores_velocidade_combate[self.game.config_velocidade_combate_indice]
             self.game.tela_combate.definir_velocidade(novo_fator)
+            self._tocar_sfx("ui_cursor")
 
         # 2: Volume do Áudio
         elif self.selecionada == 2:
             self.game.config_audio = max(0, min(100, self.game.config_audio + (direcao * 10)))
+            if hasattr(self.game, 'audio') and self.game.audio:
+                self.game.audio.definir_volume_master(self.game.config_audio)
+                self.game.audio.tocar_sfx("ui_confirmar")
 
     def executar_acao(self):
         opcao = self.opcoes[self.selecionada]
         if opcao == "Configurar Teclas...":
+            self._tocar_sfx("ui_confirmar")
             self.game.mudar_estado("CONTROLES")
-        elif opcao == "Voltar":
+        elif opcao in ["Voltar", "Voltar ao Menu"]:
+            self._tocar_sfx("ui_voltar")
             self.voltar_origem()
 
     def voltar_origem(self):
-        if self.game.origem_configuracoes == "PAUSE":
+        if getattr(self.game, 'origem_configuracoes', 'MENU') == "PAUSE":
             self.game.mudar_estado("PAUSE")
         else:
             self.game.mudar_estado("MENU")
