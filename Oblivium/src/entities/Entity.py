@@ -145,6 +145,10 @@ class Entidade(ABC):
             if anim_nova and anim_nova is not anim_atual:
                 anim_nova.resetar()
 
+    def definir_estado(self, novo_estado):
+        """Alias para mudar_estado garantindo compatibilidade total em combate e animações."""
+        self.mudar_estado(novo_estado)
+
     def mover(self, dx, dy, hitboxes_mapa=None):
         if hitboxes_mapa is None:
             hitboxes_mapa = []
