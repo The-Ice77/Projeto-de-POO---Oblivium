@@ -141,13 +141,102 @@ class EfeitoPetalas(EfeitoChuvaParticulas):
         )
 
 
+class ParticulaFolhaProfunda(ParticulaFlutuante):
+    """
+    Partícula de folha especializada com física, escala e opacidade proporcionais
+    à sua profundidade ótica (2.5D com efeito de paralaxe).
+    
+    Camadas:
+    - CAMADA_FUNDO: folhas pequenas, lentas e atmosféricas ao fundo do cenário.
+    - CAMADA_MEDIA: folhas no plano principal de interação dos personagens.
+    - CAMADA_FRENTE: folhas grandes, velozes e nítidas passando bem perto da tela/câmera.
+    """
+    CAMADA_FUNDO = 0
+    CAMADA_MEDIA = 1
+    CAMADA_FRENTE = 2
+
+    def __init__(self, sprites_disponiveis, largura_tela=1280, altura_tela=720,
+                 camada=CAMADA_MEDIA, inicializar_na_tela=False):
+        self.camada = camada
+
+        # Configurações de física e ótica ajustadas de acordo com a camada de profundidade
+        if camada == self.CAMADA_FUNDO:
+            # Ao fundo: pequenas, caem devagar e têm transparência suave pela atmosfera
+            cfg_vy = (14.0, 30.0)
+            cfg_vx = (-16.0, -6.0)
+            cfg_sway_amp = (12.0, 24.0)
+            cfg_sway_spd = (1.0, 1.8)
+            cfg_rot = (-22.0, 22.0)
+            cfg_escala = (0.55, 0.82)
+            cfg_alpha = (130, 175)
+        elif camada == self.CAMADA_FRENTE:
+            # Em primeiro plano: grandes, passam rente à tela com velocidade e balanço acentuados
+            cfg_vy = (70.0, 125.0)
+            cfg_vx = (-58.0, -24.0)
+            cfg_sway_amp = (46.0, 76.0)
+            cfg_sway_spd = (2.2, 3.4)
+            cfg_rot = (-60.0, 60.0)
+            cfg_escala = (2.10, 2.90)
+            cfg_alpha = (225, 255)
+        else:
+            # Camada média: escala natural no plano dos personagens
+            cfg_vy = (24.0, 52.0)
+            cfg_vx = (-28.0, -10.0)
+            cfg_sway_amp = (24.0, 48.0)
+            cfg_sway_spd = (1.5, 2.6)
+            cfg_rot = (-40.0, 40.0)
+            cfg_escala = (1.00, 1.40)
+            cfg_alpha = (185, 235)
+
+        super().__init__(
+            sprites_disponiveis=sprites_disponiveis,
+            largura_tela=largura_tela,
+            altura_tela=altura_tela,
+            velocidade_y=cfg_vy,
+            vento_x=cfg_vx,
+            sway_amplitude=cfg_sway_amp,
+            sway_speed=cfg_sway_spd,
+            velocidade_rotacao=cfg_rot,
+            escala=cfg_escala,
+            alpha=cfg_alpha,
+            inicializar_na_tela=inicializar_na_tela
+        )
+
+    def reset(self, inicializar_na_tela=False):
+        super().reset(inicializar_na_tela=inicializar_na_tela)
+        # Folhas maiores de primeiro plano entram com margem mais ampla para evitar pop-in nas bordas
+        if self.camada == self.CAMADA_FRENTE and not inicializar_na_tela:
+            self.x = random.uniform(-40, self.largura_tela + 80)
+            self.y = random.uniform(-110, -25)
+
+    def atualizar(self, dt):
+        self.sway_phase += self.sway_speed * dt
+        sway_x = math.sin(self.sway_phase) * self.sway_amplitude * dt
+
+        self.x += (self.vx_base + sway_x) * dt
+        self.y += self.vy * dt
+        self.angulo = (self.angulo + self.velocidade_rotacao * dt) % 360
+
+        # Limites dinâmicos de tela de acordo com o tamanho da partícula
+        limite_lateral = 110 if self.camada == self.CAMADA_FRENTE else 65
+        limite_inferior = 70 if self.camada == self.CAMADA_FRENTE else 45
+
+        if self.y > self.altura_tela + limite_inferior or self.x < -limite_lateral or self.x > self.largura_tela + limite_lateral:
+            self.reset(inicializar_na_tela=False)
+
+
 class EfeitoFolhas(EfeitoChuvaParticulas):
     """
-    Efeito de chuva de folhas caindo e flutuando suavemente pelos cenários de Oblivium.
-    Neste início da jornada, utiliza exclusivamente as folhas verdes (frame 1 da spritesheet 'autumn leaf.png')
-    com variações espelhadas naturais para ambientação florestal viva.
+    Efeito de chuva de folhas com profundidade 2.5D e paralaxe em 3 camadas ópticas:
+    - Camada Fundo: folhas menores e lentas que passam ao fundo (inclusive atrás dos personagens).
+    - Camada Média: folhas no plano de movimentação padrão da cena.
+    - Camada Frente (Primeiro Plano): folhas grandes e rápidas passando rente à tela do jogador.
     """
-    def __init__(self, largura_tela=1280, altura_tela=720, quantidade_folhas=28, apenas_verdes=True):
+    CAMADA_FUNDO = ParticulaFolhaProfunda.CAMADA_FUNDO
+    CAMADA_MEDIA = ParticulaFolhaProfunda.CAMADA_MEDIA
+    CAMADA_FRENTE = ParticulaFolhaProfunda.CAMADA_FRENTE
+
+    def __init__(self, largura_tela=1280, altura_tela=720, quantidade_folhas=32, apenas_verdes=True):
         todas_sprites = ResourceManager.carregar_spritesheet_grid(
             "efeitos/folhas/autumn leaf.png",
             colunas=4,
@@ -155,22 +244,37 @@ class EfeitoFolhas(EfeitoChuvaParticulas):
         )
         self.todas_sprites = todas_sprites
         self.apenas_verdes = apenas_verdes
-
         sprites_finais = self._obter_sprites_filtradas(apenas_verdes)
 
-        super().__init__(
-            sprites_ou_caminho=sprites_finais,
-            largura_tela=largura_tela,
-            altura_tela=altura_tela,
-            quantidade=quantidade_folhas,
-            velocidade_y=(20.0, 56.0),         # Queda suave e orgânica
-            vento_x=(-26.0, -8.0),             # Brisa constante soprando para a esquerda
-            sway_amplitude=(24.0, 50.0),       # Oscilação horizontal orgânica
-            sway_speed=(1.4, 2.6),             # Velocidade do balanço no vento
-            velocidade_rotacao=(-42.0, 42.0),  # Giro suave da folha
-            escala=(0.95, 1.45),               # Escala adequada para 16x16 pixels
-            alpha=(175, 245)                   # Transparência suave para profundidade 2.5D
-        )
+        self.largura = largura_tela
+        self.altura = altura_tela
+        self.sprites = sprites_finais
+
+        # Distribuição harmônica das camadas de profundidade:
+        # ~30% fundo, ~45% média, ~25% frente (primeiro plano rente à tela)
+        qtd_frente = max(2, int(quantidade_folhas * 0.25))
+        qtd_fundo = max(3, int(quantidade_folhas * 0.30))
+        qtd_media = max(3, quantidade_folhas - qtd_frente - qtd_fundo)
+
+        self.particulas = []
+        for _ in range(qtd_fundo):
+            self.particulas.append(
+                ParticulaFolhaProfunda(self.sprites, self.largura, self.altura,
+                                      camada=ParticulaFolhaProfunda.CAMADA_FUNDO,
+                                      inicializar_na_tela=True)
+            )
+        for _ in range(qtd_media):
+            self.particulas.append(
+                ParticulaFolhaProfunda(self.sprites, self.largura, self.altura,
+                                      camada=ParticulaFolhaProfunda.CAMADA_MEDIA,
+                                      inicializar_na_tela=True)
+            )
+        for _ in range(qtd_frente):
+            self.particulas.append(
+                ParticulaFolhaProfunda(self.sprites, self.largura, self.altura,
+                                      camada=ParticulaFolhaProfunda.CAMADA_FRENTE,
+                                      inicializar_na_tela=True)
+            )
 
     def _obter_sprites_filtradas(self, apenas_verdes):
         if apenas_verdes and len(self.todas_sprites) > 1:
@@ -188,3 +292,32 @@ class EfeitoFolhas(EfeitoChuvaParticulas):
         for p in self.particulas:
             p.sprites = sprites_finais
             p.sprite_base = random.choice(sprites_finais)
+
+    def desenhar_camada_fundo(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+        """Desenha apenas as folhas da camada de fundo (ideal para passar atrás dos personagens)."""
+        if alpha_multiplicador <= 0.01:
+            return
+        for p in self.particulas:
+            if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_FUNDO:
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+
+    def desenhar_camada_frente(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+        """Desenha as folhas das camadas média e frontal (passando na frente dos personagens e rente à tela)."""
+        if alpha_multiplicador <= 0.01:
+            return
+        # Desenha na ordem: médias primeiro, depois frontais por cima de tudo
+        for p in self.particulas:
+            if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_MEDIA:
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+        for p in self.particulas:
+            if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_FRENTE:
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+        """Desenha todas as folhas ordenadas por profundidade (fundo -> média -> frente)."""
+        if alpha_multiplicador <= 0.01:
+            return
+        # Ordenação estável por camada garante que folhas de primeiro plano fiquem sempre na frente
+        particulas_ordenadas = sorted(self.particulas, key=lambda p: getattr(p, 'camada', 1))
+        for p in particulas_ordenadas:
+            p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)

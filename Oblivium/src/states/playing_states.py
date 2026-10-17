@@ -118,6 +118,16 @@ class PlayingState(State):
     def draw(self, tela):
         self.game.mapa_casa.desenhar(tela)
         
+        # Áreas excluídas para folhagens e clima (ex: dentro da casa de Halia não cai folhas)
+        areas_excluidas = []
+        if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
+            areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
+
+        # 1. Camada de fundo das folhas (passando suavemente atrás dos personagens e props)
+        if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
+            if hasattr(self.game.efeito_folhas, 'desenhar_camada_fundo'):
+                self.game.efeito_folhas.desenhar_camada_fundo(tela, areas_excluidas=areas_excluidas)
+
         if self.game.carroceiro_visivel:
             self.game.carroceiro.desenhar(tela)
             
@@ -128,14 +138,12 @@ class PlayingState(State):
             
         self.cutscene.desenhar_efeitos(tela)
         
-        # Efeito de folhas caindo pelo cenário (sob a UI, sobre os personagens)
-        # Dentro da casa da Halia não cai folhas (área residencial protegida)
+        # 2. Camadas média e frontal das folhas (passando sobre os personagens e rente à tela do jogador)
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
-            areas_excluidas = []
-            if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
-                # Delimitação de toda a construção da casa de Halia (paredes norte/oeste/leste/sul e interior)
-                areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
-            self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
+            if hasattr(self.game.efeito_folhas, 'desenhar_camada_frente'):
+                self.game.efeito_folhas.desenhar_camada_frente(tela, areas_excluidas=areas_excluidas)
+            else:
+                self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
 
         # Efeito de clima (chuva comum ou chuva pesada com relâmpagos)
         if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva and self.game.efeito_chuva.ativo:
