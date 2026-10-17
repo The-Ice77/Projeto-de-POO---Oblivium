@@ -20,6 +20,7 @@ from src.ui.notification_manager import NotificationManager
 from src.utils.dev_commands import ComandosDev
 from src.utils.animations import EfeitoFolhas
 from src.utils.clima import EfeitoChuva
+from src.core.audio_manager import AudioManager
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -73,6 +74,8 @@ class Game:
         self.valores_velocidade_combate = [1.0, 1.5, 2.0]
         
         self.config_audio = 100            # De 0 a 100%
+        self.audio = AudioManager(self)
+        self.audio.definir_volume_master(self.config_audio)
         self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
         self.redefinindo_tecla = False     # Flag para escutar a nova tecla
        # --- CONTROLE DE SAVES / SLOTS ---
