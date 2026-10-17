@@ -179,9 +179,9 @@ class HUD:
             txt_b = self.fonte_nome.render("Bolsa", True, MARFIM_OFFWHITE)
             surface_hud.blit(txt_b, txt_b.get_rect(center=self.rect_bolsa.center))
 
-        # Atalho de Tecla [B] no canto superior do botão
+        # Atalho de Tecla [TAB] no canto superior do botão da bolsa
         cor_atalho = AZUL_HOVER_MENU if self.hover_bolsa else MARFIM_OFFWHITE
-        txt_atalho = self.fonte_slots.render("[B]", True, cor_atalho)
+        txt_atalho = self.fonte_slots.render("[TAB]", True, cor_atalho)
         surface_hud.blit(txt_atalho, (self.rect_bolsa.x + 6, self.rect_bolsa.y + 4))
 
         # Aplica a transparência final em toda a superfície do HUD e pinta na tela principal

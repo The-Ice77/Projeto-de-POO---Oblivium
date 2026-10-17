@@ -180,7 +180,7 @@ class InventoryState(State):
         # Processamento de Teclado e Mouse
         for evento in eventos:
             if evento.type == pygame.KEYDOWN:
-                tecla_inv = self.game.controles.get("Inventário", pygame.K_i)
+                tecla_inv = self.game.controles.get("Inventário", pygame.K_TAB)
                 if evento.key in [pygame.K_ESCAPE, tecla_inv]:
                     self.game.mudar_estado("JOGANDO")
                     return
@@ -197,10 +197,10 @@ class InventoryState(State):
                 elif evento.key == pygame.K_4:
                     self.aba_principal_ativa = 3
                 
-                # Alternar abas com Q / E ou TAB
+                # Alternar abas com Q / E
                 elif evento.key == pygame.K_q:
                     self.aba_principal_ativa = (self.aba_principal_ativa - 1) % len(self.abas_principais)
-                elif evento.key in [pygame.K_e, pygame.K_TAB]:
+                elif evento.key == pygame.K_e:
                     self.aba_principal_ativa = (self.aba_principal_ativa + 1) % len(self.abas_principais)
 
                 # Navegação vertical na lista de magias

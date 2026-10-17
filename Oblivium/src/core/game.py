@@ -33,6 +33,7 @@ from src.states.controles_state import ControlesState
 from src.states.slots_states import SlotsState
 from src.states.inventory_states import InventoryState
 from src.states.shop_states import ShopState
+from src.states.selecao_controles_state import SelecaoControlesState
 
 
 
@@ -115,6 +116,7 @@ class Game:
         self.combate_estrada_concluido = False
         self.inimigos_em_cena = [] 
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
+        self.preset_controles = "WASD"
         self.controles = {
             "Cima": pygame.K_w,
             "Baixo": pygame.K_s,
@@ -123,7 +125,7 @@ class Game:
             "Correr": pygame.K_LSHIFT,
             "Interagir": pygame.K_e,
             "Pause": pygame.K_ESCAPE,
-            "Inventário": pygame.K_i
+            "Inventário": pygame.K_TAB
         }
 
         # --- Máquina de Estados ---
@@ -138,11 +140,39 @@ class Game:
             "CONTROLES": ControlesState(self),
             "INVENTARIO": InventoryState(self),
             "LOJA": ShopState(self),
-            "SLOTS": SlotsState(self) 
+            "SLOTS": SlotsState(self),
+            "SELECAO_CONTROLES": SelecaoControlesState(self)
         }
         self.nome_estado_atual = "MENU"
         self.estado_atual = self.estados["MENU"]
         self.origem_configuracoes = "MENU"
+
+    def aplicar_preset_controles(self, tipo="WASD"):
+        """Aplica uma predefinição de controles completa (WASD ou Setinhas)."""
+        if tipo.upper() in ["SETINHAS", "SETAS"]:
+            self.preset_controles = "SETINHAS"
+            self.controles = {
+                "Cima": pygame.K_UP,
+                "Baixo": pygame.K_DOWN,
+                "Esquerda": pygame.K_LEFT,
+                "Direita": pygame.K_RIGHT,
+                "Correr": pygame.K_RSHIFT,
+                "Interagir": pygame.K_SPACE,
+                "Pause": pygame.K_ESCAPE,
+                "Inventário": pygame.K_TAB
+            }
+        else:
+            self.preset_controles = "WASD"
+            self.controles = {
+                "Cima": pygame.K_w,
+                "Baixo": pygame.K_s,
+                "Esquerda": pygame.K_a,
+                "Direita": pygame.K_d,
+                "Correr": pygame.K_LSHIFT,
+                "Interagir": pygame.K_e,
+                "Pause": pygame.K_ESCAPE,
+                "Inventário": pygame.K_TAB
+            }
         self.origem_creditos = "MENU"
         # Rastreia em que ponto da conversa cada NPC está
         self.progresso_npcs = {

@@ -3,7 +3,7 @@ import pygame
 from src.states.states import State
 from src.utils.colors import (
     PRETO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
-    MARFIM_OFFWHITE, UI_TEXTO_APAGADO,
+    MARFIM_OFFWHITE, UI_TEXTO_APAGADO, DOURADO_ENVELHECIDO,
     AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
@@ -46,7 +46,13 @@ class ControlesState(State):
                     self.redefinindo = False
                     return
 
-                if evento.key in [pygame.K_UP, pygame.K_w]:
+                elif evento.key == pygame.K_F1:
+                    self.game.aplicar_preset_controles("WASD")
+                    return
+                elif evento.key == pygame.K_F2:
+                    self.game.aplicar_preset_controles("SETINHAS")
+                    return
+                elif evento.key in [pygame.K_UP, pygame.K_w]:
                     self.selecionada = (self.selecionada - 1) % (len(self.acoes) + 1)
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.selecionada = (self.selecionada + 1) % (len(self.acoes) + 1)
@@ -161,5 +167,9 @@ class ControlesState(State):
         tela.blit(render_voltar, (x + 55, rect_v.centery - render_voltar.get_height() // 2))
 
         # Rodapé
+        preset_atual = getattr(self.game, 'preset_controles', 'WASD')
+        txt_preset = self.fonte_sub.render(f"[F1] Predefinição WASD   •   [F2] Predefinição Setinhas  (Atual: {preset_atual})", True, DOURADO_ENVELHECIDO)
+        tela.blit(txt_preset, (x + (largura_bloco - txt_preset.get_width()) // 2, y + altura_bloco - 44))
+
         txt_rodape = self.fonte_sub.render("[ENTER] Redefinir tecla   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)
-        tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 28))
+        tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 22))

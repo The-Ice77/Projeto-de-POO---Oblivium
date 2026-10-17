@@ -185,7 +185,9 @@ class PlayingState(State):
         
         if dx != 0 or dy != 0:
             velocidade_original = self.game.halia.velocidade
-            if teclas[self.game.controles["Correr"]]:
+            tecla_correr = self.game.controles.get("Correr", pygame.K_LSHIFT)
+            esta_correndo = teclas[tecla_correr] or (tecla_correr in [pygame.K_LSHIFT, pygame.K_RSHIFT] and (teclas[pygame.K_LSHIFT] or teclas[pygame.K_RSHIFT]))
+            if esta_correndo:
                 self.game.halia.velocidade = velocidade_original * 1.8
                 
             hitboxes_atuais = list(self.game.mapa_casa.hitboxes) 
@@ -212,7 +214,7 @@ class PlayingState(State):
                 return
 
         # ABRIR O INVENTÁRIO
-        if evento.key == self.game.controles.get("Inventário", pygame.K_i):
+        if evento.key == self.game.controles.get("Inventário", pygame.K_TAB):
             if (not self.game.caixa_dialogo.ativo and 
                 self.game.transicao.estado == "INATIVO" and 
                 (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO") and
@@ -256,8 +258,16 @@ class PlayingState(State):
                     self._processar_avanco_dialogo()
             elif evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                 self._processar_avanco_dialogo()
-        elif evento.key == self.game.controles["Interagir"] and not self.game.cena_inimigos_andando:
-            self._processar_interacoes_mundo()
+        elif not self.game.cena_inimigos_andando:
+            tecla_interacao = self.game.controles.get("Interagir", pygame.K_e)
+            teclas_validas_interagir = [tecla_interacao]
+            if tecla_interacao == pygame.K_SPACE:
+                teclas_validas_interagir.extend([pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_e])
+            elif tecla_interacao == pygame.K_e:
+                teclas_validas_interagir.append(pygame.K_SPACE)
+
+            if evento.key in teclas_validas_interagir:
+                self._processar_interacoes_mundo()
 
     def _handle_clicks(self, evento):
         # Avanço da Tela Solene de Despertar de Memória
