@@ -38,6 +38,10 @@ class PauseState(State):
         self.overlay.fill((10, 10, 14))
         self.overlay.set_alpha(190)
 
+    def _tocar_sfx(self, alias):
+        if hasattr(self.game, 'audio') and self.game.audio:
+            self.game.audio.tocar_sfx(alias)
+
     def _obter_opcoes_atuais(self):
         if getattr(self.game, 'origem_pause', '') == "COMBATE":
             return self.opcoes_combate
@@ -52,18 +56,24 @@ class PauseState(State):
             if evento.type == pygame.KEYDOWN:
                 if evento.key in [pygame.K_UP, pygame.K_w]:
                     self.selecionada = (self.selecionada - 1) % len(self.opcoes)
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     self.selecionada = (self.selecionada + 1) % len(self.opcoes)
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                     self.executar_opcao()
                 elif evento.key == pygame.K_ESCAPE:
+                    self._tocar_sfx("ui_voltar")
                     origem = getattr(self.game, 'origem_pause', 'JOGANDO')
                     self.game.mudar_estado(origem)
                     
             elif evento.type == pygame.MOUSEMOTION:
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
-                        self.selecionada = i
+                        if self.selecionada != i:
+                            self.selecionada = i
+                            self._tocar_sfx("ui_cursor")
+                        break
                         
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 for i, rect in enumerate(self.rects_opcoes):
@@ -80,16 +90,20 @@ class PauseState(State):
         origem = getattr(self.game, 'origem_pause', 'JOGANDO')
         
         if opcao == "Retomar":
+            self._tocar_sfx("ui_voltar")
             self.game.mudar_estado(origem)
             
         elif opcao == "Inventário":
+            self._tocar_sfx("ui_confirmar")
             self.game.mudar_estado("INVENTARIO")
             
         elif opcao == "Salvar Jogo":
             # Não permitido no meio do combate por design
             if origem == "COMBATE":
+                self._tocar_sfx("ui_erro")
                 return
 
+            self._tocar_sfx("ui_confirmar")
             if self.game.slot_atual:
                 self.game.executar_com_feedback("Salvando Jogo...", lambda: self.game.salvar_estado(self.game.slot_atual, tipo="manual"))
                 self.game.mudar_estado("JOGANDO")
@@ -99,6 +113,7 @@ class PauseState(State):
                 self.game.mudar_estado("SLOTS")
                 
         elif opcao == "Carregar Jogo":
+            self._tocar_sfx("ui_confirmar")
             self.game.acao_slots = "CARREGAR"
             self.game.origem_slots = "PAUSE"
             self.game.mudar_estado("SLOTS")

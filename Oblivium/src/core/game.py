@@ -147,8 +147,8 @@ class Game:
             "SELECAO_CONTROLES": SelecaoControlesState(self)
         }
         self.nome_estado_atual = "MENU"
-        self.estado_atual = self.estados["MENU"]
         self.origem_configuracoes = "MENU"
+        self.mudar_estado("MENU")
 
     def aplicar_preset_controles(self, tipo="WASD"):
         """Aplica uma predefinição de controles completa (WASD ou Setinhas)."""
@@ -189,6 +189,8 @@ class Game:
             self.estado_atual = self.estados[novo_estado]
             if novo_estado == "MENU":
                 self.menu.atualizar_opcoes()
+                if hasattr(self, 'audio') and self.audio:
+                    self.audio.tocar_musica("menu_tema")
 
     def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
         """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""

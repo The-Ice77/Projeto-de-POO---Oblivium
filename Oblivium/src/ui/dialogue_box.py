@@ -11,6 +11,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.mechanics.dialogue_manager import DialogueManager
+from src.core.audio_manager import AudioManager
 
 class DialogueBox:
     """
@@ -167,6 +168,11 @@ class DialogueBox:
             self.tamanho_total = sum(len(l) for l in self.linhas_completas)
             self.caractere_atual = 0
 
+    def _tocar_sfx(self, alias, volume_extra=1.0):
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.tocar_sfx(alias, volume_extra=volume_extra)
+
     def proximo_texto(self):
         """Avança o texto (máquina de escrever -> próximo nó da narrativa)."""
         if not self.ativo: return
@@ -177,6 +183,7 @@ class DialogueBox:
 
         if self.em_escolha:
             if not self.opcoes_disponiveis:
+                self._tocar_sfx("ui_cursor")
                 self.manager.avancar()
                 self._sincronizar_com_manager()
                 return
@@ -186,6 +193,7 @@ class DialogueBox:
         if self.caractere_atual < self.tamanho_total:
             self.caractere_atual = self.tamanho_total
         else:
+            self._tocar_sfx("ui_cursor")
             continua = self.manager.avancar()
             if continua:
                 self._sincronizar_com_manager()
@@ -199,6 +207,7 @@ class DialogueBox:
             self.em_escolha = False
             return
 
+        self._tocar_sfx("ui_confirmar")
         if 0 <= self.opcao_selecionada < len(self.opcoes_disponiveis):
             escolha = self.opcoes_disponiveis[self.opcao_selecionada]
             
@@ -362,6 +371,7 @@ class DialogueBox:
         
         if self.em_escolha:
             if self.pode_fechar and self.rect_botao_x.collidepoint(posicao_mouse):
+                self._tocar_sfx("ui_voltar")
                 self.opcao_cancelada_id = self.id_cancelamento_no
                 self.manager.cancelar_escolha()
                 self._sincronizar_com_manager()
@@ -370,9 +380,11 @@ class DialogueBox:
             total_paginas = (len(self.opcoes_disponiveis) - 1) // self.opcoes_por_pagina + 1
             if total_paginas > 1:
                 if self.rect_seta_esq.collidepoint(posicao_mouse) and self.pagina_atual > 0:
+                    self._tocar_sfx("ui_cursor")
                     self.pagina_atual -= 1
                     return
                 if self.rect_seta_dir.collidepoint(posicao_mouse) and self.pagina_atual < total_paginas - 1:
+                    self._tocar_sfx("ui_cursor")
                     self.pagina_atual += 1
                     return
                     
@@ -387,9 +399,14 @@ class DialogueBox:
     def atualizar(self):
         if not self.ativo or self.em_escolha: return
         if self.caractere_atual < self.tamanho_total:
+            caractere_ant = int(self.caractere_atual)
             self.caractere_atual += self.velocidade_texto
             if self.caractere_atual > self.tamanho_total:
                 self.caractere_atual = self.tamanho_total
+            
+            # Feedback sonoro rítmico suave de máquina de escrever a cada 3 caracteres
+            if int(self.caractere_atual) // 3 > caractere_ant // 3:
+                self._tocar_sfx("ui_dialogo", volume_extra=0.3)
 
     def desenhar(self, tela):
         if not self.ativo or not self.dados_atuais:
