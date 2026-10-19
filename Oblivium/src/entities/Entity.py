@@ -100,7 +100,7 @@ class Entidade(ABC):
 
     def atualizar_animacao(self):
         """Atualiza o frame atual da animação baseada no estado da entidade."""
-        if not self.vivo and self.estado_atual != "morrer":
+        if not self.vivo and self.estado_atual not in ["morrer", "dead", "morte"]:
             self.mudar_estado("morrer")
             
         animacao = self.animacoes.get(self.estado_atual)
@@ -136,6 +136,11 @@ class Entidade(ABC):
             novo_estado = "andar"
         elif novo_estado == "andar" and "andar" not in self.animacoes and "walk" in self.animacoes:
             novo_estado = "walk"
+        elif novo_estado in ["morrer", "dead", "morte"]:
+            for cand in ["dead", "morte", "morrer"]:
+                if cand in self.animacoes:
+                    novo_estado = cand
+                    break
 
         if self.estado_atual != novo_estado:
             anim_atual = self.animacoes.get(self.estado_atual)

@@ -133,6 +133,12 @@ class CombatScreen:
         self.shake_timers = {}
         self.tick_arena = 0
         
+        # Efeitos Visuais de Sangue (Halia) e Morte de Inimigos
+        self.efeitos_sangue = []
+        self.alphas_morte = {}
+        self._pastas_sangue = [f"efeitos/sangue/sangue_{i}" for i in range(1, 6)]
+        self._cache_sangue_frames = None
+
         # Hitboxes de Interação de Mouse
         self.rects_menu_principal = []
         self.rects_ataques_fisicos = []
@@ -168,6 +174,30 @@ class CombatScreen:
         """Calcula a duração em ticks considerando a velocidade do combate."""
         return max(15, int(duracao_base / self.velocidade_combate))
 
+    def _obter_frames_sangue(self):
+        """Carrega e armazena em cache as listas de frames das 5 variações de sangue."""
+        if self._cache_sangue_frames is None:
+            self._cache_sangue_frames = []
+            for pasta in self._pastas_sangue:
+                frames = ResourceManager.carregar_frames_pasta(pasta)
+                if frames:
+                    self._cache_sangue_frames.append(frames)
+        return self._cache_sangue_frames
+
+    def _disparar_sangue_halia(self):
+        """Dispara animação de respingo de sangue sobre o torso de Halia ao sofrer dano."""
+        banco = self._obter_frames_sangue()
+        if not banco:
+            return
+        frames_escolhidos = random.choice(banco)
+        self.efeitos_sangue.append({
+            "frames": frames_escolhidos,
+            "frame_atual": 0.0,
+            "velocidade": 0.90,
+            "offset_x": random.randint(-4, 4),
+            "offset_y": random.randint(-4, 4)
+        })
+
     # =========================================================================
     # INICIALIZAÇÃO DO COMBATE
     # =========================================================================
@@ -192,6 +222,8 @@ class CombatScreen:
         self.textos_flutuantes.clear()
         self.historico_log.clear()
         self.shake_timers.clear()
+        self.efeitos_sangue.clear()
+        self.alphas_morte.clear()
 
         # Inicia a trilha sonora de combate adequada ao perigo
         audio = AudioManager.get_instance()
@@ -318,8 +350,18 @@ class CombatScreen:
                     ex, ey = self._obter_posicao_combate(entidade_atual)
                     self.adicionar_texto_flutuante(f"-{r['dano']}", ex + 20, ey, TEXTO_ALERTA_COMBATE)
                     self.shake_timers[entidade_atual] = 8
+                    if entidade_atual is self.jogador:
+                        self._disparar_sangue_halia()
 
             if not getattr(entidade_atual, 'vivo', True):
+                if entidade_atual is not self.jogador and hasattr(entidade_atual, 'animacoes'):
+                    entidade_atual.morrer()
+                    est_m = "dead" if "dead" in entidade_atual.animacoes else ("morte" if "morte" in entidade_atual.animacoes else "morrer")
+                    if est_m in entidade_atual.animacoes:
+                        entidade_atual.definir_estado(est_m)
+                        if hasattr(entidade_atual.animacoes[est_m], 'resetar'):
+                            entidade_atual.animacoes[est_m].resetar()
+                    self.alphas_morte[entidade_atual] = 255
                 msg_morte = self._gerar_mensagem_morte_condicao(entidade_atual, relatorios)
                 self.adicionar_log(msg_morte)
                 self.indice_turno_atual += 1
@@ -861,6 +903,14 @@ class CombatScreen:
             self.adicionar_texto_flutuante(f"-{dano}", ax + 20, ay - 10, (255, 100, 80))
 
         if not getattr(alvo, 'vivo', True):
+            if hasattr(alvo, 'animacoes'):
+                alvo.morrer()
+                est_m = "dead" if "dead" in alvo.animacoes else ("morte" if "morte" in alvo.animacoes else "morrer")
+                if est_m in alvo.animacoes:
+                    alvo.definir_estado(est_m)
+                    if hasattr(alvo.animacoes[est_m], 'resetar'):
+                        alvo.animacoes[est_m].resetar()
+            self.alphas_morte[alvo] = 255
             msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
             self.adicionar_log(msg_morte)
             self.adicionar_texto_flutuante("DERROTADO", ax + 10, ay - 30, (255, 60, 60))
@@ -1035,14 +1085,22 @@ class CombatScreen:
                 self.shake_timers[alvo_r] = 12
                 # Ativa animação de dano ou morte no inimigo
                 if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
-                    if not getattr(alvo_r, 'vivo', True) and ("dead" in alvo_r.animacoes or "morte" in alvo_r.animacoes):
-                        est_m = "dead" if "dead" in alvo_r.animacoes else "morte"
-                        alvo_r.definir_estado(est_m)
+                    if not getattr(alvo_r, 'vivo', True):
+                        alvo_r.morrer()
+                        est_m = "dead" if "dead" in alvo_r.animacoes else ("morte" if "morte" in alvo_r.animacoes else "morrer")
+                        if est_m in alvo_r.animacoes:
+                            alvo_r.definir_estado(est_m)
+                            if hasattr(alvo_r.animacoes[est_m], 'resetar'):
+                                alvo_r.animacoes[est_m].resetar()
+                        self.alphas_morte[alvo_r] = 255
                     elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
                         est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
                         alvo_r.definir_estado(est_h)
                         if hasattr(alvo_r.animacoes[est_h], 'resetar'):
                             alvo_r.animacoes[est_h].resetar()
+
+                if alvo_r is self.jogador:
+                    self._disparar_sangue_halia()
 
                 # Feedback narrativo se o alvo foi derrotado
                 if not getattr(alvo_r, 'vivo', True):
@@ -1132,8 +1190,23 @@ class CombatScreen:
             elif dano_r > 0:
                 if alvo_r is self.jogador:
                     self._tocar_sfx("dano_halia")
+                    self._disparar_sangue_halia()
                 else:
                     self._tocar_sfx("dano_inimigo")
+                    if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
+                        if not getattr(alvo_r, 'vivo', True):
+                            alvo_r.morrer()
+                            est_m = "dead" if "dead" in alvo_r.animacoes else ("morte" if "morte" in alvo_r.animacoes else "morrer")
+                            if est_m in alvo_r.animacoes:
+                                alvo_r.definir_estado(est_m)
+                                if hasattr(alvo_r.animacoes[est_m], 'resetar'):
+                                    alvo_r.animacoes[est_m].resetar()
+                            self.alphas_morte[alvo_r] = 255
+                        elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
+                            est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
+                            alvo_r.definir_estado(est_h)
+                            if hasattr(alvo_r.animacoes[est_h], 'resetar'):
+                                alvo_r.animacoes[est_h].resetar()
 
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
                 self.adicionar_texto_flutuante(f"-{dano_fmt}", hx + 30, hy, TEXTO_ALERTA_COMBATE)
@@ -1229,6 +1302,22 @@ class CombatScreen:
 
         # Atualiza textos flutuantes
         self.textos_flutuantes = [t for t in self.textos_flutuantes if t.atualizar()]
+
+        # Atualiza efeitos visuais de sangue na Halia
+        for ef in self.efeitos_sangue[:]:
+            ef["frame_atual"] += ef["velocidade"]
+            if int(ef["frame_atual"]) >= len(ef["frames"]):
+                self.efeitos_sangue.remove(ef)
+
+        # Atualiza desvanecimento suave (fade out) dos monstros derrotados após término da animação de morte
+        for inimigo in self.inimigos:
+            if not getattr(inimigo, 'vivo', True):
+                anim_m = inimigo.animacoes.get('dead') or inimigo.animacoes.get('morte') or inimigo.animacoes.get('morrer')
+                esta_concluida = getattr(anim_m, 'concluida', False) if anim_m else True
+                if esta_concluida:
+                    alpha_atual = self.alphas_morte.get(inimigo, 255)
+                    if alpha_atual > 0:
+                        self.alphas_morte[inimigo] = max(0, alpha_atual - 5)
 
         # Execução de timer de leitura de ação
         if self.estado_combate == "EXECUTANDO_ACAO":
@@ -1362,10 +1451,9 @@ class CombatScreen:
         if entidade is self.jogador:
             return 160, 160
 
-        inimigos_vivos = self._obter_inimigos_vivos()
-        if entidade in inimigos_vivos:
-            idx = inimigos_vivos.index(entidade)
-            total = len(inimigos_vivos)
+        if entidade in self.inimigos:
+            idx = self.inimigos.index(entidade)
+            total = len(self.inimigos)
             if total == 1:
                 return self.largura - 350, 150
             elif total == 2:
@@ -1455,35 +1543,56 @@ class CombatScreen:
         self.rects_inimigos.clear()
         inimigos_vivos = self._obter_inimigos_vivos()
 
-        for idx, inimigo in enumerate(inimigos_vivos):
+        for inimigo in self.inimigos:
+            esta_vivo = getattr(inimigo, 'vivo', True)
+            alpha_morte = self.alphas_morte.get(inimigo, 255) if not esta_vivo else 255
+            
+            # Se já desvaneceu totalmente, não precisa renderizar
+            if not esta_vivo and alpha_morte <= 0:
+                continue
+
             pos_x, pos_y = self._obter_posicao_combate(inimigo)
             
-            offset_shake_x = random.randint(-3, 3) if self.shake_timers.get(inimigo, 0) > 0 else 0
-            offset_shake_y = random.randint(-2, 2) if self.shake_timers.get(inimigo, 0) > 0 else 0
+            offset_shake_x = random.randint(-3, 3) if (esta_vivo and self.shake_timers.get(inimigo, 0) > 0) else 0
+            offset_shake_y = random.randint(-2, 2) if (esta_vivo and self.shake_timers.get(inimigo, 0) > 0) else 0
             
             draw_x = pos_x + offset_shake_x
             draw_y = pos_y + offset_shake_y
 
-            # Plataforma / Sombra sutil no chão
-            pygame.draw.ellipse(tela, (22, 22, 26), (draw_x - 10, draw_y + 80, 100, 20))
+            # Plataforma / Sombra sutil no chão sob o monstro
+            if esta_vivo or alpha_morte > 60:
+                if esta_vivo or alpha_morte >= 250:
+                    pygame.draw.ellipse(tela, (22, 22, 26), (draw_x - 10, draw_y + 80, 100, 20))
+                else:
+                    sombra_surf = pygame.Surface((100, 20), pygame.SRCALPHA)
+                    alpha_sombra = int(220 * (alpha_morte / 255.0))
+                    pygame.draw.ellipse(sombra_surf, (22, 22, 26, alpha_sombra), (0, 0, 100, 20))
+                    tela.blit(sombra_surf, (draw_x - 10, draw_y + 80))
 
-            # Hitbox para clique de mouse
-            rect_hitbox = pygame.Rect(draw_x - 10, draw_y - 25, 240, 125)
-            self.rects_inimigos.append(rect_hitbox)
+            # Hitbox para clique de mouse e cursor de mira (apenas se vivo)
+            if esta_vivo:
+                rect_hitbox = pygame.Rect(draw_x - 10, draw_y - 25, 240, 125)
+                self.rects_inimigos.append(rect_hitbox)
 
-            # Cursor de Seleção de Alvo
-            if self.estado_combate == "SELECIONANDO_ALVO" and idx == self.indice_alvo:
-                cursor_txt = self.fonte_titulo.render(">", True, TXT_SISTEMA_NARRADOR)
-                tela.blit(cursor_txt, (draw_x - 30, draw_y + 15))
-                pygame.draw.rect(tela, TXT_SISTEMA_NARRADOR, rect_hitbox, 1)
+                if self.estado_combate == "SELECIONANDO_ALVO" and self.indice_alvo < len(inimigos_vivos) and inimigos_vivos[self.indice_alvo] is inimigo:
+                    cursor_txt = self.fonte_titulo.render(">", True, TXT_SISTEMA_NARRADOR)
+                    tela.blit(cursor_txt, (draw_x - 30, draw_y + 15))
+                    pygame.draw.rect(tela, TXT_SISTEMA_NARRADOR, rect_hitbox, 1)
 
             # Atualiza Animações do Inimigo
             if hasattr(inimigo, 'atualizar_animacao'):
-                # Transição automática de estados hurt/attack para idle quando finalizados
-                if getattr(inimigo, 'estado_atual', 'idle') == 'hurt' and getattr(inimigo.animacoes.get('hurt', None), 'concluida', False):
-                    inimigo.definir_estado('idle')
-                elif getattr(inimigo, 'estado_atual', 'idle') in ['attack', 'ataque'] and getattr(inimigo.animacoes.get('attack', inimigo.animacoes.get('ataque', None)), 'concluida', False):
-                    inimigo.definir_estado('idle')
+                if esta_vivo:
+                    # Transição automática de estados hurt/attack para idle quando finalizados
+                    if getattr(inimigo, 'estado_atual', 'idle') == 'hurt' and getattr(inimigo.animacoes.get('hurt', None), 'concluida', False):
+                        inimigo.definir_estado('idle')
+                    elif getattr(inimigo, 'estado_atual', 'idle') in ['attack', 'ataque'] and getattr(inimigo.animacoes.get('attack', inimigo.animacoes.get('ataque', None)), 'concluida', False):
+                        inimigo.definir_estado('idle')
+                else:
+                    # Se está morto, garante que o estado é dead/morte/morrer
+                    if getattr(inimigo, 'estado_atual', '') not in ['dead', 'morte', 'morrer']:
+                        est_m = "dead" if "dead" in inimigo.animacoes else ("morte" if "morte" in inimigo.animacoes else "morrer")
+                        if est_m in inimigo.animacoes:
+                            inimigo.definir_estado(est_m)
                 inimigo.atualizar_animacao()
 
             # Renderiza Imagem ou Bloco Colorido
@@ -1502,49 +1611,60 @@ class CombatScreen:
                 # Ancoragem bottom-center acima da elipse da plataforma
                 cx = draw_x + 40
                 cy = draw_y + 90
-                offset_flutuante = -16 if getattr(inimigo, 'flutuante', False) else 0
+                offset_flutuante = -16 if (getattr(inimigo, 'flutuante', False) and esta_vivo) else 0
                 bx = cx - (nw // 2)
                 by = cy - nh + offset_flutuante
 
-                if self.shake_timers.get(inimigo, 0) > 6:
-                    flash_surf = img_combate.copy()
-                    flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
-                    tela.blit(flash_surf, (bx, by))
+                if esta_vivo:
+                    if self.shake_timers.get(inimigo, 0) > 6:
+                        flash_surf = img_combate.copy()
+                        flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
+                        tela.blit(flash_surf, (bx, by))
+                    else:
+                        tela.blit(img_combate, (bx, by))
                 else:
-                    tela.blit(img_combate, (bx, by))
+                    # Inimigo em animação de morte ou desvanecimento suave
+                    if alpha_morte < 255:
+                        surf_morte = img_combate.copy()
+                        surf_morte.set_alpha(alpha_morte)
+                        tela.blit(surf_morte, (bx, by))
+                    else:
+                        tela.blit(img_combate, (bx, by))
             else:
                 rect_inimigo = pygame.Rect(draw_x, draw_y, getattr(inimigo, 'largura', 40) * 2, getattr(inimigo, 'altura', 40) * 2)
-                cor_bloco = BRANCO if self.shake_timers.get(inimigo, 0) > 6 else getattr(inimigo, 'cor', (140, 40, 50))
+                cor_bloco = BRANCO if (esta_vivo and self.shake_timers.get(inimigo, 0) > 6) else (getattr(inimigo, 'cor', (140, 40, 50)) if esta_vivo else (60, 60, 70))
                 pygame.draw.rect(tela, cor_bloco, rect_inimigo)
                 pygame.draw.rect(tela, CINZA_CLARO, rect_inimigo, 2)
 
-            # Nome do Inimigo
-            texto_nome = self.fonte_nomes.render(inimigo.nome, True, TEXTO_ALERTA_COMBATE)
-            tela.blit(texto_nome, (draw_x, draw_y - 28))
-            
-            # Badges de Condições Ativas
-            offset_icone_x = draw_x + texto_nome.get_width() + 8
-            for cond in getattr(inimigo, 'condicoes', []):
-                txt_badge = self.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
-                tela.blit(txt_badge, (offset_icone_x, draw_y - 25))
-                offset_icone_x += txt_badge.get_width() + 6
+            # Interface de Status (Apenas se o inimigo estiver vivo)
+            if esta_vivo:
+                # Nome do Inimigo
+                texto_nome = self.fonte_nomes.render(inimigo.nome, True, TEXTO_ALERTA_COMBATE)
+                tela.blit(texto_nome, (draw_x, draw_y - 28))
+                
+                # Badges de Condições Ativas
+                offset_icone_x = draw_x + texto_nome.get_width() + 8
+                for cond in getattr(inimigo, 'condicoes', []):
+                    txt_badge = self.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
+                    tela.blit(txt_badge, (offset_icone_x, draw_y - 25))
+                    offset_icone_x += txt_badge.get_width() + 6
 
-            # Barra de Vida Suave Interpolada
-            base_bar_y = draw_y + 105
-            larg_bar_inimigo = 150
-            alt_bar = 12
-            vida_v = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
-            self.desenhar_barra(tela, draw_x - 15, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
-            txt_hp = self.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_hp, (draw_x - 15 + larg_bar_inimigo + 10, base_bar_y - 2))
+                # Barra de Vida Suave Interpolada
+                base_bar_y = draw_y + 105
+                larg_bar_inimigo = 150
+                alt_bar = 12
+                vida_v = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
+                self.desenhar_barra(tela, draw_x - 15, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
+                txt_hp = self.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
+                tela.blit(txt_hp, (draw_x - 15 + larg_bar_inimigo + 10, base_bar_y - 2))
 
-            # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
-            mana_max = getattr(inimigo, 'mana_maxima', 20)
-            mana_v = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
-            mp_bar_y = base_bar_y + 20
-            self.desenhar_barra(tela, draw_x - 15, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
-            txt_mp = self.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
+                # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
+                mana_max = getattr(inimigo, 'mana_maxima', 20)
+                mana_v = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
+                mp_bar_y = base_bar_y + 20
+                self.desenhar_barra(tela, draw_x - 15, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
+                txt_mp = self.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
+                tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
 
         # 3. RENDERIZAR HALIA (Lado Esquerdo)
         halia_x, halia_y = 160, 160
@@ -1588,6 +1708,19 @@ class CombatScreen:
             cor_h = BRANCO if self.shake_timers.get(self.jogador, 0) > 6 else (34, 139, 34)
             pygame.draw.rect(tela, cor_h, rect_h)
             pygame.draw.rect(tela, CINZA_CLARO, rect_h, 2)
+
+        # Efeito Visual de Respingo de Sangue sobre Halia ao Sofrer Dano
+        if self.efeitos_sangue:
+            hx_centro = draw_hx + (larg_h // 2)
+            hy_centro = draw_hy + (alt_h // 2)
+            for ef in self.efeitos_sangue:
+                idx_s = int(ef["frame_atual"])
+                frames_s = ef["frames"]
+                if 0 <= idx_s < len(frames_s):
+                    frame_s = frames_s[idx_s]
+                    pos_sx = hx_centro - (frame_s.get_width() // 2) + ef.get("offset_x", 0)
+                    pos_sy = hy_centro - (frame_s.get_height() // 2) + ef.get("offset_y", 0)
+                    tela.blit(frame_s, (pos_sx, pos_sy))
 
         # Nome da Halia
         txt_halia = self.fonte_nomes.render(self.jogador.nome, True, NOME_HALIA)

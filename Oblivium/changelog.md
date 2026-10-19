@@ -198,3 +198,12 @@
 - **Preservação e Nitidez da Pixel Art**: Eliminação de rotações angulares fracionárias contínuas que causavam distorção de pixel e tremor em 1px. O pássaro utiliza sua postura diagonal nativa desenhada pelo artista ($20^\circ$ ascendente), mantendo a silhueta 100% nítida e estável.
 - **Pouso em Planeio Gracioso**: Ao descer para o ninho (`pousando`), o pássaro plana com batimentos mais espaçados (`0.12`), desacelerando gradualmente nos últimos metros até pousar delicadamente na relva.
 - **Correção dos Frames de Animação de Voo**: Restauração da opacidade total nos frames `voo_06.png` e `voo_07.png`, eliminando o bug de semi-transparência intermitente.
+
+---
+
+### Atualização v[0.7.8] — Efeitos de Sangue e Animações de Morte
+#### Implementação, Correção e Aprimoramento
+- **Efeito de Sangue em Halia**: Disparo dos efeitos visuais de sangue (`sangue_1` a `sangue_5`) sobre o torso de Halia ao sofrer dano em combate.
+- **Animações de Morte dos Inimigos**: Reprodução completa do ciclo de colapso e dissolução suave dos monstros derrotados na arena.
+- **Estabilidade de Posições na Arena**: Fixação das coordenadas táticas dos inimigos durante a batalha, evitando solavancos com a queda de oponentes.
+- **Correção de Aliases de Animação**: Mapeamento unificado dos estados `dead`, `morte` e `morrer` nas classes base e no `ResourceManager`.
