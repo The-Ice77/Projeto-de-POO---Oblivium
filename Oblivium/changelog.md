@@ -207,3 +207,11 @@
 - **Animações de Morte dos Inimigos**: Reprodução completa do ciclo de colapso e dissolução suave dos monstros derrotados na arena.
 - **Estabilidade de Posições na Arena**: Fixação das coordenadas táticas dos inimigos durante a batalha, evitando solavancos com a queda de oponentes.
 - **Correção de Aliases de Animação**: Mapeamento unificado dos estados `dead`, `morte` e `morrer` nas classes base e no `ResourceManager`.
+
+---
+
+### Atualização v[0.7.9] — Interface e Arquitetura de Áudio
+#### Implementação, Correção e Aprimoramento
+- **Barras de Volume das Configurações**: Desacoplamento da coordenada horizontal das barras de volume em relação ao tamanho do texto numérico, garantindo alinhamento fixo e independente.
+- **Reação do Mouse na Seleção de Controles**: Ajuste no hover dos cards da tela de seleção de controles para responder estritamente quando o ponteiro estiver sobre eles.
+- **Limpeza do Gerenciador de Áudio**: Remoção dos bipes e efeitos sonoros sintéticos procedurais, mantendo o motor limpo, silencioso e preparado para os arquivos de som oficiais.

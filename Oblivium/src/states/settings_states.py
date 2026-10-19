@@ -238,27 +238,38 @@ class SettingsState(State):
             if valor_texto:
                 cor_val = MARFIM_OFFWHITE if esta_sel else CINZA_LINHO
                 render_val = self.fonte_opcao.render(valor_texto, True, cor_val)
-                val_x = rect_opt.right - 18 - render_val.get_width()
-                tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
-
-                # Mini barra medidora animada/estilizada para opções de volume
+                
+                # Para opções com barra medidora de volume (Master, BGM, SFX, BGS)
                 if pct_volume is not None:
-                    gauge_w = 90
+                    # Layout independente com posições horizontais fixas para barra e texto
+                    largura_slot_val = 80
+                    gauge_w = 96
                     gauge_h = 8
-                    gauge_x = val_x - gauge_w - 14
+                    
+                    # Posição X da barra medidora é totalmente fixa em relação à borda do botão
+                    gauge_x = rect_opt.right - 18 - largura_slot_val - 16 - gauge_w
                     gauge_y = rect_opt.centery - gauge_h // 2
                     
-                    # Trilho de fundo
+                    # O texto com os seletores (< 100% >, < 0% >) é centralizado em seu slot reservado
+                    slot_val_x = rect_opt.right - 18 - largura_slot_val
+                    val_x = slot_val_x + (largura_slot_val - render_val.get_width()) // 2
+                    tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
+                    
+                    # Trilho de fundo da barra medidora
                     rect_gauge_bg = pygame.Rect(gauge_x, gauge_y, gauge_w, gauge_h)
                     pygame.draw.rect(tela, (20, 22, 28), rect_gauge_bg, border_radius=2)
                     pygame.draw.rect(tela, (50, 54, 66), rect_gauge_bg, 1, border_radius=2)
                     
-                    # Preenchimento ativo
+                    # Preenchimento ativo da barra medidora
                     if pct_volume > 0:
                         largura_preenchida = int((gauge_w - 2) * (pct_volume / 100.0))
                         cor_barra = AZUL_HOVER_MENU if esta_sel else (85, 120, 155)
                         rect_preenchido = pygame.Rect(gauge_x + 1, gauge_y + 1, largura_preenchida, gauge_h - 2)
                         pygame.draw.rect(tela, cor_barra, rect_preenchido, border_radius=1)
+                else:
+                    # Opções de texto puro (como velocidades) alinhadas normalmente à margem direita
+                    val_x = rect_opt.right - 18 - render_val.get_width()
+                    tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
 
         # Rodapé elegante com atalhos
         txt_rodape = self.fonte_sub.render("[← / → / Clique] Ajustar   •   [ENTER] Confirmar   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)

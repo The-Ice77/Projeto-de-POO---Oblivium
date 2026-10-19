@@ -1,7 +1,5 @@
 # src/core/audio_manager.py
 import os
-import math
-import struct
 import logging
 import pygame
 
@@ -24,9 +22,9 @@ class AudioManager:
     Recursos principais:
     - Mixagem multicanal dedicada: BGM (pygame.mixer.music), BGS/Ambience (canal reservado) e SFX dinâmico.
     - Controle hierárquico de volume (Master, Música, Ambiente, SFX).
-    - Resolução automática de nomes de arquivos (.ogg, .wav, .mp3) e aliases amigáveis.
-    - Fallback procedural integrado: sintetiza ondas sonoras leves via PCM caso arquivos
-      de som ainda não existam no disco, garantindo feedback imediato sem travar o motor.
+    - Resolução automática de arquivos de áudio (.ogg, .wav, .mp3) e subpastas de categorias.
+    - Carregamento tolerante e limpo: silêncio automático caso o arquivo ainda não exista no disco,
+      sem bipes sintéticos artificiais e pronto para receber os assets definitivos.
     - Memória de trilha musical para alternância suave (ex: transição de/para combate).
     """
 
@@ -48,9 +46,8 @@ class AudioManager:
         self.ambiente_atual = None
         self.musica_pausada = False
 
-        # Caches
+        # Cache de efeitos sonoros carregados fisicamente
         self._cache_sfx = {}
-        self._cache_procedural = {}
         self._avisos_arquivo_ausente = set()
 
         # Inicialização do Mixer Pygame
@@ -233,7 +230,7 @@ class AudioManager:
         if self.ambiente_atual == caminho_arquivo and self.canal_ambiente.get_busy():
             return
 
-        som = self._carregar_som(caminho_arquivo, fallback_procedural="ambiente_suave")
+        som = self._carregar_som(caminho_arquivo)
         if som:
             try:
                 if fade_ms > 0:
@@ -262,14 +259,13 @@ class AudioManager:
 
     def tocar_sfx(self, alias_ou_caminho, volume_extra=1.0):
         """
-        Dispara um efeito sonoro instantâneo.
-        Se o arquivo físico não for encontrado, sintetiza um tom procedural suave
-        para resposta tátil imediata do jogo.
+        Dispara um efeito sonoro instantâneo a partir de arquivo de áudio real (.ogg, .wav, .mp3).
+        Caso o arquivo de som ainda não exista na pasta assets, retorna None silenciosamente.
         """
         if not pygame.mixer.get_init():
             return None
 
-        som = self._carregar_sfx_com_fallback(alias_ou_caminho)
+        som = self._carregar_sfx(alias_ou_caminho)
         if som:
             try:
                 vol_final = self.get_volume_sfx_efetivo(volume_extra)
@@ -280,8 +276,11 @@ class AudioManager:
                 logger.debug("Falha ao reproduzir SFX '%s': %s", alias_ou_caminho, e)
         return None
 
-    def _carregar_sfx_com_fallback(self, alias_ou_caminho):
-        """Obtém o Sound do cache, carrega do disco ou gera proceduralmente."""
+    def _carregar_sfx(self, alias_ou_caminho):
+        """
+        Obtém o Sound do cache ou carrega o arquivo real do disco.
+        Caso o arquivo ainda não exista, retorna None de maneira limpa e silenciosa.
+        """
         chave = str(alias_ou_caminho).lower().strip()
         if chave in self._cache_sfx:
             return self._cache_sfx[chave]
@@ -295,20 +294,15 @@ class AudioManager:
             except Exception as e:
                 logger.warning("Erro ao carregar arquivo de som '%s': %s", caminho_arquivo, e)
 
-        # Fallback Procedural: sintetiza som matemático equivalente
-        som_proc = self._gerar_sfx_procedural(chave)
-        self._cache_sfx[chave] = som_proc
-        return som_proc
+        return None
 
-    def _carregar_som(self, caminho_arquivo, fallback_procedural=None):
-        """Carrega um arquivo de Sound genérico."""
+    def _carregar_som(self, caminho_arquivo):
+        """Carrega um arquivo de Sound genérico a partir do caminho físico."""
         if caminho_arquivo and os.path.isfile(caminho_arquivo):
             try:
                 return pygame.mixer.Sound(caminho_arquivo)
             except Exception:
                 pass
-        if fallback_procedural:
-            return self._gerar_sfx_procedural(fallback_procedural)
         return None
 
     # =========================================================================
@@ -355,8 +349,9 @@ class AudioManager:
 
     def _localizar_arquivo_sfx(self, alias_ou_caminho):
         """
-        Pesquisa o arquivo de SFX em pastas comuns:
-        assets/audio/sfx/, assets/audio/sfx/ui/, assets/audio/sfx/combate/, assets/audio/sfx/mundo/
+        Pesquisa o arquivo de SFX em pastas de áudio organizadas:
+        assets/audio/sfx/, assets/audio/sfx/ui/, assets/audio/sfx/combate/,
+        assets/audio/sfx/mundo/, assets/audio/sfx/itens/
         """
         if not alias_ou_caminho:
             return None
@@ -368,12 +363,13 @@ class AudioManager:
             os.path.join(PASTA_SFX, "ui"),
             os.path.join(PASTA_SFX, "combate"),
             os.path.join(PASTA_SFX, "mundo"),
+            os.path.join(PASTA_SFX, "itens"),
         ]
 
         nomes = [
             str(alias_ou_caminho),
-            f"{alias_ou_caminho}.wav",
             f"{alias_ou_caminho}.ogg",
+            f"{alias_ou_caminho}.wav",
             f"{alias_ou_caminho}.mp3",
         ]
 
@@ -384,142 +380,3 @@ class AudioManager:
                     return caminho
 
         return None
-
-    # =========================================================================
-    # SINTETIZADOR PROCEDURAL (FALLBACK ACÚSTICO IMEDIATO)
-    # =========================================================================
-
-    def _gerar_sfx_procedural(self, tipo):
-        """
-        Gera amostras de áudio PCM sintéticas 16-bit estéreo puras,
-        permitindo feedback acústico imediato sem dependências externas.
-        """
-        if tipo in self._cache_procedural:
-            return self._cache_procedural[tipo]
-
-        sample_rate = 44100
-        buffer_bytes = bytearray()
-
-        def add_tone(freq, duracao, volume=0.3, envelope="decay"):
-            num_samples = int(sample_rate * duracao)
-            for i in range(num_samples):
-                t = i / sample_rate
-                # Envelope de amplitude
-                if envelope == "decay":
-                    env = max(0.0, 1.0 - (i / num_samples))
-                elif envelope == "pluck":
-                    env = max(0.0, (1.0 - (i / num_samples)) ** 2)
-                elif envelope == "bell":
-                    env = math.sin(math.pi * (i / num_samples))
-                else:
-                    env = 1.0
-
-                onda = math.sin(2.0 * math.pi * freq * t)
-                val = int(onda * 32767 * volume * env)
-                val = max(-32767, min(32767, val))
-                buffer_bytes.extend(struct.pack('<hh', val, val))
-
-        def add_noise(duracao, volume=0.25):
-            import random
-            num_samples = int(sample_rate * duracao)
-            for i in range(num_samples):
-                env = (1.0 - (i / num_samples)) ** 1.5
-                val = int((random.random() * 2.0 - 1.0) * 32767 * volume * env)
-                val = max(-32767, min(32767, val))
-                buffer_bytes.extend(struct.pack('<hh', val, val))
-
-        tipo_lower = str(tipo).lower()
-
-        # UI: Hover / Cursor
-        if "cursor" in tipo_lower or "hover" in tipo_lower:
-            add_tone(580, 0.035, volume=0.15, envelope="pluck")
-
-        # UI: Confirmar / Selecionar
-        elif "confirmar" in tipo_lower or "select" in tipo_lower or "confirm" in tipo_lower:
-            add_tone(440, 0.04, volume=0.25, envelope="pluck")
-            add_tone(880, 0.06, volume=0.25, envelope="decay")
-
-        # UI: Voltar / Cancelar
-        elif "voltar" in tipo_lower or "cancel" in tipo_lower or "back" in tipo_lower:
-            add_tone(520, 0.04, volume=0.25, envelope="pluck")
-            add_tone(320, 0.07, volume=0.25, envelope="decay")
-
-        # UI: Erro / Bloqueio
-        elif "erro" in tipo_lower or "error" in tipo_lower or "invalid" in tipo_lower:
-            add_tone(180, 0.08, volume=0.35, envelope="decay")
-            add_tone(140, 0.08, volume=0.35, envelope="decay")
-
-        # UI: Diálogo / Texto
-        elif "dialogo" in tipo_lower or "fala" in tipo_lower or "type" in tipo_lower:
-            add_tone(720, 0.018, volume=0.08, envelope="pluck")
-
-        # Combate: Acerto de Ataque
-        elif "acerto" in tipo_lower or "hit" in tipo_lower:
-            add_noise(0.04, volume=0.3)
-            add_tone(220, 0.08, volume=0.35, envelope="pluck")
-
-        # Combate: Crítico
-        elif "critico" in tipo_lower or "crit" in tipo_lower:
-            add_noise(0.05, volume=0.4)
-            add_tone(330, 0.06, volume=0.4, envelope="pluck")
-            add_tone(660, 0.12, volume=0.45, envelope="decay")
-
-        # Combate: Erro (Woosh)
-        elif "erro_ataque" in tipo_lower or "ataque_erro" in tipo_lower or "miss" in tipo_lower:
-            add_tone(280, 0.04, volume=0.18, envelope="pluck")
-            add_tone(180, 0.06, volume=0.12, envelope="decay")
-
-        # Combate: Esquiva
-        elif "esquiva" in tipo_lower or "dodge" in tipo_lower:
-            add_tone(400, 0.03, volume=0.2, envelope="pluck")
-            add_tone(700, 0.05, volume=0.25, envelope="decay")
-
-        # Combate: Dano em Halia
-        elif "dano_halia" in tipo_lower or "player_hit" in tipo_lower:
-            add_noise(0.06, volume=0.4)
-            add_tone(160, 0.12, volume=0.4, envelope="decay")
-
-        # Combate: Dano no Inimigo
-        elif "dano_inimigo" in tipo_lower or "enemy_hit" in tipo_lower:
-            add_noise(0.05, volume=0.35)
-            add_tone(240, 0.09, volume=0.3, envelope="pluck")
-
-        # Combate: Magia / Feitiço
-        elif "magia" in tipo_lower or "spell" in tipo_lower or "cast" in tipo_lower:
-            add_tone(392, 0.05, volume=0.25, envelope="bell")
-            add_tone(587, 0.06, volume=0.3, envelope="bell")
-            add_tone(784, 0.10, volume=0.35, envelope="decay")
-
-        # Combate: Concentrar / Guarda
-        elif "concentrar" in tipo_lower or "foco" in tipo_lower or "defesa" in tipo_lower:
-            add_tone(330, 0.08, volume=0.2, envelope="bell")
-            add_tone(495, 0.14, volume=0.25, envelope="decay")
-
-        # Combate: Poção / Consumível
-        elif "pocao" in tipo_lower or "item" in tipo_lower or "potion" in tipo_lower:
-            add_tone(523, 0.04, volume=0.25, envelope="pluck")
-            add_tone(659, 0.04, volume=0.25, envelope="pluck")
-            add_tone(784, 0.08, volume=0.3, envelope="decay")
-
-        # Combate: Fuga
-        elif "fuga" in tipo_lower or "run" in tipo_lower:
-            add_tone(350, 0.03, volume=0.2, envelope="pluck")
-            add_tone(290, 0.04, volume=0.2, envelope="pluck")
-            add_tone(240, 0.06, volume=0.2, envelope="decay")
-
-        # Mundo: Porta
-        elif "porta" in tipo_lower or "door" in tipo_lower:
-            add_noise(0.03, volume=0.2)
-            add_tone(140, 0.08, volume=0.3, envelope="decay")
-
-        # Padrão Genérico
-        else:
-            add_tone(440, 0.05, volume=0.2, envelope="decay")
-
-        try:
-            snd = pygame.mixer.Sound(buffer=bytes(buffer_bytes))
-            self._cache_procedural[tipo] = snd
-            return snd
-        except Exception as e:
-            logger.debug("Falha ao criar Sound procedural: %s", e)
-            return None
