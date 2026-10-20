@@ -1,5 +1,5 @@
 import pygame
-from Oblivium.src.mechanics.combat_narrator import CombatNarrator
+from src.mechanics.combat_narrator import CombatNarrator
 
 
 class CombatInputHandler:
