@@ -223,3 +223,11 @@
 - **Isolamento de Textos em JSON**: Criação de `src/data/combat_texts.json` centralizando mensagens de morte, ações, avisos de mana e banners de vitória/derrota.
 - **Classe CombatNarrator**: Módulo desacoplado para carregar e formatar dinamicamente a narrativa do combate.
 - **Refatoração do Motor de Combate**: Remoção de dezenas de strings hardcoded de `combat.py`.
+
+---
+
+### Atualização v[0.8.1] — Desacoplamento da Renderização de Combate
+#### Implementação, Correção e Aprimoramento
+- **Módulo CombatRenderer**: Criação de `src/mechanics/combat_renderer.py` isolando todo o pipeline de renderização gráfica do combate (cenário, sprites 2.5D, barras de vida/mana interpoladas, submenus com paginação, tooltips de habilidades e banners).
+- **Redução e Modularização**: Redução de ~585 linhas em `combat.py` (de ~2.022 para ~1.436 linhas), transformando a classe principal em um motor focado em turnos e regras de batalha.
+- **Sincronização de Hitboxes**: Manutenção das referências de colisão e retângulos interativos para preservação completa dos controles por mouse e teclado.
