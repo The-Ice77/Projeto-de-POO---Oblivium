@@ -11,17 +11,10 @@ if _raiz_projeto not in sys.path:
 
 from src.mechanics.skills import SkillsRegistry
 from src.entities.Boss import Boss
-from src.ui.ui_utils import (
-    desenhar_barra_status_interpolada,
-    quebrar_texto_em_linhas
-)
+from src.ui.ui_utils import quebrar_texto_em_linhas
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_ESCURO, CINZA_LINHO, CINZA_ARDOSIA,
-    UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO,
-    NOME_HALIA, TEXTO_ALERTA_COMBATE,
-    BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA,
-    BRANCO, PRETO,
-    AZUL_HOVER_MENU, AZUL_HOVER_BG
+    TEXTO_ALERTA_COMBATE,
+    BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA
 )
 from src.utils.resource_manager import ResourceManager
 from src.core.audio_manager import AudioManager
