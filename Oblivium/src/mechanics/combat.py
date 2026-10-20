@@ -25,6 +25,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.core.audio_manager import AudioManager
+from src.mechanics.combat_narrator import CombatNarrator
 
 class TextoFlutuante:
     """Gerencia textos flutuantes de dano, cura ou status na tela de combate."""
@@ -261,7 +262,7 @@ class CombatScreen:
             reverse=True
         )
 
-        self.adicionar_log("A batalha começou!")
+        self.adicionar_log(CombatNarrator.obter_mensagem("inicio_batalha"))
         self._iniciar_nova_rodada()
 
     def _carregar_ataques_fisicos_jogador(self):
@@ -826,7 +827,7 @@ class CombatScreen:
             self._carregar_itens_combate_jogador()
             if not self.itens_combate_disponiveis:
                 self._tocar_sfx("ui_erro")
-                self.adicionar_log("Você não possui consumíveis utilizáveis em combate!")
+                self.adicionar_log(CombatNarrator.obter_mensagem("sem_consumiveis"))
                 return
             self._tocar_sfx("ui_confirmar")
             self.estado_combate = "SUBMENU_ITENS"
@@ -880,7 +881,7 @@ class CombatScreen:
         elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
             self.adicionar_texto_flutuante(f"+{res['valor']} MP", hx + 30, hy - 10, BARRA_MANA)
         elif res.get("tipo") == "CURA_CONDICAO":
-            self.adicionar_texto_flutuante("PURIFICADO", hx + 10, hy - 10, (160, 230, 200))
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("purificado"), hx + 10, hy - 10, (160, 230, 200))
 
     def _executar_uso_item_ofensivo(self, item, alvo):
         """Arremessa frasco ou item ofensivo em um inimigo durante a batalha."""
@@ -913,7 +914,7 @@ class CombatScreen:
             self.alphas_morte[alvo] = 255
             msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
             self.adicionar_log(msg_morte)
-            self.adicionar_texto_flutuante("DERROTADO", ax + 10, ay - 30, (255, 60, 60))
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("derrotado"), ax + 10, ay - 30, (255, 60, 60))
 
     def _selecionar_ataque_fisico(self):
         """Seleciona o ataque físico do submenu para execução contra o alvo."""
@@ -923,7 +924,7 @@ class CombatScreen:
         ataque = self.ataques_fisicos_disponiveis[self.indice_ataque_fisico]
         if ataque.custo_mana > 0 and self.jogador.mana_atual < ataque.custo_mana:
             self._tocar_sfx("ui_erro")
-            self.adicionar_log(f"Mana insuficiente ({self.jogador.mana_atual}/{ataque.custo_mana} MP)!")
+            self.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.jogador.mana_atual, custo_mana=ataque.custo_mana))
             return
 
         self._tocar_sfx("ui_confirmar")
@@ -951,7 +952,7 @@ class CombatScreen:
         magia = self.magias_disponiveis[self.indice_magia]
         if self.jogador.mana_atual < magia.custo_mana:
             self._tocar_sfx("ui_erro")
-            self.adicionar_log(f"Mana insuficiente ({self.jogador.mana_atual}/{magia.custo_mana} MP)!")
+            self.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.jogador.mana_atual, custo_mana=magia.custo_mana))
             return
 
         self._tocar_sfx("ui_confirmar")
@@ -972,50 +973,11 @@ class CombatScreen:
 
     def _gerar_mensagem_morte_condicao(self, entidade, relatorios):
         """Gera mensagem contextual dramática quando a entidade morre por DoT no início do turno."""
-        elementos_causadores = []
-        ids_causadores = []
-        for r in relatorios:
-            cond = r.get("condicao")
-            if cond:
-                elementos_causadores.append(getattr(cond, 'elemento', '').upper())
-                ids_causadores.append(getattr(cond, 'id_condicao', '').lower())
-                
-        eh_halia = (entidade is self.jogador)
-
-        if "FOGO" in elementos_causadores or "queimadura" in ids_causadores:
-            return "Halia sucumbiu enquanto ardia em chamas abrasadoras..." if eh_halia else f"{entidade.nome} sucumbiu e ardeu em chamas até o último suspiro!"
-        elif "VENENO" in elementos_causadores or "veneno" in ids_causadores:
-            return "Halia sucumbiu enquanto o veneno paralisava seus sentidos vitais..." if eh_halia else f"{entidade.nome} sucumbiu às toxinas corrosivas que dissolveram suas forças!"
-        elif "FISICO" in elementos_causadores or "sangramento" in ids_causadores:
-            return "Halia não resistiu à hemorragia profunda e desfaleceu..." if eh_halia else f"{entidade.nome} esvaiu-se em sangue até o último suspiro!"
-        elif "GELO" in elementos_causadores or "congelado" in ids_causadores:
-            return "Halia teve as forças congeladas pelo frio extremo e caiu..." if eh_halia else f"{entidade.nome} foi congelado até o núcleo e estilhaçou-se!"
-        elif "SOMBRA" in elementos_causadores or "miasma" in ids_causadores:
-            return "Halia foi tragada e consumida pela escuridão..." if eh_halia else f"{entidade.nome} foi consumido pelo miasma sombrio e desfez-se em poeira!"
-        else:
-            return "Halia sucumbiu aos ferimentos e desmaiou..." if eh_halia else f"{entidade.nome} sucumbiu aos efeitos que castigavam seu corpo!"
+        return CombatNarrator.gerar_mensagem_morte_condicao(entidade, relatorios, eh_jogador=(entidade is self.jogador))
 
     def _gerar_mensagem_morte_acao(self, alvo, acao):
         """Gera mensagem contextual dramática quando a entidade morre por um ataque/magia direta."""
-        eh_halia = (alvo is self.jogador)
-        elemento = getattr(acao, 'elemento', 'FISICO').upper()
-        tipo = getattr(acao, 'tipo', 'FISICO').upper()
-        nome_acao = getattr(acao, 'nome', 'Golpe')
-
-        if elemento == "FOGO":
-            return "Halia não resistiu e sucumbiu enquanto ardia em chamas abrasadoras..." if eh_halia else f"{alvo.nome} foi carbonizado pelas chamas incandescentes!"
-        elif elemento == "ARCANO":
-            return "A essência mágica de Halia colapsou sob a pura ressonância arcana..." if eh_halia else f"{alvo.nome} foi desintegrado pela pura energia arcana!"
-        elif elemento == "SOMBRA":
-            return "Halia foi engolida pelo abismo das trevas e perdeu a consciência..." if eh_halia else f"{alvo.nome} foi devorado e aniquilado pelas sombras abissais!"
-        elif elemento == "GELO":
-            return "Halia congelou instantaneamente sob o impacto gélido e caiu..." if eh_halia else f"{alvo.nome} foi estilhaçado pelo frio mortal!"
-        elif elemento in ["ELETRICO", "TROVAO", "RAIO"]:
-            return "Halia sucumbiu após ser fulminada pela violenta descarga elétrica..." if eh_halia else f"{alvo.nome} foi eletrocutado e fulminado pelo raio!"
-        elif tipo == "FISICO":
-            return f"Halia não resistiu ao impacto fulminante de {nome_acao} e caiu..." if eh_halia else f"{alvo.nome} foi estraçalhado pelo golpe devastador de {nome_acao} e caiu sem vida!"
-        else:
-            return f"Halia foi derrotada por {nome_acao}..." if eh_halia else f"{alvo.nome} foi aniquilado em batalha!"
+        return CombatNarrator.gerar_mensagem_morte_acao(alvo, acao, eh_jogador=(alvo is self.jogador))
 
     def _executar_acao_jogador(self, acao, alvo):
         """Executa a ação escolhida pelo jogador com cálculo de dano e feedback."""
@@ -1045,9 +1007,9 @@ class CombatScreen:
             self.adicionar_texto_flutuante(f"+{mana_fmt} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
             self._tocar_sfx("concentrar")
-            self.adicionar_texto_flutuante("EM GUARDA!", hx + 30, hy - 10, (100, 210, 255), duracao=80)
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("em_guarda"), hx + 30, hy - 10, (100, 210, 255), duracao=80)
         if resultado.get("vulneravel"):
-            self.adicionar_texto_flutuante("VULNERÁVEL!", hx + 30, hy - 10, (240, 130, 130), duracao=80)
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), hx + 30, hy - 10, (240, 130, 130), duracao=80)
 
         # Se for magia de ataque ou suporte
         if getattr(acao, 'custo_mana', 0) > 0 or getattr(acao, 'tipo', '').upper() == 'MAGIA':
@@ -1066,11 +1028,11 @@ class CombatScreen:
             if r.get("errou", False) and alvo_r:
                 if r.get("motivo") == "esquiva":
                     self._tocar_sfx("esquiva")
-                    texto_erro = "ESQUIVOU!"
+                    texto_erro = CombatNarrator.obter_popup("esquivou")
                     cor_erro = (100, 210, 255) # Cyan
                 else:
                     self._tocar_sfx("ataque_erro")
-                    texto_erro = "ERROU!"
+                    texto_erro = CombatNarrator.obter_popup("errou")
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, ax + 20, ay - 15, cor_erro, duracao=80)
             elif dano_r > 0 and alvo_r:
@@ -1167,7 +1129,7 @@ class CombatScreen:
 
         if resultado.get("vulneravel"):
             ix, iy = self._obter_posicao_combate(inimigo)
-            self.adicionar_texto_flutuante("VULNERÁVEL!", ix + 30, iy - 10, (240, 130, 130), duracao=80)
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), ix + 30, iy - 10, (240, 130, 130), duracao=80)
 
         for r in resultado.get("resultados", []):
             if r.get("mensagem") and r.get("mensagem") != resultado.get("mensagem"):
@@ -1180,11 +1142,11 @@ class CombatScreen:
             if r.get("errou", False):
                 if r.get("motivo") == "esquiva":
                     self._tocar_sfx("esquiva")
-                    texto_erro = "ESQUIVOU!"
+                    texto_erro = CombatNarrator.obter_popup("esquivou")
                     cor_erro = (100, 210, 255) # Cyan
                 else:
                     self._tocar_sfx("ataque_erro")
-                    texto_erro = "ERROU!"
+                    texto_erro = CombatNarrator.obter_popup("errou")
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, hx + 30, hy - 15, cor_erro, duracao=80)
             elif dano_r > 0:
@@ -1233,8 +1195,8 @@ class CombatScreen:
         for inimigo in inimigos_vivos:
             if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo, 'atributos', None) and inimigo.atributos.forca >= 28:
                 self._tocar_sfx("ui_erro")
-                self.adicionar_log("Halia tentou recuar, mas a presenca imponente do inimigo impede qualquer fuga!")
-                self.adicionar_texto_flutuante("FUGA IMPOSSÍVEL!", hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
+                self.adicionar_log(CombatNarrator.obter_mensagem("fuga_impossivel"))
+                self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_impossivel"), hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
                 self.timer_acao = self._ajustar_timer(60)
                 self.estado_combate = "EXECUTANDO_ACAO"
                 return
@@ -1260,12 +1222,12 @@ class CombatScreen:
 
         if rolagem <= chance_fuga:
             self._tocar_sfx("fuga")
-            self.adicionar_log("Halia recuou com agilidade e escapou do combate com sucesso!")
+            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_sucesso"))
             self.estado_combate = "FUGIU"
         else:
             self._tocar_sfx("ui_erro")
-            self.adicionar_texto_flutuante("FUGA FALHOU!", hx + 30, hy - 15, (245, 150, 80), duracao=75)
-            self.adicionar_log("Tentativa de fuga falhou! Os inimigos bloquearam a passagem e cercaram Halia.")
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_falhou"), hx + 30, hy - 15, (245, 150, 80), duracao=75)
+            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_falhou"))
             # Perde a ação do turno e os inimigos atacam em seguida
             self.timer_acao = self._ajustar_timer(65)
             self.estado_combate = "EXECUTANDO_ACAO"
@@ -1372,7 +1334,11 @@ class CombatScreen:
         if hasattr(self.jogador, 'recuperar_memoria') and self.recompensas_vitoria["memorias"] > 0:
             self.jogador.recuperar_memoria(self.recompensas_vitoria["memorias"])
 
-        self.adicionar_log(f"Vitoria! Ganhou {self.recompensas_vitoria['moedas']} moedas e {self.recompensas_vitoria['memorias']} memoria(s).")
+        self.adicionar_log(CombatNarrator.obter_mensagem(
+            "vitoria",
+            moedas=self.recompensas_vitoria['moedas'],
+            memorias=self.recompensas_vitoria['memorias']
+        ))
         self.estado_combate = "VITORIA"
         audio = AudioManager.get_instance()
         if audio:
@@ -1380,7 +1346,7 @@ class CombatScreen:
 
     def _finalizar_derrota(self):
         """Configura estado de derrota."""
-        self.adicionar_log("Halia sucumbiu e retornara ao ultimo checkpoint...")
+        self.adicionar_log(CombatNarrator.obter_mensagem("derrota"))
         self.estado_combate = "DERROTA"
         audio = AudioManager.get_instance()
         if audio:
@@ -2030,19 +1996,19 @@ class CombatScreen:
         
         if self.estado_combate == "VITORIA":
             cor_borda = TXT_SISTEMA_NARRADOR
-            titulo = "VITORIA!"
-            msg1 = f"Recompensas: +{self.recompensas_vitoria['moedas']} Moedas | +{self.recompensas_vitoria['memorias']} Memoria(s)"
-            msg2 = "Pressione [ENTER], [ESPACO] ou clique para continuar..."
+            titulo = CombatNarrator.obter_banner("vitoria_titulo") or "VITÓRIA ALCANÇADA!"
+            msg1 = f"Recompensas: +{self.recompensas_vitoria['moedas']} Moedas | +{self.recompensas_vitoria['memorias']} Memória(s)"
+            msg2 = CombatNarrator.obter_banner("continuar_prompt") or "Pressione [ENTER], [ESPAÇO] ou clique para prosseguir"
         elif self.estado_combate == "DERROTA":
             cor_borda = TEXTO_ALERTA_COMBATE
-            titulo = "DERROTA"
-            msg1 = "Halia sucumbiu e foi resgatada ao ultimo checkpoint..."
-            msg2 = "Pressione [ENTER] ou clique para reiniciar..."
+            titulo = CombatNarrator.obter_banner("derrota_titulo") or "HALIA SUCUMBIU..."
+            msg1 = CombatNarrator.obter_banner("derrota_sub") or "Suas memórias se desvanecem no vácuo de Oblivium..."
+            msg2 = CombatNarrator.obter_banner("continuar_prompt") or "Pressione [ENTER] ou clique para reiniciar..."
         else: # FUGIU
             cor_borda = TXT_PENSAMENTO_INTERNO
-            titulo = "ESCAPOU"
-            msg1 = "Halia recuou com sucesso para um local seguro."
-            msg2 = "Pressione [ENTER] ou clique para retornar..."
+            titulo = CombatNarrator.obter_banner("fuga_titulo") or "FUGA BEM-SUCEDIDA!"
+            msg1 = CombatNarrator.obter_banner("fuga_sub") or "Halia recuou para uma posição segura fora de alcance."
+            msg2 = CombatNarrator.obter_banner("continuar_prompt") or "Pressione [ENTER] ou clique para retornar..."
 
         pygame.draw.rect(tela, cor_borda, self.rect_banner, 2)
 

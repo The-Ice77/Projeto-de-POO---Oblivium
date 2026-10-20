@@ -215,3 +215,11 @@
 - **Barras de Volume das Configurações**: Desacoplamento da coordenada horizontal das barras de volume em relação ao tamanho do texto numérico, garantindo alinhamento fixo e independente.
 - **Reação do Mouse na Seleção de Controles**: Ajuste no hover dos cards da tela de seleção de controles para responder estritamente quando o ponteiro estiver sobre eles.
 - **Limpeza do Gerenciador de Áudio**: Remoção dos bipes e efeitos sonoros sintéticos procedurais, mantendo o motor limpo, silencioso e preparado para os arquivos de som oficiais.
+
+---
+
+### Atualização v[0.8.0] — Desacoplamento de Textos de Combate
+#### Implementação, Correção e Aprimoramento
+- **Isolamento de Textos em JSON**: Criação de `src/data/combat_texts.json` centralizando mensagens de morte, ações, avisos de mana e banners de vitória/derrota.
+- **Classe CombatNarrator**: Módulo desacoplado para carregar e formatar dinamicamente a narrativa do combate.
+- **Refatoração do Motor de Combate**: Remoção de dezenas de strings hardcoded de `combat.py`.

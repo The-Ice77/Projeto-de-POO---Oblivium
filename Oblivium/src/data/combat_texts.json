@@ -1,0 +1,76 @@
+{
+  "mensagens_sistema": {
+    "inicio_batalha": "A batalha começou!",
+    "sem_consumiveis": "Você não possui consumíveis utilizáveis em combate!",
+    "mana_insuficiente": "Mana insuficiente ({mana_atual}/{custo_mana} MP)!",
+    "fuga_impossivel": "Halia tentou recuar, mas a presença imponente do inimigo impede qualquer fuga!",
+    "fuga_sucesso": "Halia recuou com agilidade e escapou do combate com sucesso!",
+    "fuga_falhou": "Tentativa de fuga falhou! Os inimigos bloquearam a passagem e cercaram Halia.",
+    "vitoria": "Vitória! Ganhou {moedas} moedas e {memorias} memórias.",
+    "derrota": "Halia sucumbiu e retornará ao último checkpoint..."
+  },
+  "popups_flutuantes": {
+    "em_guarda": "EM GUARDA!",
+    "vulneravel": "VULNERÁVEL!",
+    "esquivou": "ESQUIVOU!",
+    "errou": "ERROU!",
+    "derrotado": "DERROTADO",
+    "purificado": "PURIFICADO",
+    "fuga_impossivel": "FUGA IMPOSSÍVEL!",
+    "fuga_falhou": "FUGA FALHOU!"
+  },
+  "titulos_submenus": {
+    "ataque": "ATAQUES FÍSICOS",
+    "magia": "GRIMÓRIO DA HALIA",
+    "concentrar": "AÇÕES TÁTICAS",
+    "itens": "ITENS DE COMBATE",
+    "alvo": "SELECIONE O ALVO"
+  },
+  "banners_fim_combate": {
+    "vitoria_titulo": "VITÓRIA ALCANÇADA!",
+    "vitoria_sub": "Os inimigos foram derrotados e a calmaria retorna ao local.",
+    "derrota_titulo": "HALIA SUCUMBIU...",
+    "derrota_sub": "Suas memórias se desvanecem no vácuo de Oblivium...",
+    "fuga_titulo": "FUGA BEM-SUCEDIDA!",
+    "fuga_sub": "Halia recuou para uma posição segura fora de alcance.",
+    "continuar_prompt": "Pressione [ENTER] ou [ESPAÇO] para prosseguir"
+  },
+  "morte_condicao": {
+    "halia": {
+      "FOGO": "Halia sucumbiu enquanto ardia em chamas abrasadoras...",
+      "VENENO": "Halia sucumbiu enquanto o veneno paralisava seus sentidos vitais...",
+      "FISICO": "Halia não resistiu à hemorragia profunda e desfaleceu...",
+      "GELO": "Halia teve as forças congeladas pelo frio extremo e caiu...",
+      "SOMBRA": "Halia foi tragada e consumida pela escuridão...",
+      "PADRAO": "Halia sucumbiu aos ferimentos e desmaiou..."
+    },
+    "inimigo": {
+      "FOGO": "{alvo} sucumbiu e ardeu em chamas até o último suspiro!",
+      "VENENO": "{alvo} sucumbiu às toxinas corrosivas que dissolveram suas forças!",
+      "FISICO": "{alvo} esvaiu-se em sangue até o último suspiro!",
+      "GELO": "{alvo} foi congelado até o núcleo e estilhaçou-se!",
+      "SOMBRA": "{alvo} foi consumido pelo miasma sombrio e desfez-se em poeira!",
+      "PADRAO": "{alvo} sucumbiu aos efeitos que castigavam seu corpo!"
+    }
+  },
+  "morte_acao": {
+    "halia": {
+      "FOGO": "Halia não resistiu e sucumbiu enquanto ardia em chamas abrasadoras...",
+      "ARCANO": "A essência mágica de Halia colapsou sob a pura ressonância arcana...",
+      "SOMBRA": "Halia foi engolida pelo abismo das trevas e perdeu a consciência...",
+      "GELO": "Halia congelou instantaneamente sob o impacto gélido e caiu...",
+      "ELETRICO": "Halia sucumbiu após ser fulminada pela violenta descarga elétrica...",
+      "FISICO": "Halia não resistiu ao impacto fulminante de {acao} e caiu...",
+      "PADRAO": "Halia foi derrotada por {acao}..."
+    },
+    "inimigo": {
+      "FOGO": "{alvo} foi carbonizado pelas chamas incandescentes!",
+      "ARCANO": "{alvo} foi desintegrado pela pura energia arcana!",
+      "SOMBRA": "{alvo} foi devorado e aniquilado pelas sombras abissais!",
+      "GELO": "{alvo} foi estilhaçado pelo frio mortal!",
+      "ELETRICO": "{alvo} foi eletrocutado e fulminado pelo raio!",
+      "FISICO": "{alvo} foi estraçalhado pelo golpe devastador de {acao} e caiu sem vida!",
+      "PADRAO": "{alvo} foi aniquilado em batalha!"
+    }
+  }
+}
