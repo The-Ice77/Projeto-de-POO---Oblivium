@@ -230,4 +230,13 @@
 #### Implementação, Correção e Aprimoramento
 - **Módulo CombatRenderer**: Criação de `src/mechanics/combat_renderer.py` isolando todo o pipeline de renderização gráfica do combate (cenário, sprites 2.5D, barras de vida/mana interpoladas, submenus com paginação, tooltips de habilidades e banners).
 - **Redução e Modularização**: Redução de ~585 linhas em `combat.py` (de ~2.022 para ~1.436 linhas), transformando a classe principal em um motor focado em turnos e regras de batalha.
-- **Sincronização de Hitboxes**: Manutenção das referências de colisão e retângulos interativos para preservação completa dos controles por mouse e teclado.
+- **Sincronização de Hitboxes**: Manutenção das referências de colisão e retângulos interativos para preservação completa dos controles por mouse e teclado.
+
+---
+
+### Atualização v[0.8.2] — Desacoplamento de Entradas e Navegação de Menus
+#### Implementação, Correção e Aprimoramento
+- **Módulo CombatInputHandler**: Criação de `src/mechanics/combat_input.py` centralizando a escuta de eventos de teclado, cliques e rolagem de mouse (scroll).
+- **Gerenciamento de Navegação e Submenus**: Transferência das rotinas de abertura e rolagem dos menus de Ataque, Magia, Concentração, Itens e Alvo para o novo controlador.
+- **Modularização Profunda**: Redução adicional de 463 linhas em `combat.py` (de 1.436 para 973 linhas), consolidando a meta de manter o arquivo abaixo de 1.000 linhas.
+
