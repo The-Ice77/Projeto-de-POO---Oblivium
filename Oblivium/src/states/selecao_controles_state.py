@@ -21,6 +21,7 @@ class SelecaoControlesState(State):
         super().__init__(game)
         self.selecionada = 0  # 0: WASD, 1: SETINHAS
         self.hover_mouse = -1
+        self.modo_teclado = False
         
         # Tipografia temática
         self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 38)
@@ -54,8 +55,12 @@ class SelecaoControlesState(State):
             if evento.type == pygame.KEYDOWN:
                 if evento.key in [pygame.K_LEFT, pygame.K_a, pygame.K_1]:
                     self.selecionada = 0
+                    self.hover_mouse = -1
+                    self.modo_teclado = True
                 elif evento.key in [pygame.K_RIGHT, pygame.K_d, pygame.K_2]:
                     self.selecionada = 1
+                    self.hover_mouse = -1
+                    self.modo_teclado = True
                 elif evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
                     self.confirmar_escolha()
                 elif evento.key == pygame.K_ESCAPE:
@@ -63,6 +68,7 @@ class SelecaoControlesState(State):
 
             elif evento.type == pygame.MOUSEMOTION:
                 pos = evento.pos
+                self.modo_teclado = False
                 if self.rect_card_wasd.collidepoint(pos):
                     self.selecionada = 0
                     self.hover_mouse = 0
@@ -127,7 +133,7 @@ class SelecaoControlesState(State):
         tela.blit(txt_sub, txt_sub.get_rect(center=(self.game.LARGURA // 2, 115)))
 
         # 3. Card 1: PADRÃO WASD
-        ativo_wasd = (self.selecionada == 0)
+        ativo_wasd = (self.hover_mouse == 0) or (self.modo_teclado and self.selecionada == 0)
         cor_borda_wasd = AZUL_HOVER_BORDA if ativo_wasd else CINZA_LINHO
         cor_fundo_wasd = (16, 24, 36) if ativo_wasd else CARVAO_PROFUNDO
         desenhar_painel_padrao(tela, self.rect_card_wasd, cor_fundo=cor_fundo_wasd, cor_borda=cor_borda_wasd, largura_borda=2 if ativo_wasd else 1, alpha=245)
@@ -173,7 +179,7 @@ class SelecaoControlesState(State):
         tela.blit(txt_btn_w, txt_btn_w.get_rect(center=self.rect_btn_wasd.center))
 
         # 4. Card 2: PADRÃO SETINHAS
-        ativo_setas = (self.selecionada == 1)
+        ativo_setas = (self.hover_mouse == 1) or (self.modo_teclado and self.selecionada == 1)
         cor_borda_setas = AZUL_HOVER_BORDA if ativo_setas else CINZA_LINHO
         cor_fundo_setas = (16, 24, 36) if ativo_setas else CARVAO_PROFUNDO
         desenhar_painel_padrao(tela, self.rect_card_setas, cor_fundo=cor_fundo_setas, cor_borda=cor_borda_setas, largura_borda=2 if ativo_setas else 1, alpha=245)

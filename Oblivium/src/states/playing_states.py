@@ -505,6 +505,8 @@ class PlayingState(State):
         for item in self.game.mapa_casa.itens_no_chao[:]: 
             if area_interacao.colliderect(item.rect):
                 self.game.mapa_casa.itens_no_chao.remove(item)
+                if hasattr(self.game, 'audio') and self.game.audio:
+                    self.game.audio.tocar_sfx("item_coletar")
                 
                 id_do_item = getattr(item, "id_unico", "desconhecido")
                 if id_do_item not in self.game.itens_coletados:

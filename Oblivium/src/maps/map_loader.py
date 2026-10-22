@@ -39,6 +39,13 @@ class Mapa:
             self.cenario_atual = nome_cenario
             self.cenario_objeto = self.cenarios[nome_cenario]
             self.cenario_objeto.inicializar_cenario()
+
+            # Gerenciamento acústico do cenário (se não estiver em combate)
+            if hasattr(self.game, 'audio') and self.game.audio and getattr(self.game, 'nome_estado_atual', '') != 'COMBATE':
+                if nome_cenario == "CASA":
+                    self.game.audio.tocar_musica("casa_halia", loop=-1, fade_ms=1000)
+                elif nome_cenario in ["ESTRADA", "ESTRADA_2"]:
+                    self.game.audio.tocar_musica("estrada_floresta", loop=-1, fade_ms=1000)
         else:
             print(f"[MapLoader] Aviso: Cenário '{nome_cenario}' não reconhecido.")
 
@@ -97,12 +104,16 @@ class Mapa:
         mapa_casa = self.cenarios.get("CASA")
         if mapa_casa:
             mapa_casa.abrir_porta()
+            if hasattr(self.game, 'audio') and self.game.audio:
+                self.game.audio.tocar_sfx("porta_abrir")
 
     def fechar_porta(self):
         """Dispara o fechamento e tranca da porta na casa."""
         mapa_casa = self.cenarios.get("CASA")
         if mapa_casa:
             mapa_casa.fechar_porta()
+            if hasattr(self.game, 'audio') and self.game.audio:
+                self.game.audio.tocar_sfx("porta_fechar")
 
     def desobstruir_estrada(self, tipo_magia="FOGO"):
         """Desobstrui o deslizamento de rochas na Estrada 2."""

@@ -198,3 +198,45 @@
 - **Preservação e Nitidez da Pixel Art**: Eliminação de rotações angulares fracionárias contínuas que causavam distorção de pixel e tremor em 1px. O pássaro utiliza sua postura diagonal nativa desenhada pelo artista ($20^\circ$ ascendente), mantendo a silhueta 100% nítida e estável.
 - **Pouso em Planeio Gracioso**: Ao descer para o ninho (`pousando`), o pássaro plana com batimentos mais espaçados (`0.12`), desacelerando gradualmente nos últimos metros até pousar delicadamente na relva.
 - **Correção dos Frames de Animação de Voo**: Restauração da opacidade total nos frames `voo_06.png` e `voo_07.png`, eliminando o bug de semi-transparência intermitente.
+
+---
+
+### Atualização v[0.7.8] — Efeitos de Sangue e Animações de Morte
+#### Implementação, Correção e Aprimoramento
+- **Efeito de Sangue em Halia**: Disparo dos efeitos visuais de sangue (`sangue_1` a `sangue_5`) sobre o torso de Halia ao sofrer dano em combate.
+- **Animações de Morte dos Inimigos**: Reprodução completa do ciclo de colapso e dissolução suave dos monstros derrotados na arena.
+- **Estabilidade de Posições na Arena**: Fixação das coordenadas táticas dos inimigos durante a batalha, evitando solavancos com a queda de oponentes.
+- **Correção de Aliases de Animação**: Mapeamento unificado dos estados `dead`, `morte` e `morrer` nas classes base e no `ResourceManager`.
+
+---
+
+### Atualização v[0.7.9] — Interface e Arquitetura de Áudio
+#### Implementação, Correção e Aprimoramento
+- **Barras de Volume das Configurações**: Desacoplamento da coordenada horizontal das barras de volume em relação ao tamanho do texto numérico, garantindo alinhamento fixo e independente.
+- **Reação do Mouse na Seleção de Controles**: Ajuste no hover dos cards da tela de seleção de controles para responder estritamente quando o ponteiro estiver sobre eles.
+- **Limpeza do Gerenciador de Áudio**: Remoção dos bipes e efeitos sonoros sintéticos procedurais, mantendo o motor limpo, silencioso e preparado para os arquivos de som oficiais.
+
+---
+
+### Atualização v[0.8.0] — Desacoplamento de Textos de Combate
+#### Implementação, Correção e Aprimoramento
+- **Isolamento de Textos em JSON**: Criação de `src/data/combat_texts.json` centralizando mensagens de morte, ações, avisos de mana e banners de vitória/derrota.
+- **Classe CombatNarrator**: Módulo desacoplado para carregar e formatar dinamicamente a narrativa do combate.
+- **Refatoração do Motor de Combate**: Remoção de dezenas de strings hardcoded de `combat.py`.
+
+---
+
+### Atualização v[0.8.1] — Desacoplamento da Renderização de Combate
+#### Implementação, Correção e Aprimoramento
+- **Módulo CombatRenderer**: Criação de `src/mechanics/combat_renderer.py` isolando todo o pipeline de renderização gráfica do combate (cenário, sprites 2.5D, barras de vida/mana interpoladas, submenus com paginação, tooltips de habilidades e banners).
+- **Redução e Modularização**: Redução de ~585 linhas em `combat.py` (de ~2.022 para ~1.436 linhas), transformando a classe principal em um motor focado em turnos e regras de batalha.
+- **Sincronização de Hitboxes**: Manutenção das referências de colisão e retângulos interativos para preservação completa dos controles por mouse e teclado.
+
+---
+
+### Atualização v[0.8.2] — Desacoplamento de Entradas e Navegação de Menus
+#### Implementação, Correção e Aprimoramento
+- **Módulo CombatInputHandler**: Criação de `src/mechanics/combat_input.py` centralizando a escuta de eventos de teclado, cliques e rolagem de mouse (scroll).
+- **Gerenciamento de Navegação e Submenus**: Transferência das rotinas de abertura e rolagem dos menus de Ataque, Magia, Concentração, Itens e Alvo para o novo controlador.
+- **Modularização Profunda**: Redução adicional de 463 linhas em `combat.py` (de 1.436 para 973 linhas), consolidando a meta de manter o arquivo abaixo de 1.000 linhas.
+
