@@ -239,4 +239,18 @@
 - **Módulo CombatInputHandler**: Criação de `src/mechanics/combat_input.py` centralizando a escuta de eventos de teclado, cliques e rolagem de mouse (scroll).
 - **Gerenciamento de Navegação e Submenus**: Transferência das rotinas de abertura e rolagem dos menus de Ataque, Magia, Concentração, Itens e Alvo para o novo controlador.
 - **Modularização Profunda**: Redução adicional de 463 linhas em `combat.py` (de 1.436 para 973 linhas), consolidando a meta de manter o arquivo abaixo de 1.000 linhas.
+
+---
+
+### Atualização v[0.8.3] — Modularização do Inventário e Persistência de Saves
+#### Implementação, Correção e Aprimoramento
+- **Módulo SaveManager Centralizado**: Extração da persistência, serialização/desserialização de entidades, blindagem de autosaves e reinicialização de novo jogo da classe `Game` para `src/core/save_manager.py`. Redução de ~256 linhas em `game.py` (de 573 para 317 linhas).
+- **Verificação de Integridade de Slots**: Adição de rotina defensiva `verificar_integridade_slot()` no `SaveManager` para validação estrutural e verificação de integridade de JSON e esquema de dados antes do carregamento.
+- **Renderizadores Modulares de Abas**: Criação do pacote `src/states/inventory_tabs/` com renderizadores gráficos desacoplados:
+  - `tab_inventario.py` (`TabInventarioRenderer`): Equipamentos arcanos, slots de Grimórios, grelha da bolsa e sub-abas.
+  - `tab_perfil.py` (`TabPerfilRenderer`): Barras interpoladas de HP/MP, carteira decomposta, parâmetros derivados e ficha de atributos D20.
+  - `tab_magia.py` (`TabMagiaRenderer`): Grimório de magias com scroll, escalamento arcano de intelecto e badges.
+  - `tab_crafting.py` (`TabCraftingRenderer`): Bancada selada de criação, forja e manipulação de reagentes.
+- **Redução em inventory_states.py**: Redução de 420 linhas no arquivo principal do menu de inventário (de 974 para 554 linhas), preservando 100% da compatibilidade de eventos, cliques e interfaces.
+
 

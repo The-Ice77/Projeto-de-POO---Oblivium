@@ -12,7 +12,7 @@ from src.entities.NPC import NPC
 from src.ui.flashback import Flashback  
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
-from src.utils import save_manager
+from src.core.save_manager import SaveManager
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.tela_despertar import TelaDespertarMemoria
@@ -84,6 +84,7 @@ class Game:
         self.audio.definir_volume_musica(self.config_audio_musica)
         self.audio.definir_volume_sfx(self.config_audio_sfx)
         self.audio.definir_volume_ambiente(self.config_audio_ambiente)
+        self.save_manager = SaveManager(self)
         self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
         self.redefinindo_tecla = False     # Flag para escutar a nova tecla
        # --- CONTROLE DE SAVES / SLOTS ---
@@ -263,272 +264,15 @@ class Game:
 
             pygame.display.flip()
             self.clock.tick(60)
+
     def salvar_estado(self, slot=None, tipo="manual", silenciar_notificacao=False):
-        slot_alvo = slot or self.slot_atual
-        if not slot_alvo: 
-            return 
-            
-        dados_save = {
-            "cenario_atual": self.mapa_casa.cenario_atual,
-            "tempo_jogado": self.tempo_jogado,
-            "slot": slot_alvo,
-            "tipo_save": tipo,
-            "halia": {
-                "nome": self.halia.nome,
-                "x": self.halia.x,
-                "y": self.halia.y,
-                "direcao": getattr(self.halia, 'direcao', "baixo"),
-                "virado_direita": getattr(self.halia, 'virado_direita', True),
-                "vivo": getattr(self.halia, 'vivo', True),
-                "estado_animacao": "idle",
-                "vida_atual": getattr(self.halia, 'vida_atual', 100),
-                "vida_maxima": getattr(self.halia, 'vida_maxima', 100),
-                "mana_atual": getattr(self.halia, 'mana_atual', 50),
-                "mana_maxima": getattr(self.halia, 'mana_maxima', 50),
-                "fragmentos_memoria": getattr(self.halia, 'fragmentos_memoria', 0),
-                "nivel_sincronia": getattr(self.halia, 'nivel_sincronia', 1),
-                "dinheiro": getattr(self.halia, 'dinheiro', 0),
-                "atributos": self.halia.atributos.to_dict(),
-                "inventario": self.halia.inventario.to_dict() if hasattr(self.halia, 'inventario') else {},
-                "magias_desbloqueadas": getattr(self.halia, 'magias_desbloqueadas', []),
-                "ataques_fisicos": getattr(self.halia, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
-            },
-            "carroceiro": {
-                "x": self.carroceiro.x,
-                "y": self.carroceiro.y,
-                "visivel": self.carroceiro_visivel,
-                "andando": self.carroceiro_andando,
-                "conversa_terminou": getattr(self, 'conversa_carroceiro_terminou', False)
-            },
-            "flags": {
-                "porta_aberta": getattr(self.mapa_casa, 'porta_aberta', False),
-                "investigou_pedras": self.investigou_pedras,
-                "flashback_magia_concluido": self.flashback_magia_concluido,
-                "magia_ativa": self.magia_ativa,
-                "magia_usada_no_puzzle": self.magia_usada_no_puzzle,
-                "puzzle_concluido": (self.magia_ativa == "CONCLUIDO"),
-                "combate_concluido": getattr(self, 'combate_estrada_concluido', False),
-                "itens_coletados": self.itens_coletados,
-                "historico_dialogos": list(self.caixa_dialogo.historico_escolhas)
-            }
-        }
-        
-        save_manager.salvar_dados(slot_alvo, dados_save, tipo=tipo)
-        
-        if not silenciar_notificacao and hasattr(self, 'notificacoes') and self.notificacoes:
-            slot_num = str(slot_alvo).replace("slot_", "")
-            slot_str = f"Slot {slot_num}"
-            if tipo == "autosave":
-                self.notificacoes.notificar("notificacao_autosave", slot=slot_str)
-            else:
-                self.notificacoes.notificar("notificacao_salvo", slot=slot_str)
+        return self.save_manager.salvar_estado(slot, tipo=tipo, silenciar_notificacao=silenciar_notificacao)
 
     def carregar_estado(self, slot, tipo="manual"):
-        dados = save_manager.carregar_dados(slot, tipo=tipo)
-        if not dados:
-            outro_tipo = "autosave" if tipo == "manual" else "manual"
-            dados = save_manager.carregar_dados(slot, tipo=outro_tipo)
-            
-        if not dados:
-            return False
-            
-        self.slot_atual = slot 
-        self.tempo_jogado = dados.get("tempo_jogado", 0.0) 
-        self.origem_pause = "JOGANDO"
-        self.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
-        
-        # 1. Recupera as flags e o progresso
-        flags = dados.get("flags", {})
-        self.mapa_casa.porta_aberta = flags.get("porta_aberta", False)
-        self.investigou_pedras = flags.get("investigou_pedras", False)
-        self.flashback_magia_concluido = flags.get("flashback_magia_concluido", False)
-        self.magia_ativa = flags.get("magia_ativa", None)
-        self.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
-        self.combate_estrada_concluido = flags.get("combate_concluido", False)
-        self.itens_coletados = flags.get("itens_coletados", [])
-        self.conversa_carroceiro_terminou = dados.get("carroceiro", {}).get("conversa_terminou", False)
-        
-        # Reseta flags temporárias de transição e batalha em andamento
-        self.inimigos_em_cena = []
-        self.cena_inimigos_andando = False
-        self.iniciando_combate = False
-        self.conversa_combate_ativa = False
-        self.transicao.estado = "INATIVO"
-        
-        # 2. Carrega o cenário e desobstrui caminhos se já resolvidos
-        cenario_salvo = dados.get("cenario_atual", "CASA")
-        self.mapa_casa.restaurar_bloqueio_estrada2()
-        self.mapa_casa.carregar_cenario(cenario_salvo)
-        
-        if cenario_salvo == "ESTRADA_2":
-            if self.magia_ativa == "CONCLUIDO" or self.combate_estrada_concluido or flags.get("puzzle_concluido", False):
-                self.magia_ativa = "CONCLUIDO"
-                self.mapa_casa.desobstruir_estrada(self.magia_usada_no_puzzle or "FOGO")
-        
-        # 3. Restaura posições da Halia, atributos, Grimório e NPCs
-        halia_dados = dados.get("halia", {})
-        self.halia.x = halia_dados.get("x", 210)
-        self.halia.y = halia_dados.get("y", 280)
-        self.halia.direcao = halia_dados.get("direcao", "baixo")
-        self.halia.virado_direita = halia_dados.get("virado_direita", True)
-        self.halia.fragmentos_memoria = halia_dados.get("fragmentos_memoria", 0)
-        self.halia.nivel_sincronia = halia_dados.get("nivel_sincronia", 1 + self.halia.fragmentos_memoria)
-        self.halia.dinheiro = halia_dados.get("dinheiro", 0)
-        
-        if "atributos" in halia_dados:
-            self.halia.atributos = Atributos.from_dict(halia_dados["atributos"])
-
-        if "inventario" in halia_dados and halia_dados["inventario"]:
-            self.halia.inventario = Inventario.from_dict(halia_dados["inventario"])
-        else:
-            self.halia.inventario = Inventario()
-            self.halia.inicializar_inventario_padrao()
-            
-        self.halia.recalcular_status_derivados(manter_porcentagem=False)
-            
-        self.halia.vida_atual = halia_dados.get("vida_atual", self.halia.vida_maxima)
-        self.halia.mana_atual = halia_dados.get("mana_atual", self.halia.mana_maxima)
-        
-        # Herda a condição de vivo ou reanima Halia para poder movimentar
-        esta_vivo = halia_dados.get("vivo", True)
-        if self.halia.vida_atual > 0:
-            self.halia.vivo = esta_vivo
-        else:
-            self.halia.restaurar_total()
-            
-        # Limpa resíduos de combate
-        self.halia.condicoes.clear()
-        self.halia.defendendo = False
-        self.halia.vulneravel = False
-        self.halia.focado = False
-        
-        if self.halia.vivo:
-            direcao = getattr(self.halia, 'direcao', 'baixo')
-            estado_idle = f"idle_{direcao}" if f"idle_{direcao}" in self.halia.animacoes else "idle_baixo"
-            self.halia.mudar_estado(estado_idle)
-        else:
-            self.halia.mudar_estado("morrer")
-
-        # Atualiza a animação imediatamente para desenhar o sprite correto de imediato
-        if hasattr(self.halia, 'atualizar_animacao'):
-            self.halia.atualizar_animacao()
-        
-        if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
-            self.halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
-        else:
-            self.halia.atualizar_grimorio()
-            
-        if "ataques_fisicos" in halia_dados:
-            self.halia.ataques_fisicos = list(halia_dados["ataques_fisicos"])
-        
-        carroceiro_dados = dados.get("carroceiro", {})
-        conversa_terminou = carroceiro_dados.get("conversa_terminou", flags.get("conversa_carroceiro_terminou", False))
-        self.conversa_carroceiro_terminou = conversa_terminou
-
-        if cenario_salvo == "CASA":
-            self.carroceiro.x = carroceiro_dados.get("x", 1350)
-            self.carroceiro.y = carroceiro_dados.get("y", 330)
-            self.carroceiro_visivel = carroceiro_dados.get("visivel", False)
-            self.carroceiro_andando = False
-            self.carroceiro.velocidade = 2
-        elif cenario_salvo == "ESTRADA":
-            padrao_x = 900 if conversa_terminou else 1350
-            self.carroceiro.x = carroceiro_dados.get("x", padrao_x)
-            self.carroceiro.y = carroceiro_dados.get("y", 330)
-            self.carroceiro_visivel = carroceiro_dados.get("visivel", conversa_terminou)
-            self.carroceiro_andando = carroceiro_dados.get("andando", False)
-            self.carroceiro.velocidade = 2 if not conversa_terminou else 0
-        else:  # ESTRADA_2
-            self.carroceiro.x = carroceiro_dados.get("x", 200)
-            self.carroceiro.y = carroceiro_dados.get("y", 330)
-            self.carroceiro_visivel = carroceiro_dados.get("visivel", True)
-            self.carroceiro_andando = False
-            self.carroceiro.velocidade = 0
-        
-        # 4. Sincroniza imediatamente o Filtro de Memória, HUD e telas visuais com o save carregado
-        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
-            self.filtro_memoria.definir_estagio(self.halia.fragmentos_memoria, com_transicao_suave=False)
-        if hasattr(self, 'tela_despertar') and self.tela_despertar:
-            self.tela_despertar.reiniciar()
-        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
-            self.estados["JOGANDO"].memoria_anterior_registrada = self.halia.fragmentos_memoria
-        if hasattr(self, 'hud') and self.hud:
-            self.hud.memorias_coletadas = self.halia.fragmentos_memoria
-            
-        # 5. Blindagem de Autosave: ao carregar um Save Manual, sincroniza o autosave do slot
-        # com o checkpoint restaurado, garantindo que o autosave não fique apontando para um "futuro" antigo
-        if tipo == "manual" and slot:
-            self.salvar_estado(slot, tipo="autosave", silenciar_notificacao=True)
-        
-        # Dispara notificação push de confirmação ao carregar
-        if hasattr(self, 'notificacoes') and self.notificacoes:
-            slot_num = str(slot).replace("slot_", "")
-            slot_str = f"Slot {slot_num}"
-            self.notificacoes.notificar("notificacao_carregar", slot=slot_str)
-        
-        return True 
+        return self.save_manager.carregar_estado(slot, tipo=tipo)
 
     def resetar_progresso(self, slot_novo):
-        """Limpa as variáveis globais para iniciar um Novo Jogo limpo no slot."""
-        self.slot_atual = slot_novo
-        self.tempo_jogado = 0.0
-        self.itens_coletados = []
-        self.caixa_dialogo.historico_escolhas.clear()
-        save_manager.apagar_dados(slot_novo, tipo="autosave")
-        
-        # Reset da Halia
-        self.halia.x, self.halia.y = 210, 280
-        self.halia.fragmentos_memoria = 0
-        self.halia.dinheiro = 0
-        self.halia.atributos = Atributos(forca=7, destreza=10, constituicao=10, intelecto=13, sabedoria=11, presenca=12)
-        self.halia.inventario = Inventario()
-        self.halia.inicializar_inventario_padrao()
-        self.halia.recalcular_status_derivados(manter_porcentagem=False)
-        self.halia.atualizar_grimorio()
-        # Inicia o jogo com vida e mana cheias
-        self.halia.vida_atual = self.halia.vida_maxima
-        self.halia.mana_atual = self.halia.mana_maxima
-        self.halia.vivo = True
-        self.halia.mudar_estado("idle")
-        
-        # Reset do Carroceiro
-        self.carroceiro.x, self.carroceiro.y = 1350, 330
-        self.carroceiro.velocidade = 2
-        self.carroceiro_visivel = False
-        self.carroceiro_andando = False
-        self.conversa_carroceiro_terminou = False
-        self.progresso_npcs["carroceiro"] = 0
-        
-        # Reset de Flags do Mapa e Progresso
-        self.fechando_porta = False
-        self.aguardando_fim_viagem = False
-        self.investigou_pedras = False
-        self.flashback_magia_concluido = False
-        self.mapa_casa.porta_aberta = False
-        self.magia_ativa = None
-        self.magia_usada_no_puzzle = None
-        self.magia_selecionada_temporaria = None
-        self.combate_estrada_concluido = False
-        self.iniciando_combate = False
-        self.cena_inimigos_andando = False
-        self.conversa_combate_ativa = False
-        self.inimigos_em_cena = []
-        self.transicao.estado = "INATIVO"
-        self.mapa_casa.restaurar_bloqueio_estrada2()
-        self.mapa_casa.carregar_cenario("CASA")
-
-        # Sincroniza e reseta o Filtro de Memória (100% P&B / Estágio 0), HUD e Cutscenes
-        if hasattr(self, 'filtro_memoria') and self.filtro_memoria:
-            self.filtro_memoria.reiniciar(0)
-        if hasattr(self, 'tela_despertar') and self.tela_despertar:
-            self.tela_despertar.reiniciar()
-        if hasattr(self, 'estados') and "JOGANDO" in self.estados:
-            self.estados["JOGANDO"].memoria_anterior_registrada = 0
-        if hasattr(self, 'hud') and self.hud:
-            self.hud.memorias_coletadas = 0
-        
-        # Recarrega o cenário inicial limpo
-        self.mapa_casa.carregar_cenario("CASA")
+        return self.save_manager.resetar_progresso(slot_novo)
 
     def executar_com_feedback(self, texto, funcao_acao):
         """Exibe a tela escura de feedback ('Salvando...', 'Carregando...') 
