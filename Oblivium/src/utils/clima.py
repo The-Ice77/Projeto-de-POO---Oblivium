@@ -3,6 +3,7 @@ import pygame
 import random
 import math
 from src.utils.resource_manager import ResourceManager
+from src.core.audio_manager import AudioManager
 
 
 class GotaChuva:
@@ -188,6 +189,7 @@ class EfeitoChuva:
 
     def definir_clima(self, tipo):
         """Define o modo climático: 'limpo', 'comum' (ou 'chuva'), 'pesada', 'neve', 'nevasca'."""
+        audio = AudioManager.get_instance()
         if not tipo or str(tipo).lower() in [self.MODO_LIMPO, "off", "desativado", "sol"]:
             self.modo_atual = self.MODO_LIMPO
             self.ativo = False
@@ -195,6 +197,8 @@ class EfeitoChuva:
             self.splashes.clear()
             self.flocos_neve.clear()
             self.brilho_relampago = 0.0
+            if audio:
+                audio.parar_ambiente(fade_ms=800)
             return
 
         tipo_str = str(tipo).lower()
@@ -207,6 +211,8 @@ class EfeitoChuva:
                 FlocoNeve(self.largura, self.altura, tipo="nevasca", inicializar_espalhado=True)
                 for _ in range(195)
             ]
+            if audio:
+                audio.tocar_ambiente("vento_noite", loop=-1, fade_ms=1000)
         elif "neve" in tipo_str or "snow" in tipo_str or "gelo" in tipo_str:
             self.modo_atual = self.MODO_NEVE
             self.ativo = True
@@ -216,6 +222,8 @@ class EfeitoChuva:
                 FlocoNeve(self.largura, self.altura, tipo="neve", inicializar_espalhado=True)
                 for _ in range(85)
             ]
+            if audio:
+                audio.tocar_ambiente("vento_noite", loop=-1, fade_ms=1000)
         elif "pesad" in tipo_str or "tempestade" in tipo_str or "forte" in tipo_str:
             self.modo_atual = self.MODO_PESADA
             self.ativo = True
@@ -227,6 +235,8 @@ class EfeitoChuva:
             self.splashes.clear()
             self.timer_relampago = random.uniform(10.0, 20.0)
             self.brilho_relampago = 0.0
+            if audio:
+                audio.tocar_ambiente("chuva", loop=-1, fade_ms=1000)
         else:
             self.modo_atual = self.MODO_COMUM
             self.ativo = True
@@ -237,6 +247,8 @@ class EfeitoChuva:
             ]
             self.splashes.clear()
             self.brilho_relampago = 0.0
+            if audio:
+                audio.tocar_ambiente("chuva", loop=-1, fade_ms=1000)
 
     def alternar_clima(self):
         """Ciclo completo: Limpo -> Chuva Comum -> Chuva Pesada -> Neve Suave -> Nevasca -> Limpo."""

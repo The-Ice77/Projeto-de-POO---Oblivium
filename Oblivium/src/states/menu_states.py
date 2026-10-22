@@ -5,6 +5,11 @@ from src.states.states import State
 class MenuState(State):
     def __init__(self, game):
         super().__init__(game)
+        self.hover_anterior = -1
+
+    def _tocar_sfx(self, alias):
+        if hasattr(self.game, 'audio') and self.game.audio:
+            self.game.audio.tocar_sfx(alias)
         
     def handle_events(self, eventos, teclas):
         for evento in eventos:
@@ -14,17 +19,22 @@ class MenuState(State):
                         self.game.menu.selecionada = len(self.game.menu.opcoes) - 1
                     else:
                         self.game.menu.selecionada -= 1
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     if self.game.menu.selecionada == -1 or self.game.menu.selecionada >= len(self.game.menu.opcoes) - 1:
                         self.game.menu.selecionada = 0
                     else:
                         self.game.menu.selecionada += 1
+                    self._tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                     if self.game.menu.selecionada != -1:
                         self.executar_opcao()
                     
             elif evento.type == pygame.MOUSEMOTION:
+                sel_ant = self.game.menu.selecionada
                 self.game.menu.atualizar_mouse(evento.pos)
+                if self.game.menu.selecionada != -1 and self.game.menu.selecionada != sel_ant:
+                    self._tocar_sfx("ui_cursor")
                 
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 opcao = self.game.menu.clicar_mouse(evento.pos)
@@ -38,6 +48,8 @@ class MenuState(State):
             opcao = self.game.menu.opcoes[self.game.menu.selecionada]
         else:
             return
+            
+        self._tocar_sfx("ui_confirmar")
         
         if opcao == "Continuar":
             self.game.acao_slots = "CARREGAR"

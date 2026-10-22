@@ -24,33 +24,10 @@ from src.utils.colors import (
     AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
-
-class TextoFlutuante:
-    """Gerencia textos flutuantes de dano, cura ou status na tela de combate."""
-    def __init__(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60, velocidade_y=-1.3):
-        self.texto = str(texto)
-        self.x = float(x)
-        self.y = float(y)
-        self.cor = cor
-        self.duracao = duracao
-        self.vida = duracao
-        self.velocidade_y = velocidade_y
-
-    def atualizar(self):
-        self.y += self.velocidade_y
-        self.vida -= 1
-        return self.vida > 0
-
-    def desenhar(self, tela, fonte):
-        if self.vida <= 0: return
-        alpha = max(0, min(255, int((self.vida / self.duracao) * 255)))
-        superficie = fonte.render(self.texto, True, self.cor)
-        superficie.set_alpha(alpha)
-        # Sombra suave para contraste
-        sombra = fonte.render(self.texto, True, PRETO)
-        sombra.set_alpha(int(alpha * 0.7))
-        tela.blit(sombra, (int(self.x) + 2, int(self.y) + 2))
-        tela.blit(superficie, (int(self.x), int(self.y)))
+from src.core.audio_manager import AudioManager
+from src.mechanics.combat_narrator import CombatNarrator
+from src.mechanics.combat_renderer import CombatRenderer, TextoFlutuante
+from src.mechanics.combat_input import CombatInputHandler
 
 
 class CombatScreen:
@@ -64,6 +41,12 @@ class CombatScreen:
     def __init__(self, largura, altura):
         self.largura = largura
         self.altura = altura
+        
+        # Renderizador visual desacoplado (View)
+        self.renderer = CombatRenderer(self)
+        
+        # Controlador de entradas e navegacao desacoplado (Input Handler)
+        self.input_handler = CombatInputHandler(self)
         
         # Fontes Consolidadas do Combate
         self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
@@ -132,6 +115,12 @@ class CombatScreen:
         self.shake_timers = {}
         self.tick_arena = 0
         
+        # Efeitos Visuais de Sangue (Halia) e Morte de Inimigos
+        self.efeitos_sangue = []
+        self.alphas_morte = {}
+        self._pastas_sangue = [f"efeitos/sangue/sangue_{i}" for i in range(1, 6)]
+        self._cache_sangue_frames = None
+
         # Hitboxes de Interação de Mouse
         self.rects_menu_principal = []
         self.rects_ataques_fisicos = []
@@ -153,6 +142,12 @@ class CombatScreen:
         # Recompensas Acumuladas
         self.recompensas_vitoria = {"moedas": 0, "memorias": 0, "xp": 0}
 
+    def _tocar_sfx(self, alias, volume_extra=1.0):
+        """Dispara efeito sonoro via AudioManager com tolerância a falhas."""
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.tocar_sfx(alias, volume_extra=volume_extra)
+
     def definir_velocidade(self, fator_velocidade):
         """Define o multiplicador de velocidade de combate (1.0, 1.5, 2.0)."""
         self.velocidade_combate = max(0.5, float(fator_velocidade))
@@ -160,6 +155,30 @@ class CombatScreen:
     def _ajustar_timer(self, duracao_base):
         """Calcula a duração em ticks considerando a velocidade do combate."""
         return max(15, int(duracao_base / self.velocidade_combate))
+
+    def _obter_frames_sangue(self):
+        """Carrega e armazena em cache as listas de frames das 5 variações de sangue."""
+        if self._cache_sangue_frames is None:
+            self._cache_sangue_frames = []
+            for pasta in self._pastas_sangue:
+                frames = ResourceManager.carregar_frames_pasta(pasta)
+                if frames:
+                    self._cache_sangue_frames.append(frames)
+        return self._cache_sangue_frames
+
+    def _disparar_sangue_halia(self):
+        """Dispara animação de respingo de sangue sobre o torso de Halia ao sofrer dano."""
+        banco = self._obter_frames_sangue()
+        if not banco:
+            return
+        frames_escolhidos = random.choice(banco)
+        self.efeitos_sangue.append({
+            "frames": frames_escolhidos,
+            "frame_atual": 0.0,
+            "velocidade": 0.90,
+            "offset_x": random.randint(-4, 4),
+            "offset_y": random.randint(-4, 4)
+        })
 
     # =========================================================================
     # INICIALIZAÇÃO DO COMBATE
@@ -185,6 +204,19 @@ class CombatScreen:
         self.textos_flutuantes.clear()
         self.historico_log.clear()
         self.shake_timers.clear()
+        self.efeitos_sangue.clear()
+        self.alphas_morte.clear()
+
+        # Inicia a trilha sonora de combate adequada ao perigo
+        audio = AudioManager.get_instance()
+        if audio:
+            nomes_inimigos = " ".join([getattr(i, 'nome', '').lower() for i in self.inimigos])
+            if "drag" in nomes_inimigos:
+                audio.tocar_musica("combate_dragao")
+            elif any(isinstance(i, Boss) or getattr(i, 'eh_chefe', False) or "superior" in getattr(i, 'nome', '').lower() for i in self.inimigos):
+                audio.tocar_musica("combate_chefe")
+            else:
+                audio.tocar_musica("combate_comum")
         
         # Inicializa valores visuais de HP e MP
         self.vidas_visuais[self.jogador] = float(self.jogador.vida_atual)
@@ -211,7 +243,7 @@ class CombatScreen:
             reverse=True
         )
 
-        self.adicionar_log("A batalha começou!")
+        self.adicionar_log(CombatNarrator.obter_mensagem("inicio_batalha"))
         self._iniciar_nova_rodada()
 
     def _carregar_ataques_fisicos_jogador(self):
@@ -300,8 +332,18 @@ class CombatScreen:
                     ex, ey = self._obter_posicao_combate(entidade_atual)
                     self.adicionar_texto_flutuante(f"-{r['dano']}", ex + 20, ey, TEXTO_ALERTA_COMBATE)
                     self.shake_timers[entidade_atual] = 8
+                    if entidade_atual is self.jogador:
+                        self._disparar_sangue_halia()
 
             if not getattr(entidade_atual, 'vivo', True):
+                if entidade_atual is not self.jogador and hasattr(entidade_atual, 'animacoes'):
+                    entidade_atual.morrer()
+                    est_m = "dead" if "dead" in entidade_atual.animacoes else ("morte" if "morte" in entidade_atual.animacoes else "morrer")
+                    if est_m in entidade_atual.animacoes:
+                        entidade_atual.definir_estado(est_m)
+                        if hasattr(entidade_atual.animacoes[est_m], 'resetar'):
+                            entidade_atual.animacoes[est_m].resetar()
+                    self.alphas_morte[entidade_atual] = 255
                 msg_morte = self._gerar_mensagem_morte_condicao(entidade_atual, relatorios)
                 self.adicionar_log(msg_morte)
                 self.indice_turno_atual += 1
@@ -348,427 +390,34 @@ class CombatScreen:
             self.timer_acao = self._ajustar_timer(55)
 
     # =========================================================================
-    # PROCESSAMENTO DE EVENTOS (TECLADO E MOUSE)
+    # PROCESSAMENTO DE EVENTOS E NAVEGAÇÃO (DELEGADO PARA CombatInputHandler)
     # =========================================================================
 
     def _ajustar_scroll_submenu(self, estado):
         """Garante que o item selecionado pelo teclado esteja sempre visível na janela de rolagem."""
-        max_itens = self.ITENS_POR_PAGINA_SUBMENU
-        if estado == "SUBMENU_ATAQUE":
-            total = len(self.ataques_fisicos_disponiveis)
-            idx = self.indice_ataque_fisico
-            if total <= max_itens:
-                self.scroll_ataque = 0
-            else:
-                if idx < self.scroll_ataque:
-                    self.scroll_ataque = idx
-                elif idx >= self.scroll_ataque + max_itens:
-                    self.scroll_ataque = idx - max_itens + 1
-                self.scroll_ataque = max(0, min(self.scroll_ataque, total - max_itens))
-
-        elif estado == "SUBMENU_MAGIA":
-            total = len(self.magias_disponiveis)
-            idx = self.indice_magia
-            if total <= max_itens:
-                self.scroll_magia = 0
-            else:
-                if idx < self.scroll_magia:
-                    self.scroll_magia = idx
-                elif idx >= self.scroll_magia + max_itens:
-                    self.scroll_magia = idx - max_itens + 1
-                self.scroll_magia = max(0, min(self.scroll_magia, total - max_itens))
-
-        elif estado == "SUBMENU_CONCENTRAR":
-            total = len(self.opcoes_concentrar)
-            idx = self.indice_concentrar
-            if total <= max_itens:
-                self.scroll_concentrar = 0
-            else:
-                if idx < self.scroll_concentrar:
-                    self.scroll_concentrar = idx
-                elif idx >= self.scroll_concentrar + max_itens:
-                    self.scroll_concentrar = idx - max_itens + 1
-                self.scroll_concentrar = max(0, min(self.scroll_concentrar, total - max_itens))
-
-        elif estado == "SUBMENU_ITENS":
-            total = len(self.itens_combate_disponiveis)
-            idx = self.indice_item_combate
-            if total <= max_itens:
-                self.scroll_item_combate = 0
-            else:
-                if idx < self.scroll_item_combate:
-                    self.scroll_item_combate = idx
-                elif idx >= self.scroll_item_combate + max_itens:
-                    self.scroll_item_combate = idx - max_itens + 1
-                self.scroll_item_combate = max(0, min(self.scroll_item_combate, total - max_itens))
+        self.input_handler.ajustar_scroll_submenu(estado)
 
     def _rolar_submenu(self, estado, delta):
         """Rola a visualização do submenu para cima ou para baixo pelo mouse ou botões de seta."""
-        max_itens = self.ITENS_POR_PAGINA_SUBMENU
-        if estado == "SUBMENU_ATAQUE":
-            total = len(self.ataques_fisicos_disponiveis)
-            max_scroll = max(0, total - max_itens)
-            self.scroll_ataque = max(0, min(max_scroll, self.scroll_ataque + delta))
-            if self.indice_ataque_fisico < self.scroll_ataque:
-                self.indice_ataque_fisico = self.scroll_ataque
-            elif self.indice_ataque_fisico >= self.scroll_ataque + max_itens:
-                self.indice_ataque_fisico = self.scroll_ataque + max_itens - 1
-
-        elif estado == "SUBMENU_MAGIA":
-            total = len(self.magias_disponiveis)
-            max_scroll = max(0, total - max_itens)
-            self.scroll_magia = max(0, min(max_scroll, self.scroll_magia + delta))
-            if self.indice_magia < self.scroll_magia:
-                self.indice_magia = self.scroll_magia
-            elif self.indice_magia >= self.scroll_magia + max_itens:
-                self.indice_magia = self.scroll_magia + max_itens - 1
-
-        elif estado == "SUBMENU_CONCENTRAR":
-            total = len(self.opcoes_concentrar)
-            max_scroll = max(0, total - max_itens)
-            self.scroll_concentrar = max(0, min(max_scroll, self.scroll_concentrar + delta))
-            if self.indice_concentrar < self.scroll_concentrar:
-                self.indice_concentrar = self.scroll_concentrar
-            elif self.indice_concentrar >= self.scroll_concentrar + max_itens:
-                self.indice_concentrar = self.scroll_concentrar + max_itens - 1
-
-        elif estado == "SUBMENU_ITENS":
-            total = len(self.itens_combate_disponiveis)
-            max_scroll = max(0, total - max_itens)
-            self.scroll_item_combate = max(0, min(max_scroll, self.scroll_item_combate + delta))
-            if self.indice_item_combate < self.scroll_item_combate:
-                self.indice_item_combate = self.scroll_item_combate
-            elif self.indice_item_combate >= self.scroll_item_combate + max_itens:
-                self.indice_item_combate = self.scroll_item_combate + max_itens - 1
+        self.input_handler.rolar_submenu(estado, delta)
 
     def processar_eventos(self, evento):
-        # 1. Movimento do Mouse (Hover)
-        if evento.type == pygame.MOUSEMOTION:
-            pos = evento.pos
-            if self.estado_combate == "MENU_PRINCIPAL":
-                for idx, r in enumerate(self.rects_menu_principal):
-                    if r.collidepoint(pos):
-                        self.indice_menu = idx
-                        break
-
-            elif self.estado_combate == "SUBMENU_ATAQUE":
-                for r, real_idx in self.rects_ataques_fisicos:
-                    if r.collidepoint(pos):
-                        self.indice_ataque_fisico = real_idx
-                        break
-
-            elif self.estado_combate == "SUBMENU_MAGIA":
-                for r, real_idx in self.rects_magias:
-                    if r.collidepoint(pos):
-                        self.indice_magia = real_idx
-                        break
-
-            elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                for r, real_idx in self.rects_concentrar:
-                    if r.collidepoint(pos):
-                        self.indice_concentrar = real_idx
-                        break
-
-            elif self.estado_combate == "SUBMENU_ITENS":
-                for r, real_idx in self.rects_itens_combate:
-                    if r.collidepoint(pos):
-                        self.indice_item_combate = real_idx
-                        break
-
-            elif self.estado_combate == "SELECIONANDO_ALVO":
-                for idx, r in enumerate(self.rects_inimigos):
-                    if r.collidepoint(pos):
-                        self.indice_alvo = idx
-                        break
-
-        # 2. Roda do Mouse (Rolagem / Scroll)
-        elif evento.type == pygame.MOUSEWHEEL:
-            delta = -evento.y
-            if self.estado_combate == "SUBMENU_ATAQUE":
-                self._rolar_submenu("SUBMENU_ATAQUE", delta)
-            elif self.estado_combate == "SUBMENU_MAGIA":
-                self._rolar_submenu("SUBMENU_MAGIA", delta)
-            elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
-            elif self.estado_combate == "SUBMENU_ITENS":
-                self._rolar_submenu("SUBMENU_ITENS", delta)
-
-        # 3. Clique do Mouse (Botão Esquerdo e Botões de Scroll)
-        elif evento.type == pygame.MOUSEBUTTONDOWN:
-            pos = evento.pos
-            
-            # Suporte a Scroll via botões 4 e 5 do mouse
-            if evento.button in (4, 5):
-                delta = -1 if evento.button == 4 else 1
-                if self.estado_combate == "SUBMENU_ATAQUE":
-                    self._rolar_submenu("SUBMENU_ATAQUE", delta)
-                elif self.estado_combate == "SUBMENU_MAGIA":
-                    self._rolar_submenu("SUBMENU_MAGIA", delta)
-                elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                    self._rolar_submenu("SUBMENU_CONCENTRAR", delta)
-                elif self.estado_combate == "SUBMENU_ITENS":
-                    self._rolar_submenu("SUBMENU_ITENS", delta)
-                return
-
-            if evento.button == 1:
-                # Telas finais: Clique em qualquer lugar fecha
-                if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
-                    self._concluir_fechamento_combate()
-                    return
-
-                if self.estado_combate == "MENU_PRINCIPAL":
-                    for idx, r in enumerate(self.rects_menu_principal):
-                        if r.collidepoint(pos):
-                            self.indice_menu = idx
-                            self._selecionar_opcao_menu_principal()
-                            return
-
-                elif self.estado_combate == "SUBMENU_ATAQUE":
-                    if self.rect_botao_voltar.collidepoint(pos):
-                        self.estado_combate = "MENU_PRINCIPAL"
-                        return
-                    if self.rect_scroll_cima.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_ATAQUE", -1)
-                        return
-                    if self.rect_scroll_baixo.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_ATAQUE", 1)
-                        return
-                    for r, real_idx in self.rects_ataques_fisicos:
-                        if r.collidepoint(pos):
-                            self.indice_ataque_fisico = real_idx
-                            self._selecionar_ataque_fisico()
-                            return
-
-                elif self.estado_combate == "SUBMENU_MAGIA":
-                    if self.rect_botao_voltar.collidepoint(pos):
-                        self.estado_combate = "MENU_PRINCIPAL"
-                        return
-                    if self.rect_scroll_cima.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_MAGIA", -1)
-                        return
-                    if self.rect_scroll_baixo.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_MAGIA", 1)
-                        return
-                    for r, real_idx in self.rects_magias:
-                        if r.collidepoint(pos):
-                            self.indice_magia = real_idx
-                            self._selecionar_magia_grimorio()
-                            return
-
-                elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                    if self.rect_botao_voltar.collidepoint(pos):
-                        self.estado_combate = "MENU_PRINCIPAL"
-                        return
-                    if self.rect_scroll_cima.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_CONCENTRAR", -1)
-                        return
-                    if self.rect_scroll_baixo.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_CONCENTRAR", 1)
-                        return
-                    for r, real_idx in self.rects_concentrar:
-                        if r.collidepoint(pos):
-                            self.indice_concentrar = real_idx
-                            self._selecionar_acao_concentrar()
-                            return
-
-                elif self.estado_combate == "SUBMENU_ITENS":
-                    if self.rect_botao_voltar.collidepoint(pos):
-                        self.estado_combate = "MENU_PRINCIPAL"
-                        return
-                    if self.rect_scroll_cima.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_ITENS", -1)
-                        return
-                    if self.rect_scroll_baixo.collidepoint(pos):
-                        self._rolar_submenu("SUBMENU_ITENS", 1)
-                        return
-                    for r, real_idx in self.rects_itens_combate:
-                        if r.collidepoint(pos):
-                            self.indice_item_combate = real_idx
-                            self._selecionar_item_combate()
-                            return
-
-                elif self.estado_combate == "SELECIONANDO_ALVO":
-                    for idx, r in enumerate(self.rects_inimigos):
-                        if r.collidepoint(pos):
-                            self.indice_alvo = idx
-                            inimigos_vivos = self._obter_inimigos_vivos()
-                            if idx < len(inimigos_vivos):
-                                alvo = inimigos_vivos[idx]
-                                if self.item_combate_selecionado:
-                                    self._executar_uso_item_ofensivo(self.item_combate_selecionado, alvo)
-                                else:
-                                    self._executar_acao_jogador(self.acao_selecionada, alvo)
-                            return
-
-        # 4. Teclado
-        elif evento.type == pygame.KEYDOWN:
-            if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
-                if evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_ESCAPE]:
-                    self._concluir_fechamento_combate()
-                return
-
-            if self.estado_combate == "MENU_PRINCIPAL":
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_menu = (self.indice_menu - 1) % len(self.opcoes_menu_principal)
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_menu = (self.indice_menu + 1) % len(self.opcoes_menu_principal)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    self._selecionar_opcao_menu_principal()
-
-            elif self.estado_combate == "SUBMENU_ATAQUE":
-                if not self.ataques_fisicos_disponiveis:
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_ataque_fisico = (self.indice_ataque_fisico - 1) % len(self.ataques_fisicos_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_ATAQUE")
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_ataque_fisico = (self.indice_ataque_fisico + 1) % len(self.ataques_fisicos_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_ATAQUE")
-                elif evento.key == pygame.K_PAGEUP:
-                    self._rolar_submenu("SUBMENU_ATAQUE", -self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key == pygame.K_PAGEDOWN:
-                    self._rolar_submenu("SUBMENU_ATAQUE", self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    self._selecionar_ataque_fisico()
-                elif evento.key == pygame.K_ESCAPE:
-                    self.estado_combate = "MENU_PRINCIPAL"
-
-            elif self.estado_combate == "SUBMENU_MAGIA":
-                if not self.magias_disponiveis:
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_magia = (self.indice_magia - 1) % len(self.magias_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_MAGIA")
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_magia = (self.indice_magia + 1) % len(self.magias_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_MAGIA")
-                elif evento.key == pygame.K_PAGEUP:
-                    self._rolar_submenu("SUBMENU_MAGIA", -self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key == pygame.K_PAGEDOWN:
-                    self._rolar_submenu("SUBMENU_MAGIA", self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    self._selecionar_magia_grimorio()
-                elif evento.key == pygame.K_ESCAPE:
-                    self.estado_combate = "MENU_PRINCIPAL"
-
-            elif self.estado_combate == "SUBMENU_CONCENTRAR":
-                if not self.opcoes_concentrar:
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_concentrar = (self.indice_concentrar - 1) % len(self.opcoes_concentrar)
-                    self._ajustar_scroll_submenu("SUBMENU_CONCENTRAR")
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_concentrar = (self.indice_concentrar + 1) % len(self.opcoes_concentrar)
-                    self._ajustar_scroll_submenu("SUBMENU_CONCENTRAR")
-                elif evento.key == pygame.K_PAGEUP:
-                    self._rolar_submenu("SUBMENU_CONCENTRAR", -self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key == pygame.K_PAGEDOWN:
-                    self._rolar_submenu("SUBMENU_CONCENTRAR", self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    self._selecionar_acao_concentrar()
-                elif evento.key == pygame.K_ESCAPE:
-                    self.estado_combate = "MENU_PRINCIPAL"
-
-            elif self.estado_combate == "SUBMENU_ITENS":
-                if not self.itens_combate_disponiveis:
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    return
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_item_combate = (self.indice_item_combate - 1) % len(self.itens_combate_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_ITENS")
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_item_combate = (self.indice_item_combate + 1) % len(self.itens_combate_disponiveis)
-                    self._ajustar_scroll_submenu("SUBMENU_ITENS")
-                elif evento.key == pygame.K_PAGEUP:
-                    self._rolar_submenu("SUBMENU_ITENS", -self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key == pygame.K_PAGEDOWN:
-                    self._rolar_submenu("SUBMENU_ITENS", self.ITENS_POR_PAGINA_SUBMENU)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    self._selecionar_item_combate()
-                elif evento.key == pygame.K_ESCAPE:
-                    self.estado_combate = "MENU_PRINCIPAL"
-
-            elif self.estado_combate == "SELECIONANDO_ALVO":
-                inimigos_vivos = self._obter_inimigos_vivos()
-                if not inimigos_vivos:
-                    return
-
-                if evento.key in [pygame.K_UP, pygame.K_w]:
-                    self.indice_alvo = (self.indice_alvo - 1) % len(inimigos_vivos)
-                elif evento.key in [pygame.K_DOWN, pygame.K_s]:
-                    self.indice_alvo = (self.indice_alvo + 1) % len(inimigos_vivos)
-                elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
-                    alvo = inimigos_vivos[self.indice_alvo]
-                    if self.item_combate_selecionado:
-                        self._executar_uso_item_ofensivo(self.item_combate_selecionado, alvo)
-                    else:
-                        self._executar_acao_jogador(self.acao_selecionada, alvo)
-                elif evento.key == pygame.K_ESCAPE:
-                    self.estado_combate = "MENU_PRINCIPAL"
-                    self.estado_combate = "MENU_PRINCIPAL"
-
-    # =========================================================================
-    # LÓGICA DE SELEÇÃO E EXECUÇÃO DE AÇÕES
-    # =========================================================================
+        """Processa eventos de mouse e teclado via CombatInputHandler."""
+        self.input_handler.processar_eventos(evento)
 
     def _selecionar_opcao_menu_principal(self):
-        opcao = self.opcoes_menu_principal[self.indice_menu]
-
-        if opcao == "Atacar":
-            self._carregar_ataques_fisicos_jogador()
-            self.estado_combate = "SUBMENU_ATAQUE"
-            self.indice_ataque_fisico = 0
-            self.scroll_ataque = 0
-
-        elif opcao == "Magias":
-            self._carregar_magias_jogador()
-            self.estado_combate = "SUBMENU_MAGIA"
-            self.indice_magia = 0
-            self.scroll_magia = 0
-
-        elif opcao == "Concentrar":
-            self._carregar_acoes_concentrar()
-            self.estado_combate = "SUBMENU_CONCENTRAR"
-            self.indice_concentrar = 0
-            self.scroll_concentrar = 0
-
-        elif opcao == "Itens":
-            self._carregar_itens_combate_jogador()
-            if not self.itens_combate_disponiveis:
-                self.adicionar_log("Você não possui consumíveis utilizáveis em combate!")
-                return
-            self.estado_combate = "SUBMENU_ITENS"
-            self.indice_item_combate = 0
-            self.scroll_item_combate = 0
-
-        elif opcao == "Fugir":
-            self._tentar_fuga()
+        """Encaminha seleção de opção do menu principal para CombatInputHandler."""
+        self.input_handler.selecionar_opcao_menu_principal()
 
     def _selecionar_item_combate(self):
-        """Seleciona o item consumível do inventário para uso."""
-        if not self.itens_combate_disponiveis:
-            return
-        idx_real, item_slot = self.itens_combate_disponiveis[self.indice_item_combate]
-        item = item_slot.item
-        
-        if getattr(item, 'tipo_consumivel', '') == "DANO_OFENSIVO":
-            inimigos_vivos = self._obter_inimigos_vivos()
-            if len(inimigos_vivos) == 1:
-                self._executar_uso_item_ofensivo(item, inimigos_vivos[0])
-            else:
-                self.item_combate_selecionado = item
-                self.estado_combate = "SELECIONANDO_ALVO"
-                self.indice_alvo = 0
-        else:
-            self._executar_uso_item_suporte(item)
+        """Encaminha seleção de item consumível para CombatInputHandler."""
+        self.input_handler.selecionar_item_combate()
 
     def _executar_uso_item_suporte(self, item):
         """Executa consumível de cura ou suporte em Halia durante o combate."""
         pode, msg = item.pode_usar(self.jogador, em_combate=True)
         if not pode:
+            self._tocar_sfx("ui_erro")
             self.adicionar_log(f"Aviso: {msg}")
             return
 
@@ -789,7 +438,7 @@ class CombatScreen:
         elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
             self.adicionar_texto_flutuante(f"+{res['valor']} MP", hx + 30, hy - 10, BARRA_MANA)
         elif res.get("tipo") == "CURA_CONDICAO":
-            self.adicionar_texto_flutuante("PURIFICADO", hx + 10, hy - 10, (160, 230, 200))
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("purificado"), hx + 10, hy - 10, (160, 230, 200))
 
     def _executar_uso_item_ofensivo(self, item, alvo):
         """Arremessa frasco ou item ofensivo em um inimigo durante a batalha."""
@@ -812,105 +461,37 @@ class CombatScreen:
             self.adicionar_texto_flutuante(f"-{dano}", ax + 20, ay - 10, (255, 100, 80))
 
         if not getattr(alvo, 'vivo', True):
+            if hasattr(alvo, 'animacoes'):
+                alvo.morrer()
+                est_m = "dead" if "dead" in alvo.animacoes else ("morte" if "morte" in alvo.animacoes else "morrer")
+                if est_m in alvo.animacoes:
+                    alvo.definir_estado(est_m)
+                    if hasattr(alvo.animacoes[est_m], 'resetar'):
+                        alvo.animacoes[est_m].resetar()
+            self.alphas_morte[alvo] = 255
             msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
             self.adicionar_log(msg_morte)
-            self.adicionar_texto_flutuante("DERROTADO", ax + 10, ay - 30, (255, 60, 60))
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("derrotado"), ax + 10, ay - 30, (255, 60, 60))
 
     def _selecionar_ataque_fisico(self):
-        """Seleciona o ataque físico do submenu para execução contra o alvo."""
-        if not self.ataques_fisicos_disponiveis:
-            return
-
-        ataque = self.ataques_fisicos_disponiveis[self.indice_ataque_fisico]
-        if ataque.custo_mana > 0 and self.jogador.mana_atual < ataque.custo_mana:
-            self.adicionar_log(f"Mana insuficiente ({self.jogador.mana_atual}/{ataque.custo_mana} MP)!")
-            return
-
-        inimigos_vivos = self._obter_inimigos_vivos()
-        if len(inimigos_vivos) == 1:
-            self._executar_acao_jogador(ataque, inimigos_vivos[0])
-        else:
-            self.acao_selecionada = ataque
-            self.estado_combate = "SELECIONANDO_ALVO"
-            self.indice_alvo = 0
+        """Encaminha seleção de ataque físico para CombatInputHandler."""
+        self.input_handler.selecionar_ataque_fisico()
 
     def _selecionar_acao_concentrar(self):
-        """Executa a ação tática de Concentração ou Defesa selecionada no submenu."""
-        if not self.opcoes_concentrar:
-            return
-        acao = self.opcoes_concentrar[self.indice_concentrar]
-        self._executar_acao_jogador(acao, self.jogador)
+        """Encaminha seleção de ação de concentração para CombatInputHandler."""
+        self.input_handler.selecionar_acao_concentrar()
 
     def _selecionar_magia_grimorio(self):
-        """Seleciona a magia do Grimório de Halia para execução contra o alvo ou em si mesma."""
-        if not self.magias_disponiveis:
-            return
-
-        magia = self.magias_disponiveis[self.indice_magia]
-        if self.jogador.mana_atual < magia.custo_mana:
-            self.adicionar_log(f"Mana insuficiente ({self.jogador.mana_atual}/{magia.custo_mana} MP)!")
-            return
-
-        alvo_tipo_padrao = getattr(magia, 'tipo_alvo', getattr(magia, 'alvo_tipo', 'inimigo_unico')).lower()
-        if alvo_tipo_padrao in ["aliado", "proprio"]:
-            self._executar_acao_jogador(magia, self.jogador)
-        elif alvo_tipo_padrao in ["todos_inimigos", "todos"]:
-            self._executar_acao_jogador(magia, self.inimigos)
-        else: # inimigo_unico
-            inimigos_vivos = self._obter_inimigos_vivos()
-            if len(inimigos_vivos) == 1:
-                self._executar_acao_jogador(magia, inimigos_vivos[0])
-            else:
-                self.acao_selecionada = magia
-                self.estado_combate = "SELECIONANDO_ALVO"
-                self.indice_alvo = 0
+        """Encaminha seleção de magia para CombatInputHandler."""
+        self.input_handler.selecionar_magia_grimorio()
 
     def _gerar_mensagem_morte_condicao(self, entidade, relatorios):
         """Gera mensagem contextual dramática quando a entidade morre por DoT no início do turno."""
-        elementos_causadores = []
-        ids_causadores = []
-        for r in relatorios:
-            cond = r.get("condicao")
-            if cond:
-                elementos_causadores.append(getattr(cond, 'elemento', '').upper())
-                ids_causadores.append(getattr(cond, 'id_condicao', '').lower())
-                
-        eh_halia = (entidade is self.jogador)
-
-        if "FOGO" in elementos_causadores or "queimadura" in ids_causadores:
-            return "Halia sucumbiu enquanto ardia em chamas abrasadoras..." if eh_halia else f"{entidade.nome} sucumbiu e ardeu em chamas até o último suspiro!"
-        elif "VENENO" in elementos_causadores or "veneno" in ids_causadores:
-            return "Halia sucumbiu enquanto o veneno paralisava seus sentidos vitais..." if eh_halia else f"{entidade.nome} sucumbiu às toxinas corrosivas que dissolveram suas forças!"
-        elif "FISICO" in elementos_causadores or "sangramento" in ids_causadores:
-            return "Halia não resistiu à hemorragia profunda e desfaleceu..." if eh_halia else f"{entidade.nome} esvaiu-se em sangue até o último suspiro!"
-        elif "GELO" in elementos_causadores or "congelado" in ids_causadores:
-            return "Halia teve as forças congeladas pelo frio extremo e caiu..." if eh_halia else f"{entidade.nome} foi congelado até o núcleo e estilhaçou-se!"
-        elif "SOMBRA" in elementos_causadores or "miasma" in ids_causadores:
-            return "Halia foi tragada e consumida pela escuridão..." if eh_halia else f"{entidade.nome} foi consumido pelo miasma sombrio e desfez-se em poeira!"
-        else:
-            return "Halia sucumbiu aos ferimentos e desmaiou..." if eh_halia else f"{entidade.nome} sucumbiu aos efeitos que castigavam seu corpo!"
+        return CombatNarrator.gerar_mensagem_morte_condicao(entidade, relatorios, eh_jogador=(entidade is self.jogador))
 
     def _gerar_mensagem_morte_acao(self, alvo, acao):
         """Gera mensagem contextual dramática quando a entidade morre por um ataque/magia direta."""
-        eh_halia = (alvo is self.jogador)
-        elemento = getattr(acao, 'elemento', 'FISICO').upper()
-        tipo = getattr(acao, 'tipo', 'FISICO').upper()
-        nome_acao = getattr(acao, 'nome', 'Golpe')
-
-        if elemento == "FOGO":
-            return "Halia não resistiu e sucumbiu enquanto ardia em chamas abrasadoras..." if eh_halia else f"{alvo.nome} foi carbonizado pelas chamas incandescentes!"
-        elif elemento == "ARCANO":
-            return "A essência mágica de Halia colapsou sob a pura ressonância arcana..." if eh_halia else f"{alvo.nome} foi desintegrado pela pura energia arcana!"
-        elif elemento == "SOMBRA":
-            return "Halia foi engolida pelo abismo das trevas e perdeu a consciência..." if eh_halia else f"{alvo.nome} foi devorado e aniquilado pelas sombras abissais!"
-        elif elemento == "GELO":
-            return "Halia congelou instantaneamente sob o impacto gélido e caiu..." if eh_halia else f"{alvo.nome} foi estilhaçado pelo frio mortal!"
-        elif elemento in ["ELETRICO", "TROVAO", "RAIO"]:
-            return "Halia sucumbiu após ser fulminada pela violenta descarga elétrica..." if eh_halia else f"{alvo.nome} foi eletrocutado e fulminado pelo raio!"
-        elif tipo == "FISICO":
-            return f"Halia não resistiu ao impacto fulminante de {nome_acao} e caiu..." if eh_halia else f"{alvo.nome} foi estraçalhado pelo golpe devastador de {nome_acao} e caiu sem vida!"
-        else:
-            return f"Halia foi derrotada por {nome_acao}..." if eh_halia else f"{alvo.nome} foi aniquilado em batalha!"
+        return CombatNarrator.gerar_mensagem_morte_acao(alvo, acao, eh_jogador=(alvo is self.jogador))
 
     def _executar_acao_jogador(self, acao, alvo):
         """Executa a ação escolhida pelo jogador com cálculo de dano e feedback."""
@@ -929,17 +510,24 @@ class CombatScreen:
         hx, hy = self._obter_posicao_combate(self.jogador)
         cura_direta = float(resultado.get("cura", 0) or 0)
         if cura_direta > 0:
+            self._tocar_sfx("item_pocao")
             cura_fmt = int(cura_direta) if cura_direta.is_integer() else f"{cura_direta:.1f}"
             self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
+            self._tocar_sfx("concentrar")
             mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
             self.adicionar_texto_flutuante(f"+{mana_fmt} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
-            self.adicionar_texto_flutuante("EM GUARDA!", hx + 30, hy - 10, (100, 210, 255), duracao=80)
+            self._tocar_sfx("concentrar")
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("em_guarda"), hx + 30, hy - 10, (100, 210, 255), duracao=80)
         if resultado.get("vulneravel"):
-            self.adicionar_texto_flutuante("VULNERÁVEL!", hx + 30, hy - 10, (240, 130, 130), duracao=80)
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), hx + 30, hy - 10, (240, 130, 130), duracao=80)
+
+        # Se for magia de ataque ou suporte
+        if getattr(acao, 'custo_mana', 0) > 0 or getattr(acao, 'tipo', '').upper() == 'MAGIA':
+            self._tocar_sfx("magia_cast")
 
         # 2. Trata lista de resultados de alvos (ataques e magias)
         for r in resultado.get("resultados", []):
@@ -953,32 +541,49 @@ class CombatScreen:
 
             if r.get("errou", False) and alvo_r:
                 if r.get("motivo") == "esquiva":
-                    texto_erro = "ESQUIVOU!"
+                    self._tocar_sfx("esquiva")
+                    texto_erro = CombatNarrator.obter_popup("esquivou")
                     cor_erro = (100, 210, 255) # Cyan
                 else:
-                    texto_erro = "ERROU!"
+                    self._tocar_sfx("ataque_erro")
+                    texto_erro = CombatNarrator.obter_popup("errou")
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, ax + 20, ay - 15, cor_erro, duracao=80)
             elif dano_r > 0 and alvo_r:
+                if r.get("critico", False):
+                    self._tocar_sfx("ataque_critico")
+                else:
+                    self._tocar_sfx("ataque_acerto")
+                self._tocar_sfx("dano_inimigo")
+
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
                 self.adicionar_texto_flutuante(f"-{dano_fmt}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
                 # Ativa animação de dano ou morte no inimigo
                 if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
-                    if not getattr(alvo_r, 'vivo', True) and ("dead" in alvo_r.animacoes or "morte" in alvo_r.animacoes):
-                        est_m = "dead" if "dead" in alvo_r.animacoes else "morte"
-                        alvo_r.definir_estado(est_m)
+                    if not getattr(alvo_r, 'vivo', True):
+                        alvo_r.morrer()
+                        est_m = "dead" if "dead" in alvo_r.animacoes else ("morte" if "morte" in alvo_r.animacoes else "morrer")
+                        if est_m in alvo_r.animacoes:
+                            alvo_r.definir_estado(est_m)
+                            if hasattr(alvo_r.animacoes[est_m], 'resetar'):
+                                alvo_r.animacoes[est_m].resetar()
+                        self.alphas_morte[alvo_r] = 255
                     elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
                         est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
                         alvo_r.definir_estado(est_h)
                         if hasattr(alvo_r.animacoes[est_h], 'resetar'):
                             alvo_r.animacoes[est_h].resetar()
 
+                if alvo_r is self.jogador:
+                    self._disparar_sangue_halia()
+
                 # Feedback narrativo se o alvo foi derrotado
                 if not getattr(alvo_r, 'vivo', True):
                     msg_morte = self._gerar_mensagem_morte_acao(alvo_r, acao)
                     self.adicionar_log(msg_morte)
             elif cura_r > 0 and alvo_r:
+                self._tocar_sfx("magia_cast")
                 cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
                 self.adicionar_texto_flutuante(f"+{cura_fmt}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
 
@@ -1038,7 +643,7 @@ class CombatScreen:
 
         if resultado.get("vulneravel"):
             ix, iy = self._obter_posicao_combate(inimigo)
-            self.adicionar_texto_flutuante("VULNERÁVEL!", ix + 30, iy - 10, (240, 130, 130), duracao=80)
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), ix + 30, iy - 10, (240, 130, 130), duracao=80)
 
         for r in resultado.get("resultados", []):
             if r.get("mensagem") and r.get("mensagem") != resultado.get("mensagem"):
@@ -1050,13 +655,35 @@ class CombatScreen:
 
             if r.get("errou", False):
                 if r.get("motivo") == "esquiva":
-                    texto_erro = "ESQUIVOU!"
+                    self._tocar_sfx("esquiva")
+                    texto_erro = CombatNarrator.obter_popup("esquivou")
                     cor_erro = (100, 210, 255) # Cyan
                 else:
-                    texto_erro = "ERROU!"
+                    self._tocar_sfx("ataque_erro")
+                    texto_erro = CombatNarrator.obter_popup("errou")
                     cor_erro = (240, 160, 100) # Âmbar
                 self.adicionar_texto_flutuante(texto_erro, hx + 30, hy - 15, cor_erro, duracao=80)
             elif dano_r > 0:
+                if alvo_r is self.jogador:
+                    self._tocar_sfx("dano_halia")
+                    self._disparar_sangue_halia()
+                else:
+                    self._tocar_sfx("dano_inimigo")
+                    if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
+                        if not getattr(alvo_r, 'vivo', True):
+                            alvo_r.morrer()
+                            est_m = "dead" if "dead" in alvo_r.animacoes else ("morte" if "morte" in alvo_r.animacoes else "morrer")
+                            if est_m in alvo_r.animacoes:
+                                alvo_r.definir_estado(est_m)
+                                if hasattr(alvo_r.animacoes[est_m], 'resetar'):
+                                    alvo_r.animacoes[est_m].resetar()
+                            self.alphas_morte[alvo_r] = 255
+                        elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
+                            est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
+                            alvo_r.definir_estado(est_h)
+                            if hasattr(alvo_r.animacoes[est_h], 'resetar'):
+                                alvo_r.animacoes[est_h].resetar()
+
                 dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
                 self.adicionar_texto_flutuante(f"-{dano_fmt}", hx + 30, hy, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 12
@@ -1065,6 +692,7 @@ class CombatScreen:
                     msg_morte = self._gerar_mensagem_morte_acao(self.jogador, acao)
                     self.adicionar_log(msg_morte)
             elif cura_r > 0:
+                self._tocar_sfx("magia_cast")
                 cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
                 cor_cura = BARRA_VIDA_JOGADOR if alvo_r is self.jogador else BARRA_VIDA_INIMIGO
                 self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, cor_cura)
@@ -1080,8 +708,9 @@ class CombatScreen:
         hx, hy = self._obter_posicao_combate(self.jogador)
         for inimigo in inimigos_vivos:
             if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo, 'atributos', None) and inimigo.atributos.forca >= 28:
-                self.adicionar_log("Halia tentou recuar, mas a presenca imponente do inimigo impede qualquer fuga!")
-                self.adicionar_texto_flutuante("FUGA IMPOSSÍVEL!", hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
+                self._tocar_sfx("ui_erro")
+                self.adicionar_log(CombatNarrator.obter_mensagem("fuga_impossivel"))
+                self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_impossivel"), hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
                 self.timer_acao = self._ajustar_timer(60)
                 self.estado_combate = "EXECUTANDO_ACAO"
                 return
@@ -1106,11 +735,13 @@ class CombatScreen:
         rolagem = random.uniform(0.0, 100.0)
 
         if rolagem <= chance_fuga:
-            self.adicionar_log("Halia recuou com agilidade e escapou do combate com sucesso!")
+            self._tocar_sfx("fuga")
+            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_sucesso"))
             self.estado_combate = "FUGIU"
         else:
-            self.adicionar_texto_flutuante("FUGA FALHOU!", hx + 30, hy - 15, (245, 150, 80), duracao=75)
-            self.adicionar_log("Tentativa de fuga falhou! Os inimigos bloquearam a passagem e cercaram Halia.")
+            self._tocar_sfx("ui_erro")
+            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_falhou"), hx + 30, hy - 15, (245, 150, 80), duracao=75)
+            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_falhou"))
             # Perde a ação do turno e os inimigos atacam em seguida
             self.timer_acao = self._ajustar_timer(65)
             self.estado_combate = "EXECUTANDO_ACAO"
@@ -1147,6 +778,22 @@ class CombatScreen:
 
         # Atualiza textos flutuantes
         self.textos_flutuantes = [t for t in self.textos_flutuantes if t.atualizar()]
+
+        # Atualiza efeitos visuais de sangue na Halia
+        for ef in self.efeitos_sangue[:]:
+            ef["frame_atual"] += ef["velocidade"]
+            if int(ef["frame_atual"]) >= len(ef["frames"]):
+                self.efeitos_sangue.remove(ef)
+
+        # Atualiza desvanecimento suave (fade out) dos monstros derrotados após término da animação de morte
+        for inimigo in self.inimigos:
+            if not getattr(inimigo, 'vivo', True):
+                anim_m = inimigo.animacoes.get('dead') or inimigo.animacoes.get('morte') or inimigo.animacoes.get('morrer')
+                esta_concluida = getattr(anim_m, 'concluida', False) if anim_m else True
+                if esta_concluida:
+                    alpha_atual = self.alphas_morte.get(inimigo, 255)
+                    if alpha_atual > 0:
+                        self.alphas_morte[inimigo] = max(0, alpha_atual - 5)
 
         # Execução de timer de leitura de ação
         if self.estado_combate == "EXECUTANDO_ACAO":
@@ -1201,18 +848,33 @@ class CombatScreen:
         if hasattr(self.jogador, 'recuperar_memoria') and self.recompensas_vitoria["memorias"] > 0:
             self.jogador.recuperar_memoria(self.recompensas_vitoria["memorias"])
 
-        self.adicionar_log(f"Vitoria! Ganhou {self.recompensas_vitoria['moedas']} moedas e {self.recompensas_vitoria['memorias']} memoria(s).")
+        self.adicionar_log(CombatNarrator.obter_mensagem(
+            "vitoria",
+            moedas=self.recompensas_vitoria['moedas'],
+            memorias=self.recompensas_vitoria['memorias']
+        ))
         self.estado_combate = "VITORIA"
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)
 
     def _finalizar_derrota(self):
         """Configura estado de derrota."""
-        self.adicionar_log("Halia sucumbiu e retornara ao ultimo checkpoint...")
+        self.adicionar_log(CombatNarrator.obter_mensagem("derrota"))
         self.estado_combate = "DERROTA"
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.tocar_musica("derrota", loop=0, fade_ms=400, salvar_anterior=False)
 
     def _concluir_fechamento_combate(self):
-        """Dispara os callbacks configurados ao encerrar."""
+        """Dispara os callbacks configurados ao encerrar e restaura a trilha do mapa."""
         if hasattr(self.jogador, 'sair_combate'):
             self.jogador.sair_combate()
+
+        # Restaura a música de exploração que tocava antes do combate
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.restaurar_musica_anterior(fade_ms=600)
 
         if self.estado_combate == "VITORIA" and callable(self.on_vitoria):
             self.on_vitoria()
@@ -1269,10 +931,9 @@ class CombatScreen:
         if entidade is self.jogador:
             return 160, 160
 
-        inimigos_vivos = self._obter_inimigos_vivos()
-        if entidade in inimigos_vivos:
-            idx = inimigos_vivos.index(entidade)
-            total = len(inimigos_vivos)
+        if entidade in self.inimigos:
+            idx = self.inimigos.index(entidade)
+            total = len(self.inimigos)
             if total == 1:
                 return self.largura - 350, 150
             elif total == 2:
@@ -1288,543 +949,25 @@ class CombatScreen:
         return getattr(entidade, 'x', 160), getattr(entidade, 'y', 160)
 
     # =========================================================================
-    # RENDERIZAÇÃO GRÁFICA
+    # RENDERIZAÇÃO GRÁFICA (DELEGADA PARA CombatRenderer)
     # =========================================================================
 
     def desenhar_barra(self, tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=FUNDO_BARRA, largura=180, altura=12):
-        """Encaminha para o utilitário centralizado de UI."""
-        desenhar_barra_status_interpolada(tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=cor_fundo, largura=largura, altura=altura)
+        """Encaminha para o renderizador gráfico desacoplado."""
+        self.renderer.desenhar_barra(tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=cor_fundo, largura=largura, altura=altura)
 
     def _desenhar_cabecalho_e_scrollbar_submenu(self, tela, painel_rect, largura_secao_menu, total_itens, scroll_atual, titulo=""):
-        """Desenha o botão de voltar, paginação e barra de rolagem (scrollbar) se houver muitos itens."""
-        # Botão Voltar
-        self.rect_botao_voltar = pygame.Rect(painel_rect.x + 20, painel_rect.y + 12, 90, 26)
-        pygame.draw.rect(tela, (25, 25, 30), self.rect_botao_voltar)
-        pygame.draw.rect(tela, CINZA_CLARO, self.rect_botao_voltar, 1)
-        txt_voltar = self.fonte_status.render("< Voltar", True, UI_TEXTO_DESTAQUE)
-        tela.blit(txt_voltar, (self.rect_botao_voltar.x + 12, self.rect_botao_voltar.y + 5))
-
-        max_visivel = self.ITENS_POR_PAGINA_SUBMENU
-        if total_itens > max_visivel:
-            max_scroll = total_itens - max_visivel
-            
-            # Texto indicador de itens (ex: 1-4/7)
-            inicio_idx = scroll_atual + 1
-            fim_idx = min(total_itens, scroll_atual + max_visivel)
-            txt_pag = self.fonte_status.render(f"{inicio_idx}-{fim_idx}/{total_itens}", True, UI_TEXTO_APAGADO)
-            tela.blit(txt_pag, (self.rect_botao_voltar.right + 12, painel_rect.y + 17))
-
-            # Botões de seta para cima e para baixo
-            self.rect_scroll_cima = pygame.Rect(painel_rect.x + largura_secao_menu - 52, painel_rect.y + 12, 22, 24)
-            self.rect_scroll_baixo = pygame.Rect(painel_rect.x + largura_secao_menu - 26, painel_rect.y + 12, 22, 24)
-
-            # Seta Cima
-            cor_cima = BRANCO if scroll_atual > 0 else (60, 60, 70)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_cima)
-            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_cima, 1)
-            txt_c = self.fonte_status.render("^", True, cor_cima)
-            tela.blit(txt_c, (self.rect_scroll_cima.x + 7, self.rect_scroll_cima.y + 3))
-
-            # Seta Baixo
-            cor_baixo = BRANCO if scroll_atual < max_scroll else (60, 60, 70)
-            pygame.draw.rect(tela, (25, 25, 30), self.rect_scroll_baixo)
-            pygame.draw.rect(tela, CINZA_ESCURO, self.rect_scroll_baixo, 1)
-            txt_b = self.fonte_status.render("v", True, cor_baixo)
-            tela.blit(txt_b, (self.rect_scroll_baixo.x + 7, self.rect_scroll_baixo.y + 4))
-
-            # Barra de rolagem lateral (Trilha e Cursor)
-            track_x = painel_rect.x + largura_secao_menu - 14
-            track_y = painel_rect.y + 46
-            track_h = 170
-            track_rect = pygame.Rect(track_x, track_y, 4, track_h)
-            pygame.draw.rect(tela, (20, 20, 26), track_rect, border_radius=2)
-
-            thumb_h = max(24, int(track_h * (max_visivel / total_itens)))
-            thumb_y = track_y + int((track_h - thumb_h) * (scroll_atual / max_scroll)) if max_scroll > 0 else track_y
-            thumb_rect = pygame.Rect(track_x, thumb_y, 4, thumb_h)
-            pygame.draw.rect(tela, (140, 140, 160), thumb_rect, border_radius=2)
-        else:
-            self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
-            self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
+        """Encaminha para o renderizador gráfico desacoplado."""
+        self.renderer.desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total_itens, scroll_atual, titulo=titulo)
 
     def desenhar(self, tela):
-        """Renderiza a arena, personagens, HUDs, menus, submenus, tooltips e banners."""
-        if not self.jogador:
-            return
-
-        # 1. FUNDO PADRÃO ESCURO DE OBLIVIUM
-        tela.fill(UI_FUNDO_PADRAO)
-        
-        # Linha horizontal sutil de horizonte
-        pygame.draw.line(tela, CINZA_ESCURO, (0, 390), (self.largura, 390), 1)
-
-        # 2. RENDERIZAR INIMIGOS (Lado Direito)
-        self.rects_inimigos.clear()
-        inimigos_vivos = self._obter_inimigos_vivos()
-
-        for idx, inimigo in enumerate(inimigos_vivos):
-            pos_x, pos_y = self._obter_posicao_combate(inimigo)
-            
-            offset_shake_x = random.randint(-3, 3) if self.shake_timers.get(inimigo, 0) > 0 else 0
-            offset_shake_y = random.randint(-2, 2) if self.shake_timers.get(inimigo, 0) > 0 else 0
-            
-            draw_x = pos_x + offset_shake_x
-            draw_y = pos_y + offset_shake_y
-
-            # Plataforma / Sombra sutil no chão
-            pygame.draw.ellipse(tela, (22, 22, 26), (draw_x - 10, draw_y + 80, 100, 20))
-
-            # Hitbox para clique de mouse
-            rect_hitbox = pygame.Rect(draw_x - 10, draw_y - 25, 240, 125)
-            self.rects_inimigos.append(rect_hitbox)
-
-            # Cursor de Seleção de Alvo
-            if self.estado_combate == "SELECIONANDO_ALVO" and idx == self.indice_alvo:
-                cursor_txt = self.fonte_titulo.render(">", True, TXT_SISTEMA_NARRADOR)
-                tela.blit(cursor_txt, (draw_x - 30, draw_y + 15))
-                pygame.draw.rect(tela, TXT_SISTEMA_NARRADOR, rect_hitbox, 1)
-
-            # Atualiza Animações do Inimigo
-            if hasattr(inimigo, 'atualizar_animacao'):
-                # Transição automática de estados hurt/attack para idle quando finalizados
-                if getattr(inimigo, 'estado_atual', 'idle') == 'hurt' and getattr(inimigo.animacoes.get('hurt', None), 'concluida', False):
-                    inimigo.definir_estado('idle')
-                elif getattr(inimigo, 'estado_atual', 'idle') in ['attack', 'ataque'] and getattr(inimigo.animacoes.get('attack', inimigo.animacoes.get('ataque', None)), 'concluida', False):
-                    inimigo.definir_estado('idle')
-                inimigo.atualizar_animacao()
-
-            # Renderiza Imagem ou Bloco Colorido
-            imagem = getattr(inimigo, 'imagem_atual', None)
-            if imagem:
-                # Inimigos na direita da arena encaram Halia na esquerda
-                if getattr(inimigo, 'virado_direita', True):
-                    img_virada = pygame.transform.flip(imagem, True, False)
-                else:
-                    img_virada = imagem
-                escala_c = getattr(inimigo, 'escala_combate', 0.85)
-                nw = max(1, int(img_virada.get_width() * escala_c))
-                nh = max(1, int(img_virada.get_height() * escala_c))
-                img_combate = pygame.transform.scale(img_virada, (nw, nh))
-
-                # Ancoragem bottom-center acima da elipse da plataforma
-                cx = draw_x + 40
-                cy = draw_y + 90
-                offset_flutuante = -16 if getattr(inimigo, 'flutuante', False) else 0
-                bx = cx - (nw // 2)
-                by = cy - nh + offset_flutuante
-
-                if self.shake_timers.get(inimigo, 0) > 6:
-                    flash_surf = img_combate.copy()
-                    flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
-                    tela.blit(flash_surf, (bx, by))
-                else:
-                    tela.blit(img_combate, (bx, by))
-            else:
-                rect_inimigo = pygame.Rect(draw_x, draw_y, getattr(inimigo, 'largura', 40) * 2, getattr(inimigo, 'altura', 40) * 2)
-                cor_bloco = BRANCO if self.shake_timers.get(inimigo, 0) > 6 else getattr(inimigo, 'cor', (140, 40, 50))
-                pygame.draw.rect(tela, cor_bloco, rect_inimigo)
-                pygame.draw.rect(tela, CINZA_CLARO, rect_inimigo, 2)
-
-            # Nome do Inimigo
-            texto_nome = self.fonte_nomes.render(inimigo.nome, True, TEXTO_ALERTA_COMBATE)
-            tela.blit(texto_nome, (draw_x, draw_y - 28))
-            
-            # Badges de Condições Ativas
-            offset_icone_x = draw_x + texto_nome.get_width() + 8
-            for cond in getattr(inimigo, 'condicoes', []):
-                txt_badge = self.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
-                tela.blit(txt_badge, (offset_icone_x, draw_y - 25))
-                offset_icone_x += txt_badge.get_width() + 6
-
-            # Barra de Vida Suave Interpolada
-            base_bar_y = draw_y + 105
-            larg_bar_inimigo = 150
-            alt_bar = 12
-            vida_v = self.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
-            self.desenhar_barra(tela, draw_x - 15, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
-            txt_hp = self.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_hp, (draw_x - 15 + larg_bar_inimigo + 10, base_bar_y - 2))
-
-            # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
-            mana_max = getattr(inimigo, 'mana_maxima', 20)
-            mana_v = self.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
-            mp_bar_y = base_bar_y + 20
-            self.desenhar_barra(tela, draw_x - 15, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
-            txt_mp = self.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
-            tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
-
-        # 3. RENDERIZAR HALIA (Lado Esquerdo)
-        halia_x, halia_y = 160, 160
-        offset_h_x = random.randint(-3, 3) if self.shake_timers.get(self.jogador, 0) > 0 else 0
-        offset_h_y = random.randint(-2, 2) if self.shake_timers.get(self.jogador, 0) > 0 else 0
-        
-        draw_hx = halia_x + offset_h_x
-        draw_hy = halia_y + offset_h_y
-
-        # Plataforma / Sombra sutil no chão sob Halia
-        pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 10, draw_hy + 90, 105, 22))
-
-        # Imagem ou Bloco da Halia (Sempre voltada para a direita durante o combate)
-        img_halia = None
-        if hasattr(self.jogador, 'animacoes') and "idle_direita" in self.jogador.animacoes:
-            anim_h = self.jogador.animacoes["idle_direita"]
-            anim_h.atualizar()
-            img_halia = anim_h.get_imagem()
-        elif hasattr(self.jogador, 'animacoes') and "andar_direita" in self.jogador.animacoes:
-            anim_h = self.jogador.animacoes["andar_direita"]
-            img_halia = anim_h.get_imagem()
-        
-        if not img_halia:
-            img_halia = ResourceManager.carregar_imagem("halia/andando_direita/Halia_parado_direita.png")
-        if not img_halia:
-            img_halia = getattr(self.jogador, 'imagem_atual', None)
-
-        larg_h = 64
-        alt_h = 96
-
-        if img_halia:
-            img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
-            if self.shake_timers.get(self.jogador, 0) > 6:
-                flash_surf = img_c.copy()
-                flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
-                tela.blit(flash_surf, (draw_hx, draw_hy))
-            else:
-                tela.blit(img_c, (draw_hx, draw_hy))
-        else:
-            rect_h = pygame.Rect(draw_hx, draw_hy, larg_h, alt_h)
-            cor_h = BRANCO if self.shake_timers.get(self.jogador, 0) > 6 else (34, 139, 34)
-            pygame.draw.rect(tela, cor_h, rect_h)
-            pygame.draw.rect(tela, CINZA_CLARO, rect_h, 2)
-
-        # Nome da Halia
-        txt_halia = self.fonte_nomes.render(self.jogador.nome, True, NOME_HALIA)
-        tela.blit(txt_halia, (draw_hx, draw_hy - 32))
-        
-        # Badges de Condições da Halia
-        offset_h_badge = draw_hx + txt_halia.get_width() + 8
-        for cond in getattr(self.jogador, 'condicoes', []):
-            txt_badge_h = self.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
-            tela.blit(txt_badge_h, (offset_h_badge, draw_hy - 30))
-            offset_h_badge += txt_badge_h.get_width() + 6
-
-        # Barras Interpoladas de HP e MP da Halia (Mesmo padrão visual, espessura e espaçamento)
-        vida_h_v = self.vidas_visuais.get(self.jogador, float(self.jogador.vida_atual))
-        mana_h_v = self.manas_visuais.get(self.jogador, float(self.jogador.mana_atual))
-        larg_h_bar = 180
-        alt_h_bar = 12
-        base_h_bar_y = draw_hy + 105
-
-        self.desenhar_barra(tela, draw_hx, base_h_bar_y, vida_h_v, self.jogador.vida_maxima, BARRA_VIDA_JOGADOR, largura=larg_h_bar, altura=alt_h_bar)
-        hp_mostrado = 0 if (self.jogador.vida_atual <= 0 or not getattr(self.jogador, 'vivo', True)) else max(1, int(round(vida_h_v)))
-        tela.blit(self.fonte_status.render(f"HP {hp_mostrado}/{self.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y - 2))
-
-        self.desenhar_barra(tela, draw_hx, base_h_bar_y + 20, mana_h_v, self.jogador.mana_maxima, BARRA_MANA, largura=larg_h_bar, altura=alt_h_bar)
-        tela.blit(self.fonte_status.render(f"MP {int(mana_h_v)}/{self.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))
-
-        # 4. PAINEL INFERIOR DE MENUS E COMBAT LOG
-        altura_painel = 245
-        painel_rect = pygame.Rect(40, self.altura - altura_painel - 20, self.largura - 80, altura_painel)
-        pygame.draw.rect(tela, UI_FUNDO_PADRAO, painel_rect)
-        pygame.draw.rect(tela, CINZA_CLARO, painel_rect, 2)
-
-        # Divisão Interna: Seção de Ações (Esquerda 380px) | Seção de Log (Direita)
-        largura_secao_menu = 380
-        pygame.draw.line(tela, CINZA_ESCURO, (painel_rect.x + largura_secao_menu, painel_rect.y), (painel_rect.x + largura_secao_menu, painel_rect.bottom), 1)
-
-        # RENDERIZAR MENU PRINCIPAL
-        self.rects_menu_principal.clear()
-        if self.estado_combate == "MENU_PRINCIPAL":
-            for i, opcao in enumerate(self.opcoes_menu_principal):
-                item_y = painel_rect.y + 14 + (i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_secao_menu - 40, 38)
-                self.rects_menu_principal.append(item_rect)
-                
-                if i == self.indice_menu:
-                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
-                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
-                    cor = AZUL_HOVER_MENU
-                    marcador = "►  "
-                else:
-                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
-                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
-                    cor = CINZA_LINHO
-                    marcador = "    "
-                    
-                txt = self.fonte_menu.render(f"{marcador}{opcao}", True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
-
-        # RENDERIZAR SUBMENU DE ATAQUES FÍSICOS
-        self.rects_ataques_fisicos.clear()
-        if self.estado_combate == "SUBMENU_ATAQUE":
-            total = len(self.ataques_fisicos_disponiveis)
-            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_ataque, "Ataques")
-            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
-
-            for slot_i, real_i in enumerate(range(self.scroll_ataque, min(total, self.scroll_ataque + self.ITENS_POR_PAGINA_SUBMENU))):
-                ataque = self.ataques_fisicos_disponiveis[real_i]
-                item_y = painel_rect.y + 46 + (slot_i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
-                self.rects_ataques_fisicos.append((item_rect, real_i))
-                
-                if real_i == self.indice_ataque_fisico:
-                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
-                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
-                    cor = AZUL_HOVER_MENU
-                    marcador = "►  "
-                else:
-                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
-                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
-                    cor = CINZA_LINHO
-                    marcador = "    "
-                    
-                custo_str = f"({ataque.custo_mana} MP)" if ataque.custo_mana > 0 else ""
-                txt = self.fonte_menu.render(f"{marcador}{ataque.nome} {custo_str}".strip(), True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
-
-        # RENDERIZAR SUBMENU DE MAGIAS
-        self.rects_magias.clear()
-        if self.estado_combate == "SUBMENU_MAGIA":
-            total = len(self.magias_disponiveis)
-            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_magia, "Grimório")
-            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
-
-            for slot_i, real_i in enumerate(range(self.scroll_magia, min(total, self.scroll_magia + self.ITENS_POR_PAGINA_SUBMENU))):
-                magia = self.magias_disponiveis[real_i]
-                item_y = painel_rect.y + 46 + (slot_i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
-                self.rects_magias.append((item_rect, real_i))
-                
-                if real_i == self.indice_magia:
-                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
-                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
-                    cor = AZUL_HOVER_MENU
-                    marcador = "►  "
-                else:
-                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
-                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
-                    cor = CINZA_LINHO
-                    marcador = "    "
-                    
-                custo_txt = f"({magia.custo_mana} MP)" if magia.custo_mana > 0 else "(Gratis)"
-                txt = self.fonte_menu.render(f"{marcador}{magia.nome} {custo_txt}", True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
-
-        # RENDERIZAR SUBMENU DE CONCENTRAR
-        self.rects_concentrar.clear()
-        if self.estado_combate == "SUBMENU_CONCENTRAR":
-            total = len(self.opcoes_concentrar)
-            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_concentrar, "Tático")
-            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
-
-            for slot_i, real_i in enumerate(range(self.scroll_concentrar, min(total, self.scroll_concentrar + self.ITENS_POR_PAGINA_SUBMENU))):
-                acao = self.opcoes_concentrar[real_i]
-                item_y = painel_rect.y + 46 + (slot_i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
-                self.rects_concentrar.append((item_rect, real_i))
-                
-                if real_i == self.indice_concentrar:
-                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
-                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
-                    cor = AZUL_HOVER_MENU
-                    marcador = "►  "
-                else:
-                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
-                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
-                    cor = CINZA_LINHO
-                    marcador = "    "
-                    
-                sufixo = "(+MP)" if acao.id_acao == "foco_espiritual" else "(Guarda)"
-                txt = self.fonte_menu.render(f"{marcador}{acao.nome} {sufixo}", True, cor)
-                tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
-
-        # RENDERIZAR SUBMENU DE ITENS CONSUMÍVEIS
-        self.rects_itens_combate.clear()
-        if self.estado_combate == "SUBMENU_ITENS":
-            total = len(self.itens_combate_disponiveis)
-            self._desenhar_cabecalho_e_scrollbar_submenu(tela, painel_rect, largura_secao_menu, total, self.scroll_item_combate, "Bolsa")
-            largura_item = largura_secao_menu - 48 if total > self.ITENS_POR_PAGINA_SUBMENU else largura_secao_menu - 40
-
-            for slot_i, real_i in enumerate(range(self.scroll_item_combate, min(total, self.scroll_item_combate + self.ITENS_POR_PAGINA_SUBMENU))):
-                idx_real, item_slot = self.itens_combate_disponiveis[real_i]
-                item = item_slot.item
-                qtd = item_slot.quantidade
-                item_y = painel_rect.y + 46 + (slot_i * 44)
-                item_rect = pygame.Rect(painel_rect.x + 20, item_y, largura_item, 38)
-                self.rects_itens_combate.append((item_rect, real_i))
-                
-                if real_i == self.indice_item_combate:
-                    pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
-                    pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
-                    cor = AZUL_HOVER_MENU
-                    marcador = "►  "
-                else:
-                    pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
-                    pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
-                    cor = CINZA_LINHO
-                    marcador = "    "
-                    
-                txt_it = self.fonte_menu.render(f"{marcador}{item.nome} (x{qtd})", True, cor)
-                tela.blit(txt_it, (item_rect.x + 10, item_rect.centery - txt_it.get_height() // 2))
-
-        # RENDERIZAR SELEÇÃO DE ALVOS
-        elif self.estado_combate == "SELECIONANDO_ALVO":
-            titulo_alvo = "Arremessar Item no Inimigo:" if self.item_combate_selecionado else "Selecione o Inimigo Alvo:"
-            txt_alvo = self.fonte_menu.render(titulo_alvo, True, TXT_SISTEMA_NARRADOR)
-            tela.blit(txt_alvo, (painel_rect.x + 20, painel_rect.y + 15))
-            
-            inimigos_vivos = self._obter_inimigos_vivos()
-            for i, inimigo in enumerate(inimigos_vivos):
-                cor = TXT_SISTEMA_NARRADOR if i == self.indice_alvo else CINZA_CLARO
-                marcador = "> " if i == self.indice_alvo else "  "
-                txt_i = self.fonte_status.render(f"{marcador}{inimigo.nome} ({inimigo.vida_atual}/{inimigo.vida_maxima} HP)", True, cor)
-                tela.blit(txt_i, (painel_rect.x + 20, painel_rect.y + 55 + (i * 32)))
-
-        # RENDERIZAR COMBAT LOG (Seção Direita com Word Wrap e Cores Preservadas)
-        pos_log_x = painel_rect.x + largura_secao_menu + 30
-        pos_log_y = painel_rect.y + 16
-        
-        txt_cabecalho_log = self.fonte_status.render(f"HISTORICO DE COMBATE (Vel: {self.velocidade_combate}x)", True, UI_TEXTO_APAGADO)
-        tela.blit(txt_cabecalho_log, (pos_log_x, pos_log_y))
-        
-        # Histórico exibe 6 linhas completas
-        max_linhas = 6
-        linhas_exibidas = self.historico_log[-max_linhas:]
-        
-        for idx, item in enumerate(linhas_exibidas):
-            is_latest = (idx == len(linhas_exibidas) - 1)
-            texto_linha = item.get("texto", "") if isinstance(item, dict) else str(item)
-            cor_custom = item.get("cor", None) if isinstance(item, dict) else None
-            
-            if cor_custom:
-                cor_linha = cor_custom
-            elif is_latest:
-                cor_linha = BRANCO
-            else:
-                cor_linha = CINZA_CLARO
-                
-            txt_linha = self.fonte_log.render(texto_linha, True, cor_linha)
-            tela.blit(txt_linha, (pos_log_x, pos_log_y + 26 + (idx * 27)))
-
-        # RENDERIZAR TOOLTIP FIXO NA PARTE INFERIOR (Sobrepondo o histórico somente se necessário)
-        if self.estado_combate in ["SUBMENU_ATAQUE", "SUBMENU_MAGIA", "SUBMENU_CONCENTRAR", "SUBMENU_ITENS"]:
-            acao_sel = None
-            if self.estado_combate == "SUBMENU_ATAQUE" and self.indice_ataque_fisico < len(self.ataques_fisicos_disponiveis):
-                acao_sel = self.ataques_fisicos_disponiveis[self.indice_ataque_fisico]
-            elif self.estado_combate == "SUBMENU_MAGIA" and self.indice_magia < len(self.magias_disponiveis):
-                acao_sel = self.magias_disponiveis[self.indice_magia]
-            elif self.estado_combate == "SUBMENU_CONCENTRAR" and self.indice_concentrar < len(self.opcoes_concentrar):
-                acao_sel = self.opcoes_concentrar[self.indice_concentrar]
-            elif self.estado_combate == "SUBMENU_ITENS" and self.indice_item_combate < len(self.itens_combate_disponiveis):
-                _, item_slot = self.itens_combate_disponiveis[self.indice_item_combate]
-                acao_sel = item_slot.item
-
-            if acao_sel:
-                largura_tooltip = (painel_rect.right - 15) - (painel_rect.x + largura_secao_menu + 20)
-                self._desenhar_tooltip_acao(
-                    tela,
-                    acao_sel,
-                    painel_rect.x + largura_secao_menu + 20,
-                    painel_rect.bottom - 12,
-                    largura_max=largura_tooltip
-                )
-
-        # 5. RENDERIZAR NÚMEROS FLUTUANTES
-        for tf in self.textos_flutuantes:
-            tf.desenhar(tela, self.fonte_dano)
-
-        # 6. TELAS ESPECIAIS (Banners de Vitória, Derrota e Fuga)
-        if self.estado_combate in ["VITORIA", "DERROTA", "FUGIU"]:
-            self._desenhar_banner_fim_combate(tela)
+        """Renderiza a arena, personagens, HUDs, menus, submenus, tooltips e banners via CombatRenderer."""
+        self.renderer.desenhar(tela)
 
     def _desenhar_tooltip_acao(self, tela, acao, x, y_bottom, largura_max=None):
-        """Desenha uma caixa descritiva elegante fixada na parte inferior do painel, sobrepondo o histórico."""
-        if not acao:
-            return
-
-        tipo = getattr(acao, 'tipo', '').upper()
-        categoria = getattr(acao, 'categoria', '').upper()
-        elemento = getattr(acao, 'elemento', 'NEUTRO').upper()
-        desc = getattr(acao, 'descricao', '')
-        custo = getattr(acao, 'custo_mana', 0)
-        custo_str = f" | Custo: {custo} MP" if custo > 0 else (" | Custo: Grátis" if tipo == "MAGICO" else "")
-
-        if categoria == "CONSUMIVEL":
-            tipo_c = getattr(acao, 'tipo_consumivel', '')
-            if tipo_c == "CURA_HP":
-                detalhe = f"[ITEM CURA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} HP - {desc}"
-            elif tipo_c == "RESTAURA_MP":
-                detalhe = f"[ITEM MANA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} MP - {desc}"
-            elif tipo_c == "DANO_OFENSIVO":
-                detalhe = f"[ITEM OFENSIVO] {acao.nome} | Causa {getattr(acao, 'valor_efeito', 0)} Dano - {desc}"
-            else:
-                detalhe = f"[ITEM] {acao.nome} - {desc}"
-        elif tipo == "MAGICO":
-            detalhe = f"[{elemento}] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)} - {desc}"
-        elif tipo == "FOCO":
-            detalhe = f"[TÁTICO] {acao.nome} - {desc}"
-        elif tipo == "DEFESA":
-            detalhe = f"[TÁTICO] {acao.nome} - {desc}"
-        elif tipo == "FISICO":
-            detalhe = f"[FÍSICO] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)} - {desc}"
-        else:
-            detalhe = f"[{elemento}] {acao.nome} - {desc}"
-
-        if largura_max is None:
-            largura_max = self.largura - x - 40
-
-        linhas_tt = quebrar_texto_em_linhas(detalhe, self.fonte_tooltip, largura_max - 24)
-        if not linhas_tt:
-            linhas_tt = [detalhe]
-
-        altura_linha = 20
-        altura_tt = max(42, 14 + (len(linhas_tt) * altura_linha))
-        pos_y_tt = y_bottom - altura_tt
-
-        rect_tt = pygame.Rect(x, pos_y_tt, largura_max, altura_tt)
-        # Fundo opaco para sobrepor com nitidez as linhas de trás
-        pygame.draw.rect(tela, (22, 22, 28), rect_tt)
-        pygame.draw.rect(tela, CINZA_CLARO, rect_tt, 1)
-
-        for i, l in enumerate(linhas_tt):
-            cor_txt = UI_TEXTO_DESTAQUE if i == 0 else CINZA_CLARO
-            txt_d = self.fonte_tooltip.render(l, True, cor_txt)
-            tela.blit(txt_d, (rect_tt.x + 12, rect_tt.y + 7 + (i * altura_linha)))
+        """Encaminha para o renderizador gráfico desacoplado."""
+        self.renderer.desenhar_tooltip_acao(tela, acao, x, y_bottom, largura_max=largura_max)
 
     def _desenhar_banner_fim_combate(self, tela):
-        overlay = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 195))
-        tela.blit(overlay, (0, 0))
-
-        largura_b, altura_b = 640, 260
-        rx = (self.largura - largura_b) // 2
-        ry = (self.altura - altura_b) // 2
-        self.rect_banner = pygame.Rect(rx, ry, largura_b, altura_b)
-        
-        pygame.draw.rect(tela, UI_FUNDO_PADRAO, self.rect_banner)
-        
-        if self.estado_combate == "VITORIA":
-            cor_borda = TXT_SISTEMA_NARRADOR
-            titulo = "VITORIA!"
-            msg1 = f"Recompensas: +{self.recompensas_vitoria['moedas']} Moedas | +{self.recompensas_vitoria['memorias']} Memoria(s)"
-            msg2 = "Pressione [ENTER], [ESPACO] ou clique para continuar..."
-        elif self.estado_combate == "DERROTA":
-            cor_borda = TEXTO_ALERTA_COMBATE
-            titulo = "DERROTA"
-            msg1 = "Halia sucumbiu e foi resgatada ao ultimo checkpoint..."
-            msg2 = "Pressione [ENTER] ou clique para reiniciar..."
-        else: # FUGIU
-            cor_borda = TXT_PENSAMENTO_INTERNO
-            titulo = "ESCAPOU"
-            msg1 = "Halia recuou com sucesso para um local seguro."
-            msg2 = "Pressione [ENTER] ou clique para retornar..."
-
-        pygame.draw.rect(tela, cor_borda, self.rect_banner, 2)
-
-        txt_t = self.fonte_titulo.render(titulo, True, cor_borda)
-        tela.blit(txt_t, (rx + (largura_b - txt_t.get_width()) // 2, ry + 35))
-
-        txt_m1 = self.fonte_menu.render(msg1, True, UI_TEXTO_DESTAQUE)
-        tela.blit(txt_m1, (rx + (largura_b - txt_m1.get_width()) // 2, ry + 105))
-
-        txt_m2 = self.fonte_status.render(msg2, True, UI_TEXTO_APAGADO)
-        tela.blit(txt_m2, (rx + (largura_b - txt_m2.get_width()) // 2, ry + 195))
+        """Encaminha para o renderizador gráfico desacoplado."""
+        self.renderer.desenhar_banner_fim_combate(tela)

@@ -439,8 +439,9 @@ class ResourceManager:
             dicionario_animacoes["ataque"] = dicionario_animacoes["attack"]
         if "hurt" in dicionario_animacoes and "dano" not in dicionario_animacoes:
             dicionario_animacoes["dano"] = dicionario_animacoes["hurt"]
-        if "dead" in dicionario_animacoes and "morte" not in dicionario_animacoes:
-            dicionario_animacoes["morte"] = dicionario_animacoes["dead"]
+        if "dead" in dicionario_animacoes:
+            dicionario_animacoes.setdefault("morte", dicionario_animacoes["dead"])
+            dicionario_animacoes.setdefault("morrer", dicionario_animacoes["dead"])
 
         cls._cache_animacoes[chave] = dicionario_animacoes
         return dicionario_animacoes
