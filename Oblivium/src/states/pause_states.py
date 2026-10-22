@@ -19,8 +19,8 @@ class PauseState(State):
     """
     def __init__(self, game):
         super().__init__(game)
-        self.opcoes_padrao = ["Retomar", "Inventário", "Salvar Jogo", "Carregar Jogo", "Configurações", "Sair para o Menu"]
-        self.opcoes_combate = ["Retomar", "Carregar Jogo", "Configurações", "Sair para o Menu"]
+        self.opcoes_padrao = ["Retomar", "Inventário", "Salvar Jogo", "Carregar Jogo", "Configurações", "Conquistas", "Sair para o Menu"]
+        self.opcoes_combate = ["Retomar", "Carregar Jogo", "Configurações", "Conquistas", "Sair para o Menu"]
         self.opcoes = list(self.opcoes_padrao)
         self.selecionada = 0
         
@@ -121,6 +121,11 @@ class PauseState(State):
         elif opcao == "Configurações":
             self.game.origem_configuracoes = "PAUSE"
             self.game.mudar_estado("CONFIGURACOES")
+
+        elif opcao == "Conquistas":
+            self._tocar_sfx("ui_confirmar")
+            self.game.origem_conquistas = "PAUSE"
+            self.game.mudar_estado("CONQUISTAS")
             
         elif opcao == "Sair para o Menu":
             self.game.origem_pause = "JOGANDO"

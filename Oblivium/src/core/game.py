@@ -36,6 +36,7 @@ from src.states.slots_states import SlotsState
 from src.states.inventory_states import InventoryState
 from src.states.shop_states import ShopState
 from src.states.selecao_controles_state import SelecaoControlesState
+from src.states.conquistas_state import ConquistasState
 
 
 
@@ -155,10 +156,12 @@ class Game:
             "INVENTARIO": InventoryState(self),
             "LOJA": ShopState(self),
             "SLOTS": SlotsState(self),
-            "SELECAO_CONTROLES": SelecaoControlesState(self)
+            "SELECAO_CONTROLES": SelecaoControlesState(self),
+            "CONQUISTAS": ConquistasState(self)
         }
         self.nome_estado_atual = "MENU"
         self.origem_configuracoes = "MENU"
+        self.origem_conquistas = "MENU"
         self.mudar_estado("MENU")
 
     def aplicar_preset_controles(self, tipo="WASD"):
