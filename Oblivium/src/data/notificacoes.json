@@ -118,6 +118,13 @@
       "tipo": "ITEM",
       "icone": "✦",
       "duracao_ticks": 180
+    },
+    "notificacao_conquista": {
+      "titulo": "✦ CONQUISTA DESBLOQUEADA ✦",
+      "mensagem": "{conquista}",
+      "tipo": "CONQUISTA",
+      "icone": "🏆",
+      "duracao_ticks": 260
     }
   }
 }

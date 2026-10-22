@@ -21,6 +21,7 @@ from src.utils.dev_commands import ComandosDev
 from src.utils.animations import EfeitoFolhas
 from src.utils.clima import EfeitoChuva
 from src.core.audio_manager import AudioManager
+from src.mechanics.achievement_manager import AchievementManager
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
@@ -63,6 +64,7 @@ class Game:
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
+        self.conquistas = AchievementManager(self)
         self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido

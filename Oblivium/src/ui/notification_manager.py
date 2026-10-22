@@ -18,42 +18,50 @@ class NotificacaoToast:
     def __init__(self, titulo, mensagem, tipo="ITEM", duracao_ticks=180, icone="✦"):
         self.titulo = titulo
         self.mensagem = mensagem
-        self.tipo = tipo.upper() # ITEM, RECEITA, MEMORIA, MISSAO, ALERTA
+        self.tipo = tipo.upper() # ITEM, RECEITA, MEMORIA, MISSAO, ALERTA, CONQUISTA
         self.duracao_maxima = duracao_ticks
         self.tempo_vida = duracao_ticks
         self.icone = icone
         self.alpha = 0
-        self.offset_x = 50 # Efeito de deslizamento (Slide-in)
+        self.offset_y = -20 # Efeito de descida suave do topo (Slide-down)
 
         # Configuração de cores por tipo
-        self.cor_borda = BORDA_DESTAQUE if self.tipo in ["MEMORIA", "MISSAO", "SINCRONIA"] else CINZA_LINHO
-        if self.tipo == "ITEM":
+        if self.tipo == "CONQUISTA":
+            self.cor_borda = (235, 195, 75)
+            self.cor_destaque = (245, 205, 80)
+        elif self.tipo in ["MEMORIA", "MISSAO", "SINCRONIA"]:
+            self.cor_borda = BORDA_DESTAQUE
+            if self.tipo in ["MEMORIA", "SINCRONIA"]:
+                self.cor_destaque = (160, 240, 180)
+            else:
+                self.cor_destaque = (240, 180, 120)
+        elif self.tipo == "ITEM":
+            self.cor_borda = CINZA_LINHO
             self.cor_destaque = (220, 210, 140)
         elif self.tipo == "RECEITA":
+            self.cor_borda = CINZA_LINHO
             self.cor_destaque = (140, 210, 240)
-        elif self.tipo in ["MEMORIA", "SINCRONIA"]:
-            self.cor_destaque = (160, 240, 180)
-        elif self.tipo == "MISSAO":
-            self.cor_destaque = (240, 180, 120)
         elif self.tipo == "SISTEMA":
+            self.cor_borda = CINZA_LINHO
             self.cor_destaque = (170, 225, 205)
         else:
+            self.cor_borda = CINZA_LINHO
             self.cor_destaque = MARFIM_OFFWHITE
 
     def update(self):
         self.tempo_vida -= 1
         
-        # Animação de entrada (Slide in + Fade in)
+        # Animação de entrada (Slide down + Fade in)
         if self.duracao_maxima - self.tempo_vida < 15:
             self.alpha = min(255, self.alpha + 18)
-            self.offset_x = max(0, self.offset_x - 4)
+            self.offset_y = min(0, self.offset_y + 2)
         # Animação de saída (Fade out)
         elif self.tempo_vida < 20:
             self.alpha = max(0, self.alpha - 14)
-            self.offset_x += 3
+            self.offset_y -= 1
         else:
             self.alpha = 255
-            self.offset_x = 0
+            self.offset_y = 0
 
     @property
     def expirou(self):
@@ -116,7 +124,8 @@ class NotificationManager:
             "notificacao_alerta": {"titulo": "{titulo}", "mensagem": "{mensagem}", "tipo": "ALERTA", "icone": "⚠", "duracao_ticks": 200},
             "notificacao_salvo": {"titulo": "Jogo Salvo", "mensagem": "Progresso salvo com sucesso no {slot}.", "tipo": "SISTEMA", "icone": "💾", "duracao_ticks": 180},
             "notificacao_autosave": {"titulo": "Salvamento Automático", "mensagem": "Checkpoint registrado no {slot}.", "tipo": "SISTEMA", "icone": "💾", "duracao_ticks": 160},
-            "notificacao_carregar": {"titulo": "Jogo Carregado", "mensagem": "Progresso carregado com sucesso do {slot}.", "tipo": "SISTEMA", "icone": "📂", "duracao_ticks": 180}
+            "notificacao_carregar": {"titulo": "Jogo Carregado", "mensagem": "Progresso carregado com sucesso do {slot}.", "tipo": "SISTEMA", "icone": "📂", "duracao_ticks": 180},
+            "notificacao_conquista": {"titulo": "✦ CONQUISTA DESBLOQUEADA ✦", "mensagem": "{conquista}", "tipo": "CONQUISTA", "icone": "🏆", "duracao_ticks": 260}
         }
 
     def notificar(self, identificador_ou_titulo, mensagem=None, tipo="ITEM", duracao_ticks=180, icone="✦", **kwargs):
@@ -192,6 +201,12 @@ class NotificationManager:
     def notificar_sincronia_aumentada(self, nivel):
         self.notificar("notificacao_sincronia", nivel=nivel)
 
+    def notificar_conquista(self, conquista):
+        """Dispara banner comemorativo para uma nova conquista desbloqueada."""
+        nome = conquista.get("titulo", "Nova Conquista") if isinstance(conquista, dict) else str(conquista)
+        ico = conquista.get("icone", "🏆") if isinstance(conquista, dict) else "🏆"
+        self.notificar("notificacao_conquista", conquista=nome, icone=ico)
+
     def alternar_historico(self):
         self.mostrar_historico = not self.mostrar_historico
 
@@ -244,19 +259,19 @@ class NotificationManager:
         self.notificacoes = [t for t in self.notificacoes if not t.expirou]
 
     def draw(self, tela):
-        # 1. Desenha os toasts ativos no canto superior direito
+        # 1. Desenha os toasts ativos centralizados no topo da tela (Centro Superior)
         self.rects_toasts_ativos.clear()
         
         if self.notificacoes:
             w_card = 340
             h_card = 62
             espacamento = 10
-            x_base = self.largura_tela - w_card - 25
-            y_base = 25
+            x_base = (self.largura_tela - w_card) // 2
+            y_base = 22
 
             for i, toast in enumerate(self.notificacoes):
-                y_pos = y_base + (i * (h_card + espacamento))
-                x_pos = x_base + toast.offset_x
+                y_pos = y_base + (i * (h_card + espacamento)) + toast.offset_y
+                x_pos = x_base
 
                 rect_toast_tela = pygame.Rect(x_pos, y_pos, w_card, h_card)
                 self.rects_toasts_ativos.append(rect_toast_tela)
