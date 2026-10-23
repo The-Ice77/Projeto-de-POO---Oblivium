@@ -53,12 +53,12 @@ class EnemyFactory:
                     "sombra_menor": {
                         "nome": "Sombra Menor",
                         "classe": "Enemy",
-                        "vida_base": 30,
+                        "vida_base": 42,
                         "velocidade": 2.5,
-                        "dano_base": 8,
-                        "atributos": {"forca": 9, "destreza": 13, "constituicao": 9, "intelecto": 8, "sabedoria": 7, "presenca": 8},
+                        "dano_base": 11,
+                        "atributos": {"forca": 12, "destreza": 14, "constituicao": 12, "intelecto": 10, "sabedoria": 8, "presenca": 10},
                         "habilidades": ["ataque_basico", "golpe_sombrio"],
-                        "recompensas": {"moedas": 8, "memorias": 0, "xp": 12},
+                        "recompensas": {"moedas": 10, "memorias": 0, "xp": 18},
                         "dimensoes": [35, 45],
                         "cor": [80, 30, 110]
                     },

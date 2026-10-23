@@ -243,11 +243,16 @@ class PlayingState(State):
                 self.game.transicao.avancar()
                 return
         elif self.game.mg_timing.ativo:
-            if evento.key == pygame.K_SPACE:
+            if evento.key in [pygame.K_SPACE, pygame.K_RETURN, pygame.K_e]:
                 self._checar_sucesso_timing()
         elif self.game.mg_mash.ativo:
-            if evento.key == pygame.K_SPACE:
-                self.game.mg_mash.esmagar()
+            res = self.game.mg_mash.processar_evento(evento)
+            if res:
+                pct = self.game.mg_mash.get_progresso_pct()
+                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                    self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+                if res in ["VENCEU", "PERDEU"]:
+                    self._finalizar_minigame_levitacao(res)
         elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
@@ -285,9 +290,15 @@ class PlayingState(State):
         
         # Se o minigame de levitação estiver ativo, cliques do mouse impulsionam a magia
         if self.game.mg_mash.ativo:
-            self.game.mg_mash.esmagar()
+            res = self.game.mg_mash.processar_evento(evento)
+            pct = self.game.mg_mash.get_progresso_pct()
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+            if res in ["VENCEU", "PERDEU"]:
+                self._finalizar_minigame_levitacao(res)
             return
         elif self.game.mg_timing.ativo:
+            self._checar_sucesso_timing()
             return
 
         # Clicar na bolsa do HUD abre o inventário
@@ -314,12 +325,36 @@ class PlayingState(State):
                 self.game.caixa_dialogo.clicar_mouse(pos)
 
     def _checar_sucesso_timing(self):
-        if self.game.mg_timing.checar_sucesso():
+        res = self.game.mg_timing.checar_sucesso()
+        if res == "VENCEU" or res is True:
             self.game.magia_ativa = "FOGO"
             self.game.distanciando_halia = True
             self.game.timer_magia = 0
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("fogo")
+        elif res == "AVANCOU_ETAPA":
+            # Avançou para a próxima etapa do ritual ígneo de 3 tempos.
+            pass
         else:
             self.game.caixa_dialogo.iniciar_dialogo("falha_timing")
+
+    def _finalizar_minigame_levitacao(self, res):
+        """Finaliza a levitação, assenta as rochas e abre o diálogo pos_levitar."""
+        if res == "VENCEU":
+            if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
+                self.game.mapa_casa.desobstruir_estrada("LEVITAR")
+            self.game.magia_usada_no_puzzle = "LEVITAR"
+            self.game.magia_ativa = "CONCLUIDO"
+            self.game.distanciando_halia = False
+            self.game.timer_magia = 0
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("levitacao")
+            self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
+            self.game.conversa_combate_ativa = True
+        elif res == "PERDEU":
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
+            self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
 
     def _update_minigames_e_flashbacks(self):
         if self.game.flashback_sistema.atualizar():
@@ -340,23 +375,8 @@ class PlayingState(State):
             if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
                 self.game.mapa_casa.atualizar_levitacao_minigame(pct)
 
-            if res == "VENCEU":
-                # As pedras já foram levitadas até as margens pelo esforço do jogador no minigame.
-                # Elas apenas pousam com impacto firme no solo onde estão e o jogo segue em frente!
-                if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
-                    self.game.mapa_casa.desobstruir_estrada("LEVITAR")
-                self.game.magia_usada_no_puzzle = "LEVITAR"
-                self.game.magia_ativa = "CONCLUIDO"
-                self.game.distanciando_halia = False
-                self.game.timer_magia = 0
-                if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                    self.game.conquistas.desbloquear("levitacao")
-                self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
-                self.game.conversa_combate_ativa = True
-            elif res == "PERDEU":
-                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
-                    self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
-                self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
+            if res in ["VENCEU", "PERDEU"]:
+                self._finalizar_minigame_levitacao(res)
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and not self.game.caixa_dialogo.ativo and self.game.magia_ativa is None and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo:
             if self.game.magia_selecionada_temporaria == "FOGO":

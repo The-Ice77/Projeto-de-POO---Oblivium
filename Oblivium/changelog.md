@@ -274,5 +274,39 @@
 - **Integração Completa de Gatilhos de Gameplay**:
   - Vinculação de gatilhos automáticos para todas as 15 conquistas (movimento inicial na casa, itens coletados, partida na carruagem, pássaro assustado, flashback de memória, quebra-cabeças de Levitação e Bola de Fogo, vitória e foco tático em combate, nível 2 de sincronia, fabricação de receitas e aceitação de missões).
 
+---
+
+### Atualização v[0.9.1] — Ritual Ígneo, Levitação QTE e Rebalanceamento de Inimigos
+#### Implementação, Correção e Aprimoramento
+- **Puzzle da Bola de Fogo (Ritual da Tríplice Fagulha)**:
+  - Reformulação completa de `MinigameTiming` para um ritual em 3 etapas progressivas (*Fagulha Inicial*, *Combustão Térmica* e *Ignição Plena Devastadora*).
+  - Cada etapa acelera o cursor e estreita a zona crítica de calor, com orbes visuais de progresso e explosões de fagulhas em caso de sucesso.
+- **Puzzle da Levitação Gravitacional com Quick Time Events (QTE Rítmico)**:
+  - Substituição do mash simples por um sistema rítmico de runas gravitacionais (`W`, `A`, `S`, `D`, `ESPAÇO`) em `MinigameMash`.
+  - Glifo rúnico com anel temporal dinâmico em arco e feedback de acerto/erro.
+  - Movimentação das rochas no cenário de Estrada 2 sincronizada diretamente em tempo real: acertos impulsionam as pedras para as margens (+24%), enquanto erros e expiração de tempo provocam perda de sustentação e decaimento com poeira.
+- **Rebalanceamento de Inimigos**:
+  - **Demônios Inferiores**: Vida base fortalecida de 30 para 42, dano base aumentado de 8 para 11, e atributos calibrados para garantir combates mais desafiadores na Estrada 2.
+  - Sincronização dos valores de fallback na `EnemyFactory`.
+- **Acessibilidade e Controles Unificados**:
+  - Suporte híbrido completo tanto por teclado quanto por cliques de mouse em ambos os novos minigames de magia.
+
+---
+
+### Atualização v[0.9.2] — Progressão de Levitação, Silenciamento de Dev Toasts e Testes de Banners
+#### Implementação, Correção e Aprimoramento
+- **Correção da Progressão Narrativa na Levitação**:
+  - Solução definitiva para a interrupção após o minigame gravitacional: criação do método `_finalizar_minigame_levitacao()` invocado imediatamente tanto pelo processamento de eventos (teclado/mouse) quanto pelo loop de atualização.
+  - As rochas assentam com precisão nas margens da pista, a conquista `levitacao` é desbloqueada, o diálogo `pos_levitar` é disparado e a transição para a cutscene e combate do Demônio Superior prossegue sem travas.
+- **Console Dev Aprimorado e Silencioso**:
+  - Removidos os toasts/notificações intrusivas disparados na tela durante o acionamento de atalhos no Dev Menu; o feedback agora é enviado limpo para o console de desenvolvimento (`print("[DEV] ...")`).
+  - Grade visual expandida para 10 comandos em 2 colunas x 5 linhas com diagramação Dark Fantasy refinada (880x510px).
+- **Novas Opções de Teste no Dev Menu**:
+  - **Opção `[ 9 ]` Testar Conquista**: Dispara o banner Steam-style estilizado no topo da tela alternando ciclicamente entre conquistas normais e a Platina real (`⚜`).
+  - **Opção `[ 0 ]` Testar Missão**: Ativa/avança missões no Rastreador (Quest Tracker HUD) e dispara o banner comemorativo de objetivos.
+- **Refinamento de Paleta Dark Fantasy**:
+  - Substituição de tons dourados e amarelos saturados na tela de conquistas e badges por tons nobres de Prata Arcana (`#d0daf0` e `#8fa0c0`), Marfim Offwhite e Cinza Linho, harmonizando com a estética gótica de Oblivium.
+
+
 
 

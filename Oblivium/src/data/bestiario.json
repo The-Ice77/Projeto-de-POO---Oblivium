@@ -3,23 +3,23 @@
         "nome": "Demônio Inferior",
         "classe": "Enemy",
         "pasta_sprites": "demonio_inferior",
-        "vida_base": 30,
-        "mana_base": 20,
+        "vida_base": 42,
+        "mana_base": 25,
         "velocidade": 2.5,
-        "dano_base": 8,
+        "dano_base": 11,
         "atributos": {
-            "forca": 9,
-            "destreza": 13,
-            "constituicao": 9,
-            "intelecto": 8,
-            "sabedoria": 7,
-            "presenca": 8
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 10,
+            "sabedoria": 8,
+            "presenca": 10
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio"],
+        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
         "recompensas": {
-            "moedas": 10,
+            "moedas": 12,
             "memorias": 0,
-            "xp": 15
+            "xp": 20
         },
         "dimensoes": [36, 36],
         "cor": [80, 30, 110]
@@ -28,23 +28,23 @@
         "nome": "Demônio Inferior das Sombras",
         "classe": "Enemy",
         "pasta_sprites": "demonio_inferior",
-        "vida_base": 30,
-        "mana_base": 20,
+        "vida_base": 42,
+        "mana_base": 25,
         "velocidade": 2.5,
-        "dano_base": 8,
+        "dano_base": 11,
         "atributos": {
-            "forca": 9,
-            "destreza": 13,
-            "constituicao": 9,
-            "intelecto": 8,
-            "sabedoria": 7,
-            "presenca": 8
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 10,
+            "sabedoria": 8,
+            "presenca": 10
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio"],
+        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
         "recompensas": {
-            "moedas": 8,
+            "moedas": 10,
             "memorias": 0,
-            "xp": 12
+            "xp": 18
         },
         "dimensoes": [36, 36],
         "cor": [80, 30, 110]
@@ -53,23 +53,23 @@
         "nome": "Demônio Inferior",
         "classe": "Enemy",
         "pasta_sprites": "demonio_inferior",
-        "vida_base": 30,
-        "mana_base": 20,
+        "vida_base": 42,
+        "mana_base": 25,
         "velocidade": 2.5,
-        "dano_base": 8,
+        "dano_base": 11,
         "atributos": {
-            "forca": 9,
-            "destreza": 13,
-            "constituicao": 9,
-            "intelecto": 8,
-            "sabedoria": 7,
-            "presenca": 8
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 10,
+            "sabedoria": 8,
+            "presenca": 10
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio"],
+        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
         "recompensas": {
-            "moedas": 10,
+            "moedas": 12,
             "memorias": 0,
-            "xp": 15
+            "xp": 20
         },
         "dimensoes": [36, 36],
         "cor": [80, 30, 110]
