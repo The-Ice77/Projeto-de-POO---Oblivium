@@ -60,6 +60,10 @@ class MenuState(State):
             # Apresenta a seleção de esquema de controles (WASD ou Setinhas) antes de iniciar
             self.game.mudar_estado("SELECAO_CONTROLES")
             
+        elif opcao == "Conquistas":
+            self.game.origem_conquistas = "MENU"
+            self.game.mudar_estado("CONQUISTAS")
+            
         elif opcao == "Configurações":
             self.game.origem_configuracoes = "MENU"
             self.game.mudar_estado("CONFIGURACOES")

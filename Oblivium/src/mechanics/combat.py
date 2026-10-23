@@ -11,17 +11,10 @@ if _raiz_projeto not in sys.path:
 
 from src.mechanics.skills import SkillsRegistry
 from src.entities.Boss import Boss
-from src.ui.ui_utils import (
-    desenhar_barra_status_interpolada,
-    quebrar_texto_em_linhas
-)
+from src.ui.ui_utils import quebrar_texto_em_linhas
 from src.utils.colors import (
-    UI_FUNDO_PADRAO, CINZA_CLARO, CINZA_ESCURO, CINZA_LINHO, CINZA_ARDOSIA,
-    UI_TEXTO_DESTAQUE, UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO,
-    NOME_HALIA, TEXTO_ALERTA_COMBATE,
-    BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA,
-    BRANCO, PRETO,
-    AZUL_HOVER_MENU, AZUL_HOVER_BG
+    TEXTO_ALERTA_COMBATE,
+    BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA
 )
 from src.utils.resource_manager import ResourceManager
 from src.core.audio_manager import AudioManager
@@ -525,6 +518,12 @@ class CombatScreen:
         if resultado.get("vulneravel"):
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), hx + 30, hy - 10, (240, 130, 130), duracao=80)
 
+        # Conquista: Mente Inabalável (Foco Espiritual ou Defender)
+        id_acao_atual = getattr(acao, 'id_acao', getattr(acao, 'id', ''))
+        if id_acao_atual in ["foco_espiritual", "defender"] or getattr(acao, 'tipo', '').upper() == "FOCO" or resultado.get("defendendo") or mana_rec > 0:
+            if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("foco_espiritual")
+
         # Se for magia de ataque ou suporte
         if getattr(acao, 'custo_mana', 0) > 0 or getattr(acao, 'tipo', '').upper() == 'MAGIA':
             self._tocar_sfx("magia_cast")
@@ -854,6 +853,8 @@ class CombatScreen:
             memorias=self.recompensas_vitoria['memorias']
         ))
         self.estado_combate = "VITORIA"
+        if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
+            self.game.conquistas.desbloquear("primeiro_sangue")
         audio = AudioManager.get_instance()
         if audio:
             audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)

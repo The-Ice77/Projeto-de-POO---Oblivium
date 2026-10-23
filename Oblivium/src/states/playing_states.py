@@ -18,6 +18,8 @@ class PlayingState(State):
         self._processar_movimento(teclas)
         
         for evento in eventos:
+            if hasattr(self.game, 'quest_tracker') and self.game.quest_tracker.handle_event(evento):
+                continue
             if evento.type == pygame.MOUSEMOTION:
                 self.game.caixa_dialogo.atualizar_mouse(evento.pos)
                 continue
@@ -79,6 +81,8 @@ class PlayingState(State):
                     )
                 if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
                     self.game.notificacoes.notificar_memoria_desperta(mem_atual)
+                if hasattr(self.game, 'conquistas') and self.game.conquistas and mem_atual >= 1:
+                    self.game.conquistas.desbloquear("sincronia_2")
         else:
             # Sincronização de segurança: garante que o filtro e o registro correspondam exatamente à memória
             if mem_atual > self.memoria_anterior_registrada:
@@ -184,6 +188,8 @@ class PlayingState(State):
         if teclas[self.game.controles["Direita"]]: dx = 1
         
         if dx != 0 or dy != 0:
+            if hasattr(self.game, 'conquistas') and self.game.conquistas and getattr(getattr(self.game, 'mapa_casa', None), 'cenario_atual', '') == "CASA":
+                self.game.conquistas.desbloquear("despertar")
             velocidade_original = self.game.halia.velocidade
             tecla_correr = self.game.controles.get("Correr", pygame.K_LSHIFT)
             esta_correndo = teclas[tecla_correr] or (tecla_correr in [pygame.K_LSHIFT, pygame.K_RSHIFT] and (teclas[pygame.K_LSHIFT] or teclas[pygame.K_RSHIFT]))
@@ -237,11 +243,16 @@ class PlayingState(State):
                 self.game.transicao.avancar()
                 return
         elif self.game.mg_timing.ativo:
-            if evento.key == pygame.K_SPACE:
+            if evento.key in [pygame.K_SPACE, pygame.K_RETURN, pygame.K_e]:
                 self._checar_sucesso_timing()
         elif self.game.mg_mash.ativo:
-            if evento.key == pygame.K_SPACE:
-                self.game.mg_mash.esmagar()
+            res = self.game.mg_mash.processar_evento(evento)
+            if res:
+                pct = self.game.mg_mash.get_progresso_pct()
+                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                    self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+                if res in ["VENCEU", "PERDEU"]:
+                    self._finalizar_minigame_levitacao(res)
         elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif self.game.caixa_dialogo.ativo:
@@ -279,9 +290,15 @@ class PlayingState(State):
         
         # Se o minigame de levitação estiver ativo, cliques do mouse impulsionam a magia
         if self.game.mg_mash.ativo:
-            self.game.mg_mash.esmagar()
+            res = self.game.mg_mash.processar_evento(evento)
+            pct = self.game.mg_mash.get_progresso_pct()
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(pct)
+            if res in ["VENCEU", "PERDEU"]:
+                self._finalizar_minigame_levitacao(res)
             return
         elif self.game.mg_timing.ativo:
+            self._checar_sucesso_timing()
             return
 
         # Clicar na bolsa do HUD abre o inventário
@@ -308,16 +325,42 @@ class PlayingState(State):
                 self.game.caixa_dialogo.clicar_mouse(pos)
 
     def _checar_sucesso_timing(self):
-        if self.game.mg_timing.checar_sucesso():
+        res = self.game.mg_timing.checar_sucesso()
+        if res == "VENCEU" or res is True:
             self.game.magia_ativa = "FOGO"
             self.game.distanciando_halia = True
             self.game.timer_magia = 0
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("fogo")
+        elif res == "AVANCOU_ETAPA":
+            # Avançou para a próxima etapa do ritual ígneo de 3 tempos.
+            pass
         else:
             self.game.caixa_dialogo.iniciar_dialogo("falha_timing")
+
+    def _finalizar_minigame_levitacao(self, res):
+        """Finaliza a levitação, assenta as rochas e abre o diálogo pos_levitar."""
+        if res == "VENCEU":
+            if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
+                self.game.mapa_casa.desobstruir_estrada("LEVITAR")
+            self.game.magia_usada_no_puzzle = "LEVITAR"
+            self.game.magia_ativa = "CONCLUIDO"
+            self.game.distanciando_halia = False
+            self.game.timer_magia = 0
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("levitacao")
+            self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
+            self.game.conversa_combate_ativa = True
+        elif res == "PERDEU":
+            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
+                self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
+            self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
 
     def _update_minigames_e_flashbacks(self):
         if self.game.flashback_sistema.atualizar():
             self.game.flashback_magia_concluido = True 
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("eco_passado")
             if self.game.slot_atual:
                 self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
             self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
@@ -332,21 +375,8 @@ class PlayingState(State):
             if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
                 self.game.mapa_casa.atualizar_levitacao_minigame(pct)
 
-            if res == "VENCEU":
-                # As pedras já foram levitadas até as margens pelo esforço do jogador no minigame.
-                # Elas apenas pousam com impacto firme no solo onde estão e o jogo segue em frente!
-                if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
-                    self.game.mapa_casa.desobstruir_estrada("LEVITAR")
-                self.game.magia_usada_no_puzzle = "LEVITAR"
-                self.game.magia_ativa = "CONCLUIDO"
-                self.game.distanciando_halia = False
-                self.game.timer_magia = 0
-                self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
-                self.game.conversa_combate_ativa = True
-            elif res == "PERDEU":
-                if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
-                    self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
-                self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
+            if res in ["VENCEU", "PERDEU"]:
+                self._finalizar_minigame_levitacao(res)
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and not self.game.caixa_dialogo.ativo and self.game.magia_ativa is None and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo:
             if self.game.magia_selecionada_temporaria == "FOGO":
@@ -440,12 +470,16 @@ class PlayingState(State):
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA" and self.game.aguardando_fim_viagem and not self.game.caixa_dialogo.ativo:
             self.game.aguardando_fim_viagem = False; self.game.conversa_carroceiro_terminou = True
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("partida_estrada")
             self.game.transicao.iniciar("Algumas horas depois...")
 
         # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and getattr(self.game, 'partindo_estrada2', False) and not self.game.caixa_dialogo.ativo:
             self.game.partindo_estrada2 = False
             self.game.conversa_carroceiro_terminou = True
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("rumo_a_vila")
             if self.game.halia.fragmentos_memoria < 1:
                 self.game.halia.recuperar_memoria(1)
             if self.game.slot_atual:
@@ -514,23 +548,21 @@ class PlayingState(State):
                 
                 if id_do_item == "item_moedas":
                     self.game.halia.ganhar_dinheiro(1000) # 50 Moedas de Prata = 5 Moedas de Ouro
-                    if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar("notificacao_bolsa_moedas")
+                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                        self.game.conquistas.desbloquear("bolsa_moedas")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
                 elif id_do_item == "item_cajado":
                     cajado = ItemFactory.criar("cajado_espinheiro")
                     if cajado:
                         self.game.halia.inventario.equipados["CAJADO"] = cajado
                     self.game.halia.recalcular_status_derivados()
-                    if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar("notificacao_cajado_espinheiro")
+                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                        self.game.conquistas.desbloquear("heranca_arcana")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você empunhou o Cajado de Espinheiro."}])
                 elif id_do_item == "item_livro":
                     tomo = ItemFactory.criar("tomo_chama_ancestral")
                     if tomo:
                         self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
-                    if hasattr(self.game, 'notificacoes'):
-                        self.game.notificacoes.notificar("notificacao_livro_antigo")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
                 else:
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
@@ -582,6 +614,8 @@ class PlayingState(State):
                     self.game.mapa_casa.desobstruir_estrada(self.game.magia_usada_no_puzzle or "FOGO")
                     self.game.inimigos_em_cena.clear()
                     self.game.cena_inimigos_andando = False
+                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                        self.game.conquistas.desbloquear("primeiro_sangue")
                     self.game.mudar_estado("JOGANDO")
                     self.game.caixa_dialogo.iniciar_dialogo("pos_combate_vitoria")
                     
@@ -699,3 +733,7 @@ class PlayingState(State):
         # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar
         if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
             self.game.hud.desenhar(tela, self.game)
+
+        # Quest Tracker no Canto Superior Direito da Tela
+        if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
+            self.game.quest_tracker.desenhar(tela, self.game)

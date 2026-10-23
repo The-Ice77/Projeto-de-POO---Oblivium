@@ -73,6 +73,7 @@ class Menu:
         nomes_botoes = {
             "Novo Jogo": ("menu inicial/novo jogo.png", "menu inicial/novo jogo hover.png"),
             "Continuar": ("menu inicial/continuar.png", "menu inicial/continuar hover.png"),
+            "Conquistas": ("menu inicial/16.png", "menu inicial/17.png"),
             "Configurações": ("menu inicial/configurações.png", "menu inicial/configurações hover.png"),
             "Créditos": ("menu inicial/créditos.png", "menu inicial/créditos hover.png"),
             "Sair": ("menu inicial/sair.png", "menu inicial/sair hover.png")
@@ -91,16 +92,16 @@ class Menu:
     def atualizar_opcoes(self):
         """Atualiza a lista de opções com base na presença de saves e posiciona com espaçamento aprimorado."""
         if save_manager.verificar_saves_globais():
-            self.opcoes = ["Novo Jogo", "Continuar", "Configurações", "Créditos", "Sair"]
+            self.opcoes = ["Novo Jogo", "Continuar", "Conquistas", "Configurações", "Créditos", "Sair"]
         else:
-            self.opcoes = ["Novo Jogo", "Configurações", "Créditos", "Sair"]
+            self.opcoes = ["Novo Jogo", "Conquistas", "Configurações", "Créditos", "Sair"]
 
         if self.selecionada >= len(self.opcoes):
             self.selecionada = -1
 
-        # Reposicionar botões verticalmente com espaçamento compacto (60px entre botões)
-        y_inicial = 305
-        espacamento_y = 60
+        # Reposicionar botões verticalmente com espaçamento harmônico calibrado
+        y_inicial = 285 if len(self.opcoes) >= 6 else 300
+        espacamento_y = 54 if len(self.opcoes) >= 6 else 58
         for i, opcao in enumerate(self.opcoes):
             if opcao in self.botoes:
                 self.botoes[opcao].definir_posicao(self.margem_x, y_inicial + i * espacamento_y)

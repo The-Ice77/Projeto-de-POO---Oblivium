@@ -158,6 +158,10 @@ class CraftingManager:
         
         item_res = ItemFactory.criar(receita.resultado_item_id)
         nome_res = item_res.nome if item_res else receita.resultado_item_id
+
+        if hasattr(jogador, 'game') and hasattr(jogador.game, 'conquistas') and jogador.game.conquistas:
+            jogador.game.conquistas.desbloquear("primeira_receita")
+
         return True, f"✦ {receita.resultado_quantidade}x {nome_res} fabricado(s) com sucesso!"
 
     # =========================================================================

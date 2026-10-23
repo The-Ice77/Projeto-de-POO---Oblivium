@@ -3,17 +3,22 @@ import pygame
 from src.states.states import State
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
-    MARFIM_OFFWHITE, BORDA_DESTAQUE,
-    BARRA_VIDA_JOGADOR, BARRA_MANA
+    MARFIM_OFFWHITE, BORDA_DESTAQUE
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
     desenhar_painel_padrao, desenhar_flor_botanica,
-    desenhar_barra_status_interpolada, desenhar_card_pergaminho, quebrar_texto_em_linhas
+    quebrar_texto_em_linhas
 )
 from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem
 from src.mechanics.skills import ActionCatalog
 from src.mechanics.crafting import CraftingManager
+from src.states.inventory_tabs import (
+    TabInventarioRenderer,
+    TabPerfilRenderer,
+    TabMagiaRenderer,
+    TabCraftingRenderer
+)
 
 class InventoryState(State):
     """
@@ -100,6 +105,12 @@ class InventoryState(State):
         # Feedback
         self.mensagem_feedback = ""
         self.timer_feedback = 0
+
+        # Renderizadores Modulares para cada Aba do Menu
+        self.tab_inventario = TabInventarioRenderer(self)
+        self.tab_perfil = TabPerfilRenderer(self)
+        self.tab_magia = TabMagiaRenderer(self)
+        self.tab_crafting = TabCraftingRenderer(self)
 
     def _recalcular_grid_slots(self):
         """Calcula os retângulos da grelha de itens na direita do inventário."""
@@ -353,6 +364,8 @@ class InventoryState(State):
                     quantidade=rec.resultado_quantidade,
                     nome=rec.nome
                 )
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("primeira_receita")
             halia.recalcular_status_derivados(manter_porcentagem=False)
         else:
             self.exibir_mensagem(f"⚠ {msg}")
@@ -480,450 +493,19 @@ class InventoryState(State):
         pygame.draw.line(tela, CINZA_ARDOSIA, (self.x_menu + 25, self.y_menu + 62), (self.x_menu + self.largura_menu - 25, self.y_menu + 62), 1)
 
     # =========================================================================
-    # [1] ABA INVENTÁRIO
+    # RENDERIZAÇÃO DAS ABAS (DELEGADAS AOS RENDERIZADORES ESPECIALIZADOS)
     # =========================================================================
     def _desenhar_aba_inventario(self, tela, halia):
-        inv = getattr(halia, 'inventario', None) if halia else None
+        self.tab_inventario.desenhar(tela, halia)
 
-        # 1. EQUIPAMENTOS (Topo Esquerdo)
-        txt_eq = self.fonte_sub.render("Equipamentos Arcanos", True, MARFIM_OFFWHITE)
-        tela.blit(txt_eq, (self.x_menu + 45, self.y_menu + 78))
-
-        slots_eq_dados = [
-            (self.slot_roupa, "ROUPA", "Roupa"),
-            (self.slot_cajado, "CAJADO", "Cajado"),
-            (self.slot_acess1, "ACESSORIO_1", "Acessório I"),
-            (self.slot_acess2, "ACESSORIO_2", "Acessório II")
-        ]
-
-        for rect_s, nome_s, rotulo in slots_eq_dados:
-            hover = (self.slot_hover and self.slot_hover[0] == "equipamento" and self.slot_hover[1] == nome_s)
-            item_eq = inv.equipados.get(nome_s) if inv else None
-            
-            fundo_s = (36, 36, 46) if hover else (22, 22, 26)
-            borda_s = BORDA_DESTAQUE if hover else CINZA_LINHO
-            pygame.draw.rect(tela, fundo_s, rect_s, border_radius=3)
-            pygame.draw.rect(tela, borda_s, rect_s, 2 if hover else 1, border_radius=3)
-
-            lbl_rot = self.fonte_mini.render(rotulo, True, (130, 130, 140))
-            tela.blit(lbl_rot, (rect_s.x + 6, rect_s.y + 6))
-
-            if item_eq:
-                txt_item = self.fonte_mini.render(item_eq.nome[:9], True, MARFIM_OFFWHITE)
-                tela.blit(txt_item, (rect_s.centerx - txt_item.get_width() // 2, rect_s.centery + 4))
-                up = getattr(item_eq, 'nivel_upgrade', 0)
-                if up > 0:
-                    txt_up = self.fonte_mini.render(f"+{up}", True, (230, 210, 120))
-                    tela.blit(txt_up, (rect_s.right - txt_up.get_width() - 4, rect_s.bottom - txt_up.get_height() - 3))
-            else:
-                lbl_vazio = self.fonte_mini.render("Vazio", True, (90, 90, 100))
-                tela.blit(lbl_vazio, (rect_s.centerx - lbl_vazio.get_width() // 2, rect_s.centery + 8))
-
-        # 2. SLOTS DE GRIMÓRIOS (4 Espaços Abaixo dos Equipamentos)
-        txt_gr = self.fonte_sub.render("Grimórios Despertados (4 Espaços)", True, MARFIM_OFFWHITE)
-        tela.blit(txt_gr, (self.x_menu + 45, self.y_menu + 225))
-
-        for i, rect_g in enumerate(self.slots_grimorios):
-            chave_g = f"GRIMORIO_{i+1}"
-            hover_g = (self.slot_hover and self.slot_hover[0] == "equipamento" and self.slot_hover[1] == chave_g)
-            item_g = inv.equipados.get(chave_g) if inv else None
-
-            fundo_g = (36, 36, 46) if hover_g else (22, 22, 26)
-            borda_g = BORDA_DESTAQUE if hover_g else CINZA_LINHO
-            pygame.draw.rect(tela, fundo_g, rect_g, border_radius=3)
-            pygame.draw.rect(tela, borda_g, rect_g, 2 if hover_g else 1, border_radius=3)
-
-            lbl_g_rot = self.fonte_mini.render(f"Grimório {i+1}", True, (130, 130, 140))
-            tela.blit(lbl_g_rot, (rect_g.x + 6, rect_g.y + 6))
-
-            if item_g:
-                txt_item_g = self.fonte_mini.render(item_g.nome[:9], True, (240, 225, 160))
-                tela.blit(txt_item_g, (rect_g.centerx - txt_item_g.get_width() // 2, rect_g.centery + 4))
-            else:
-                lbl_vazio_g = self.fonte_mini.render("Vazio", True, (90, 90, 100))
-                tela.blit(lbl_vazio_g, (rect_g.centerx - lbl_vazio_g.get_width() // 2, rect_g.centery + 8))
-
-        # Painel Informativo Inferior Esquerdo
-        r_inst = pygame.Rect(self.x_menu + 45, self.y_menu + 375, 360, 180)
-        desenhar_card_pergaminho(tela, r_inst, cor_fundo=(20, 20, 24), cor_borda=CINZA_ARDOSIA)
-        tela.blit(self.fonte_mini.render("✦ GUIA RÁPIDO DE INVENTÁRIO", True, (210, 195, 140)), (r_inst.x + 16, r_inst.y + 14))
-        linhas_guia = [
-            "• Passe o cursor sobre itens para ler suas propriedades.",
-            "• [Clique Esquerdo] Usa consumíveis ou veste equipamentos.",
-            "• [Clique Direito] Remove o equipamento para a bolsa.",
-            "• Os Grimórios equipados contêm feitiços ancestrais."
-        ]
-        y_g = r_inst.y + 42
-        for lg in linhas_guia:
-            tela.blit(self.fonte_mini.render(lg, True, CINZA_LINHO), (r_inst.x + 16, y_g))
-            y_g += 26
-
-        # Linha vertical separadora
-        pygame.draw.line(tela, CINZA_ARDOSIA, (self.x_menu + 445, self.y_menu + 75), (self.x_menu + 445, self.y_menu + self.altura_menu - 50), 1)
-
-        # 3. SUB-ABAS DA BOLSA (Direita)
-        self.rects_sub_abas_bolsa.clear()
-        sub_x = self.x_menu + 475
-        sub_y = self.y_menu + 76
-        altura_sub = 28
-
-        for s_idx, nome_sub in enumerate(self.sub_abas_bolsa):
-            ativa_s = (s_idx == self.sub_aba_bolsa_ativa)
-            rotulo = f"✦ {nome_sub}" if ativa_s else nome_sub
-            txt_s = self.fonte_abas.render(rotulo, True, MARFIM_OFFWHITE if ativa_s else CINZA_LINHO)
-            largura_s = txt_s.get_width() + 18
-
-            rect_sub = pygame.Rect(sub_x, sub_y, largura_s, altura_sub)
-            self.rects_sub_abas_bolsa.append(rect_sub)
-
-            pygame.draw.rect(tela, (36, 36, 46) if ativa_s else (20, 20, 24), rect_sub, border_radius=2)
-            pygame.draw.rect(tela, MARFIM_OFFWHITE if ativa_s else CINZA_ARDOSIA, rect_sub, 1, border_radius=2)
-            tela.blit(txt_s, (rect_sub.centerx - txt_s.get_width() // 2, rect_sub.centery - txt_s.get_height() // 2))
-            sub_x += largura_s + 8
-
-        # 4. GRELHA DE ITENS DA BOLSA
-        cat_atual = self.mapa_sub_categorias[self.sub_aba_bolsa_ativa]
-        itens_filtrados = inv.obter_itens_por_categoria(cat_atual) if inv else []
-
-        for idx_slot, rect_g in enumerate(self.slots_gerais):
-            hover_g = (self.slot_hover and self.slot_hover[0] == "bolsa" and rect_g.collidepoint(self.pos_mouse))
-            fundo_g = (34, 34, 42) if hover_g else (18, 18, 22)
-            borda_g = BORDA_DESTAQUE if hover_g else CINZA_ARDOSIA
-
-            pygame.draw.rect(tela, fundo_g, rect_g, border_radius=3)
-            pygame.draw.rect(tela, borda_g, rect_g, 2 if hover_g else 1, border_radius=3)
-
-            if idx_slot < len(itens_filtrados):
-                idx_real, item_slot = itens_filtrados[idx_slot]
-                item = item_slot.item
-                qtd = item_slot.quantidade
-
-                nome_formatado = item.nome_formatado if hasattr(item, 'nome_formatado') else item.nome
-                txt_item = self.fonte_mini.render(nome_formatado[:14] + ("..." if len(nome_formatado) > 14 else ""), True, MARFIM_OFFWHITE)
-                tela.blit(txt_item, (rect_g.x + 8, rect_g.y + 10))
-
-                cat_txt = "Grimório" if item.categoria == "GRIMORIO" else item.categoria.capitalize()
-                txt_cat = self.fonte_mini.render(cat_txt[:10], True, (130, 130, 145))
-                tela.blit(txt_cat, (rect_g.x + 8, rect_g.y + 36))
-
-                if qtd > 1 or item.acumulavel:
-                    txt_qtd = self.fonte_mini.render(f"x{qtd}", True, (230, 215, 150))
-                    tela.blit(txt_qtd, (rect_g.right - txt_qtd.get_width() - 8, rect_g.bottom - txt_qtd.get_height() - 6))
-
-    # =========================================================================
-    # [2] ABA PERFIL
-    # =========================================================================
     def _desenhar_aba_perfil(self, tela, halia):
-        if not halia:
-            return
+        self.tab_perfil.desenhar(tela, halia)
 
-        memorias = getattr(halia, 'fragmentos_memoria', 0)
-        attrs_totais = halia.obter_atributos_totais()
-        attrs_base = halia.atributos
-
-        # Cabeçalho Superior: Estágio da Memória limpo
-        txt_cab = self.fonte_destaque.render(f"Halia — Estágio da Memória: {memorias}", True, MARFIM_OFFWHITE)
-        tela.blit(txt_cab, (self.x_menu + 45, self.y_menu + 75))
-
-        # BLOCO 1 (Esquerda): RECURSOS E ESTATÍSTICAS
-        r_bloco1 = pygame.Rect(self.x_menu + 45, self.y_menu + 110, 505, 450)
-        desenhar_painel_padrao(tela, r_bloco1, cor_fundo=(20, 20, 25), cor_borda=CINZA_LINHO, border_radius=4)
-        tela.blit(self.fonte_sub.render("Recursos & Capacidade de Combate", True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 16))
-        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 46), (r_bloco1.right - 20, r_bloco1.y + 46), 1)
-
-        # 1. Barras de Vida e Mana
-        tela.blit(self.fonte_texto.render(f"Pontos de Vida (HP): {halia.vida_atual} / {halia.vida_maxima}", True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 58))
-        desenhar_barra_status_interpolada(tela, r_bloco1.x + 20, r_bloco1.y + 84, halia.vida_atual, halia.vida_maxima, BARRA_VIDA_JOGADOR, largura=465, altura=14)
-
-        tela.blit(self.fonte_texto.render(f"Reserva de Mana (MP): {halia.mana_atual} / {halia.mana_maxima}", True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 112))
-        desenhar_barra_status_interpolada(tela, r_bloco1.x + 20, r_bloco1.y + 138, halia.mana_atual, halia.mana_maxima, BARRA_MANA, largura=465, altura=14)
-
-        # 2. Carteira Decomposta
-        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 170), (r_bloco1.right - 20, r_bloco1.y + 170), 1)
-        tela.blit(self.fonte_mini.render("CARTEIRA (20 Cobre = 1 Prata | 10 Prata = 1 Ouro)", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 180))
-
-        str_moedas = f"🪙 {halia.moedas_ouro} Ouro   |   🥈 {halia.moedas_prata} Prata   |   🥉 {halia.moedas_cobre} Cobre"
-        tela.blit(self.fonte_destaque.render(str_moedas, True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 206))
-
-        # 3. Parâmetros de Combate
-        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 242), (r_bloco1.right - 20, r_bloco1.y + 242), 1)
-        tela.blit(self.fonte_mini.render("PARÂMETROS DE COMBATE", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 252))
-
-        inv = getattr(halia, 'inventario', None)
-        bonus_stats = inv.obter_bonus_totais_equipamentos()["stats"] if inv else {}
-
-        def_fisica = attrs_totais.calcular_defesa_fisica() + bonus_stats.get("defesa_fisica", 0)
-        def_magica = attrs_totais.calcular_defesa_magica() + bonus_stats.get("defesa_magica", 0)
-        esquiva = int(min(45.0, max(5.0, 10.0 + (attrs_totais.mod_des * 2.5) + bonus_stats.get("esquiva", 0))))
-        critico = int(attrs_totais.calcular_chance_critico() + bonus_stats.get("critico", 0))
-        poder_magico = max(0, attrs_totais.mod_int * 2) + bonus_stats.get("dano_magico", 0)
-
-        stats_combate = [
-            ("✦ Chance de Esquiva:", f"{esquiva}%"),
-            ("✦ Bloqueio & Defesa Física:", f"{def_fisica} pts"),
-            ("✦ Defesa Mágica:", f"{def_magica} pts"),
-            ("✦ Poder Mágico Arcano:", f"+{poder_magico} pts"),
-            ("✦ Acerto Crítico:", f"{critico}%")
-        ]
-
-        y_sc = r_bloco1.y + 280
-        for rotulo_sc, valor_sc in stats_combate:
-            tela.blit(self.fonte_texto.render(rotulo_sc, True, CINZA_LINHO), (r_bloco1.x + 24, y_sc))
-            tela.blit(self.fonte_destaque.render(valor_sc, True, MARFIM_OFFWHITE), (r_bloco1.right - 100, y_sc - 2))
-            y_sc += 30
-
-        # BLOCO 2 (Direita): OS 6 ATRIBUTOS
-        r_bloco2 = pygame.Rect(self.x_menu + 570, self.y_menu + 110, 505, 450)
-        desenhar_painel_padrao(tela, r_bloco2, cor_fundo=(20, 20, 25), cor_borda=CINZA_LINHO, border_radius=4)
-        tela.blit(self.fonte_sub.render("Atributos Primários (D20 Core)", True, MARFIM_OFFWHITE), (r_bloco2.x + 20, r_bloco2.y + 16))
-        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco2.x + 20, r_bloco2.y + 46), (r_bloco2.right - 20, r_bloco2.y + 46), 1)
-
-        lista_attrs = [
-            ("INT", "Intelecto", attrs_base.intelecto, attrs_totais.intelecto),
-            ("SAB", "Sabedoria", attrs_base.sabedoria, attrs_totais.sabedoria),
-            ("PRE", "Presença", attrs_base.presenca, attrs_totais.presenca),
-            ("CON", "Constituição", attrs_base.constituicao, attrs_totais.constituicao),
-            ("DES", "Destreza", attrs_base.destreza, attrs_totais.destreza),
-            ("FOR", "Força", attrs_base.forca, attrs_totais.forca)
-        ]
-
-        y_attr_card = r_bloco2.y + 60
-        for sigla, nome_a, v_base, v_total in lista_attrs:
-            r_card_a = pygame.Rect(r_bloco2.x + 20, y_attr_card, 465, 54)
-            pygame.draw.rect(tela, (26, 26, 32), r_card_a, border_radius=3)
-            pygame.draw.rect(tela, CINZA_ARDOSIA, r_card_a, 1, border_radius=3)
-
-            txt_sig = self.fonte_destaque.render(sigla, True, (230, 215, 140))
-            tela.blit(txt_sig, (r_card_a.x + 14, r_card_a.y + 16))
-
-            txt_nm = self.fonte_texto.render(nome_a, True, MARFIM_OFFWHITE)
-            tela.blit(txt_nm, (r_card_a.x + 65, r_card_a.y + 18))
-
-            bonus = v_total - v_base
-            str_b = f"(Base {v_base} + Eq {bonus})" if bonus > 0 else f"(Base {v_base})"
-            tela.blit(self.fonte_mini.render(str_b, True, (140, 140, 155)), (r_card_a.x + 190, r_card_a.y + 20))
-
-            mod = (v_total - 10) // 2
-            mod_str = f"+{mod}" if mod >= 0 else f"{mod}"
-            cor_mod = (140, 230, 170) if mod >= 0 else (240, 130, 130)
-            
-            txt_tot = self.fonte_destaque.render(f"{v_total}", True, MARFIM_OFFWHITE)
-            tela.blit(txt_tot, (r_card_a.right - 120, r_card_a.y + 16))
-
-            txt_mod = self.fonte_destaque.render(f"[{mod_str}]", True, cor_mod)
-            tela.blit(txt_mod, (r_card_a.right - 65, r_card_a.y + 16))
-
-            y_attr_card += 62
-
-    # =========================================================================
-    # [3] ABA MAGIA (2 Colunas com Scroll)
-    # =========================================================================
     def _desenhar_aba_magia(self, tela, halia):
-        flashback_concluido = getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
+        self.tab_magia.desenhar(tela, halia)
 
-        if not flashback_concluido:
-            r_selo = pygame.Rect(self.x_menu + 180, self.y_menu + 110, self.largura_menu - 360, 420)
-            desenhar_card_pergaminho(tela, r_selo, cor_fundo=(18, 18, 22), cor_borda=(70, 70, 85))
-
-            desenhar_flor_botanica(tela, r_selo.centerx, r_selo.y + 80, cor=(90, 90, 110), escala=1.5)
-
-            txt_selo_tit = self.fonte_destaque.render("✦ Conhecimento Arcano Selado ✦", True, (220, 205, 150))
-            tela.blit(txt_selo_tit, (r_selo.centerx - txt_selo_tit.get_width() // 2, r_selo.y + 160))
-
-            linhas_selo = [
-                "Os feitiços arcanos e os mistérios ancestrais de Halia repousam em silêncio.",
-                "As páginas do Grimório ainda aguardam o despertar da memória arcana.",
-                "Investigue os obstáculos da estrada para reconectar-se com sua essência mágica."
-            ]
-
-            y_s = r_selo.y + 215
-            for ls in linhas_selo:
-                txt_ls = self.fonte_texto.render(ls, True, CINZA_LINHO)
-                tela.blit(txt_ls, (r_selo.centerx - txt_ls.get_width() // 2, y_s))
-                y_s += 30
-            return
-
-        # CATÁLOGO DE MAGIAS DESBLOQUEADAS EM 2 COLUNAS
-        magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar", "brisa_curativa"])
-        if not magias_ids:
-            magias_ids = ["bola_de_fogo", "levitar", "brisa_curativa"]
-
-        if self.magia_selecionada_idx >= len(magias_ids):
-            self.magia_selecionada_idx = 0
-
-        w_lista = 390
-        h_coluna = 465
-        x_lista = self.x_menu + 45
-        y_coluna = self.y_menu + 85
-
-        r_painel_lista = pygame.Rect(x_lista, y_coluna, w_lista, h_coluna)
-        desenhar_painel_padrao(tela, r_painel_lista, cor_fundo=(20, 20, 25), cor_borda=CINZA_LINHO, border_radius=4)
-        
-        tela.blit(self.fonte_sub.render(f"Grimório ({len(magias_ids)} Despertadas)", True, MARFIM_OFFWHITE), (x_lista + 18, y_coluna + 14))
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x_lista + 18, y_coluna + 42), (x_lista + w_lista - 18, y_coluna + 42), 1)
-
-        y_itens_inicio = y_coluna + 50
-        h_viewport = h_coluna - 60
-        r_viewport = pygame.Rect(x_lista + 10, y_itens_inicio, w_lista - 20, h_viewport)
-        
-        antigo_clip = tela.get_clip()
-        tela.set_clip(r_viewport)
-
-        self.rects_lista_magias.clear()
-        h_card_m = 76
-        espacamento_m = 8
-        altura_total_lista = len(magias_ids) * (h_card_m + espacamento_m)
-        max_scroll = max(0, altura_total_lista - h_viewport)
-        self.scroll_magias = max(0, min(self.scroll_magias, max_scroll))
-
-        for idx_m, id_magia in enumerate(magias_ids):
-            acao = ActionCatalog.get(id_magia)
-            nome = acao.nome if acao else id_magia.replace("_", " ").title()
-            custo = acao.custo_mana if acao else 0
-            elemento = acao.elemento if acao else "ARCANO"
-
-            pos_y_card = y_itens_inicio + (idx_m * (h_card_m + espacamento_m)) - self.scroll_magias
-            r_card_item = pygame.Rect(x_lista + 14, pos_y_card, w_lista - 38, h_card_m)
-            self.rects_lista_magias.append(r_card_item)
-
-            esta_selecionada = (idx_m == self.magia_selecionada_idx)
-            pos_m = pygame.mouse.get_pos()
-            hover_card = r_card_item.collidepoint(pos_m)
-
-            if esta_selecionada:
-                fundo_c = (38, 38, 50)
-                borda_c = BORDA_DESTAQUE
-            elif hover_card:
-                fundo_c = (30, 30, 38)
-                borda_c = CINZA_LINHO
-            else:
-                fundo_c = (22, 22, 28)
-                borda_c = CINZA_ARDOSIA
-
-            pygame.draw.rect(tela, fundo_c, r_card_item, border_radius=3)
-            pygame.draw.rect(tela, borda_c, r_card_item, 2 if esta_selecionada else 1, border_radius=3)
-
-            if esta_selecionada:
-                pygame.draw.rect(tela, (230, 215, 140), (r_card_item.x + 3, r_card_item.y + 6, 4, r_card_item.height - 12), border_radius=2)
-
-            cor_nome = (245, 230, 165) if esta_selecionada else MARFIM_OFFWHITE
-            txt_nm = self.fonte_destaque.render(f"✦ {nome}", True, cor_nome)
-            tela.blit(txt_nm, (r_card_item.x + 16, r_card_item.y + 12))
-
-            txt_elem = self.fonte_mini.render(f"{elemento.capitalize()}", True, (140, 190, 240))
-            tela.blit(txt_elem, (r_card_item.x + 16, r_card_item.y + 42))
-
-            txt_custo = self.fonte_mini.render(f"{custo} MP", True, (160, 240, 180))
-            tela.blit(txt_custo, (r_card_item.right - txt_custo.get_width() - 14, r_card_item.y + 42))
-
-        tela.set_clip(antigo_clip)
-
-        if max_scroll > 0:
-            trilho_x = x_lista + w_lista - 14
-            trilho_y = y_itens_inicio
-            trilho_h = h_viewport
-            pygame.draw.rect(tela, (18, 18, 22), (trilho_x, trilho_y, 5, trilho_h), border_radius=2)
-
-            tamanho_thumb = max(24, int((h_viewport / altura_total_lista) * trilho_h))
-            thumb_y = trilho_y + int((self.scroll_magias / max_scroll) * (trilho_h - tamanho_thumb))
-            pygame.draw.rect(tela, (160, 160, 180), (trilho_x, thumb_y, 5, tamanho_thumb), border_radius=2)
-
-        # COLUNA DIREITA: DETALHES COMPLETOS
-        w_detalhes = 620
-        x_detalhes = self.x_menu + 465
-        r_painel_det = pygame.Rect(x_detalhes, y_coluna, w_detalhes, h_coluna)
-        desenhar_painel_padrao(tela, r_painel_det, cor_fundo=(20, 20, 25), cor_borda=CINZA_LINHO, border_radius=4)
-
-        id_selecionada = magias_ids[self.magia_selecionada_idx]
-        acao_sel = ActionCatalog.get(id_selecionada)
-        nome_sel = acao_sel.nome if acao_sel else id_selecionada.replace("_", " ").title()
-        custo_sel = acao_sel.custo_mana if acao_sel else 0
-        elem_sel = acao_sel.elemento if acao_sel else "ARCANO"
-        desc_sel = acao_sel.descricao if acao_sel else "Feitiço ancestral canalizado através da vontade mágica de Halia."
-        tipo_acao = acao_sel.tipo if acao_sel else "OFENSIVA"
-
-        txt_tit_det = self.fonte_sub.render(nome_sel, True, (245, 230, 165))
-        tela.blit(txt_tit_det, (x_detalhes + 24, y_coluna + 16))
-        desenhar_flor_botanica(tela, x_detalhes + txt_tit_det.get_width() + 45, y_coluna + 26, cor=(210, 195, 140), escala=0.55)
-
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x_detalhes + 24, y_coluna + 46), (x_detalhes + w_detalhes - 24, y_coluna + 46), 1)
-
-        badges = [
-            ("Elemento", elem_sel.capitalize(), (140, 190, 240)),
-            ("Custo", f"{custo_sel} MP", (160, 240, 180)),
-            ("Categoria", tipo_acao.capitalize(), (230, 210, 140))
-        ]
-        x_badge = x_detalhes + 24
-        y_badge = y_coluna + 58
-        for rotulo_b, valor_b, cor_v in badges:
-            txt_b = self.fonte_mini.render(f"{rotulo_b}: {valor_b}", True, cor_v)
-            r_b = pygame.Rect(x_badge, y_badge, txt_b.get_width() + 18, 26)
-            pygame.draw.rect(tela, (26, 26, 34), r_b, border_radius=3)
-            pygame.draw.rect(tela, CINZA_ARDOSIA, r_b, 1, border_radius=3)
-            tela.blit(txt_b, (r_b.centerx - txt_b.get_width() // 2, r_b.centery - txt_b.get_height() // 2))
-            x_badge += r_b.width + 12
-
-        attrs_tot = halia.obter_atributos_totais() if halia else None
-        mod_int = attrs_tot.mod_int if attrs_tot else 0
-        dano_base = getattr(acao_sel, 'poder_base', 12) if acao_sel else 12
-        dano_estimado = dano_base + (mod_int * 2)
-
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x_detalhes + 24, y_coluna + 100), (x_detalhes + w_detalhes - 24, y_coluna + 100), 1)
-
-        r_card_poder = pygame.Rect(x_detalhes + 24, y_coluna + 112, w_detalhes - 48, 56)
-        pygame.draw.rect(tela, (24, 24, 30), r_card_poder, border_radius=3)
-        pygame.draw.rect(tela, CINZA_ARDOSIA, r_card_poder, 1, border_radius=3)
-
-        tela.blit(self.fonte_mini.render("ESCALAMENTO ARCANO (INTELECTO)", True, (210, 195, 140)), (r_card_poder.x + 14, r_card_poder.y + 10))
-        str_poder = f"Potência Estimada: ~{dano_estimado} pts (Base {dano_base} + Mod INT x2: +{mod_int*2})"
-        tela.blit(self.fonte_destaque.render(str_poder, True, MARFIM_OFFWHITE), (r_card_poder.x + 14, r_card_poder.y + 28))
-
-        tela.blit(self.fonte_mini.render("DESCRIÇÃO DO FEITIÇO", True, (210, 195, 140)), (x_detalhes + 24, y_coluna + 184))
-        linhas_desc = quebrar_texto_em_linhas(desc_sel, self.fonte_texto, w_detalhes - 54)
-        y_txt_d = y_coluna + 208
-        for ld in linhas_desc:
-            tela.blit(self.fonte_texto.render(ld, True, MARFIM_OFFWHITE), (x_detalhes + 24, y_txt_d))
-            y_txt_d += 22
-
-        r_ref = pygame.Rect(x_detalhes + 24, y_coluna + 310, w_detalhes - 48, 130)
-        desenhar_card_pergaminho(tela, r_ref, cor_fundo=(22, 22, 26), cor_borda=CINZA_ARDOSIA)
-        tela.blit(self.fonte_mini.render("✦ NOTA DE CANALIZAÇÃO", True, (220, 205, 140)), (r_ref.x + 16, r_ref.y + 12))
-        
-        reflexoes = {
-            "bola_de_fogo": "A chama incinera obstáculos e abre caminhos obstruídos por galhos secos e vinhas do esquecimento.",
-            "levitar": "A gravidade dobra-se à mente, permitindo erguer rochas colossais e afastar perigos sem confronto direto.",
-            "brisa_curativa": "Um sopro vital restaurador que dissipa a fadiga física e acalma as feridas sofridas em combate."
-        }
-        nota_texto = reflexoes.get(id_selecionada, "Feitiço gravado nas memórias ancestrais da ordem dos guardiões arcanos.")
-        linhas_ref = quebrar_texto_em_linhas(nota_texto, self.fonte_texto, w_detalhes - 85)
-        y_tr = r_ref.y + 36
-        for lr in linhas_ref:
-            tela.blit(self.fonte_texto.render(lr, True, CINZA_LINHO), (r_ref.x + 16, y_tr))
-            y_tr += 22
-
-    # =========================================================================
-    # [4] ABA CRAFTING (Bloqueada)
-    # =========================================================================
     def _desenhar_aba_crafting(self, tela, halia):
-        r_selo = pygame.Rect(self.x_menu + 180, self.y_menu + 110, self.largura_menu - 360, 420)
-        desenhar_card_pergaminho(tela, r_selo, cor_fundo=(18, 18, 22), cor_borda=(70, 70, 85))
-
-        desenhar_flor_botanica(tela, r_selo.centerx, r_selo.y + 80, cor=(100, 100, 125), escala=1.5)
-
-        txt_selo_tit = self.fonte_destaque.render("✦ Bancada de Criação & Alquimia Selada ✦", True, (220, 205, 150))
-        tela.blit(txt_selo_tit, (r_selo.centerx - txt_selo_tit.get_width() // 2, r_selo.y + 160))
-
-        linhas_selo = [
-            "A confecção de itens, transmutação e refinamento de equipamentos exigem uma bancada apropriada.",
-            "Explore o mundo de Oblivium e descubra receitas ancestrais para desbloquear suas criações.",
-            "Encontre bancadas de alquimia ou forjas arcanas pelo mapa para manipular reagentes."
-        ]
-
-        y_s = r_selo.y + 215
-        for ls in linhas_selo:
-            txt_ls = self.fonte_texto.render(ls, True, CINZA_LINHO)
-            tela.blit(txt_ls, (r_selo.centerx - txt_ls.get_width() // 2, y_s))
-            y_s += 30
+        self.tab_crafting.desenhar(tela, halia)
 
     # =========================================================================
     # TOOLTIP FLUTUANTE

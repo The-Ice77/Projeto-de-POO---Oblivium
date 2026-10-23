@@ -239,4 +239,74 @@
 - **Módulo CombatInputHandler**: Criação de `src/mechanics/combat_input.py` centralizando a escuta de eventos de teclado, cliques e rolagem de mouse (scroll).
 - **Gerenciamento de Navegação e Submenus**: Transferência das rotinas de abertura e rolagem dos menus de Ataque, Magia, Concentração, Itens e Alvo para o novo controlador.
 - **Modularização Profunda**: Redução adicional de 463 linhas em `combat.py` (de 1.436 para 973 linhas), consolidando a meta de manter o arquivo abaixo de 1.000 linhas.
+
+---
+
+### Atualização v[0.8.3] — Modularização do Inventário e Persistência de Saves
+#### Implementação, Correção e Aprimoramento
+- **Módulo SaveManager Centralizado**: Extração da persistência, serialização/desserialização de entidades, blindagem de autosaves e reinicialização de novo jogo da classe `Game` para `src/core/save_manager.py`. Redução de ~256 linhas em `game.py` (de 573 para 317 linhas).
+- **Verificação de Integridade de Slots**: Adição de rotina defensiva `verificar_integridade_slot()` no `SaveManager` para validação estrutural e verificação de integridade de JSON e esquema de dados antes do carregamento.
+- **Renderizadores Modulares de Abas**: Criação do pacote `src/states/inventory_tabs/` com renderizadores gráficos desacoplados:
+  - `tab_inventario.py` (`TabInventarioRenderer`): Equipamentos arcanos, slots de Grimórios, grelha da bolsa e sub-abas.
+  - `tab_perfil.py` (`TabPerfilRenderer`): Barras interpoladas de HP/MP, carteira decomposta, parâmetros derivados e ficha de atributos D20.
+  - `tab_magia.py` (`TabMagiaRenderer`): Grimório de magias com scroll, escalamento arcano de intelecto e badges.
+  - `tab_crafting.py` (`TabCraftingRenderer`): Bancada selada de criação, forja e manipulação de reagentes.
+- **Redução em inventory_states.py**: Redução de 420 linhas no arquivo principal do menu de inventário (de 974 para 554 linhas), preservando 100% da compatibilidade de eventos, cliques e interfaces.
+
+---
+
+### Atualização v[0.9.0] — Sistema de Conquistas & Rastreador de Missões
+#### Implementação, Correção e Aprimoramento
+- **Sistema de Conquistas Estilo Steam**:
+  - Armazenamento global e persistente em `saves/conquistas.json`, independente de slots de save individuais.
+  - Catálogo de 15 conquistas narrativas e de gameplay com auto-desbloqueio da Platina (`mestre_platinador`).
+  - Integração visual com botões artísticos dedicados (`16.png` e `17.png`) no Menu Principal e Menu de Pausa.
+  - Nova tela `ConquistasState` com medidor de platina, filtros contextuais (*Todas*, *Desbloqueadas*, *Bloqueadas*), rolagem fluida e cartões ornamentados Dark Fantasy.
+- **Notificações Push Centralizadas**:
+  - Reposicionamento das notificações de brinde do canto superior direito para o topo central (`centro superior`), com animação slide-down e coroa dourada especial para conquistas.
+- **Rastreador de Missões (Quest Tracker HUD)**:
+  - Sistema de missões com ciclo de vida `DISPONIVEL` -> `ATIVA` -> `CONCLUIDA` em `src/mechanics/quest_manager.py`.
+  - HUD minimalista no canto superior direito (`x=981, y=22`) com esmaecimento de proximidade quando Halia se aproxima, recolhimento/expansão via tecla `[J]` ou clique, e altura dinâmica.
+  - Catálogo inicial de missões da vila em `src/data/missoes.json` (*O Refúgio de Oakhaven*, *Reagentes para a Cura*, *Ronda nas Fronteiras*).
+- **Proteção e Redefinição de Dados**:
+  - Adição da opção defensiva "Redefinir Dados..." no menu de configurações com modal solene de confirmação com dois passos (foco padrão em "Cancelar").
+  - Limpeza atômica de todos os 4 slots de save (incluindo autosaves) e redefinição de todas as conquistas do jogo.
+- **Integração Completa de Gatilhos de Gameplay**:
+  - Vinculação de gatilhos automáticos para todas as 15 conquistas (movimento inicial na casa, itens coletados, partida na carruagem, pássaro assustado, flashback de memória, quebra-cabeças de Levitação e Bola de Fogo, vitória e foco tático em combate, nível 2 de sincronia, fabricação de receitas e aceitação de missões).
+
+---
+
+### Atualização v[0.9.1] — Ritual Ígneo, Levitação QTE e Rebalanceamento de Inimigos
+#### Implementação, Correção e Aprimoramento
+- **Puzzle da Bola de Fogo (Ritual da Tríplice Fagulha)**:
+  - Reformulação completa de `MinigameTiming` para um ritual em 3 etapas progressivas (*Fagulha Inicial*, *Combustão Térmica* e *Ignição Plena Devastadora*).
+  - Cada etapa acelera o cursor e estreita a zona crítica de calor, com orbes visuais de progresso e explosões de fagulhas em caso de sucesso.
+- **Puzzle da Levitação Gravitacional com Quick Time Events (QTE Rítmico)**:
+  - Substituição do mash simples por um sistema rítmico de runas gravitacionais (`W`, `A`, `S`, `D`, `ESPAÇO`) em `MinigameMash`.
+  - Glifo rúnico com anel temporal dinâmico em arco e feedback de acerto/erro.
+  - Movimentação das rochas no cenário de Estrada 2 sincronizada diretamente em tempo real: acertos impulsionam as pedras para as margens (+24%), enquanto erros e expiração de tempo provocam perda de sustentação e decaimento com poeira.
+- **Rebalanceamento de Inimigos**:
+  - **Demônios Inferiores**: Vida base fortalecida de 30 para 42, dano base aumentado de 8 para 11, e atributos calibrados para garantir combates mais desafiadores na Estrada 2.
+  - Sincronização dos valores de fallback na `EnemyFactory`.
+- **Acessibilidade e Controles Unificados**:
+  - Suporte híbrido completo tanto por teclado quanto por cliques de mouse em ambos os novos minigames de magia.
+
+---
+
+### Atualização v[0.9.2] — Progressão de Levitação, Silenciamento de Dev Toasts e Testes de Banners
+#### Implementação, Correção e Aprimoramento
+- **Correção da Progressão Narrativa na Levitação**:
+  - Solução definitiva para a interrupção após o minigame gravitacional: criação do método `_finalizar_minigame_levitacao()` invocado imediatamente tanto pelo processamento de eventos (teclado/mouse) quanto pelo loop de atualização.
+  - As rochas assentam com precisão nas margens da pista, a conquista `levitacao` é desbloqueada, o diálogo `pos_levitar` é disparado e a transição para a cutscene e combate do Demônio Superior prossegue sem travas.
+- **Console Dev Aprimorado e Silencioso**:
+  - Removidos os toasts/notificações intrusivas disparados na tela durante o acionamento de atalhos no Dev Menu; o feedback agora é enviado limpo para o console de desenvolvimento (`print("[DEV] ...")`).
+  - Grade visual expandida para 10 comandos em 2 colunas x 5 linhas com diagramação Dark Fantasy refinada (880x510px).
+- **Novas Opções de Teste no Dev Menu**:
+  - **Opção `[ 9 ]` Testar Conquista**: Dispara o banner Steam-style estilizado no topo da tela alternando ciclicamente entre conquistas normais e a Platina real (`⚜`).
+  - **Opção `[ 0 ]` Testar Missão**: Ativa/avança missões no Rastreador (Quest Tracker HUD) e dispara o banner comemorativo de objetivos.
+- **Refinamento de Paleta Dark Fantasy**:
+  - Substituição de tons dourados e amarelos saturados na tela de conquistas e badges por tons nobres de Prata Arcana (`#d0daf0` e `#8fa0c0`), Marfim Offwhite e Cinza Linho, harmonizando com a estética gótica de Oblivium.
+
+
+
 

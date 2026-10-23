@@ -54,7 +54,7 @@ class ComandosDev:
         """Alterna a visibilidade do painel de desenvolvedor."""
         self.ativo = not self.ativo
         status = "ATIVADO" if self.ativo else "DESATIVADO"
-        self._notificar("Modo Desenvolvedor", f"Painel de testes {status}", icone="◈")
+        print(f"[DEV] Painel de testes {status}")
 
     def processar_evento(self, evento):
         """Processa a tecla de ativação, atalhos de teclado e interações do mouse."""
@@ -100,7 +100,8 @@ class ComandosDev:
                 pygame.K_7: 7, pygame.K_KP7: 7,
                 pygame.K_8: 8, pygame.K_KP8: 8,
                 pygame.K_9: 9, pygame.K_KP9: 9,
-                pygame.K_c: 9,
+                pygame.K_0: 10, pygame.K_KP0: 10,
+                pygame.K_c: 11,
             }
             if evento.key in mapeamento:
                 self._executar_por_indice(mapeamento[evento.key])
@@ -122,7 +123,9 @@ class ComandosDev:
             6: self.cmd_desbloquear_grimorio,
             7: self.cmd_desobstruir_estrada,
             8: self.cmd_iniciar_combate,
-            9: self.cmd_alternar_clima
+            9: self.cmd_testar_conquista,
+            10: self.cmd_testar_missao,
+            11: self.cmd_alternar_clima
         }
         if indice in acoes:
             acoes[indice]()
@@ -304,12 +307,68 @@ class ComandosDev:
             nome_clima, icone_clima = rotulos.get(modo, (modo, "🌧"))
             self._notificar("Sistema de Clima", f"Clima: {nome_clima}", icone=icone_clima)
 
-    def _notificar(self, titulo, mensagem, icone="◈"):
+    def cmd_testar_conquista(self):
+        """Dispara intencionalmente um banner comemorativo de conquista no topo da tela."""
+        conquistas_exemplo = [
+            {
+                "id": "eco_passado",
+                "titulo": "Eco dos Esquecidos",
+                "descricao": "Despertou um vislumbre do passado através do véu de névoa.",
+                "icone": "✦"
+            },
+            {
+                "id": "levitacao",
+                "titulo": "Gravidade Rompida",
+                "descricao": "Dominou o fluxo gravitacional arcano e removeu os escombros.",
+                "icone": "▲"
+            },
+            {
+                "id": "fogo",
+                "titulo": "Chama da Lembrança",
+                "descricao": "Incinera os obstáculos na estrada com o calor do fogo elemental.",
+                "icone": "♨"
+            },
+            {
+                "id": "mestre_platinador",
+                "titulo": "Memória Restaurada",
+                "descricao": "Conquistou todos os marcos e desfez a escuridão de Oblivium.",
+                "icone": "⚜"
+            }
+        ]
+        idx = getattr(self, '_indice_teste_conquista', 0)
+        c_alvo = conquistas_exemplo[idx % len(conquistas_exemplo)]
+        self._indice_teste_conquista = idx + 1
+
         if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
-            try:
-                self.game.notificacoes.notificar(titulo, mensagem, tipo="SISTEMA", icone=icone)
-            except Exception:
-                pass
+            self.game.notificacoes.notificar_conquista(c_alvo)
+
+    def cmd_testar_missao(self):
+        """Ativa uma missão no Quest Tracker e dispara o banner de notificação de missão."""
+        if hasattr(self.game, 'quest_manager') and self.game.quest_manager:
+            qm = self.game.quest_manager
+            mid = "o_refugio_de_oakhaven"
+            if mid in qm.missoes:
+                missao = qm.missoes[mid]
+                if missao.get("status") == "DISPONIVEL":
+                    qm.aceitar_missao(mid)
+                elif missao.get("status") == "ATIVA":
+                    qm.avancar_objetivo(mid, "alcancar_oakhaven", 1)
+                else:
+                    missao["status"] = "ATIVA"
+                    qm.missao_rastreada_id = mid
+                    if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+                        self.game.notificacoes.notificar(
+                            "notificacao_missao",
+                            missao=f"Missão Ativa: {missao['titulo']}"
+                        )
+            else:
+                qm.aceitar_missao("o_refugio_de_oakhaven")
+        elif hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+            self.game.notificacoes.notificar("notificacao_missao", missao="O Refúgio de Oakhaven")
+
+    def _notificar(self, titulo, mensagem, icone="◈"):
+        """Registra no console do desenvolvedor sem poluir a tela com toasts durante o uso do dev menu."""
+        print(f"[DEV] {titulo}: {mensagem}")
 
     # =========================================================================
     # RENDERIZAÇÃO DO PAINEL (Identidade Visual Dark Fantasy / Metroidvania)
@@ -335,7 +394,9 @@ class ComandosDev:
             ("5", "Tesouro Dev (+1000)", "Adicionar ouro à bolsa de Halia", f"{ouro} Ouro"),
             ("6", "Despertar Memórias", "Desbloquear ou resetar Grimório", f"{mems}/7 Mems"),
             ("7", "Bloqueio Estrada 2", "Remover ou repor rochas de obstrução", status_estrada),
-            ("8", "Forçar Batalha", "Iniciar arena contra Demônio", "Arena Demo")
+            ("8", "Forçar Batalha", "Iniciar arena contra Demônio", "Arena Demo"),
+            ("9", "Testar Conquista", "Disparar banner Steam Dark Fantasy", "✦ Push"),
+            ("0", "Testar Missão", "Disparar notificação e Quest Tracker", "◈ Missão")
         ]
 
     def desenhar(self, tela):
@@ -347,7 +408,7 @@ class ComandosDev:
         tela.blit(self.overlay, (0, 0))
 
         largura_painel = 880
-        altura_painel = 490
+        altura_painel = 510
         x = (self.game.LARGURA - largura_painel) // 2
         y = (self.game.ALTURA - altura_painel) // 2
 
@@ -379,16 +440,16 @@ class ComandosDev:
         # Divisória elegante sob o cabeçalho
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y + 64), (x + largura_painel - 34, y + 64), 1)
 
-        # 4. Grade de Caixas de Comando (2 Colunas x 4 Linhas)
+        # 4. Grade de Caixas de Comando (2 Colunas x 5 Linhas)
         self.rects_botoes.clear()
         dados_comandos = self._obter_dados_comandos()
 
         cols = 2
         espaco_x = 18
-        espaco_y = 12
+        espaco_y = 10
         larg_card = (largura_painel - 72 - espaco_x) // cols
-        alt_card = 72
-        y_grade_inicio = y + 78
+        alt_card = 64
+        y_grade_inicio = y + 72
 
         for i, (tecla, nome, detalhe, status_chip) in enumerate(dados_comandos):
             c = i % cols
@@ -408,8 +469,8 @@ class ComandosDev:
             pygame.draw.rect(tela, cor_bd, card_rect, 1, border_radius=2)
 
             # Badge da Tecla Numérica à esquerda
-            badge_dim = 42
-            badge_rect = pygame.Rect(card_x + 14, card_y + (alt_card - badge_dim) // 2, badge_dim, badge_dim)
+            badge_dim = 38
+            badge_rect = pygame.Rect(card_x + 12, card_y + (alt_card - badge_dim) // 2, badge_dim, badge_dim)
             cor_bg_badge = (34, 38, 52) if esta_hover else (14, 14, 18)
             cor_bd_badge = DOURADO_ENVELHECIDO if esta_hover else (45, 45, 55)
             pygame.draw.rect(tela, cor_bg_badge, badge_rect, border_radius=2)
@@ -419,20 +480,20 @@ class ComandosDev:
             tela.blit(txt_tecla, txt_tecla.get_rect(center=badge_rect.center))
 
             # Nome e Descrição da Ação
-            x_conteudo = badge_rect.right + 14
+            x_conteudo = badge_rect.right + 12
             cor_nome = MARFIM_OFFWHITE if esta_hover else CINZA_LINHO
             txt_nome = self.fonte_nome.render(nome, True, cor_nome)
-            tela.blit(txt_nome, (x_conteudo, card_y + 14))
+            tela.blit(txt_nome, (x_conteudo, card_y + 11))
 
             cor_detalhe = (165, 205, 245) if esta_hover else UI_TEXTO_APAGADO
             txt_detalhe = self.fonte_detalhe.render(detalhe, True, cor_detalhe)
-            tela.blit(txt_detalhe, (x_conteudo, card_y + 40))
+            tela.blit(txt_detalhe, (x_conteudo, card_y + 35))
 
             # Chip de Status em tempo real no canto direito da caixa
             render_chip = self.fonte_chip.render(status_chip, True, DOURADO_ENVELHECIDO if esta_hover else CINZA_LINHO)
             w_chip = render_chip.get_width() + 14
             h_chip = 22
-            rect_chip = pygame.Rect(card_rect.right - w_chip - 12, card_y + 14, w_chip, h_chip)
+            rect_chip = pygame.Rect(card_rect.right - w_chip - 12, card_y + 12, w_chip, h_chip)
             cor_bg_chip = (28, 38, 55) if esta_hover else (14, 14, 18)
             cor_bd_chip = AZUL_HOVER_MENU if esta_hover else (40, 40, 50)
             pygame.draw.rect(tela, cor_bg_chip, rect_chip, border_radius=2)
@@ -440,8 +501,8 @@ class ComandosDev:
             tela.blit(render_chip, render_chip.get_rect(center=rect_chip.center))
 
         # 5. Rodapé com instruções de navegação
-        y_rodape = y + altura_painel - 36
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y_rodape - 10), (x + largura_painel - 34, y_rodape - 10), 1)
+        y_rodape = y + altura_painel - 32
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y_rodape - 8), (x + largura_painel - 34, y_rodape - 8), 1)
 
-        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 8 ] Executar   •   [ C / 9 ] Clima (Chuva/Sol)   •   [ Mouse ] Clicar", True, UI_TEXTO_APAGADO)
+        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 0 ] Executar   •   [ C ] Alternar Clima   •   [ Mouse ] Clicar", True, UI_TEXTO_APAGADO)
         tela.blit(txt_rodape, (x + (largura_painel - txt_rodape.get_width()) // 2, y_rodape))
