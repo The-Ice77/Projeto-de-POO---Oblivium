@@ -18,6 +18,8 @@ class PlayingState(State):
         self._processar_movimento(teclas)
         
         for evento in eventos:
+            if hasattr(self.game, 'quest_tracker') and self.game.quest_tracker.handle_event(evento):
+                continue
             if evento.type == pygame.MOUSEMOTION:
                 self.game.caixa_dialogo.atualizar_mouse(evento.pos)
                 continue
@@ -699,3 +701,7 @@ class PlayingState(State):
         # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar
         if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
             self.game.hud.desenhar(tela, self.game)
+
+        # Quest Tracker no Canto Superior Direito da Tela
+        if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
+            self.game.quest_tracker.desenhar(tela, self.game)

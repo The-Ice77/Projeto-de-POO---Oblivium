@@ -74,7 +74,8 @@ class SaveManager:
                 "combate_concluido": getattr(self.game, 'combate_estrada_concluido', False),
                 "itens_coletados": self.game.itens_coletados,
                 "historico_dialogos": list(self.game.caixa_dialogo.historico_escolhas)
-            }
+            },
+            "missoes": self.game.missoes.to_dict() if hasattr(self.game, 'missoes') else {}
         }
 
         save_io.salvar_dados(slot_alvo, dados_save, tipo=tipo)
@@ -114,6 +115,10 @@ class SaveManager:
         self.game.combate_estrada_concluido = flags.get("combate_concluido", False)
         self.game.itens_coletados = flags.get("itens_coletados", [])
         self.game.conversa_carroceiro_terminou = dados.get("carroceiro", {}).get("conversa_terminou", False)
+
+        # Restaura progresso das missões
+        if hasattr(self.game, 'missoes') and "missoes" in dados:
+            self.game.missoes.from_dict(dados.get("missoes", {}))
 
         # Reseta flags temporárias de transição e batalha em andamento
         self.game.inimigos_em_cena = []
@@ -296,6 +301,10 @@ class SaveManager:
             self.game.estados["JOGANDO"].memoria_anterior_registrada = 0
         if hasattr(self.game, 'hud') and self.game.hud:
             self.game.hud.memorias_coletadas = 0
+
+        # Reinicia o progresso das missões
+        if hasattr(self.game, 'missoes'):
+            self.game.missoes.resetar()
 
         # Recarrega o cenário inicial limpo
         self.game.mapa_casa.carregar_cenario("CASA")

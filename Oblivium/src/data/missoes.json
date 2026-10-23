@@ -1,0 +1,91 @@
+{
+  "missoes": [
+    {
+      "id": "missao_boas_vindas",
+      "titulo": "O Refúgio de Oakhaven",
+      "categoria": "PRINCIPAL",
+      "doador": "Ancião da Vila",
+      "descricao": "Encontre o Ancião no vilarejo para obter respostas sobre seu passado e as anomalias da névoa.",
+      "objetivos": [
+        {
+          "id": "falar_anciao",
+          "descricao": "Apresentar-se ao Ancião da Vila",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false
+        },
+        {
+          "id": "conhecer_mercado",
+          "descricao": "Explorar o mercado central e a forja",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false
+        }
+      ],
+      "recompensas": {
+        "dinheiro": 200,
+        "xp": 100,
+        "itens": ["pocao_cura"]
+      },
+      "status": "DISPONIVEL"
+    },
+    {
+      "id": "missao_ervas_medicinais",
+      "titulo": "Reagentes para a Cura",
+      "categoria": "SECUNDARIA",
+      "doador": "Curandeira Elara",
+      "descricao": "Colete 3 Ervas Medicinais na orla da floresta para renovar o estoque da enfermaria.",
+      "objetivos": [
+        {
+          "id": "coletar_ervas",
+          "descricao": "Coletar Ervas Medicinais",
+          "atual": 0,
+          "alvo": 3,
+          "concluido": false
+        },
+        {
+          "id": "entregar_ervas",
+          "descricao": "Entregar as ervas à Curandeira Elara",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false
+        }
+      ],
+      "recompensas": {
+        "dinheiro": 150,
+        "xp": 75,
+        "itens": ["frasco_mana"]
+      },
+      "status": "DISPONIVEL"
+    },
+    {
+      "id": "missao_ronda_fronteiras",
+      "titulo": "Ronda nas Fronteiras",
+      "categoria": "SECUNDARIA",
+      "doador": "Guarda da Paliçada",
+      "descricao": "Elimine 2 Demônios Inferiores que rondam as cercanias da vila para assegurar a passagem.",
+      "objetivos": [
+        {
+          "id": "derrotar_demonios",
+          "descricao": "Derrotar Demônios Inferiores",
+          "atual": 0,
+          "alvo": 2,
+          "concluido": false
+        },
+        {
+          "id": "relatar_guarda",
+          "descricao": "Relatar a segurança ao Guarda",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false
+        }
+      ],
+      "recompensas": {
+        "dinheiro": 300,
+        "xp": 150,
+        "itens": ["cristal_arcano"]
+      },
+      "status": "DISPONIVEL"
+    }
+  ]
+}
