@@ -19,14 +19,14 @@ O jogo se inicia melancólico e inicialmente sem quaisquer tipo de cores, onde a
 
 ### Objetivo do Jogo
 
-O Objetivo do jogo é ajudar Halia em uma jornada através de cidades e um grande continete revivendo suas antiga aventura em busca de recuperar suas memórias do momento mais importante de sua vida e das pessoas mais importantes do mesmo. O jogador deverá passar por cada cidade, resolver puzzles, pequenos desafios, conversar com pessoas e investigar a história da própria personagem. O jogador irá vencer ao chegar na última fase tendo completado com êxito as anteriores e derrotando a maldição responsável pelo seu esquecimento.
+O objetivo do jogo é ajudar Halia em uma jornada através de cidades e um grande continete revivendo suas antiga aventura em busca de recuperar suas memórias do momento mais importante de sua vida e das pessoas mais importantes do mesmo. O jogador deverá passar por cada cidade, resolver puzzles, pequenos desafios, conversar com pessoas e investigar a história da própria personagem. O jogador irá vencer ao chegar na última fase tendo completado com êxito as anteriores e derrotando a maldição responsável pelo seu esquecimento.
 
     - Obrigatório:
     Explorar ambientes
     Interagir com NPCs
     Resolver enigmas
     Recuperar fragmentos de memória
-    Sobreviver aos combates
+    Tentar Sobreviver aos combates
 
 ### Personagem Principal - Halia
 
@@ -35,48 +35,48 @@ Halia é uma antiga elfa que vive a cerca de mais de 2000 anos que sofre com uma
 #### Características Principais:
 
 - Personalidade apática, porém gentil
-- Poderosa usuária de magia, a prática a milénios
+- Poderosa usuária de magia, a prática a milênios
 - Busca recuperar sua identidade e memórias
-- Acumuladora de Itens mágicos e não lida bem com dinheiro o gastando rapidamente
+- Acumuladora de Itens mágicos e não lida bem com dinheiro, gastando rapidamente
 - Ama magia acima de tudo
 
 #### Movimentação:
 
-Sua movimentação é simples seguindo o padrão de jogos comuns utilizando das seguintes teclas:
+Sua movimentação é simples, seguindo o padrão de jogos comuns utilizando das seguintes teclas:
 
 **W** → cima
 **A** → esquerda
 **S** → baixo
 **D** → direita
 
-O jogo não possuirá botão de pular visto o formato top-down.
+O jogo não possuirá botão de pular visto que segue o formato top-down.
 
 #### Aparência:
 
 - 1,70m;
 - Cabelo castanho escuro, usa rabo de cavalo;
 - Olhos verdes como jade;
-- Possui sardas no rosto, na região das bochecas;
+- Possui sardas no rosto, na região das bochechas;
 - Possui a cor de pele branca;
 - Sua vestimenta se resume a: Botas de couro, sobretudo de mago, saia verde, blusa de manga comprida, colete de couro marrom e cinto justo;
 - Seus equipamentos são apenas um cajado e bolsa de carteiro.
 
 #### Atributos:
 
-- **Vida (HP)**: Uma atributo destinado ao combate mas que possui influências na narrativa, onde caso o personagem esteja muito machucado sua linha de fala deverá ser diferente e os npcs deverão reagir diferente.
-- **Energia mágica**: Também usado para combates como principal mas dessa vez tendo devida funcionalidade para puzzlez comuns.
-- **Velocidade**: define a velocidade de movimento pelo mapa.
-- **Fragmentos de memória**: Principal atributo que medirá como o mundo irá se comportar, como a personagem deverá se comportar e progresso do jogo, será dividido em partes específicas.
+- **Vida (HP)**: Um atributo destinado ao combate.
+- **Energia mágica**: Também usado para combates como principal mas dessa vez tendo devida funcionalidade para puzzles comuns.
+- **Velocidade**: Define a velocidade de movimento pelo mapa.
+- **Fragmentos de memória**: Principal atributo que medirá como o mundo irá se comportar, como a personagem deverá se comportar e o progresso do jogo, será dividido em partes específicas.
 - **Dinheiro**: Poderá ser utilizado para aquisição de itens importantes e progressão em determinadas áreas. Será adquirido conforme missões e progressão no jogo.
 
 ### Inimigos e Obstáculos
 
 Os inimigos do jogo serão criaturas mágicas ou seres comuns, encontrados entre cidades ou atacando as mesmas. Os obstáculos poderão ser o terreno, testes e enigmas ou grandes barreiras. No geral serão resolvidos com magia.
 
-- **Tipos de Inimigos**: Criaturas como slimes, orcs, ou inimigos padrões como bandidos, elfos e etc.
+- **Tipos de Inimigos**: Criaturas como slimes, orcs, ou inimigos padrões como bandidos, elfos, demônios e etc.
   - _Comportamentos Inimigos_: No geral terão movimento automático, com ações padrões que conforme nível irão além de atacar para também defender, esquivar dos ataques do oponente. Funcionará através de um combate padrão por turno. É importante que possuam um sistema de patrulha para perceber a protagonista.
 - **Tipos de Obstáculo**: barreiras mágicas, objetos bloqueando caminhos, puzzles ambientais, enigmas e etc.
-  - _Comportamentos Obstáculos_: Serão geralmente fixos e irão possuir fases ou etapas para serem resolvidos, se possível alguns deverão ter um minigame mais elaborado, mas no geral consiste em buscar um item, completar uma charada e utilizar magia de modo esperto.
+  - _Comportamentos Obstáculos_: Serão geralmente fixos e irão possuir fases ou etapas para serem resolvidos, se possível alguns deverão ter um mini game mais elaborado, mas no geral consiste em buscar um item, completar uma charada e utilizar magia de modo esperto.
 
 - **Colisão**: Ao entrar em combate com criaturas caso o jogador chegue a 0 de vida será derrotado, com o personagem retornando ao último checkpoint salvo. O combate normalmente só poderá ser encerrado caso um dos dois perca, mas existirá uma opção de fuga. Para obstáculos no geral o jogador ficará com sua passagem bloqueada, a depender do puzzle é possível receber leves consequências ou será resumido a paralisação do progresso enquanto não for resolvido com êxito.
 
@@ -84,13 +84,13 @@ Os inimigos do jogo serão criaturas mágicas ou seres comuns, encontrados entre
 
 O jogo possui múltiplas cidades onde terão os elementos mais importantes, mas também áreas conectadas, desenvolvidos de modo linear com a história.
 
-- **Ambientes**: Serão vilas, florestas antigas e grandes, ruínas, castelos, estradas e áreas mágicas. Deverão seguir uma estética medieval e mágica, como rpg's mais clássicos.
-- **Elementos do mapa**: Possuirá npc's para interação e eles serão extremamente importantes para progressão do jogo;
+- **Ambientes**: Serão vilas, florestas antigas e grandes, ruínas, castelos, estradas e áreas mágicas. Deverão seguir uma estética medieval e mágica, como RPGs mais clássicos.
+- **Elementos do mapa**: Possuirá NPCs para interação e eles serão extremamente importantes para progressão do jogo;
   Caminhos exploráveis onde a personagem poderá encontrar ruínas com itens;
   áreas bloqueadas protegidas por desafios de intelecto ou força;
   objetos interativos que poderão ser coletados para concluir missões ou desafios.
 - **Objetivo final e Itens**: Os itens ficarão distribuídos pelo cenário em lojas onde poderão ser comprados ou em antigas ruínas que podem ser saqueadas. Itens também poderão ser adquiridos eliminado inimigos ou concluindo desafios.
-  O objetivo final do mapa é após explorar as cidades chegar ao grande castlo onde Halia enfrentará a origem de sua maldição, um local que a mesma há havia visitado.
+  O objetivo final do mapa é após explorar as cidades chegar ao grande castelo onde Halia enfrentará a origem de sua maldição, um local que a mesma já havia visitado.
 
 ### Sistema de Pontuação
 
@@ -101,13 +101,13 @@ No geral o jogo irá possuir dois tipos de pontuação, uma mais simbólica e ou
   Puzzle resolvido = 50 pontos
   Monstro derrotado = 25 pontos
 
-- **Pontuação de Progressão**: Uma pontuação estabelicida pela recuperação de memórias que definirá como o jogo evoluir conforme o tempo se passa. Ela define como o cenário mudará e as cores do mundo
+- **Pontuação de Progressão**: Uma pontuação estabelecida pela recuperação de memórias que definirá como o jogo evoluir conforme o tempo se passa. Ela define como o cenário mudará e as cores do mundo
 
 ### Sistema de Vida
 
 - **Vida inicial**: Halia começará com uma quantidade "fixa" de HP que poderá ser alterada com eventos específicos que ocorrerão ao decorrer do jogo, essa quantidade poderá ser aumentada com itens.
 
-- **Perda de vida**: Halia poderá perder quantidades significativas de vida ao entrar em combates e receber ataques ou falhar em certos desafios punitivos, caso sua quantidade atual de vida chegue a 0 a personagem irá desmaiar, com o desafio atual ou batalha sendo perdido e o jogador retornando ao último ponto.
+- **Perda de Vida**: Halia poderá perder quantidades significativas de vida ao entrar em combates e receber ataques ou falhar em certos desafios punitivos, caso sua quantidade atual de vida chegue a 0 a personagem irá desmaiar, com o desafio atual ou batalha sendo perdido e o jogador retornando ao último ponto.
 
 - **Recuperação:** Através da compra de itens mágicos como poções de cura, serviços médicos ou descansos.
 
@@ -123,7 +123,7 @@ D - Mover para direita
 E - Interagir  
 ESC - Abrir menu  
 ENTER - Confirmar diálogo  
-SPACE - Usar magia/ação  
+SPACE - Usar magia/ação
 TAB - Abrir informações
 
 ### Fluxo do Jogo
@@ -147,135 +147,150 @@ O jogo seguirá um fluxo linear com isso sendo dependente para a progressão da 
 
 ### Regras do Jogo
 
-Essas são apenas regras iniciais básicas que serãom complementadas conforme o desenvolvimento:
-
 - O jogador não pode atravessar paredes ou obstáculos.
 - Algumas áreas permanecem bloqueadas até puzzles serem resolvidos.
 - NPCs podem fornecer pistas importantes.
 - O jogador precisa completar fases em ordem.
 - O combate acontece em turno.
 - Algumas magias serão necessárias para avançar.
+- Não é possível fugir de certas batalhas
 
 ### Estrutura do Projeto
 
-Essa estrutura é provisória e foi moldada com uso de ferramentas e baseamento em repositórios no github, sendo assim poderá receber sérias alterações como alterações de nomes e etc.
+Essa estrutura é provisória e foi moldada com uso de ferramentas e baseada em repositórios no github, sendo assim poderá receber sérias alterações como alterações de nomes e etc.
 
-Oblivium/
+Projeto-de-POO---Oblivium/
 │
-├── assets/
-│ │
-│ ├── sprites/
-│ │ │
-│ │ ├── player/
-│ │ │ └── halia/
-│ │ │
-│ │ ├── npcs/
-│ │ │ ├── torvin/
-│ │ │ ├── lion/
-│ │ │ ├── tyrion/
-│ │ │ └── villagers/
-│ │ │
-│ │ └── enemies/
-│ │ ├── phase_1/
-│ │ ├── phase_2/
-│ │ ├── phase_3/
-│ │ ├── phase_4/
-│ │ └── phase_5/
-│ │
-│ ├── music/
-│ │ │
-│ │ ├── memory_levels/
-│ │ │ ├── level_1/
-│ │ │ ├── level_2/
-│ │ │ ├── level_3/
-│ │ │ ├── level_4/
-│ │ │ └── level_5/
-│ │ │
-│ │ └── regions/
-│ │ ├── phase_1_ecos_cinzentos/
-│ │ ├── phase_2_raizes_perdidas/
-│ │ ├── phase_3_vozes_do_passado/
-│ │ ├── phase_4_fragmentos_da_verdade/
-│ │ └── phase_5_oblivium/
-│ │
-│ ├── sounds/
-│ │ │
-│ │ ├── ambient/
-│ │ ├── village/
-│ │ ├── combat/
-│ │ ├── magic/
-│ │ ├── ui/
-│ │ ├── puzzles/
-│ │ └── cutscenes/
-│ │
-│ ├── maps/
-│ │ │
-│ │ ├── phase_1_ecos_cinzentos/
-│ │ ├── phase_2_raizes_perdidas/
-│ │ ├── phase_3_vozes_do_passado/
-│ │ ├── phase_4_fragmentos_da_verdade/
-│ │ └── phase_5_oblivium/
-│ │
-│ ├── effects/
-│ │ ├── memory_effects/
-│ │ ├── magic_effects/
-│ │ └── transitions/
-│ │
-│ └── fonts/
+├── README.md                    # documentação do projeto
+├── CRONOGRAMA.md
+├── Notas/
+│   └── arquivo.text
+├── Storyboard/
+│   └── Storyboard_compressed.pdf
 │
-├── src/
-│ │
-│ ├── core/
-│ │ ├── game.py
-│ │ ├── settings.py
-│ │ ├── config.py
-│ │ └── state_manager.py
-│ │
-│ ├── entities/
-│ │ ├── player.py
-│ │ ├── npc.py
-│ │ ├── enemy.py
-│ │ ├── boss.py
-│ │ └── companion.py
-│ │
-│ ├── systems/
-│ │ ├── battle_system.py
-│ │ ├── dialogue_system.py
-│ │ ├── puzzle_system.py
-│ │ ├── memory_system.py
-│ │ ├── save_system.py
-│ │ ├── sound_system.py
-│ │ └── transition_system.py
-│ │
-│ ├── maps/
-│ │ ├── map_loader.py
-│ │ ├── collision.py
-│ │ └── phase_manager.py
-│ │
-│ ├── ui/
-│ │ ├── menu.py
-│ │ ├── hud.py
-│ │ ├── pause_menu.py
-│ │ ├── settings_menu.py
-│ │ └── dialogue_box.py
-│ │
-│ ├── phases/
-│ │ ├── phase_1.py
-│ │ ├── phase_2.py
-│ │ ├── phase_3.py
-│ │ ├── phase_4.py
-│ │ └── phase_5.py
-│ │
-│ └── main.py
-│
-├── saves/
-│ ├── save_1/
-│ ├── save_2/
-│ └── save_3/
-│
-├── README.md
-├── requirements.txt
-└── .gitignore
+└── Oblivium/
+    ├── changelog.md
+    ├── sounds.md                # guia de áudio esperado pelo AudioManager
+    │
+    ├── assets/
+    │   ├── animais/
+    │   │   ├── gato/                    # acoes_separadas/ (17 ações x 3 frames + sheets) [69]
+    │   │   └── passaro/                 # animacoes/{bicar,idle,pulo,voo}, pulo/, voo/ [161]
+    │   │
+    │   ├── audio/                       # ainda vazio (só .gitkeep)
+    │   │   ├── music/
+    │   │   ├── ambience/
+    │   │   └── sfx/
+    │   │
+    │   ├── cenario/ [2216]
+    │   │   ├── 01_Paredes_Externas/     # Parede_Tipo_01..03, cada um com:
+    │   │   │   └── Parede_Tipo_0X/      #   01_Frente_Corridas, 02_Atras_Corridas,
+    │   │   │                            #   03_Laterais_Verticais, 04_Quinas_e_Cantos,
+    │   │   │                            #   05_Salas_Montadas, 06_Portas_e_Janelas
+    │   │   ├── 02_Pisos_Externos/       # 01_Grama_Verde, 02_Pedra_Cinza, 03_Terra_Marrom,
+    │   │   │                            # 04_Neve_Branca, 05_Areia_Amarela, 06_Agua_Azul
+    │   │   ├── 04_Paredes_Internas/     # 01_Comodos..., 02_Frontais, 03_Traseiras,
+    │   │   │                            # 04_Laterais_Altas, 05_Arcos_e_Portas, 06_Divisorias_e_Colunas
+    │   │   ├── 08_Cercas/               # Frente, Atras, Laterais, Curvas_e_Quinas, Postes_e_Portao
+    │   │   ├── 10_Pisos_Interior/       # 01_Pisos_Madeira_e_Tabuado
+    │   │   ├── armadilhas/              # espinhos_tipo_01..03
+    │   │   ├── arvores_animadas/        # 9 árvores x 14 frames
+    │   │   ├── arvores_separadas_tipo1/ # Model_01_Size_02..05
+    │   │   ├── arvores_separadas_tipo2/ # Model_02_Size_02..05
+    │   │   ├── arvores_separadas_tipo3/ # Model_03_Size_02..05
+    │   │   ├── paredes_externas/        # casas_vila, wall_tiles_01..03, wall_variatons_01..03
+    │   │   ├── pisos_externos/          # agua/pocas_agua, areia, grama, neve, pedra, terra
+    │   │   ├── sprites_separadas_interior/
+    │   │   │   ├── Buildings_Interior_Interior_Props_01/
+    │   │   │   ├── Buildings_Interior_Interior_Walls_01/
+    │   │   │   ├── Buildings_Props/objetos_vila/
+    │   │   │   ├── Buildings_Roofs/
+    │   │   │   ├── Buildings_Shadows/
+    │   │   │   └── Buildings_Walls/
+    │   │   ├── vegetacao_pedras_separadas/  # Rocks/, Vegetation/arvores_estilo_separado/
+    │   │   └── vila/
+    │   │       ├── catalogo.html
+    │   │       ├── Barracas/{Costas,Frente}
+    │   │       ├── Casas/{Conjunto_1,Conjunto_2}
+    │   │       ├── Lojas/{Costas,Frente}
+    │   │       └── Props/{Bancos,Cargas_e_Transporte,Fontes,Iluminacao_e_Postes,
+    │   │                  Monumentos,Placas_e_Estandartes,Vegetacao_e_Jardim}
+    │   │
+    │   ├── efeitos/ [750]
+    │   │   ├── chuva clara/  chuva escura/  chuva splash/   # 1 spritesheet cada
+    │   │   ├── explosao/    # explosao_1..3
+    │   │   ├── fogo/        # braseiro, chama, chao, coluna, fogueira, fumaca,
+    │   │   │                # media, mini, rasteira (cores: amarela, azul, branca,
+    │   │   │                #   laranja, roxa, verde)
+    │   │   ├── folhas/  nuvens/  snowflake/
+    │   │   └── sangue/      # sangue_1..5
+    │   │
+    │   ├── halia/                       # protagonista [23]
+    │   │   ├── andando_direita/  andando_esquerda/
+    │   │   ├── costas/  frente/  turnaround/
+    │   │
+    │   ├── hud/                         # "Sistema de Memórias" 0..7 + bolsa.png
+    │   ├── inimigos/ [400]
+    │   │   ├── banco/  demonio_grande/  demonio_inferior/  demonio_olho/
+    │   │   ├── demonio_pequeno/  demonio_superior/
+    │   │   ├── dragao_branco/           # attack_01/02, dead, flight, hurt, idle,
+    │   │   └── dragao_vermelho/         # landing, special, takeoff, walk
+    │   ├── menu inicial/                # botões (+ hover), título, livro e cajado, pétalas
+    │   └── props/                       # Bolsa de Moedas, Cajado, Grimório
+    │
+    └── src/
+        ├── main.py
+        │
+        ├── core/
+        │   ├── game.py
+        │   ├── audio_manager.py
+        │   └── save_manager.py
+        │
+        ├── data/                        # conteúdo do jogo em JSON
+        │   ├── bestiario.json      ├── items.json
+        │   ├── combat_texts.json   ├── missoes.json
+        │   ├── condicoes.json      ├── notificacoes.json
+        │   ├── conquistas.json     ├── receitas.json
+        │   ├── dialogos.json       ├── skills.json
+        │   ├── dialogos.py         └── grimorio_halia.json
+        │
+        ├── entities/
+        │   ├── Entity.py   ├── player.py   ├── NPC.py
+        │   ├── Enemy.py    ├── Boss.py     ├── enemy_factory.py
+        │   ├── animal.py   ├── item.py     └── elemento_cenario.py
+        │
+        ├── maps/
+        │   ├── map_loader.py     ├── cenario_base.py
+        │   ├── mapa_casa.py      ├── mapa_estrada.py
+        │   └── mapa_estrada_2.py
+        │
+        ├── mechanics/
+        │   ├── combat.py  combat_input.py  combat_narrator.py  combat_renderer.py
+        │   ├── attributes.py  conditions.py  skills.py  magia.py  grimorio.py
+        │   ├── inventory.py  items.py  item_factory.py  crafting.py  shop.py
+        │   ├── dialogue_manager.py  cutscene_manager.py  quest_manager.py
+        │   └── achievement_manager.py  minigames.py
+        │
+        ├── states/
+        │   ├── states.py                # base / gerenciador de estados
+        │   ├── menu_states.py  intro_states.py  credits_states.py
+        │   ├── slots_states.py  settings_states.py  controles_state.py
+        │   ├── selecao_controles_state.py
+        │   ├── playing_states.py  pause_states.py  combat_states.py
+        │   ├── inventory_states.py  shop_states.py  conquistas_state.py
+        │   └── inventory_tabs/
+        │       ├── __init__.py  tab_inventario.py  tab_magia.py
+        │       └── tab_crafting.py  tab_perfil.py
+        │
+        ├── ui/
+        │   ├── hud.py  menu.py  dialogue_box.py  quest_tracker.py
+        │   ├── notification_manager.py  transition.py  flashback.py
+        │   └── intro.py  tela_despertar.py  ui_utils.py
+        │
+        └── utils/
+            ├── constants.py  colors.py  colors#.py
+            ├── resource_manager.py  animations.py  clima.py
+            ├── filtro_memoria.py  save_manager.py  dev_commands.py
 
 ### Funcionalidades Mínimas
 
@@ -301,14 +316,14 @@ Considerando as ideias atuais para o projeto e que o mesmo seja finalizado desse
 
 - Mais cidades e mapas
 - Mais magias
-- Sistema de inventário avançado
+- Sistema de inventário avançado (feito)
 - Trilhas sonoras originais
 - NPCs com rotinas
 - Cutscenes animadas
 - Mais puzzles
-- Sistema de escolhas
+- Sistema de escolhas (feito)
 - Efeitos visuais avançados
-- Save automático
+- Save automático (feito)
 - Diferentes finais conforme linhas de diálogo
 
 ---
