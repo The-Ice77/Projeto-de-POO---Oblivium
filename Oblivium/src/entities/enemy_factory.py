@@ -65,10 +65,10 @@ class EnemyFactory:
                     "anomalia_maior": {
                         "nome": "Anomalia Maior",
                         "classe": "Boss",
-                        "vida_base": 80,
+                        "vida_base": 60,
                         "velocidade": 2.0,
-                        "dano_base": 16,
-                        "atributos": {"forca": 14, "destreza": 11, "constituicao": 16, "intelecto": 15, "sabedoria": 12, "presenca": 16},
+                        "dano_base": 11,
+                        "atributos": {"forca": 12, "destreza": 10, "constituicao": 12, "intelecto": 11, "sabedoria": 10, "presenca": 12},
                         "habilidades": ["golpe_sombrio", "impacto_anomalo"],
                         "recompensas": {"moedas": 45, "memorias": 1, "xp": 80},
                         "dimensoes": [55, 75],

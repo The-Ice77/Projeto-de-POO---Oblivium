@@ -15,15 +15,15 @@ class Boss(Enemy):
     Classe para Chefes e Mini-Chefes.
     Herda de Enemy com atributos aprimorados, múltiplas fases e habilidades de chefe.
     """
-    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=20, atributos=None, recompensas=None, mana_maxima=None, pasta_sprites="demonio_superior"):
+    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=13, atributos=None, recompensas=None, mana_maxima=None, pasta_sprites="demonio_superior"):
         if atributos is None:
             atributos = Atributos(
-                forca=14,
-                destreza=11,
-                constituicao=16,
-                intelecto=14,
-                sabedoria=12,
-                presenca=16
+                forca=12,
+                destreza=10,
+                constituicao=12,
+                intelecto=11,
+                sabedoria=10,
+                presenca=12
             )
             
         if recompensas is None:
@@ -35,11 +35,11 @@ class Boss(Enemy):
         self.enfurecido = False
 
     def verificar_mudanca_fase(self):
-        """Ativa modo enfurecido quando a vida cai abaixo de 40%."""
-        if self.vida_atual <= (self.vida_maxima * 0.4) and not self.enfurecido:
+        """Ativa modo enfurecido quando a vida cai abaixo de 30% (clímax do combate)."""
+        if self.vida_atual <= (self.vida_maxima * 0.3) and not self.enfurecido:
             self.enfurecido = True
             self.fase = 2
-            self.dano = int(self.dano * 1.3)
+            self.dano = int(self.dano * 1.25)
             print(f"[BOSS] {self.nome} entrou na Fase 2 (Enfurecido)!")
             return True
         return False

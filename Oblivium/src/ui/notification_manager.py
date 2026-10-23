@@ -33,11 +33,11 @@ class NotificacaoToast:
         # Configuração de cores e styling por tipo
         if self.tipo == "CONQUISTA":
             if self.eh_platina:
-                self.cor_borda = (255, 225, 110)
-                self.cor_destaque = (255, 235, 130)
+                self.cor_borda = (220, 235, 250)
+                self.cor_destaque = (240, 248, 255)
             else:
-                self.cor_borda = (230, 185, 75)
-                self.cor_destaque = (245, 205, 80)
+                self.cor_borda = (160, 195, 225)
+                self.cor_destaque = (210, 235, 255)
         elif self.tipo in ["MEMORIA", "MISSAO", "SINCRONIA"]:
             self.cor_borda = BORDA_DESTAQUE
             if self.tipo in ["MEMORIA", "SINCRONIA"]:
@@ -334,21 +334,21 @@ class NotificationManager:
         # Fundo Dark Fantasy profundo translúcido
         pygame.draw.rect(surf_toast, (*CARVAO_PROFUNDO[:3], int(toast.alpha * 0.96)), (0, 0, w_card, h_card), border_radius=4)
 
-        # Borda externa em ouro nobre
-        cor_borda = (255, 225, 110) if toast.eh_platina else (225, 185, 75)
+        # Borda externa em Prata Arcana / Platina Celestial
+        cor_borda = (220, 235, 250) if toast.eh_platina else (160, 195, 225)
         pygame.draw.rect(surf_toast, (*cor_borda, int(toast.alpha)), (0, 0, w_card, h_card), 1, border_radius=4)
 
         # Borda interna sutil decorativa (inset 2px)
         rect_inner = pygame.Rect(2, 2, w_card - 4, h_card - 4)
-        pygame.draw.rect(surf_toast, (60, 50, 32, int(toast.alpha * 0.65)), rect_inner, 1, border_radius=3)
+        pygame.draw.rect(surf_toast, (35, 48, 64, int(toast.alpha * 0.70)), rect_inner, 1, border_radius=3)
 
         # Brasão Heráldico Lateral (Esquerda 48x48)
         rect_brasao = pygame.Rect(11, 11, 48, 48)
-        pygame.draw.rect(surf_toast, (25, 22, 28, int(toast.alpha)), rect_brasao, border_radius=3)
-        pygame.draw.rect(surf_toast, (195, 155, 65, int(toast.alpha)), rect_brasao, 1, border_radius=3)
+        pygame.draw.rect(surf_toast, (20, 24, 32, int(toast.alpha)), rect_brasao, border_radius=3)
+        pygame.draw.rect(surf_toast, (130, 165, 195, int(toast.alpha)), rect_brasao, 1, border_radius=3)
 
         # Detalhes nos cantos do brasão
-        c_tick = (245, 205, 80, int(toast.alpha))
+        c_tick = (180, 215, 245, int(toast.alpha))
         for cx, cy in [(rect_brasao.left + 2, rect_brasao.top + 2),
                        (rect_brasao.right - 4, rect_brasao.top + 2),
                        (rect_brasao.left + 2, rect_brasao.bottom - 4),
@@ -357,22 +357,22 @@ class NotificationManager:
 
         # Ícone do Brasão (com suporte a símbolo heráldico)
         simbolo = toast.icone or ("⚜" if toast.eh_platina else "✦")
-        txt_ico = self.fonte_icone_grande.render(simbolo, True, (255, 225, 95) if toast.eh_platina else (245, 205, 80))
+        txt_ico = self.fonte_icone_grande.render(simbolo, True, (240, 248, 255) if toast.eh_platina else (210, 235, 255))
         txt_ico.set_alpha(toast.alpha)
         surf_toast.blit(txt_ico, (rect_brasao.centerx - txt_ico.get_width() // 2, rect_brasao.centery - txt_ico.get_height() // 2))
 
         # Bloco de Texto (Direita)
         x_txt = 72
 
-        # Linha 1: Kicker dourado "✦ CONQUISTA DESBLOQUEADA ✦"
+        # Linha 1: Kicker elegante "✦ CONQUISTA DESBLOQUEADA ✦" em Azul Névoa / Prata
         kicker_str = "✦ CONQUISTA PLATINA DESBLOQUEADA ✦" if toast.eh_platina else "✦ CONQUISTA DESBLOQUEADA ✦"
-        txt_kicker = self.fonte_kicker.render(kicker_str, True, (245, 205, 80))
+        txt_kicker = self.fonte_kicker.render(kicker_str, True, (200, 225, 250) if toast.eh_platina else (160, 205, 240))
         txt_kicker.set_alpha(toast.alpha)
         surf_toast.blit(txt_kicker, (x_txt, 9))
 
         # Linha 2: Nome da Conquista
         tit_curto = toast.titulo if len(toast.titulo) <= 32 else toast.titulo[:29] + "..."
-        txt_tit = self.fonte_conquista_titulo.render(tit_curto, True, (255, 248, 230))
+        txt_tit = self.fonte_conquista_titulo.render(tit_curto, True, (246, 243, 236))
         txt_tit.set_alpha(toast.alpha)
         surf_toast.blit(txt_tit, (x_txt, 25))
 
@@ -380,15 +380,15 @@ class NotificationManager:
         desc_str = toast.descricao if toast.descricao else toast.mensagem
         if len(desc_str) > 52:
             desc_str = desc_str[:49] + "..."
-        txt_desc = self.fonte_texto.render(desc_str, True, (185, 185, 200))
+        txt_desc = self.fonte_texto.render(desc_str, True, (185, 190, 200))
         txt_desc.set_alpha(toast.alpha)
         surf_toast.blit(txt_desc, (x_txt, 47))
 
-        # Barra sutil dourada de duração na base
+        # Barra sutil de duração na base em tom azul névoa
         razao_vida = max(0.0, min(1.0, toast.tempo_vida / toast.duracao_maxima))
         w_prog = int((w_card - 16) * razao_vida)
         if w_prog > 0:
-            pygame.draw.line(surf_toast, (235, 195, 75, int(toast.alpha * 0.8)), (8, h_card - 2), (8 + w_prog, h_card - 2), 2)
+            pygame.draw.line(surf_toast, (150, 195, 230, int(toast.alpha * 0.8)), (8, h_card - 2), (8 + w_prog, h_card - 2), 2)
 
         tela.blit(surf_toast, (x_pos, y_pos))
 
