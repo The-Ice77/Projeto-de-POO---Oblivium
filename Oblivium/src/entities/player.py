@@ -265,6 +265,10 @@ class Player(Entidade):
         self.fragmentos_memoria += quantidade
         self.nivel_sincronia = 1 + self.fragmentos_memoria
 
+        if getattr(self, 'nivel_sincronia', 1) >= 2:
+            if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("sincronia_2")
+
         # Bônus de Atributos pelo despertar da mente
         self.atributos.intelecto += (quantidade * 2)
         self.atributos.sabedoria += (quantidade * 2)

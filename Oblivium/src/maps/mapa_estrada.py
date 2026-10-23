@@ -148,7 +148,11 @@ class MapaEstrada(CenarioBase):
             pos_jogador = (self.game.halia.x + 20, self.game.halia.y + 30)
 
         for p in self.passaros:
+            estado_ant = getattr(p, 'estado_atual', 'idle')
             p.atualizar(dt, pos_jogador=pos_jogador)
+            if estado_ant != "voo" and getattr(p, 'estado_atual', '') == "voo":
+                if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                    self.game.conquistas.desbloquear("fauna_viva")
 
     def desenhar_camada_inferior(self, tela):
         """Renderiza o chão e toda a vegetação das margens."""

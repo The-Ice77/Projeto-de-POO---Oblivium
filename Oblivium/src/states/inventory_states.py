@@ -364,6 +364,8 @@ class InventoryState(State):
                     quantidade=rec.resultado_quantidade,
                     nome=rec.nome
                 )
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("primeira_receita")
             halia.recalcular_status_derivados(manter_porcentagem=False)
         else:
             self.exibir_mensagem(f"⚠ {msg}")

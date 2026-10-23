@@ -518,6 +518,12 @@ class CombatScreen:
         if resultado.get("vulneravel"):
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), hx + 30, hy - 10, (240, 130, 130), duracao=80)
 
+        # Conquista: Mente Inabalável (Foco Espiritual ou Defender)
+        id_acao_atual = getattr(acao, 'id_acao', getattr(acao, 'id', ''))
+        if id_acao_atual in ["foco_espiritual", "defender"] or getattr(acao, 'tipo', '').upper() == "FOCO" or resultado.get("defendendo") or mana_rec > 0:
+            if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("foco_espiritual")
+
         # Se for magia de ataque ou suporte
         if getattr(acao, 'custo_mana', 0) > 0 or getattr(acao, 'tipo', '').upper() == 'MAGIA':
             self._tocar_sfx("magia_cast")
@@ -847,6 +853,8 @@ class CombatScreen:
             memorias=self.recompensas_vitoria['memorias']
         ))
         self.estado_combate = "VITORIA"
+        if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
+            self.game.conquistas.desbloquear("primeiro_sangue")
         audio = AudioManager.get_instance()
         if audio:
             audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)

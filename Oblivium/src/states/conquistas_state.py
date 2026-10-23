@@ -292,8 +292,8 @@ class ConquistasState(State):
                 cor_borda_card = (42, 44, 52)
                 cor_titulo = (145, 148, 160)
                 cor_desc = UI_TEXTO_APAGADO
-                icone_txt = "🔒"
-                cor_icone = CINZA_ARDOSIA
+                icone_txt = "✧"
+                cor_icone = (85, 88, 100)
 
             # Desenha painel do card
             pygame.draw.rect(tela, cor_fundo_card, rect_card, border_radius=4)

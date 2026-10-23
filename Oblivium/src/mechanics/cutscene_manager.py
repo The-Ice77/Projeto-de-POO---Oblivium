@@ -120,6 +120,8 @@ class CutsceneManager:
                 self.game.caixa_dialogo.iniciar_dialogo("pos_fogo")
                 self.game.magia_ativa = "CONCLUIDO"
                 self.game.conversa_combate_ativa = True
+                if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                    self.game.conquistas.desbloquear("fogo_destrutivo")
 
     def _disparar_explosao(self, centro_x, centro_y):
         """Detona a explosão no obstáculo, gerando onda de choque, fragmentos e fogo no ambiente."""

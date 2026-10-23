@@ -123,8 +123,8 @@
       "titulo": "✦ CONQUISTA DESBLOQUEADA ✦",
       "mensagem": "{conquista}",
       "tipo": "CONQUISTA",
-      "icone": "🏆",
-      "duracao_ticks": 260
+      "icone": "✦",
+      "duracao_ticks": 210
     }
   }
 }

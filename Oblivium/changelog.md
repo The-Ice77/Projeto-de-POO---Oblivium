@@ -253,4 +253,26 @@
   - `tab_crafting.py` (`TabCraftingRenderer`): Bancada selada de criação, forja e manipulação de reagentes.
 - **Redução em inventory_states.py**: Redução de 420 linhas no arquivo principal do menu de inventário (de 974 para 554 linhas), preservando 100% da compatibilidade de eventos, cliques e interfaces.
 
+---
+
+### Atualização v[0.9.0] — Sistema de Conquistas & Rastreador de Missões
+#### Implementação, Correção e Aprimoramento
+- **Sistema de Conquistas Estilo Steam**:
+  - Armazenamento global e persistente em `saves/conquistas.json`, independente de slots de save individuais.
+  - Catálogo de 15 conquistas narrativas e de gameplay com auto-desbloqueio da Platina (`mestre_platinador`).
+  - Integração visual com botões artísticos dedicados (`16.png` e `17.png`) no Menu Principal e Menu de Pausa.
+  - Nova tela `ConquistasState` com medidor de platina, filtros contextuais (*Todas*, *Desbloqueadas*, *Bloqueadas*), rolagem fluida e cartões ornamentados Dark Fantasy.
+- **Notificações Push Centralizadas**:
+  - Reposicionamento das notificações de brinde do canto superior direito para o topo central (`centro superior`), com animação slide-down e coroa dourada especial para conquistas.
+- **Rastreador de Missões (Quest Tracker HUD)**:
+  - Sistema de missões com ciclo de vida `DISPONIVEL` -> `ATIVA` -> `CONCLUIDA` em `src/mechanics/quest_manager.py`.
+  - HUD minimalista no canto superior direito (`x=981, y=22`) com esmaecimento de proximidade quando Halia se aproxima, recolhimento/expansão via tecla `[J]` ou clique, e altura dinâmica.
+  - Catálogo inicial de missões da vila em `src/data/missoes.json` (*O Refúgio de Oakhaven*, *Reagentes para a Cura*, *Ronda nas Fronteiras*).
+- **Proteção e Redefinição de Dados**:
+  - Adição da opção defensiva "Redefinir Dados..." no menu de configurações com modal solene de confirmação com dois passos (foco padrão em "Cancelar").
+  - Limpeza atômica de todos os 4 slots de save (incluindo autosaves) e redefinição de todas as conquistas do jogo.
+- **Integração Completa de Gatilhos de Gameplay**:
+  - Vinculação de gatilhos automáticos para todas as 15 conquistas (movimento inicial na casa, itens coletados, partida na carruagem, pássaro assustado, flashback de memória, quebra-cabeças de Levitação e Bola de Fogo, vitória e foco tático em combate, nível 2 de sincronia, fabricação de receitas e aceitação de missões).
+
+
 

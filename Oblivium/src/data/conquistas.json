@@ -11,28 +11,28 @@
       "id": "heranca_arcana",
       "titulo": "Herança Arcana",
       "descricao": "Recupere o antigo cajado de madeira nos aposentos de Halia.",
-      "icone": "🪄",
+      "icone": "⚡",
       "secreta": false
     },
     {
       "id": "bolsa_moedas",
       "titulo": "Bolsa de Prata",
       "descricao": "Encontre as economias guardadas em sua residência antes da partida.",
-      "icone": "💰",
+      "icone": "◈",
       "secreta": false
     },
     {
       "id": "partida_estrada",
       "titulo": "O Partir do Carroceiro",
       "descricao": "Inicie a viagem pela Estrada Rural ao lado do Carroceiro.",
-      "icone": "🐎",
+      "icone": "❖",
       "secreta": false
     },
     {
       "id": "fauna_viva",
       "titulo": "Harmonia Alada",
       "descricao": "Aproxime-se e contemple o voo sereno de um pássaro pelas estradas.",
-      "icone": "🕊️",
+      "icone": "❀",
       "secreta": false
     },
     {
@@ -46,63 +46,63 @@
       "id": "levitacao",
       "titulo": "Mente Sobre a Matéria",
       "descricao": "Desobstrua a barreira de rochas utilizando a magia de Levitação.",
-      "icone": "✨",
+      "icone": "✧",
       "secreta": false
     },
     {
       "id": "fogo_destrutivo",
       "titulo": "Purificação pelas Chamas",
       "descricao": "Incinere os obstáculos rochosos conjurando uma Bola de Fogo cinematográfica.",
-      "icone": "🔥",
+      "icone": "♨",
       "secreta": false
     },
     {
       "id": "primeiro_sangue",
       "titulo": "Primeiro Sangue",
       "descricao": "Saia vitoriosa do seu primeiro confronto contra as anomalias da névoa.",
-      "icone": "⚔️",
+      "icone": "⚔",
       "secreta": false
     },
     {
       "id": "foco_espiritual",
       "titulo": "Mente Inabalável",
       "descricao": "Execute uma manobra tática de Concentração ou Defesa em combate.",
-      "icone": "🛡️",
+      "icone": "🛡",
       "secreta": false
     },
     {
       "id": "sincronia_2",
       "titulo": "Despertar da Memória",
       "descricao": "Recupere um fragmento de memória e atinja o Nível 2 de Sincronia Arcana.",
-      "icone": "💎",
+      "icone": "◆",
       "secreta": false
     },
     {
       "id": "primeira_receita",
       "titulo": "Alquimista Iniciante",
       "descricao": "Fabrique seu primeiro item ou consumível na bancada de Crafting.",
-      "icone": "🧪",
+      "icone": "⚗",
       "secreta": false
     },
     {
       "id": "rumo_a_vila",
       "titulo": "Além do Vale",
       "descricao": "Conclua a travessia das estradas e rume em direção ao Vilarejo de Oakhaven.",
-      "icone": "🌄",
+      "icone": "▲",
       "secreta": false
     },
     {
       "id": "primeira_missao",
       "titulo": "Mão Amiga",
       "descricao": "Aceite sua primeira missão junto aos habitantes da vila.",
-      "icone": "🤝",
+      "icone": "✦",
       "secreta": false
     },
     {
       "id": "mestre_platinador",
       "titulo": "Guardiã de Oblivium",
       "descricao": "Desbloqueie todas as 14 conquistas e restaure completamente seu legado.",
-      "icone": "👑",
+      "icone": "⚜",
       "secreta": true
     }
   ]

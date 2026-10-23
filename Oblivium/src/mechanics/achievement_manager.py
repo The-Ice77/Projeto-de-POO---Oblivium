@@ -166,3 +166,11 @@ class AchievementManager:
 
         self.salvar_progresso()
         logger.info("[AchievementManager] Todas as conquistas foram redefinidas.")
+
+    def redefinir_todas(self):
+        """Alias para resetar_todas_conquistas."""
+        self.resetar_todas_conquistas()
+
+    def obter_desbloqueadas(self):
+        """Retorna uma lista com os IDs de todas as conquistas já desbloqueadas."""
+        return [cid for cid, c in self.conquistas.items() if c["desbloqueada"]]

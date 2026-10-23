@@ -61,6 +61,7 @@ class Game:
         self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA) 
         self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
+        self.tela_combate.game = self
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.efeito_folhas = EfeitoFolhas(self.LARGURA, self.ALTURA, quantidade_folhas=28)
         self.efeito_chuva = EfeitoChuva(self.LARGURA, self.ALTURA)
@@ -107,6 +108,7 @@ class Game:
         
         # --- Entidades Estáveis ---
         self.halia = Player("Halia", 100, 210, 280, 3, mana_maxima=50, dinheiro=0)
+        self.halia.game = self
         self.carroceiro = NPC(nome="Carroceiro", x=1350, y=330, velocidade=2)
 
         # --- Flags Globais de Progresso e Cutscenes (Lidas pelo PlayingState) ---
