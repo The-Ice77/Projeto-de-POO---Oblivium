@@ -4,7 +4,6 @@ from src.states.states import State
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.item_factory import ItemFactory
 from src.mechanics.cutscene_manager import CutsceneManager
-from src.utils import save_manager
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
@@ -18,7 +17,7 @@ class PlayingState(State):
         self._processar_movimento(teclas)
         
         for evento in eventos:
-            if hasattr(self.game, 'quest_tracker') and self.game.quest_tracker.handle_event(evento):
+            if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and self.game.quest_tracker.handle_event(evento, self.game):
                 continue
             if evento.type == pygame.MOUSEMOTION:
                 self.game.caixa_dialogo.atualizar_mouse(evento.pos)
@@ -91,6 +90,7 @@ class PlayingState(State):
             if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
                 if self.game.filtro_memoria.estagio_atual != mem_atual:
                     self.game.filtro_memoria.definir_estagio(mem_atual, com_transicao_suave=False)
+            self.self_mem_sync = mem_atual
             self.memoria_anterior_registrada = mem_atual
 
         # Atualiza a interpolação suave do filtro de memória continuamente
@@ -188,8 +188,6 @@ class PlayingState(State):
         if teclas[self.game.controles["Direita"]]: dx = 1
         
         if dx != 0 or dy != 0:
-            if hasattr(self.game, 'conquistas') and self.game.conquistas and getattr(getattr(self.game, 'mapa_casa', None), 'cenario_atual', '') == "CASA":
-                self.game.conquistas.desbloquear("despertar")
             velocidade_original = self.game.halia.velocidade
             tecla_correr = self.game.controles.get("Correr", pygame.K_LSHIFT)
             esta_correndo = teclas[tecla_correr] or (tecla_correr in [pygame.K_LSHIFT, pygame.K_RSHIFT] and (teclas[pygame.K_LSHIFT] or teclas[pygame.K_RSHIFT]))
@@ -331,9 +329,8 @@ class PlayingState(State):
             self.game.distanciando_halia = True
             self.game.timer_magia = 0
             if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("fogo")
+                self.game.conquistas.desbloquear("chama_primordial")
         elif res == "AVANCOU_ETAPA":
-            # Avançou para a próxima etapa do ritual ígneo de 3 tempos.
             pass
         else:
             self.game.caixa_dialogo.iniciar_dialogo("falha_timing")
@@ -348,7 +345,7 @@ class PlayingState(State):
             self.game.distanciando_halia = False
             self.game.timer_magia = 0
             if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("levitacao")
+                self.game.conquistas.desbloquear("dominio_gravidade")
             self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
             self.game.conversa_combate_ativa = True
         elif res == "PERDEU":
@@ -370,7 +367,6 @@ class PlayingState(State):
         elif self.game.mg_mash.ativo:
             res = self.game.mg_mash.atualizar()
 
-            # As pedras vão se movendo com os cliques; caso o jogador deixe diminuir, elas vão voltando
             pct = self.game.mg_mash.get_progresso_pct()
             if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
                 self.game.mapa_casa.atualizar_levitacao_minigame(pct)
@@ -392,14 +388,12 @@ class PlayingState(State):
             self.game.conversa_combate_ativa = False
             self.game.cena_inimigos_andando = True
             
-            # Recua a Halia para a esquerda para dar espaço de visualização e fixa em idle encarando os inimigos
             if self.game.halia.x > 1000:
                 self.game.halia.x = 1000
             self.game.halia.virado_direita = True
             self.game.halia.direcao = "direita"
             self.game.halia.mudar_estado("idle")
                 
-            # Cria os inimigos na beirada visível da tela usando a Factory (virados para a esquerda em direção à Halia)
             if self.game.magia_usada_no_puzzle == "FOGO":
                 sombra1 = EnemyFactory.criar("demonio_inferior", x=1180, y=290, nome_custom="Demônio Inferior 1")
                 sombra2 = EnemyFactory.criar("demonio_inferior", x=1180, y=420, nome_custom="Demônio Inferior 2")
@@ -445,12 +439,10 @@ class PlayingState(State):
         if self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or self.game.cena_inimigos_andando:
             return
 
-        # Saída da Casa: Halia passa pela porta frontal e vai para o jardim
         if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
             self.game.mapa_casa.fechar_porta()
             self.game.caixa_dialogo.iniciar_dialogo("fechar_porta")
             
-        # Prosseguir viagem: Halia caminha pela pequena estrada de terra até o limite leste do jardim
         if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.mapa_casa.porta_aberta and self.game.halia.x > 1220:
             self.game.transicao.iniciar("Seguindo viagem...")
 
@@ -470,16 +462,16 @@ class PlayingState(State):
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA" and self.game.aguardando_fim_viagem and not self.game.caixa_dialogo.ativo:
             self.game.aguardando_fim_viagem = False; self.game.conversa_carroceiro_terminou = True
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("partida_estrada")
             self.game.transicao.iniciar("Algumas horas depois...")
 
-        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores
+        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores + Ativa Missões
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and getattr(self.game, 'partindo_estrada2', False) and not self.game.caixa_dialogo.ativo:
             self.game.partindo_estrada2 = False
             self.game.conversa_carroceiro_terminou = True
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("rumo_a_vila")
+            if hasattr(self.game, 'missoes') and self.game.missoes:
+                self.game.missoes.aceitar_missao("missao_boas_vindas")
+                if not self.game.missoes.obter_missao_secundaria_ativa():
+                    self.game.missoes.aceitar_missao("missao_ervas_medicinais")
             if self.game.halia.fragmentos_memoria < 1:
                 self.game.halia.recuperar_memoria(1)
             if self.game.slot_atual:
@@ -548,16 +540,12 @@ class PlayingState(State):
                 
                 if id_do_item == "item_moedas":
                     self.game.halia.ganhar_dinheiro(1000) # 50 Moedas de Prata = 5 Moedas de Ouro
-                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                        self.game.conquistas.desbloquear("bolsa_moedas")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
                 elif id_do_item == "item_cajado":
                     cajado = ItemFactory.criar("cajado_espinheiro")
                     if cajado:
                         self.game.halia.inventario.equipados["CAJADO"] = cajado
                     self.game.halia.recalcular_status_derivados()
-                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                        self.game.conquistas.desbloquear("heranca_arcana")
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você empunhou o Cajado de Espinheiro."}])
                 elif id_do_item == "item_livro":
                     tomo = ItemFactory.criar("tomo_chama_ancestral")
@@ -578,7 +566,6 @@ class PlayingState(State):
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
             if area_interacao.colliderect(pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)):
-                # Faz os dois personagens se entreolharem de lado
                 self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
                 self.game.halia.virado_direita = (self.game.carroceiro.x > self.game.halia.x)
                 if self.game.mapa_casa.cenario_atual == "ESTRADA":
@@ -592,7 +579,6 @@ class PlayingState(State):
                         self.game.caixa_dialogo.iniciar_dialogo("carroceiro_impedimento")
                 return
 
-        # Interação direta com as rochas na Estrada 2
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
             if self.game.halia.x >= 950:
                 self.game.investigou_pedras = True
@@ -612,18 +598,23 @@ class PlayingState(State):
                     self.game.combate_estrada_concluido = True
                     self.game.magia_ativa = "CONCLUIDO"
                     self.game.mapa_casa.desobstruir_estrada(self.game.magia_usada_no_puzzle or "FOGO")
+                    qtd_inf = sum(1 for i in self.game.inimigos_em_cena if "inferior" in getattr(i, 'nome', '').lower())
+                    teve_chefe = any(getattr(i, 'eh_chefe', False) or "superior" in getattr(i, 'nome', '').lower() for i in self.game.inimigos_em_cena)
+                    if qtd_inf > 0 and hasattr(self.game, 'missoes') and self.game.missoes:
+                        self.game.missoes.progredir_objetivo("missao_ronda_fronteiras", "derrotar_demonios", qtd_inf)
                     self.game.inimigos_em_cena.clear()
                     self.game.cena_inimigos_andando = False
                     if hasattr(self.game, 'conquistas') and self.game.conquistas:
                         self.game.conquistas.desbloquear("primeiro_sangue")
+                        if teve_chefe:
+                            self.game.conquistas.desbloquear("cacadora_abissal")
                     self.game.mudar_estado("JOGANDO")
                     self.game.caixa_dialogo.iniciar_dialogo("pos_combate_vitoria")
                     
                 def on_derrota():
-                    # Ao ser derrotada, retorna ao último checkpoint carregando o autosave do slot ativo
-                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
+                    if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
                         self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
-                    elif self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="manual"):
+                    elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
                         self.game.carregar_estado(self.game.slot_atual, tipo="manual")
                     else:
                         self.game.halia.restaurar_total()
@@ -631,7 +622,6 @@ class PlayingState(State):
                         self.game.inimigos_em_cena.clear()
                         self.game.cena_inimigos_andando = False
                     
-                    # Blindagem: garante que a derrota nunca mantenha o combate finalizado ou flags de transição presas
                     if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
                         self.game.combate_estrada_concluido = False
                         self.game.inimigos_em_cena.clear()

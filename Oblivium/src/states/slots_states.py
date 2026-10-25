@@ -8,7 +8,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
-from src.utils import save_manager
+# Roteamento unificado via self.game.save_manager
 
 def formatar_tempo(segundos):
     m, s = divmod(int(segundos), 60)
@@ -100,7 +100,7 @@ class SlotsState(State):
                 self.opcao_confirmacao = 1
             elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                 if self.opcao_confirmacao == 0: 
-                    save_manager.apagar_dados(self.slot_confirmacao, tipo="ambos")
+                    self.game.save_manager.apagar_dados(self.slot_confirmacao, tipo="ambos")
                     if hasattr(self.game, 'menu'):
                         self.game.menu.atualizar_opcoes()
                 self.slot_confirmacao = None
@@ -116,7 +116,7 @@ class SlotsState(State):
             for i, rect in enumerate(self.rects_confirma):
                 if rect.collidepoint(evento.pos):
                     if i == 0: 
-                        save_manager.apagar_dados(self.slot_confirmacao, tipo="ambos")
+                        self.game.save_manager.apagar_dados(self.slot_confirmacao, tipo="ambos")
                         if hasattr(self.game, 'menu'):
                             self.game.menu.atualizar_opcoes()
                     self.slot_confirmacao = None
@@ -190,8 +190,8 @@ class SlotsState(State):
             self.game.mudar_estado("JOGANDO") 
             
         elif self.game.acao_slots == "CARREGAR":
-            tem_manual = save_manager.save_existe(slot_escolhido, tipo="manual")
-            tem_auto = save_manager.save_existe(slot_escolhido, tipo="autosave")
+            tem_manual = self.game.save_manager.save_existe(slot_escolhido, tipo="manual")
+            tem_auto = self.game.save_manager.save_existe(slot_escolhido, tipo="autosave")
             
             if tem_manual or tem_auto:
                 self.slot_modal_versao = slot_escolhido
@@ -208,7 +208,7 @@ class SlotsState(State):
 
     def _montar_opcoes_modal_versao(self, slot):
         self.opcoes_modal_versao.clear()
-        resumos = save_manager.obter_resumo_slots()
+        resumos = self.game.save_manager.obter_resumo_slots()
         info_slot = resumos.get(slot, {})
         
         man = info_slot.get("manual", {})
@@ -287,7 +287,7 @@ class SlotsState(State):
         self.rects_opcoes.clear()
         self.rects_deletar.clear()
         
-        resumos = save_manager.obter_resumo_slots()
+        resumos = self.game.save_manager.obter_resumo_slots()
         
         for i in range(self.max_slots):
             slot_num = i + 1

@@ -307,6 +307,47 @@
 - **Refinamento de Paleta Dark Fantasy**:
   - Substituição de tons dourados e amarelos saturados na tela de conquistas e badges por tons nobres de Prata Arcana (`#d0daf0` e `#8fa0c0`), Marfim Offwhite e Cinza Linho, harmonizando com a estética gótica de Oblivium.
 
+---
 
+### Atualização v[0.9.3] — Calibragem de Demônios, Puzzles de Magia e Controle de Missões
+#### Implementação, Correção e Aprimoramento
+- **Rebalanceamento dos Demônios**:
+  - **Demônio Inferior** (`demonio_inferior`, `sombra_menor`, `gulosinho`): Redução sutil de dificuldade para suavizar combates em dupla (`vida_base` de 42 para 36, `dano_base` de 11 para 9, Força 10, Destreza 12 e Constituição 10).
+  - **Demônio Superior** (`demonio_superior`, `anomalia_maior`, `gulosao`, `Boss`): Fortalecimento moderado para preservar sua imponência como Chefe (`vida_base` de 64 para 78, `mana_base` 55, `dano_base` de 12 para 15, Força 14, Destreza 12, Constituição 14, Intelecto 13 e Presença 14), além de calibragem nas habilidades `impacto_anomalo` e `onda_corrosiva`.
+- **Ajuste de Dificuldade dos Puzzles de Magia**:
+  - **Bola de Fogo (`MinigameTiming`)**: Tornado mais acessível com redução da velocidade do cursor nas 3 etapas (`5.5`, `7.5` e `9.5`), ampliação das zonas de acerto (`110px`, `84px` e `60px`) e reinício previsível do cursor na base a cada etapa.
+  - **Levitação Gravitacional (`MinigameMash`)**: Tornado mais desafiador com janela de reação mais exigente (`62` ticks base reduzindo até `38` ticks em sequência), maior inércia gravitacional (`-0.14`/frame), ganho de `+13.5%` por acerto (exigindo ~7 a 8 acertos) e penalidade de `-20%` por falha.
+- **Controle de Ativação e Teste de Missões**:
+  - Vinculação direta ao `QuestManager` (`game.missoes` / `game.quest_manager`) com suporte ao ciclo completo do catálogo (`missao_boas_vindas`, `missao_ervas_medicinais`, `missao_ronda_fronteiras`).
+  - Adição do controle configurável **Missões `[J]`** (ativa missão inicial ou recolhe/expande o Quest Tracker HUD) e atalho rápido **`[M]`** / **`[0]` no Dev Menu** para ativar missões e avançar objetivos etapa por etapa em tempo real.
 
-
+---
+
+### Atualização v[0.9.4] — Quest Tracker Simultâneo (1 Principal + 1 Secundária), Curadoria de Conquistas & Ícones Procedurais
+#### Implementação, Correção e Aprimoramento
+- **Desassociação de Teclas de Teste e Atalho `[O]` para Missões**:
+  - Desassociadas as teclas de teste do gameplay livre; a tecla oficial **`[O]` (`pygame.K_o`)** agora é dedicada exclusivamente a **minimizar e expandir** o HUD de Missões durante a exploração.
+  - O controle de ativação/progresso rápido de missões permanece centralizado no Console de Desenvolvedor (`'` -> opção `[0]`).
+- **Quest Tracker Ampliado com 1 Missão Principal + 1 Secundária Simultâneas**:
+  - Regra de negócio aplicada no `QuestManager`: o jogador pode manter ativas simultaneamente no máximo **1 Missão Principal** e **1 Missão Secundária**.
+  - `QuestTracker` redimensionado (`350px` de largura, tipografia ampliada `18pt`/`20pt`/`16pt` e alto contraste) exibindo **ambas as missões ativas juntas** na tela, separadas por divisória ornamentada e identificadas por insígnias procedurais (`Principal` em âmbar dourado e `Secundária` em prata azulada).
+- **Curadoria de Conquistas Especiais e Únicas**:
+  - Remoção das conquistas triviais de início de jogo (dar 1 passo no quarto, coletar moedas iniciais, pegar o cajado básico, falar com o carroceiro, assustar pássaro).
+  - Consolidação de **10 marcos realmente significativos** em `conquistas.json`, incluindo *Caçadora do Abismo* (`cacadora_abissal`, ao derrotar o Demônio Superior) e *Cumpridor de Promessas* (`cumpridor_promessas`, ao concluir integralmente uma missão).
+- **Geração Procedural de Ícones e Emblemas via Código (`ui_utils.py`)**:
+  - Eliminação de blocos vazios e glifos Unicode ausentes nas fontes customizadas (`sunday.ttf` / `contrail.ttf`).
+  - Criação de geradores vetoriais procedurais para **todos os 10 emblemas de conquistas**, **botões de fechar `[X]`**, **botões de minimizar/expandir `[-]`/`[+]`**, **moedas de Ouro/Prata/Cobre** e **ilustrações dos slots de Equipamentos e Grimórios**.
+
+---
+
+### Atualização v[0.9.5] — Refatoração Arquitetural de Artes (`IconRegistry` & `TilemapBuilder`) e Polimento do HUD/Inventário
+#### Implementação, Correção e Aprimoramento
+- **HUD e Inventário**:
+  - Remoção do bloco lateral ao lado das barras de status (`HP`/`MP`) da Halia no `HUD`, tornando o painel superior esquerdo mais limpo e compacto (`250x78` px).
+  - Preservação dos ícones antigos para os slots de Equipamentos (`ROUPA`, `CAJADO`, `ACESSORIO_1`, `ACESSORIO_2`) e Grimórios (`GRIMORIO`).
+  - Nos itens da Bolsa e da Loja, utilização estrita apenas das sprites oficiais de itens que existem no projeto (`props/Cajado.png` e `props/Grimório.png`), mantendo o modelo original de **apenas texto** para itens que não possuem sprite própria.
+- **Refatoração Arquitetural (Padrão *Flyweight* / *Factory* e Princípio da Responsabilidade Única — SRP)**:
+  - Criação do [`IconRegistry`](Oblivium/src/ui/icon_registry.py): centraliza a resolução de sprites oficiais de itens e gera **uma única vez em cache (`pygame.Surface` RGBA)** todos os ícones procedurais (conquistas, notificações, moedas, marcadores de missão e slots), eliminando recálculos geométricos a cada frame (60 FPS).
+  - Limpeza de [`ui_utils.py`](Oblivium/src/ui/ui_utils.py): focado exclusivamente em primitivas de layout, barras interpoladas, quebras de texto e `BotaoGrafico`.
+  - Criação do [`TilemapBuilder`](Oblivium/src/maps/tilemap_builder.py): extração da lógica de composição de terrenos, estradas e autotiling que antes sobrecarregava o [`ResourceManager`](Oblivium/src/utils/resource_manager.py).
+  - Unificação do roteamento de persistência em `PlayingState` e `SlotsState` através da instância orientada a objetos `game.save_manager` ([`SaveManager`](Oblivium/src/core/save_manager.py)).

@@ -17,10 +17,11 @@ class QuestManager:
 
     Responsabilidades:
     - Carregamento e instanciação de missões a partir do catálogo JSON.
-    - Gestão de ciclo de vida das missões: DISPONÍVEL -> ATIVA -> CONCLUÍDA.
+    - Gestão de ciclo de vida das missões: DISPONIVEL -> ATIVA -> CONCLUIDA.
+    - Regra de simultaneidade estrita: o jogador pode ter ativa no máximo
+      1 missão PRINCIPAL e 1 missão SECUNDARIA por vez (exibidas juntas no HUD).
     - Acompanhamento detalhado de objetivos com contadores e conclusão automática de etapas.
-    - Entrega de recompensas (ouro, itens e experiência) ao concluir.
-    - Seleção de missão rastreada ativa para exibição no Quest Tracker HUD.
+    - Entrega de recompensas (ouro, itens e experiência) e conquista 'cumpridor_promessas' ao concluir.
     - Serialização/desserialização integrada com o SaveManager.
     """
 
@@ -49,14 +50,29 @@ class QuestManager:
         for m in self.catalogo_base:
             mid = m.get("id")
             if mid:
-                # Cópia profunda para garantir independência de mutações em runtime
                 self.missoes[mid] = copy.deepcopy(m)
         self.missao_rastreada_id = None
 
-    def aceitar_missao(self, id_missao):
+    def obter_missao_ativa_por_categoria(self, categoria):
+        """Retorna a missão atualmente ATIVA da categoria informada ('PRINCIPAL' ou 'SECUNDARIA'), ou None."""
+        cat_alvo = (categoria or "PRINCIPAL").upper()
+        for m in self.missoes.values():
+            if m.get("status") == "ATIVA" and m.get("categoria", "SECUNDARIA").upper() == cat_alvo:
+                return m
+        return None
+
+    def obter_missao_principal_ativa(self):
+        """Retorna a missão PRINCIPAL atualmente ativa, ou None."""
+        return self.obter_missao_ativa_por_categoria("PRINCIPAL")
+
+    def obter_missao_secundaria_ativa(self):
+        """Retorna a missão SECUNDARIA atualmente ativa, ou None."""
+        return self.obter_missao_ativa_por_categoria("SECUNDARIA")
+
+    def aceitar_missao(self, id_missao, substituir_categoria=False):
         """
-        Transiciona uma missão do estado DISPONIVEL para ATIVA.
-        Dispara notificações e desbloqueia a conquista 'primeira_missao'.
+        Transiciona uma missão do estado DISPONIVEL para ATIVA, respeitando o limite
+        de no máximo 1 missão PRINCIPAL e 1 missão SECUNDARIA ativas por vez.
         """
         if id_missao not in self.missoes:
             return False
@@ -67,22 +83,28 @@ class QuestManager:
         if missao["status"] == "CONCLUIDA":
             return False  # Já foi concluída
 
+        categoria = missao.get("categoria", "SECUNDARIA").upper()
+        ativa_mesma_cat = self.obter_missao_ativa_por_categoria(categoria)
+
+        if ativa_mesma_cat and ativa_mesma_cat["id"] != id_missao:
+            if substituir_categoria:
+                ativa_mesma_cat["status"] = "DISPONIVEL"
+            else:
+                # Limite atingido para esta categoria (1 Principal + 1 Secundária por vez)
+                return False
+
         missao["status"] = "ATIVA"
 
-        # Se não houver nenhuma missão rastreada no momento, fixa esta
         if not self.missao_rastreada_id:
             self.missao_rastreada_id = id_missao
 
         # Notificação Push no Centro Superior
         if self.game and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+            tipo_lbl = "Principal" if categoria == "PRINCIPAL" else "Secundária"
             self.game.notificacoes.notificar(
                 "notificacao_missao",
-                missao=f"Nova Missão: {missao['titulo']}"
+                missao=f"Missão {tipo_lbl}: {missao['titulo']}"
             )
-
-        # Desbloqueia Conquista Steam Style: "primeira_missao" (Mão Amiga)
-        if self.game and hasattr(self.game, 'conquistas') and self.game.conquistas:
-            self.game.conquistas.desbloquear("primeira_missao")
 
         # Efeito Sonoro
         if self.game and hasattr(self.game, 'audio') and self.game.audio:
@@ -135,7 +157,7 @@ class QuestManager:
         return True
 
     def concluir_missao(self, id_missao):
-        """Marca a missão como concluída e entrega as recompensas à Halia."""
+        """Marca a missão como concluída, entrega recompensas e desbloqueia a conquista 'cumpridor_promessas'."""
         if id_missao not in self.missoes:
             return False
 
@@ -152,6 +174,10 @@ class QuestManager:
             if moedas > 0:
                 self.game.halia.ganhar_dinheiro(moedas)
 
+        # Desbloqueia a conquista especial de conclusão de missão
+        if self.game and hasattr(self.game, 'conquistas') and self.game.conquistas:
+            self.game.conquistas.desbloquear("cumpridor_promessas")
+
         # Notificação Push de Conclusão
         if self.game and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
             self.game.notificacoes.notificar(
@@ -162,7 +188,6 @@ class QuestManager:
         if self.game and hasattr(self.game, 'audio') and self.game.audio:
             self.game.audio.tocar_sfx("ui_confirmar")
 
-        # Se a missão concluída era a rastreada, busca a próxima ativa
         if self.missao_rastreada_id == id_missao:
             ativas = self.obter_missoes_ativas()
             self.missao_rastreada_id = ativas[0]["id"] if ativas else None
@@ -170,31 +195,56 @@ class QuestManager:
         return True
 
     def obter_missoes_ativas(self):
-        """Retorna uma lista de dicionários das missões atualmente ativas."""
-        return [m for m in self.missoes.values() if m.get("status") == "ATIVA"]
+        """
+        Retorna as missões atualmente ativas (no máximo 1 PRINCIPAL e 1 SECUNDARIA),
+        sempre ordenadas com a PRINCIPAL primeiro e a SECUNDARIA em seguida.
+        """
+        principal = self.obter_missao_principal_ativa()
+        secundaria = self.obter_missao_secundaria_ativa()
+        ativas = []
+        if principal:
+            ativas.append(principal)
+        if secundaria:
+            ativas.append(secundaria)
+        return ativas
+
+    def obter_missoes_rastreadas(self):
+        """Retorna a lista de missões exibidas juntas no HUD Tracker (1 Principal e 1 Secundária)."""
+        return self.obter_missoes_ativas()
 
     def obter_missao_rastreada(self):
-        """Retorna o dicionário da missão atualmente rastreada no HUD, ou a primeira ativa."""
-        if self.missao_rastreada_id and self.missao_rastreada_id in self.missoes:
-            m = self.missoes[self.missao_rastreada_id]
-            if m.get("status") == "ATIVA":
-                return m
-
-        # Fallback para qualquer ativa
+        """Retorna a missão principal ativa (ou a secundária ativa) por retrocompatibilidade."""
         ativas = self.obter_missoes_ativas()
         if ativas:
             self.missao_rastreada_id = ativas[0]["id"]
             return ativas[0]
-
         self.missao_rastreada_id = None
         return None
 
     def definir_missao_rastreada(self, id_missao):
-        """Altera a missão ativamente exibida no HUD Tracker."""
+        """Altera a missão prioritária se estiver ativa."""
         if id_missao in self.missoes and self.missoes[id_missao]["status"] == "ATIVA":
             self.missao_rastreada_id = id_missao
             return True
         return False
+
+    def _sanitizar_limite_simultaneo(self):
+        """Garante que no máximo 1 PRINCIPAL e 1 SECUNDARIA estejam com status ATIVA."""
+        tem_principal = False
+        tem_secundaria = False
+        for m in self.missoes.values():
+            if m.get("status") == "ATIVA":
+                cat = m.get("categoria", "SECUNDARIA").upper()
+                if cat == "PRINCIPAL":
+                    if tem_principal:
+                        m["status"] = "DISPONIVEL"
+                    else:
+                        tem_principal = True
+                else:
+                    if tem_secundaria:
+                        m["status"] = "DISPONIVEL"
+                    else:
+                        tem_secundaria = True
 
     def to_dict(self):
         """Serializa todo o estado das missões para gravação no SaveManager."""
@@ -212,7 +262,6 @@ class QuestManager:
         missoes_salvas = dados.get("missoes", {})
 
         for mid, m_dados in missoes_salvas.items():
-            if mid in self.missoes:
-                self.missoes[mid] = copy.deepcopy(m_dados)
-            else:
-                self.missoes[mid] = copy.deepcopy(m_dados)
+            self.missoes[mid] = copy.deepcopy(m_dados)
+
+        self._sanitizar_limite_simultaneo()

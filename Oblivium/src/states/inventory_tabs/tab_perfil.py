@@ -4,9 +4,11 @@ from src.utils.colors import (
     CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE,
     BARRA_VIDA_JOGADOR, BARRA_MANA
 )
+from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
     desenhar_painel_padrao,
-    desenhar_barra_status_interpolada
+    desenhar_barra_status_interpolada,
+    desenhar_icone_moeda
 )
 
 
@@ -16,7 +18,7 @@ class TabPerfilRenderer:
 
     Responsabilidades:
     - Exibição de Recursos Vitais com barras interpoladas (HP e MP).
-    - Exibição de Carteira decomposta (Moedas de Ouro, Prata e Cobre).
+    - Exibição de Carteira decomposta (Moedas de Ouro, Prata e Cobre) com ícones procedurais.
     - Cálculo visual de Parâmetros de Combate (Esquiva, Bloqueio/Defesa Física, Defesa Mágica, Poder Mágico e Crítico).
     - Ficha de Atributos D20 Primários (INT, SAB, PRE, CON, DES, FOR) discriminando valores base, bônus de equipamentos e modificadores.
     """
@@ -50,12 +52,29 @@ class TabPerfilRenderer:
         tela.blit(s.fonte_texto.render(f"Reserva de Mana (MP): {halia.mana_atual} / {halia.mana_maxima}", True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 112))
         desenhar_barra_status_interpolada(tela, r_bloco1.x + 20, r_bloco1.y + 138, halia.mana_atual, halia.mana_maxima, BARRA_MANA, largura=465, altura=14)
 
-        # 2. Carteira Decomposta
+        # 2. Carteira Decomposta reutilizando a sprite da Bolsa de Moedas do jogo
         pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 170), (r_bloco1.right - 20, r_bloco1.y + 170), 1)
         tela.blit(s.fonte_mini.render("CARTEIRA (20 Cobre = 1 Prata | 10 Prata = 1 Ouro)", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 180))
 
-        str_moedas = f"🪙 {halia.moedas_ouro} Ouro   |   🥈 {halia.moedas_prata} Prata   |   🥉 {halia.moedas_cobre} Cobre"
-        tela.blit(s.fonte_destaque.render(str_moedas, True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 206))
+        y_moeda = r_bloco1.y + 206
+        x_m = r_bloco1.x + 22
+        sprite_bolsa_m = ResourceManager.carregar_imagem("props/Bolsa de Moedas.png", (24, 24))
+        if sprite_bolsa_m:
+            tela.blit(sprite_bolsa_m, (x_m, y_moeda - 2))
+            x_m += 32
+
+        dados_moedas = [
+            ("OURO", f"{halia.moedas_ouro} Ouro", (245, 220, 140)),
+            ("PRATA", f"{halia.moedas_prata} Prata", (215, 220, 230)),
+            ("COBRE", f"{halia.moedas_cobre} Cobre", (225, 165, 125))
+        ]
+        for idx_m, (tipo_m, txt_m, cor_m) in enumerate(dados_moedas):
+            desenhar_icone_moeda(tela, x_m, y_moeda + 10, tipo=tipo_m, raio=7)
+            surf_m = s.fonte_destaque.render(txt_m, True, cor_m)
+            tela.blit(surf_m, (x_m + 12, y_moeda))
+            x_m += 12 + surf_m.get_width() + 20
+            if idx_m < 2:
+                pygame.draw.line(tela, CINZA_ARDOSIA, (x_m - 10, y_moeda + 3), (x_m - 10, y_moeda + 18), 1)
 
         # 3. Parâmetros de Combate
         pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 242), (r_bloco1.right - 20, r_bloco1.y + 242), 1)
@@ -71,11 +90,11 @@ class TabPerfilRenderer:
         poder_magico = max(0, attrs_totais.mod_int * 2) + bonus_stats.get("dano_magico", 0)
 
         stats_combate = [
-            ("✦ Chance de Esquiva:", f"{esquiva}%"),
-            ("✦ Bloqueio & Defesa Física:", f"{def_fisica} pts"),
-            ("✦ Defesa Mágica:", f"{def_magica} pts"),
-            ("✦ Poder Mágico Arcano:", f"+{poder_magico} pts"),
-            ("✦ Acerto Crítico:", f"{critico}%")
+            ("Chance de Esquiva:", f"{esquiva}%"),
+            ("Bloqueio & Defesa Física:", f"{def_fisica} pts"),
+            ("Defesa Mágica:", f"{def_magica} pts"),
+            ("Poder Mágico Arcano:", f"+{poder_magico} pts"),
+            ("Acerto Crítico:", f"{critico}%")
         ]
 
         y_sc = r_bloco1.y + 280

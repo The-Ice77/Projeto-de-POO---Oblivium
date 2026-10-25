@@ -3,12 +3,16 @@ import pygame
 from src.states.states import State
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
-    MARFIM_OFFWHITE, BORDA_DESTAQUE
+    MARFIM_OFFWHITE, BORDA_DESTAQUE, BOTAO_FECHAR_HOVER,
+    AZUL_HOVER_MENU, BRANCO
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
     desenhar_painel_padrao, desenhar_flor_botanica,
     desenhar_card_pergaminho
+)
+from src.ui.icon_registry import (
+    IconRegistry, desenhar_icone_fechar, desenhar_icone_moeda
 )
 from src.mechanics.shop import Loja
 from src.mechanics.items import ConsumivelItem, EquipamentoItem
@@ -19,7 +23,7 @@ class ShopState(State):
     - Fundo escuro em Carvão Profundo com bordas duplas em Cinza Linho
     - Abas: Comprar (Mercadorias) e Vender (Itens da Bolsa de Halia)
     - Painel esquerdo: Grelha de Itens com Preços em Moedas de Ouro e Estoque
-    - Painel direito: Detalhes do item selecionado, bônus e confirmação de compra/venda
+    - Painel direito: Detalhes do item selecionado, ícone vetorial, bônus e confirmação de compra/venda
     - Atalhos de Teclado e navegação total por Mouse
     """
     def __init__(self, game):
@@ -49,6 +53,8 @@ class ShopState(State):
         self.altura_loja = min(620, self.game.ALTURA - 60)
         self.x_loja = (self.game.LARGURA - self.largura_loja) // 2
         self.y_loja = (self.game.ALTURA - self.altura_loja) // 2
+        self.rect_fechar = pygame.Rect(self.x_loja + self.largura_loja - 52, self.y_loja + 22, 28, 28)
+        self.hover_fechar = False
         
         # Seleção e Hover
         self.indice_selecionado = 0
@@ -65,6 +71,7 @@ class ShopState(State):
 
     def handle_events(self, eventos, teclas):
         self.pos_mouse = pygame.mouse.get_pos()
+        self.hover_fechar = self.rect_fechar.collidepoint(self.pos_mouse)
         halia = getattr(self.game, 'halia', None)
         inv = getattr(halia, 'inventario', None) if halia else None
 
@@ -92,6 +99,10 @@ class ShopState(State):
                     self._executar_transacao(self.indice_selecionado)
 
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                if self.rect_fechar.collidepoint(evento.pos):
+                    self.game.mudar_estado("JOGANDO")
+                    return
+
                 # Clique nas abas
                 for i, rect_aba in enumerate(self.rects_abas):
                     if rect_aba.collidepoint(evento.pos):
@@ -121,7 +132,7 @@ class ShopState(State):
                 if sucesso:
                     self.exibir_mensagem(msg)
                 else:
-                    self.exibir_mensagem(f"⚠ {msg}")
+                    self.exibir_mensagem(f"Aviso: {msg}")
         else:
             # Vender
             if 0 <= indice < len(inv.slots):
@@ -132,7 +143,7 @@ class ShopState(State):
                     if self.indice_selecionado >= len(inv.slots):
                         self.indice_selecionado = max(0, len(inv.slots) - 1)
                 else:
-                    self.exibir_mensagem(f"⚠ {msg}")
+                    self.exibir_mensagem(f"Aviso: {msg}")
 
     def update(self):
         if self.timer_feedback > 0:
@@ -160,7 +171,15 @@ class ShopState(State):
         txt_titulo = self.fonte_titulo.render(f"Mercador — {self.loja.nome}", True, MARFIM_OFFWHITE)
         tela.blit(txt_titulo, (self.x_loja + 35, self.y_loja + 24))
 
-        desenhar_flor_botanica(tela, self.x_loja + self.largura_loja - 50, self.y_loja + 40, cor=CINZA_LINHO, escala=0.8)
+        desenhar_flor_botanica(tela, self.x_loja + self.largura_loja - 90, self.y_loja + 36, cor=CINZA_LINHO, escala=0.7)
+
+        # Botão Fechar [ X ] no topo direito
+        self.rect_fechar = pygame.Rect(self.x_loja + self.largura_loja - 52, self.y_loja + 22, 28, 28)
+        cor_bg_f = BOTAO_FECHAR_HOVER if self.hover_fechar else (26, 26, 32)
+        cor_bd_f = AZUL_HOVER_MENU if self.hover_fechar else CINZA_ARDOSIA
+        pygame.draw.rect(tela, cor_bg_f, self.rect_fechar, border_radius=3)
+        pygame.draw.rect(tela, cor_bd_f, self.rect_fechar, 1, border_radius=3)
+        desenhar_icone_fechar(tela, self.rect_fechar, cor=BRANCO if self.hover_fechar else CINZA_LINHO, espessura=2)
 
         # 5. Abas (Comprar / Vender)
         self.rects_abas.clear()
@@ -266,11 +285,16 @@ class ShopState(State):
         y_det = self.y_loja + 85
         w_det = self.largura_loja - 600
 
-        # Carteira do Jogador
+        # Carteira do Jogador com Sprite da Bolsa de Moedas
         rect_carteira = pygame.Rect(x_det, y_det, w_det, 45)
         desenhar_card_pergaminho(tela, rect_carteira, cor_fundo=(26, 26, 32), cor_borda=CINZA_LINHO)
-        txt_ouro = self.fonte_sub.render(f"✦ Suas Moedas: {dinheiro} Ouro", True, (240, 220, 130))
-        tela.blit(txt_ouro, (rect_carteira.x + 14, rect_carteira.centery - txt_ouro.get_height() // 2))
+        sprite_bolsa_ouro = ResourceManager.carregar_imagem("props/Bolsa de Moedas.png", (26, 26))
+        if sprite_bolsa_ouro:
+            tela.blit(sprite_bolsa_ouro, (rect_carteira.x + 12, rect_carteira.centery - 13))
+        else:
+            desenhar_icone_moeda(tela, rect_carteira.x + 22, rect_carteira.centery, tipo="OURO", raio=9)
+        txt_ouro = self.fonte_sub.render(f"Suas Moedas: {dinheiro} Ouro", True, (240, 220, 130))
+        tela.blit(txt_ouro, (rect_carteira.x + 44, rect_carteira.centery - txt_ouro.get_height() // 2))
 
         # Detalhes do item selecionado
         y_card_det = y_det + 58
@@ -288,6 +312,14 @@ class ShopState(State):
                 item_selecionado = inv.slots[self.indice_selecionado].item
 
         if item_selecionado:
+            # Exibe a sprite oficial do item selecionado apenas caso ela exista no jogo
+            sprite_sel = IconRegistry.obter_sprite_item(item_selecionado, (40, 40))
+            if sprite_sel:
+                rect_ico_det = pygame.Rect(rect_det_card.right - 64, rect_det_card.y + 12, 48, 48)
+                pygame.draw.rect(tela, (16, 16, 20), rect_ico_det, border_radius=3)
+                pygame.draw.rect(tela, CINZA_ARDOSIA, rect_ico_det, 1, border_radius=3)
+                tela.blit(sprite_sel, sprite_sel.get_rect(center=rect_ico_det.center))
+
             nome_f = item_selecionado.nome_formatado if hasattr(item_selecionado, 'nome_formatado') else item_selecionado.nome
             txt_n = self.fonte_sub.render(nome_f, True, MARFIM_OFFWHITE)
             tela.blit(txt_n, (rect_det_card.x + 16, rect_det_card.y + 16))
@@ -310,14 +342,14 @@ class ShopState(State):
             y_linha += 10
             if isinstance(item_selecionado, ConsumivelItem):
                 if item_selecionado.tipo_consumivel == "CURA_HP":
-                    tela.blit(self.fonte_mini.render(f"✦ Regenera: +{item_selecionado.valor_efeito} Pontos de Vida (HP)", True, (140, 220, 160)), (rect_det_card.x + 16, y_linha))
+                    tela.blit(self.fonte_mini.render(f"• Regenera: +{item_selecionado.valor_efeito} Pontos de Vida (HP)", True, (140, 220, 160)), (rect_det_card.x + 16, y_linha))
                 elif item_selecionado.tipo_consumivel == "RESTAURA_MP":
-                    tela.blit(self.fonte_mini.render(f"✦ Restaura: +{item_selecionado.valor_efeito} Pontos de Mana (MP)", True, (130, 190, 240)), (rect_det_card.x + 16, y_linha))
+                    tela.blit(self.fonte_mini.render(f"• Restaura: +{item_selecionado.valor_efeito} Pontos de Mana (MP)", True, (130, 190, 240)), (rect_det_card.x + 16, y_linha))
                 elif item_selecionado.tipo_consumivel == "DANO_OFENSIVO":
-                    tela.blit(self.fonte_mini.render(f"⚔ Causa: {item_selecionado.valor_efeito} de dano ({item_selecionado.condicao_aplicada or 'puro'})", True, (240, 140, 140)), (rect_det_card.x + 16, y_linha))
+                    tela.blit(self.fonte_mini.render(f"• Causa: {item_selecionado.valor_efeito} de dano ({item_selecionado.condicao_aplicada or 'puro'})", True, (240, 140, 140)), (rect_det_card.x + 16, y_linha))
 
             elif isinstance(item_selecionado, EquipamentoItem):
-                tela.blit(self.fonte_mini.render(f"✦ Slot: {item_selecionado.slot} (Nível +{item_selecionado.nivel_upgrade})", True, (220, 210, 150)), (rect_det_card.x + 16, y_linha))
+                tela.blit(self.fonte_mini.render(f"• Slot: {item_selecionado.slot} (Nível +{item_selecionado.nivel_upgrade})", True, (220, 210, 150)), (rect_det_card.x + 16, y_linha))
                 y_linha += 18
                 for attr, val in item_selecionado.obter_bonus_atributos_efetivos().items():
                     tela.blit(self.fonte_mini.render(f"  + {attr.capitalize()}: +{val}", True, MARFIM_OFFWHITE), (rect_det_card.x + 16, y_linha))

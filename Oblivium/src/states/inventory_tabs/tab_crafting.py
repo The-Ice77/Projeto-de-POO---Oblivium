@@ -1,7 +1,11 @@
 # src/states/inventory_tabs/tab_crafting.py
 import pygame
 from src.utils.colors import CINZA_LINHO
-from src.ui.ui_utils import desenhar_card_pergaminho, desenhar_flor_botanica
+from src.ui.ui_utils import (
+    desenhar_card_pergaminho,
+    desenhar_flor_botanica,
+    desenhar_estrela_quatro_pontas
+)
 
 
 class TabCraftingRenderer:
@@ -23,8 +27,12 @@ class TabCraftingRenderer:
 
         desenhar_flor_botanica(tela, r_selo.centerx, r_selo.y + 80, cor=(100, 100, 125), escala=1.5)
 
-        txt_selo_tit = s.fonte_destaque.render("✦ Bancada de Criação & Alquimia Selada ✦", True, (220, 205, 150))
-        tela.blit(txt_selo_tit, (r_selo.centerx - txt_selo_tit.get_width() // 2, r_selo.y + 160))
+        txt_selo_tit = s.fonte_destaque.render("Bancada de Criação & Alquimia Selada", True, (220, 205, 150))
+        tx = r_selo.centerx - txt_selo_tit.get_width() // 2
+        ty = r_selo.y + 160
+        tela.blit(txt_selo_tit, (tx, ty))
+        desenhar_estrela_quatro_pontas(tela, tx - 14, ty + 10, 6, 2, (220, 205, 150))
+        desenhar_estrela_quatro_pontas(tela, tx + txt_selo_tit.get_width() + 14, ty + 10, 6, 2, (220, 205, 150))
 
         linhas_selo = [
             "A confecção de itens, transmutação e refinamento de equipamentos exigem uma bancada apropriada.",

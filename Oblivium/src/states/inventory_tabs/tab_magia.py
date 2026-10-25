@@ -1,12 +1,13 @@
 # src/states/inventory_tabs/tab_magia.py
 import pygame
 from src.utils.colors import (
-    CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE, BORDA_DESTAQUE
+    CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE, BORDA_DESTAQUE, DOURADO_ENVELHECIDO
 )
 from src.ui.ui_utils import (
     desenhar_painel_padrao,
     desenhar_flor_botanica,
     desenhar_card_pergaminho,
+    desenhar_estrela_quatro_pontas,
     quebrar_texto_em_linhas
 )
 from src.mechanics.skills import ActionCatalog
@@ -36,8 +37,12 @@ class TabMagiaRenderer:
 
             desenhar_flor_botanica(tela, r_selo.centerx, r_selo.y + 80, cor=(90, 90, 110), escala=1.5)
 
-            txt_selo_tit = s.fonte_destaque.render("✦ Conhecimento Arcano Selado ✦", True, (220, 205, 150))
-            tela.blit(txt_selo_tit, (r_selo.centerx - txt_selo_tit.get_width() // 2, r_selo.y + 160))
+            txt_selo_tit = s.fonte_destaque.render("Conhecimento Arcano Selado", True, (220, 205, 150))
+            tx = r_selo.centerx - txt_selo_tit.get_width() // 2
+            ty = r_selo.y + 160
+            tela.blit(txt_selo_tit, (tx, ty))
+            desenhar_estrela_quatro_pontas(tela, tx - 14, ty + 10, 6, 2, (220, 205, 150))
+            desenhar_estrela_quatro_pontas(tela, tx + txt_selo_tit.get_width() + 14, ty + 10, 6, 2, (220, 205, 150))
 
             linhas_selo = [
                 "Os feitiços arcanos e os mistérios ancestrais de Halia repousam em silêncio.",
@@ -116,8 +121,9 @@ class TabMagiaRenderer:
                 pygame.draw.rect(tela, (230, 215, 140), (r_card_item.x + 3, r_card_item.y + 6, 4, r_card_item.height - 12), border_radius=2)
 
             cor_nome = (245, 230, 165) if esta_selecionada else MARFIM_OFFWHITE
-            txt_nm = s.fonte_destaque.render(f"✦ {nome}", True, cor_nome)
-            tela.blit(txt_nm, (r_card_item.x + 16, r_card_item.y + 12))
+            desenhar_estrela_quatro_pontas(tela, r_card_item.x + 20, r_card_item.y + 22, 5, 2, cor_nome)
+            txt_nm = s.fonte_destaque.render(nome, True, cor_nome)
+            tela.blit(txt_nm, (r_card_item.x + 30, r_card_item.y + 12))
 
             txt_elem = s.fonte_mini.render(f"{elemento.capitalize()}", True, (140, 190, 240))
             tela.blit(txt_elem, (r_card_item.x + 16, r_card_item.y + 42))
@@ -196,7 +202,8 @@ class TabMagiaRenderer:
 
         r_ref = pygame.Rect(x_detalhes + 24, y_coluna + 310, w_detalhes - 48, 130)
         desenhar_card_pergaminho(tela, r_ref, cor_fundo=(22, 22, 26), cor_borda=CINZA_ARDOSIA)
-        tela.blit(s.fonte_mini.render("✦ NOTA DE CANALIZAÇÃO", True, (220, 205, 140)), (r_ref.x + 16, r_ref.y + 12))
+        desenhar_estrela_quatro_pontas(tela, r_ref.x + 22, r_ref.y + 20, 5, 2, (220, 205, 140))
+        tela.blit(s.fonte_mini.render("NOTA DE CANALIZAÇÃO", True, (220, 205, 140)), (r_ref.x + 32, r_ref.y + 12))
 
         reflexoes = {
             "bola_de_fogo": "A chama incinera obstáculos e abre caminhos obstruídos por galhos secos e vinhas do esquecimento.",

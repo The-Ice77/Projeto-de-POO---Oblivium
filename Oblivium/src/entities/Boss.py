@@ -15,15 +15,15 @@ class Boss(Enemy):
     Classe para Chefes e Mini-Chefes.
     Herda de Enemy com atributos aprimorados, múltiplas fases e habilidades de chefe.
     """
-    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=13, atributos=None, recompensas=None, mana_maxima=None, pasta_sprites="demonio_superior"):
+    def __init__(self, nome, vida_maxima, velocidade, x, y, sprite=None, dano=15, atributos=None, recompensas=None, mana_maxima=None, pasta_sprites="demonio_superior"):
         if atributos is None:
             atributos = Atributos(
-                forca=12,
-                destreza=10,
-                constituicao=12,
-                intelecto=11,
-                sabedoria=10,
-                presenca=12
+                forca=14,
+                destreza=12,
+                constituicao=14,
+                intelecto=13,
+                sabedoria=11,
+                presenca=14
             )
             
         if recompensas is None:

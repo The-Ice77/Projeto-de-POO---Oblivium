@@ -13,7 +13,7 @@ from src.utils.colors import (
     BOTAO_FECHAR_HOVER, BRANCO
 )
 from src.utils.resource_manager import ResourceManager
-from src.ui.ui_utils import desenhar_painel_padrao
+from src.ui.ui_utils import desenhar_painel_padrao, desenhar_icone_fechar
 
 
 class ComandosDev:
@@ -23,7 +23,7 @@ class ComandosDev:
     - Painel modal centralizado com moldura em Carvão Profundo e bordas em Cinza Linho
     - Tipografia consolidada (Sunday para títulos e teclas, Contrail One para comandos e dados)
     - Caixas de opções amplas e proporcionais com badges de atalho e chips de status em tempo real
-    - Suporte híbrido completo: Teclado (1-8, Numpad, ESC, aspas/crase) e Mouse (hover/cliques)
+    - Suporte híbrido completo: Teclado (1-0, Numpad, ESC, aspas/crase) e Mouse (hover/cliques)
     
     Ativação: Tecla de Aspas simples ou Crase (' / ` / ~)
     """
@@ -139,7 +139,7 @@ class ComandosDev:
             atual = getattr(self.game.filtro_memoria, 'desativado', False)
             self.game.filtro_memoria.desativado = not atual
             msg = "Filtro P&B desativado (Cores 100%)" if not atual else "Filtro P&B reativado"
-            self._notificar("Filtro de Memória", msg, icone="✦")
+            self._notificar("Filtro de Memória", msg)
 
     def cmd_pular_cutscenes(self):
         """Pula diálogos, cutscenes de transição, tela de despertar e animações ativas."""
@@ -168,7 +168,7 @@ class ComandosDev:
         if hasattr(self.game, 'halia'):
             self.game.halia.mudar_estado("idle")
 
-        self._notificar("Cutscenes", "Diálogos e bloqueios pulados com sucesso!", icone="✦")
+        self._notificar("Cutscenes", "Diálogos e bloqueios pulados com sucesso!")
 
     def cmd_mudar_mapa(self):
         """Alterna ciclicamente entre CASA, ESTRADA e ESTRADA_2."""
@@ -213,7 +213,7 @@ class ComandosDev:
         self.game.iniciando_combate = False
         self.game.conversa_combate_ativa = False
         self.game.halia.mudar_estado("idle")
-        self._notificar("Teleporte de Mapa", f"Cenário alterado para {novo_mapa}", icone="◈")
+        self._notificar("Teleporte de Mapa", f"Cenário alterado para {novo_mapa}")
 
     def cmd_curar_total(self):
         """Restaura Vida e Mana totais da Halia."""
@@ -223,13 +223,13 @@ class ComandosDev:
             if hasattr(self.game, 'tela_combate') and hasattr(self.game.tela_combate, 'vidas_visuais'):
                 self.game.tela_combate.vidas_visuais[self.game.halia] = float(self.game.halia.vida_atual)
                 self.game.tela_combate.manas_visuais[self.game.halia] = float(self.game.halia.mana_atual)
-        self._notificar("Restauração", "Vida e Mana restauradas ao máximo!", icone="✦")
+        self._notificar("Restauração", "Vida e Mana restauradas ao máximo!")
 
     def cmd_adicionar_moedas(self):
         """Adiciona 1000 moedas ao inventário."""
         if hasattr(self.game, 'halia'):
             self.game.halia.dinheiro += 1000
-        self._notificar("Tesouro Dev", "+1000 Moedas adicionadas à bolsa!", icone="✦")
+        self._notificar("Tesouro Dev", "+1000 Moedas adicionadas à bolsa!")
 
     def cmd_desbloquear_grimorio(self):
         """Alterna entre 7 memórias (pleno despertar) e 0 memórias (estado inicial)."""
@@ -251,7 +251,7 @@ class ComandosDev:
                 self.game.estados["JOGANDO"].memoria_anterior_registrada = self.game.halia.fragmentos_memoria
             if hasattr(self.game, 'hud') and self.game.hud:
                 self.game.hud.memorias_coletadas = self.game.halia.fragmentos_memoria
-            self._notificar("Despertar de Memórias", msg, icone="◈")
+            self._notificar("Despertar de Memórias", msg)
 
     def cmd_desobstruir_estrada(self):
         """Alterna entre desobstruir e restaurar o bloqueio na Estrada 2."""
@@ -260,17 +260,17 @@ class ComandosDev:
         if bloqueado:
             self.game.mapa_casa.desobstruir_estrada("FOGO")
             self.game.magia_ativa = "CONCLUIDO"
-            self._notificar("Estrada 2", "Deslizamento de pedras removido do caminho!", icone="✦")
+            self._notificar("Estrada 2", "Deslizamento de pedras removido do caminho!")
         else:
             self.game.mapa_casa.restaurar_bloqueio_estrada2()
             self.game.magia_ativa = None
             self.game.investigou_pedras = False
-            self._notificar("Estrada 2", "Rochas de bloqueio restauradas!", icone="✦")
+            self._notificar("Estrada 2", "Rochas de bloqueio restauradas!")
 
     def cmd_iniciar_combate(self):
         """Dispara a transição para a tela de combate com um inimigo de teste."""
         if getattr(self.game, 'nome_estado_atual', '') == "COMBATE":
-            self._notificar("Arena de Batalha", "Você já está em combate!", icone="⚠")
+            self._notificar("Arena de Batalha", "Você já está em combate!")
             return
 
         from src.entities.enemy_factory import EnemyFactory
@@ -278,34 +278,34 @@ class ComandosDev:
 
         def on_vitoria():
             self.game.mudar_estado("JOGANDO")
-            self._notificar("Vitória Dev", "Combate de teste vencido!", icone="✦")
+            self._notificar("Vitória Dev", "Combate de teste vencido!")
 
         def on_derrota():
             self.game.halia.restaurar_total()
             self.game.mudar_estado("JOGANDO")
-            self._notificar("Fim de Combate", "Halia restaurada após teste.", icone="✦")
+            self._notificar("Fim de Combate", "Halia restaurada após teste.")
 
         def on_fuga():
             self.game.mudar_estado("JOGANDO")
-            self._notificar("Fuga Dev", "Combate encerrado.", icone="✦")
+            self._notificar("Fuga Dev", "Combate encerrado.")
 
         self.ativo = False  # Fecha o painel dev para abrir a arena limpa
         self.game.iniciar_combate([inimigo_teste], on_vitoria=on_vitoria, on_derrota=on_derrota, on_fuga=on_fuga)
-        self._notificar("Arena de Batalha", "Iniciando combate de teste com Demônio Inferior...", icone="⚔")
+        self._notificar("Arena de Batalha", "Iniciando combate de teste com Demônio Inferior...")
 
     def cmd_alternar_clima(self):
         """Alterna ciclicamente entre Tempo Limpo, Chuva Comum, Chuva Pesada, Neve Suave e Nevasca."""
         if hasattr(self.game, 'alternar_clima'):
             modo = self.game.alternar_clima()
             rotulos = {
-                "limpo": ("Tempo Limpo (Céu Claro)", "☀️"),
-                "comum": ("Chuva Comum (Gotas e Splashes)", "🌧"),
-                "pesada": ("Chuva Pesada (Tempestade e Relâmpagos)", "⛈"),
-                "neve": ("Neve Suave (Flocos Flutuantes)", "❄"),
-                "nevasca": ("Nevasca (Vento Gélido Cortante)", "🌨")
+                "limpo": "Tempo Limpo (Céu Claro)",
+                "comum": "Chuva Comum (Gotas e Splashes)",
+                "pesada": "Chuva Pesada (Tempestade e Relâmpagos)",
+                "neve": "Neve Suave (Flocos Flutuantes)",
+                "nevasca": "Nevasca (Vento Gélido Cortante)"
             }
-            nome_clima, icone_clima = rotulos.get(modo, (modo, "🌧"))
-            self._notificar("Sistema de Clima", f"Clima: {nome_clima}", icone=icone_clima)
+            nome_clima = rotulos.get(modo, modo)
+            self._notificar("Sistema de Clima", f"Clima: {nome_clima}")
 
     def cmd_testar_conquista(self):
         """Dispara intencionalmente um banner comemorativo de conquista no topo da tela."""
@@ -313,26 +313,32 @@ class ComandosDev:
             {
                 "id": "eco_passado",
                 "titulo": "Eco dos Esquecidos",
-                "descricao": "Despertou um vislumbre do passado através do véu de névoa.",
-                "icone": "✦"
-            },
-            {
-                "id": "levitacao",
-                "titulo": "Gravidade Rompida",
-                "descricao": "Dominou o fluxo gravitacional arcano e removeu os escombros.",
-                "icone": "▲"
+                "descricao": "Despertou o primeiro fragmento de memória ancestral além do véu de névoa.",
+                "cor": [130, 200, 255]
             },
             {
                 "id": "fogo",
                 "titulo": "Chama da Lembrança",
-                "descricao": "Incinera os obstáculos na estrada com o calor do fogo elemental.",
-                "icone": "♨"
+                "descricao": "Canalizou a centelha primordial e incinerou o bloqueio com Fogo Elemental.",
+                "cor": [255, 140, 70]
+            },
+            {
+                "id": "levitacao",
+                "titulo": "Gravidade Rompida",
+                "descricao": "Dobrou o fluxo gravitacional arcano para erguer os rochedos da estrada.",
+                "cor": [180, 140, 255]
+            },
+            {
+                "id": "cacadora_abissal",
+                "titulo": "Caçadora do Abismo",
+                "descricao": "Subjugou o Demônio Superior e sobreviveu à emboscada na estrada.",
+                "cor": [240, 85, 95]
             },
             {
                 "id": "mestre_platinador",
                 "titulo": "Memória Restaurada",
-                "descricao": "Conquistou todos os marcos e desfez a escuridão de Oblivium.",
-                "icone": "⚜"
+                "descricao": "Alcançou todos os grandes marcos e dissipou por completo o esquecimento de Oblivium.",
+                "cor": [255, 225, 130]
             }
         ]
         idx = getattr(self, '_indice_teste_conquista', 0)
@@ -343,30 +349,64 @@ class ComandosDev:
             self.game.notificacoes.notificar_conquista(c_alvo)
 
     def cmd_testar_missao(self):
-        """Ativa uma missão no Quest Tracker e dispara o banner de notificação de missão."""
-        if hasattr(self.game, 'quest_manager') and self.game.quest_manager:
-            qm = self.game.quest_manager
-            mid = "o_refugio_de_oakhaven"
-            if mid in qm.missoes:
-                missao = qm.missoes[mid]
-                if missao.get("status") == "DISPONIVEL":
-                    qm.aceitar_missao(mid)
-                elif missao.get("status") == "ATIVA":
-                    qm.avancar_objetivo(mid, "alcancar_oakhaven", 1)
-                else:
-                    missao["status"] = "ATIVA"
-                    qm.missao_rastreada_id = mid
-                    if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
-                        self.game.notificacoes.notificar(
-                            "notificacao_missao",
-                            missao=f"Missão Ativa: {missao['titulo']}"
-                        )
-            else:
-                qm.aceitar_missao("o_refugio_de_oakhaven")
+        """
+        Ativa 1 Missão Principal + 1 Missão Secundária simultaneamente no Quest Tracker,
+        ou avança seus objetivos passo a passo para teste completo da mecânica.
+        """
+        qm = getattr(self.game, 'missoes', None) or getattr(self.game, 'quest_manager', None)
+        if qm:
+            if hasattr(self.game, 'quest_tracker') and self.game.quest_tracker:
+                self.game.quest_tracker.expandido = True
+
+            principal_ativa = qm.obter_missao_principal_ativa()
+            secundaria_ativa = qm.obter_missao_secundaria_ativa()
+
+            # 1. Se ainda não há um par ativo (1 Principal + 1 Secundária), tenta ativar as disponíveis
+            ativou_alguma = False
+            if not principal_ativa:
+                for mid, m in qm.missoes.items():
+                    if m.get("categoria") == "PRINCIPAL" and m.get("status") == "DISPONIVEL":
+                        qm.aceitar_missao(mid)
+                        ativou_alguma = True
+                        break
+            if not secundaria_ativa:
+                for mid, m in qm.missoes.items():
+                    if m.get("categoria") != "PRINCIPAL" and m.get("status") == "DISPONIVEL":
+                        qm.aceitar_missao(mid)
+                        ativou_alguma = True
+                        break
+
+            if ativou_alguma:
+                ativas_titulos = [m["titulo"] for m in qm.obter_missoes_ativas()]
+                self._notificar("Teste de Missão", f"Ativas no HUD: {' + '.join(ativas_titulos)}")
+                return
+
+            # 2. Se já existem missões ativas, avança o próximo objetivo pendente (priorizando Principal e depois Secundária)
+            missoes_ativas = qm.obter_missoes_ativas()
+            if missoes_ativas:
+                for missao in missoes_ativas:
+                    mid = missao["id"]
+                    for obj in missao.get("objetivos", []):
+                        if not obj.get("concluido", False):
+                            qm.progredir_objetivo(mid, obj["id"], 1)
+                            self._notificar("Teste de Missão", f"Progresso em '{missao['titulo']}': {obj['descricao']}")
+                            return
+                    # Caso todos os objetivos dessa missão já estejam concluídos, finaliza-a
+                    qm.concluir_missao(mid)
+                    self._notificar("Teste de Missão", f"Missão concluída: {missao['titulo']}")
+                    return
+
+            # 3. Se todas as missões do catálogo já foram concluídas, reinicia o ciclo e ativa 1 Principal + 1 Secundária
+            qm.resetar()
+            if "missao_boas_vindas" in qm.missoes:
+                qm.aceitar_missao("missao_boas_vindas")
+            if "missao_ervas_medicinais" in qm.missoes:
+                qm.aceitar_missao("missao_ervas_medicinais")
+            self._notificar("Teste de Missão", "Ciclo reiniciado! 1 Principal + 1 Secundária ativadas no HUD.")
         elif hasattr(self.game, 'notificacoes') and self.game.notificacoes:
             self.game.notificacoes.notificar("notificacao_missao", missao="O Refúgio de Oakhaven")
 
-    def _notificar(self, titulo, mensagem, icone="◈"):
+    def _notificar(self, titulo, mensagem):
         """Registra no console do desenvolvedor sem poluir a tela com toasts durante o uso do dev menu."""
         print(f"[DEV] {titulo}: {mensagem}")
 
@@ -386,6 +426,15 @@ class ComandosDev:
         bloqueado = getattr(mapa2, 'bloqueio_ativo', True)
         status_estrada = "Bloqueado" if bloqueado else "Livre"
 
+        qm = getattr(self.game, 'missoes', None) or getattr(self.game, 'quest_manager', None)
+        ativas = qm.obter_missoes_ativas() if qm else []
+        if ativas:
+            status_missao = f"{len(ativas)}/2 Ativas"
+            detalhe_missao = "Avançar objetivos ativos (HUD: tecla O)"
+        else:
+            status_missao = "Inativa"
+            detalhe_missao = "Ativar 1 Principal + 1 Secundária no HUD"
+
         return [
             ("1", "Filtro de Memória", "Alternar cores e P&B", status_cor),
             ("2", "Pular Cutscenes", "Avançar diálogos e transições", "Avanço Rápido"),
@@ -395,8 +444,8 @@ class ComandosDev:
             ("6", "Despertar Memórias", "Desbloquear ou resetar Grimório", f"{mems}/7 Mems"),
             ("7", "Bloqueio Estrada 2", "Remover ou repor rochas de obstrução", status_estrada),
             ("8", "Forçar Batalha", "Iniciar arena contra Demônio", "Arena Demo"),
-            ("9", "Testar Conquista", "Disparar banner Steam Dark Fantasy", "✦ Push"),
-            ("0", "Testar Missão", "Disparar notificação e Quest Tracker", "◈ Missão")
+            ("9", "Testar Conquista", "Disparar banner Steam Dark Fantasy", "Banner Push"),
+            ("0", "Ativar / Testar Missões", detalhe_missao, status_missao)
         ]
 
     def desenhar(self, tela):
@@ -428,14 +477,13 @@ class ComandosDev:
         txt_sub = self.fonte_subtitulo.render("Atalhos rápidos para testes, depuração e inspeção", True, UI_TEXTO_APAGADO)
         tela.blit(txt_sub, (x + 38 + txt_titulo.get_width() + 18, y + 30))
 
-        # Botão Fechar [ X ] no topo direito
-        self.rect_fechar = pygame.Rect(x + largura_painel - 44, y + 20, 24, 24)
+        # Botão Fechar [ X ] no topo direito com ícone vetorial procedural
+        self.rect_fechar = pygame.Rect(x + largura_painel - 46, y + 20, 26, 26)
         cor_bg_fechar = BOTAO_FECHAR_HOVER if self.hover_fechar else (26, 26, 32)
         cor_bd_fechar = AZUL_HOVER_MENU if self.hover_fechar else CINZA_ARDOSIA
         pygame.draw.rect(tela, cor_bg_fechar, self.rect_fechar, border_radius=2)
         pygame.draw.rect(tela, cor_bd_fechar, self.rect_fechar, 1, border_radius=2)
-        txt_x = self.fonte_subtitulo.render("✕", True, BRANCO if self.hover_fechar else CINZA_LINHO)
-        tela.blit(txt_x, txt_x.get_rect(center=self.rect_fechar.center))
+        desenhar_icone_fechar(tela, self.rect_fechar, cor=BRANCO if self.hover_fechar else CINZA_LINHO, espessura=2)
 
         # Divisória elegante sob o cabeçalho
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y + 64), (x + largura_painel - 34, y + 64), 1)
@@ -504,5 +552,5 @@ class ComandosDev:
         y_rodape = y + altura_painel - 32
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 34, y_rodape - 8), (x + largura_painel - 34, y_rodape - 8), 1)
 
-        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 0 ] Executar   •   [ C ] Alternar Clima   •   [ Mouse ] Clicar", True, UI_TEXTO_APAGADO)
+        txt_rodape = self.fonte_rodape.render("[ ' ] Fechar Console   •   [ 1 - 0 ] Executar   •   [ C ] Alternar Clima   •   [ O ] Minimizar/Expandir Missões", True, UI_TEXTO_APAGADO)
         tela.blit(txt_rodape, (x + (largura_painel - txt_rodape.get_width()) // 2, y_rodape))

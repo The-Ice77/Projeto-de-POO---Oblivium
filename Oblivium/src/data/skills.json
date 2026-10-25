@@ -91,10 +91,10 @@
         "elemento": "ARCANO",
         "custo_mana": 20,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 22,
+        "poder_base": 26,
         "condicao_aplicada": {
             "id_condicao": "atordoado",
-            "chance": 20
+            "chance": 28
         }
     },
     "escudo_etereo": {
@@ -175,10 +175,10 @@
         "elemento": "SOMBRA",
         "custo_mana": 10,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 12,
+        "poder_base": 14,
         "condicao_aplicada": {
             "id_condicao": "veneno",
-            "chance": 25
+            "chance": 35
         }
     }
 }

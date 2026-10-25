@@ -87,14 +87,12 @@ class MapaEstrada(CenarioBase):
 
     def carregar_recursos(self):
         """Carrega e prepara chão com estrada e transições orgânicas sem costuras, árvores e vegetação."""
-        # 1. Chão com Estrada de Terra e Transições Suaves
         self.chao_completo = ResourceManager.gerar_chao_com_estrada_e_transicao(
             self.largura_tela, self.altura_tela,
             y_estrada=self.area_estrada.y,
             h_estrada=self.area_estrada.height
         )
 
-        # 2. Árvores Model 01
         p_t1 = "assets/cenario/arvores_separadas_tipo1"
         self.sprites_arvores = {
             "t1_sz5_a": ResourceManager.carregar_imagem(f"{p_t1}/Model_01_Size_05/Model_01_Size_05_01.png", (106, 160)),
@@ -104,7 +102,6 @@ class MapaEstrada(CenarioBase):
             "t1_sz4_b": ResourceManager.carregar_imagem(f"{p_t1}/Model_01_Size_04/Model_01_Size_04_02.png", (73, 126)),
         }
 
-        # 3. Vegetação e Flores
         p_veg = "assets/cenario/vegetacao_pedras_separadas/Vegetation"
         p_rock = "assets/cenario/vegetacao_pedras_separadas/Rocks"
 
@@ -126,7 +123,6 @@ class MapaEstrada(CenarioBase):
         self.hitboxes.append(self.limite_oeste)
         self.hitboxes.append(self.limite_leste)
 
-        # Colisões na base dos troncos
         for x, y, w, h, _ in self.arvores_norte:
             self.hitboxes.append(pygame.Rect(x + (w // 2) - 16, y + h - 28, 32, 24))
 
@@ -135,7 +131,6 @@ class MapaEstrada(CenarioBase):
 
         self.itens_no_chao = []
 
-        # Fauna viva: passarinhos empoleirados na grama da estrada rural
         self.passaros = [
             Passaro(370, 218, direcao_inicial="direita"),
             Passaro(820, 482, direcao_inicial="esquerda")
@@ -148,11 +143,7 @@ class MapaEstrada(CenarioBase):
             pos_jogador = (self.game.halia.x + 20, self.game.halia.y + 30)
 
         for p in self.passaros:
-            estado_ant = getattr(p, 'estado_atual', 'idle')
             p.atualizar(dt, pos_jogador=pos_jogador)
-            if estado_ant != "voo" and getattr(p, 'estado_atual', '') == "voo":
-                if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                    self.game.conquistas.desbloquear("fauna_viva")
 
     def desenhar_camada_inferior(self, tela):
         """Renderiza o chão e toda a vegetação das margens."""
@@ -174,7 +165,5 @@ class MapaEstrada(CenarioBase):
             if sprite:
                 tela.blit(sprite, (x, y))
 
-        # Passarinhos na estrada (renderizados com Y-Sort natural sobre o solo)
         for p in self.passaros:
             p.desenhar(tela)
-

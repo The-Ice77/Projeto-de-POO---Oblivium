@@ -70,6 +70,7 @@ class Game:
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
         self.conquistas = AchievementManager(self)
         self.missoes = QuestManager(self)
+        self.quest_manager = self.missoes
         self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
         self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---
@@ -146,7 +147,8 @@ class Game:
             "Correr": pygame.K_LSHIFT,
             "Interagir": pygame.K_e,
             "Pause": pygame.K_ESCAPE,
-            "Inventário": pygame.K_TAB
+            "Inventário": pygame.K_TAB,
+            "Missões": pygame.K_o
         }
 
         # --- Máquina de Estados ---
@@ -182,7 +184,8 @@ class Game:
                 "Correr": pygame.K_RSHIFT,
                 "Interagir": pygame.K_SPACE,
                 "Pause": pygame.K_ESCAPE,
-                "Inventário": pygame.K_TAB
+                "Inventário": pygame.K_TAB,
+                "Missões": pygame.K_o
             }
         else:
             self.preset_controles = "WASD"
@@ -194,7 +197,8 @@ class Game:
                 "Correr": pygame.K_LSHIFT,
                 "Interagir": pygame.K_e,
                 "Pause": pygame.K_ESCAPE,
-                "Inventário": pygame.K_TAB
+                "Inventário": pygame.K_TAB,
+                "Missões": pygame.K_o
             }
         self.origem_creditos = "MENU"
         # Rastreia em que ponto da conversa cada NPC está
@@ -233,16 +237,19 @@ class Game:
         self.caixa_dialogo.iniciar_dialogo(id_ou_dados)
 
     def run(self):
-        """Loop principal e delegação de controle para o estado ativo"""
+        """O Loop Principal enxuto, focado em delegar tarefas ao Estado Atual"""
         while self.running:
             eventos = pygame.event.get()
             teclas = pygame.key.get_pressed()
-            
+
             for evento in eventos:
                 if evento.type == pygame.QUIT:
                     self.running = False
 
-            # Interceptação global de notificações e comandos do dev
+            if not self.running:
+                break
+
+            # Interceptação Global: Histórico de Notificações [H] e Comandos de Dev [']
             eventos = self.notificacoes.handle_events(eventos)
 
             dev_ativo = False

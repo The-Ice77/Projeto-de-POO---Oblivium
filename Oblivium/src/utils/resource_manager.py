@@ -59,6 +59,126 @@ class Animacao:
         self.concluida = False
 
 
+class FonteEditorialWrapper:
+    """
+    Wrapper transparente para pygame.font.Font que intercepta glifos especiais
+    ausentes nas fontes TTF/OTF customizadas ('✦', '✕', '✓', '✔', '▲', '▼', '◀', '▶')
+    e os desenha proceduralmente com geometria vetorial nítida na mesma cor e linha base,
+    eliminando retângulos vazios (.notdef) em qualquer texto do jogo.
+    """
+    GLIFOS_VETORIAIS = frozenset({"✦", "✕", "✓", "✔", "▲", "▼", "◀", "▶"})
+
+    def __init__(self, fonte_pygame, tamanho=20):
+        self._fonte = fonte_pygame
+        self._tamanho = max(8, int(tamanho))
+        self._largura_glifo = max(10, int(self._tamanho * 0.65))
+
+    def _contem_glifo_especial(self, texto):
+        if not texto:
+            return False
+        for ch in str(texto):
+            if ch in self.GLIFOS_VETORIAIS:
+                return True
+        return False
+
+    def size(self, texto):
+        texto_str = str(texto) if texto is not None else ""
+        if not self._contem_glifo_especial(texto_str):
+            return self._fonte.size(texto_str)
+
+        largura_total = 0
+        altura_max = self._fonte.get_height()
+        buffer_normal = []
+
+        for ch in texto_str:
+            if ch in self.GLIFOS_VETORIAIS:
+                if buffer_normal:
+                    seg = "".join(buffer_normal)
+                    w_s, h_s = self._fonte.size(seg)
+                    largura_total += w_s
+                    altura_max = max(altura_max, h_s)
+                    buffer_normal.clear()
+                largura_total += self._largura_glifo
+            else:
+                buffer_normal.append(ch)
+
+        if buffer_normal:
+            seg = "".join(buffer_normal)
+            w_s, h_s = self._fonte.size(seg)
+            largura_total += w_s
+            altura_max = max(altura_max, h_s)
+
+        return (largura_total, altura_max)
+
+    def render(self, texto, antialias, color, background=None):
+        texto_str = str(texto) if texto is not None else ""
+        if not self._contem_glifo_especial(texto_str):
+            if background is not None:
+                return self._fonte.render(texto_str, antialias, color, background)
+            return self._fonte.render(texto_str, antialias, color)
+
+        w_total, h_total = self.size(texto_str)
+        w_total = max(1, w_total)
+        h_total = max(1, h_total)
+
+        surf = pygame.Surface((w_total, h_total), pygame.SRCALPHA, 32)
+        if background is not None:
+            surf.fill(background)
+
+        cor_rgb = tuple(color[:3]) if isinstance(color, (tuple, list, pygame.Color)) else (240, 240, 240)
+        cursor_x = 0
+        buffer_normal = []
+
+        def _flush_texto(cx):
+            if not buffer_normal:
+                return cx
+            seg = "".join(buffer_normal)
+            buffer_normal.clear()
+            r_seg = self._fonte.render(seg, antialias, color)
+            surf.blit(r_seg, (cx, (h_total - r_seg.get_height()) // 2))
+            return cx + r_seg.get_width()
+
+        for ch in texto_str:
+            if ch in self.GLIFOS_VETORIAIS:
+                cursor_x = _flush_texto(cursor_x)
+                cx = cursor_x + self._largura_glifo // 2
+                cy = h_total // 2
+                r = max(3, int(self._tamanho * 0.26))
+                ri = max(1, int(r * 0.35))
+
+                if ch == "✦":
+                    pts = [
+                        (cx, cy - r), (cx + ri, cy - ri),
+                        (cx + r, cy), (cx + ri, cy + ri),
+                        (cx, cy + r), (cx - ri, cy + ri),
+                        (cx - r, cy), (cx - ri, cy - ri)
+                    ]
+                    pygame.draw.polygon(surf, cor_rgb, pts)
+                elif ch == "✕":
+                    pygame.draw.line(surf, cor_rgb, (cx - r, cy - r), (cx + r, cy + r), 2)
+                    pygame.draw.line(surf, cor_rgb, (cx - r, cy + r), (cx + r, cy - r), 2)
+                elif ch in ("✓", "✔"):
+                    pygame.draw.lines(surf, cor_rgb, False, [(cx - r, cy), (cx - ri, cy + r - 1), (cx + r, cy - r + 1)], 2)
+                elif ch == "▲":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx, cy - r), (cx + r, cy + r - 1), (cx - r, cy + r - 1)])
+                elif ch == "▼":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx - r, cy - r + 1), (cx + r, cy - r + 1), (cx, cy + r)])
+                elif ch == "◀":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx + r - 1, cy - r), (cx + r - 1, cy + r), (cx - r, cy)])
+                elif ch == "▶":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx - r + 1, cy - r), (cx - r + 1, cy + r), (cx + r, cy)])
+
+                cursor_x += self._largura_glifo
+            else:
+                buffer_normal.append(ch)
+
+        _flush_texto(cursor_x)
+        return surf
+
+    def __getattr__(self, nome):
+        return getattr(self._fonte, nome)
+
+
 class ResourceManager:
     """
     Gerenciador Central de Recursos e Sprites de Oblivium.
@@ -140,8 +260,9 @@ class ResourceManager:
         if not fonte_obj:
             fonte_obj = pygame.font.Font(None, tamanho)
 
-        cls._cache_fontes[chave] = fonte_obj
-        return fonte_obj
+        fonte_wrapped = FonteEditorialWrapper(fonte_obj, tamanho=tamanho)
+        cls._cache_fontes[chave] = fonte_wrapped
+        return fonte_wrapped
 
 
     @classmethod
@@ -645,109 +766,26 @@ class ResourceManager:
 
     @classmethod
     def obter_tile(cls, caminho_tileset, col, lin, tamanho_tile=16, escala=None):
-        """
-        Extrai um tile individual (16x16 por padrão) de uma folha de tileset com cache.
-        """
-        chave = f"tile_{caminho_tileset}_{col}x{lin}_{tamanho_tile}_{escala}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        img_sheet = cls.carregar_imagem(caminho_tileset)
-        if not img_sheet:
-            return None
-
-        rect = pygame.Rect(col * tamanho_tile, lin * tamanho_tile, tamanho_tile, tamanho_tile)
-        if rect.right > img_sheet.get_width() or rect.bottom > img_sheet.get_height():
-            return None
-
-        tile = img_sheet.subsurface(rect).copy()
-        if escala and escala != 1.0:
-            nw = int(tamanho_tile * escala)
-            nh = int(tamanho_tile * escala)
-            tile = pygame.transform.scale(tile, (nw, nh))
-
-        cls._cache_imagens[chave] = tile
-        return tile
+        """Delega a extração de tile individual para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.obter_tile(caminho_tileset, col, lin, tamanho_tile=tamanho_tile, escala=escala)
 
     @classmethod
     def criar_superficie_tiled(cls, caminho_tileset, largura_total, altura_total, col=0, lin=0, tamanho_tile=16, escala_tile=2):
-        """
-        Cria uma superfície contínua preenchida pela repetição de um tile específico de um tileset.
-        Ideal para gerar pisos de grama, terra, pedra ou madeira com alta performance de renderização.
-        """
-        chave = f"tiled_{caminho_tileset}_{col}x{lin}_{largura_total}x{altura_total}_{escala_tile}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        tile = cls.obter_tile(caminho_tileset, col, lin, tamanho_tile=tamanho_tile, escala=escala_tile)
-        if not tile:
-            # Fallback seguro
-            surf = cls.criar_superficie_32bit(largura_total, altura_total)
-            surf.fill((35, 55, 30))
-            return surf
-
-        tw, th = tile.get_size()
-        superficie_final = cls.criar_superficie_32bit(largura_total, altura_total)
-
-        for y in range(0, altura_total, th):
-            for x in range(0, largura_total, tw):
-                superficie_final.blit(tile, (x, y))
-
-        cls._cache_imagens[chave] = superficie_final
-        return superficie_final
+        """Delega a criação de superfície contínua de tiles para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.criar_superficie_tiled(
+            caminho_tileset, largura_total, altura_total,
+            col=col, lin=lin, tamanho_tile=tamanho_tile, escala_tile=escala_tile
+        )
 
     @classmethod
     def gerar_chao_com_estrada_e_transicao(cls, largura_total, altura_total, y_estrada=240, h_estrada=240):
-        """
-        Gera uma superfície rica de chão com base de grama verde exuberante, caminho central de terra
-        e faixas de transição orgânica (bordas recortadas de grama que avançam sobre a terra).
-        """
-        chave = f"chao_estrada_transicao_{largura_total}x{altura_total}_{y_estrada}_{h_estrada}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        p_ext = "assets/cenario/02_Pisos_Externos"
-        p_grama = f"{p_ext}/01_Grama_Verde"
-        p_terra = f"{p_ext}/03_Terra_Marrom"
-
-        # 1. Tiles base (32x32 com escala=2)
-        tile_grama = cls.carregar_imagem(f"{p_grama}/piso_grama_r10_c01.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/grama/Floors_Tiles.png", 1, 10, tamanho_tile=16, escala=2)
-        tile_terra = cls.carregar_imagem(f"{p_terra}/piso_terra_r10_c11.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/terra/Floors_Tiles.png", 11, 10, tamanho_tile=16, escala=2)
-
-        # Transições nativas (piso_grama_r00_c02: grama no topo, dentes descendo; piso_grama_r04_c02: dentes subindo, grama na base)
-        tile_trans_norte = cls.carregar_imagem(f"{p_grama}/piso_grama_r00_c02.png", (32, 32))
-        tile_trans_sul = cls.carregar_imagem(f"{p_grama}/piso_grama_r04_c02.png", (32, 32))
-
-        surf_final = cls.criar_superficie_32bit(largura_total, altura_total)
-        tw = 32
-        th = 32
-
-        # 2. Preenche todo o mapa com grama verde viçosa
-        if tile_grama:
-            for y in range(0, altura_total, th):
-                for x in range(0, largura_total, tw):
-                    surf_final.blit(tile_grama, (x, y))
-
-        # 3. Preenche a faixa da estrada em superfície estritamente delimitada (evita qualquer vazamento de terra)
-        surf_estrada = cls.criar_superficie_32bit(largura_total, h_estrada)
-        if tile_terra:
-            for y in range(0, h_estrada, th):
-                for x in range(0, largura_total, tw):
-                    surf_estrada.blit(tile_terra, (x, y))
-
-        # 4. Desenha as transições recortadas de grama sobre a terra (norte e sul)
-        if tile_trans_norte:
-            for x in range(0, largura_total, tw):
-                surf_estrada.blit(tile_trans_norte, (x, 0))
-
-        if tile_trans_sul:
-            for x in range(0, largura_total, tw):
-                surf_estrada.blit(tile_trans_sul, (x, h_estrada - th))
-
-        surf_final.blit(surf_estrada, (0, y_estrada))
-
-        cls._cache_imagens[chave] = surf_final
-        return surf_final
+        """Delega a geração do terreno de estrada com transição para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.gerar_chao_com_estrada_e_transicao(
+            largura_total, altura_total, y_estrada=y_estrada, h_estrada=h_estrada
+        )
 
     @classmethod
     def carregar_frames_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, manter_proporcao=False):

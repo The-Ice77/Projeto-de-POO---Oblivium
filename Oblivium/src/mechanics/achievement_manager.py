@@ -51,7 +51,9 @@ class AchievementManager:
                     "id": cid,
                     "titulo": c.get("titulo", "Conquista"),
                     "descricao": c.get("descricao", ""),
+                    "categoria": c.get("categoria", "GERAL"),
                     "icone": c.get("icone", "✦"),
+                    "cor": c.get("cor", [180, 215, 245]),
                     "secreta": c.get("secreta", False),
                     "desbloqueada": False,
                     "data_desbloqueio": None

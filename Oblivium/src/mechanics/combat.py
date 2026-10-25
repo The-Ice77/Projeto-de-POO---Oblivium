@@ -855,6 +855,10 @@ class CombatScreen:
         self.estado_combate = "VITORIA"
         if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
             self.game.conquistas.desbloquear("primeiro_sangue")
+            for inimigo in self.inimigos:
+                if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or "superior" in getattr(inimigo, 'nome', '').lower():
+                    self.game.conquistas.desbloquear("cacadora_abissal")
+                    break
         audio = AudioManager.get_instance()
         if audio:
             audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)

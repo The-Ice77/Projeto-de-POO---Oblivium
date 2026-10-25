@@ -101,7 +101,7 @@ class ControlesState(State):
                 self.game.menu.efeito_petalas.desenhar(tela)
         
         largura_bloco = 720
-        altura_bloco = 520
+        altura_bloco = 556
         x = (self.game.LARGURA - largura_bloco) // 2
         y = (self.game.ALTURA - altura_bloco) // 2
 
@@ -114,18 +114,18 @@ class ControlesState(State):
 
         # Título
         titulo = self.fonte_titulo.render("Configurar Teclas", True, MARFIM_OFFWHITE)
-        tela.blit(titulo, (x + 40, y + 25))
+        tela.blit(titulo, (x + 40, y + 22))
 
         # Divisória
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 68), (x + largura_bloco - 40, y + 68), 1)
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 64), (x + largura_bloco - 40, y + 64), 1)
 
         self.rects_opcoes.clear()
         
         # Renderiza cada ação e a sua respetiva tecla
         for i, acao in enumerate(self.acoes):
             tecla_nome = pygame.key.name(self.game.controles[acao]).upper()
-            pos_y = y + 80 + (i * 44)
-            rect = pygame.Rect(x + 40, pos_y, largura_bloco - 80, 36)
+            pos_y = y + 76 + (i * 42)
+            rect = pygame.Rect(x + 40, pos_y, largura_bloco - 80, 35)
             self.rects_opcoes.append(rect)
 
             esta_sel = (self.selecionada == i)
@@ -149,8 +149,8 @@ class ControlesState(State):
 
         # Opção de Voltar
         i_voltar = len(self.acoes)
-        pos_y_v = y + 80 + (i_voltar * 44) + 8
-        rect_v = pygame.Rect(x + 40, pos_y_v, largura_bloco - 80, 36)
+        pos_y_v = y + 76 + (i_voltar * 42) + 6
+        rect_v = pygame.Rect(x + 40, pos_y_v, largura_bloco - 80, 35)
         self.rects_opcoes.append(rect_v)
 
         esta_sel_v = (self.selecionada == i_voltar)

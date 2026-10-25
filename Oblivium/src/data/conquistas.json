@@ -1,108 +1,93 @@
 {
   "conquistas": [
     {
-      "id": "despertar",
-      "titulo": "O Despertar da Névoa",
-      "descricao": "Acorde no quarto de Halia e dê seus primeiros passos rumo à jornada.",
-      "icone": "✦",
-      "secreta": false
-    },
-    {
-      "id": "heranca_arcana",
-      "titulo": "Herança Arcana",
-      "descricao": "Recupere o antigo cajado de madeira nos aposentos de Halia.",
-      "icone": "⚡",
-      "secreta": false
-    },
-    {
-      "id": "bolsa_moedas",
-      "titulo": "Bolsa de Prata",
-      "descricao": "Encontre as economias guardadas em sua residência antes da partida.",
-      "icone": "◈",
-      "secreta": false
-    },
-    {
-      "id": "partida_estrada",
-      "titulo": "O Partir do Carroceiro",
-      "descricao": "Inicie a viagem pela Estrada Rural ao lado do Carroceiro.",
-      "icone": "❖",
-      "secreta": false
-    },
-    {
-      "id": "fauna_viva",
-      "titulo": "Harmonia Alada",
-      "descricao": "Aproxime-se e contemple o voo sereno de um pássaro pelas estradas.",
-      "icone": "❀",
-      "secreta": false
-    },
-    {
       "id": "eco_passado",
-      "titulo": "Eco do Passado",
-      "descricao": "Testemunhe a lembrança e relembre os ensinamentos arcanos antigos.",
-      "icone": "📜",
+      "titulo": "Ecos da Grã-Maga",
+      "descricao": "Reviveu o flashback ancestral diante do desmoronamento e despertou o seu Grimório esquecido.",
+      "categoria": "MEMORIA",
+      "icone": "✦",
+      "cor": [140, 215, 250],
+      "secreta": false
+    },
+    {
+      "id": "fogo",
+      "titulo": "Chamas do Esquecimento",
+      "descricao": "Dominou os três selos do ritual ígneo e pulverizou a barreira da estrada com a Bola de Fogo.",
+      "categoria": "MAGIA",
+      "icone": "♨",
+      "cor": [255, 135, 75],
       "secreta": false
     },
     {
       "id": "levitacao",
-      "titulo": "Mente Sobre a Matéria",
-      "descricao": "Desobstrua a barreira de rochas utilizando a magia de Levitação.",
-      "icone": "✧",
-      "secreta": false
-    },
-    {
-      "id": "fogo_destrutivo",
-      "titulo": "Purificação pelas Chamas",
-      "descricao": "Incinere os obstáculos rochosos conjurando uma Bola de Fogo cinematográfica.",
-      "icone": "♨",
+      "titulo": "Domínio da Gravidade",
+      "descricao": "Canalizou telecinese pura sob pressão extrema para erguer as rochas colossais do desfiladeiro.",
+      "categoria": "MAGIA",
+      "icone": "▲",
+      "cor": [165, 130, 255],
       "secreta": false
     },
     {
       "id": "primeiro_sangue",
-      "titulo": "Primeiro Sangue",
-      "descricao": "Saia vitoriosa do seu primeiro confronto contra as anomalias da névoa.",
+      "titulo": "Expurgadora de Sombras",
+      "descricao": "Triunfou em combate mortal contra as criaturas abissais que emboscaram a estrada.",
+      "categoria": "COMBATE",
       "icone": "⚔",
+      "cor": [240, 85, 85],
       "secreta": false
+    },
+    {
+      "id": "cacadora_abissal",
+      "titulo": "Algoz do Abismo Superior",
+      "descricao": "Subjugou o temível Demônio Superior (Chefe) em um duelo direto de poder arcano.",
+      "categoria": "COMBATE",
+      "icone": "⚜",
+      "cor": [255, 95, 145],
+      "secreta": true
     },
     {
       "id": "foco_espiritual",
       "titulo": "Mente Inabalável",
-      "descricao": "Execute uma manobra tática de Concentração ou Defesa em combate.",
+      "descricao": "Dominou a arte da Concentração Tática em batalha para restaurar o fluxo de mana ou erguer guarda.",
+      "categoria": "COMBATE",
       "icone": "🛡",
+      "cor": [120, 200, 255],
       "secreta": false
     },
     {
       "id": "sincronia_2",
-      "titulo": "Despertar da Memória",
-      "descricao": "Recupere um fragmento de memória e atinja o Nível 2 de Sincronia Arcana.",
-      "icone": "◆",
+      "titulo": "Despertar das Cores",
+      "descricao": "Recuperou o primeiro Fragmento de Memória e devolveu os tons vivos ao mundo cinzento de Oblivium.",
+      "categoria": "MEMORIA",
+      "icone": "❖",
+      "cor": [130, 240, 220],
       "secreta": false
     },
     {
       "id": "primeira_receita",
-      "titulo": "Alquimista Iniciante",
-      "descricao": "Fabrique seu primeiro item ou consumível na bancada de Crafting.",
+      "titulo": "Alquimista do Crepúsculo",
+      "descricao": "Sintetizou reagentes e essências místicas na bancada de Criação para forjar um novo artefato ou elixir.",
+      "categoria": "CRAFTING",
       "icone": "⚗",
+      "cor": [135, 225, 150],
       "secreta": false
     },
     {
-      "id": "rumo_a_vila",
-      "titulo": "Além do Vale",
-      "descricao": "Conclua a travessia das estradas e rume em direção ao Vilarejo de Oakhaven.",
-      "icone": "▲",
-      "secreta": false
-    },
-    {
-      "id": "primeira_missao",
-      "titulo": "Mão Amiga",
-      "descricao": "Aceite sua primeira missão junto aos habitantes da vila.",
-      "icone": "✦",
+      "id": "cumpridor_promessas",
+      "titulo": "Juramento Cumprido",
+      "descricao": "Concluiu integralmente todos os objetivos de uma Missão e recebeu sua recompensa.",
+      "categoria": "MISSOES",
+      "icone": "📜",
+      "cor": [235, 200, 110],
       "secreta": false
     },
     {
       "id": "mestre_platinador",
-      "titulo": "Guardiã de Oblivium",
-      "descricao": "Desbloqueie todas as 14 conquistas e restaure completamente seu legado.",
-      "icone": "⚜",
+      "titulo": "Lenda de Oblivium",
+      "descricao": "Alcançou a plenitude absoluta ao desbloquear todas as conquistas de Oblivium.",
+      "categoria": "PLATINA",
+      "icone": "♛",
+      "cor": [255, 225, 115],
       "secreta": true
     }
   ]

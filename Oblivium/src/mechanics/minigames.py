@@ -36,9 +36,9 @@ class MinigameTiming:
             "nome": "Fagulha Inicial",
             "subtitulo": "✦ Etapa I: Desperte a Fagulha Elemental [1/3] ✦",
             "instrucao": "Sincronize o disparo no núcleo para acender as primeiras brasas",
-            "velocidade": 7.5,
-            "zona_min": 125,
-            "zona_largura": 90,
+            "velocidade": 5.5,
+            "zona_min": 120,
+            "zona_largura": 110,
             "cor_zona": (180, 85, 20),
             "cor_borda": (255, 195, 70),
             "cor_nucleo": (255, 215, 90),
@@ -48,9 +48,9 @@ class MinigameTiming:
             "nome": "Combustão Térmica",
             "subtitulo": "✦ Etapa II: Canalize a Combustão Térmica [2/3] ✦",
             "instrucao": "Alimente a chama aumentando a intensidade do calor",
-            "velocidade": 11.0,
-            "zona_min": 142,
-            "zona_largura": 56,
+            "velocidade": 7.5,
+            "zona_min": 133,
+            "zona_largura": 84,
             "cor_zona": (205, 70, 20),
             "cor_borda": (255, 170, 50),
             "cor_nucleo": (255, 220, 80),
@@ -60,9 +60,9 @@ class MinigameTiming:
             "nome": "Ignição Plena",
             "subtitulo": "✦ Etapa III: Ignição Plena Devastadora [3/3] ✦",
             "instrucao": "Momento Crítico! Detone a esfera ígnea no ápice da fusão",
-            "velocidade": 14.5,
-            "zona_min": 154,
-            "zona_largura": 32,
+            "velocidade": 9.5,
+            "zona_min": 145,
+            "zona_largura": 60,
             "cor_zona": (225, 55, 20),
             "cor_borda": (255, 235, 120),
             "cor_nucleo": (255, 245, 185),
@@ -169,7 +169,8 @@ class MinigameTiming:
 
             if self.etapa_idx < len(self.ETAPAS_CONFIG) - 1:
                 self.etapa_idx += 1
-                self.cursor_dir *= -1  # Inverte a direção para imprimir dinamismo
+                self.cursor_x = 0.0
+                self.cursor_dir = 1  # Reinicia na base para leitura previsível na próxima etapa
                 return "AVANCOU_ETAPA"
             else:
                 self.ativo = False
@@ -296,8 +297,8 @@ class MinigameMash:
         self.bx = self.px + (self.largura_painel - self.largura_barra) // 2
         self.by = self.py + 152
 
-        self.progresso = 15.0
-        self.tempo_limite = 85  # ~1.4s por comando
+        self.progresso = 10.0
+        self.tempo_limite = 62  # ~1.03s base por comando (mais desafiador)
         self.tempo_restante = self.tempo_limite
         self.tecla_atual = self.TECLAS_QTE[0]
         self.seq_acertos = 0
@@ -319,7 +320,7 @@ class MinigameMash:
         self.rect_glifo = pygame.Rect(0, 0, 0, 0)
 
     def iniciar(self):
-        self.progresso = 15.0
+        self.progresso = 10.0
         self.ativo = True
         self.orbes.clear()
         self.seq_acertos = 0
@@ -347,14 +348,14 @@ class MinigameMash:
             self.shake_x = 0
             self.shake_y = 0
 
-        # Inércia gravitacional sutil das rochas
-        self.progresso = max(0.0, self.progresso - 0.07)
+        # Inércia gravitacional contínua das rochas (puxa de volta com maior peso)
+        self.progresso = max(0.0, self.progresso - 0.14)
         
         # Temporizador de reação do QTE
         self.tempo_restante -= 1
         if self.tempo_restante <= 0:
-            # Tempo expirou! As pedras perdem sustentação
-            self.progresso = max(0.0, self.progresso - 16.0)
+            # Tempo expirou! As pedras perdem sustentação severamente
+            self.progresso = max(0.0, self.progresso - 20.0)
             self.feedback_erro = 14
             self.seq_acertos = 0
             self._sortear_nova_tecla()
@@ -426,7 +427,7 @@ class MinigameMash:
 
     def _acertar_qte(self):
         """Executa acerto no comando do QTE."""
-        self.progresso = min(100.0, self.progresso + 24.0)
+        self.progresso = min(100.0, self.progresso + 13.5)
         self.feedback_acerto = 15
         self.seq_acertos += 1
         _tocar_sfx_seguro("magia_cast")
@@ -436,13 +437,13 @@ class MinigameMash:
             return "VENCEU"
             
         self._sortear_nova_tecla()
-        # Tempo diminui sutilmente conforme o jogador emenda uma sequência perfeita
-        self.tempo_restante = max(58, self.tempo_limite - (self.seq_acertos * 3))
+        # Tempo diminui de forma progressiva conforme o jogador avança na sequência
+        self.tempo_restante = max(38, self.tempo_limite - (self.seq_acertos * 4))
         return "ACERTOU"
 
     def _errar_qte(self):
         """Executa erro no comando do QTE."""
-        self.progresso = max(0.0, self.progresso - 16.0)
+        self.progresso = max(0.0, self.progresso - 20.0)
         self.feedback_erro = 14
         self.seq_acertos = 0
         _tocar_sfx_seguro("ataque_erro")

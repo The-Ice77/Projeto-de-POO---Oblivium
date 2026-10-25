@@ -3,11 +3,13 @@ import pygame
 from src.states.states import State
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
-    MARFIM_OFFWHITE, BORDA_DESTAQUE
+    MARFIM_OFFWHITE, BORDA_DESTAQUE, BOTAO_FECHAR_HOVER,
+    AZUL_HOVER_MENU, BRANCO, DOURADO_ENVELHECIDO
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
     desenhar_painel_padrao, desenhar_flor_botanica,
+    desenhar_icone_fechar, desenhar_estrela_quatro_pontas,
     quebrar_texto_em_linhas
 )
 from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem
@@ -69,6 +71,8 @@ class InventoryState(State):
         self.altura_menu = min(640, self.game.ALTURA - 40)
         self.x_menu = (self.game.LARGURA - self.largura_menu) // 2
         self.y_menu = (self.game.ALTURA - self.altura_menu) // 2
+        self.rect_fechar = pygame.Rect(self.x_menu + self.largura_menu - 54, self.y_menu + 20, 28, 28)
+        self.hover_fechar = False
         
         # Slots de Equipamentos (Topo Esquerdo: 4 slots)
         self.slot_roupa = pygame.Rect(self.x_menu + 45, self.y_menu + 115, 84, 82)
@@ -137,6 +141,7 @@ class InventoryState(State):
 
     def handle_events(self, eventos, teclas):
         self.pos_mouse = pygame.mouse.get_pos()
+        self.hover_fechar = self.rect_fechar.collidepoint(self.pos_mouse)
         self.slot_hover = None
         self.tooltip_info = None
 
@@ -244,6 +249,10 @@ class InventoryState(State):
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:  # Clique Esquerdo
+                    if self.rect_fechar.collidepoint(evento.pos):
+                        self.game.mudar_estado("JOGANDO")
+                        return
+
                     flashback_ok = getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
                     
                     # Clique nas Abas Principais
@@ -288,9 +297,9 @@ class InventoryState(State):
                                 if res["sucesso"]:
                                     inv.remover_item(item.id, 1)
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self.exibir_mensagem(f"✦ {res['mensagem']}")
+                                    self.exibir_mensagem(f"• {res['mensagem']}")
                                 else:
-                                    self.exibir_mensagem(f"⚠ {res['mensagem']}")
+                                    self.exibir_mensagem(f"Aviso: {res['mensagem']}")
 
                             elif isinstance(item, EquipamentoItem):
                                 slot_destino = item.slot
@@ -300,9 +309,9 @@ class InventoryState(State):
                                 sucesso, msg = inv.equipar(slot_destino, idx_real)
                                 if sucesso:
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self.exibir_mensagem(f"✦ {msg}")
+                                    self.exibir_mensagem(f"• {msg}")
                                 else:
-                                    self.exibir_mensagem(f"⚠ {msg}")
+                                    self.exibir_mensagem(f"Aviso: {msg}")
 
                             elif isinstance(item, GrimorioItem) or getattr(item, 'categoria', '') == "GRIMORIO":
                                 slot_g = None
@@ -313,7 +322,7 @@ class InventoryState(State):
                                 slot_g = slot_g or "GRIMORIO_1"
                                 sucesso, msg = inv.equipar(slot_g, idx_real)
                                 if sucesso:
-                                    self.exibir_mensagem(f"✦ {msg}")
+                                    self.exibir_mensagem(f"• {msg}")
 
                 elif evento.button == 3:  # Clique Direito (Desequipar)
                     if self.aba_principal_ativa == 0 and self.slot_hover and self.slot_hover[0] == "equipamento" and inv:
@@ -322,9 +331,9 @@ class InventoryState(State):
                             sucesso, msg = inv.desequipar(slot_nome)
                             if sucesso:
                                 halia.recalcular_status_derivados(manter_porcentagem=False)
-                                self.exibir_mensagem(f"✦ {msg}")
+                                self.exibir_mensagem(f"• {msg}")
                             else:
-                                self.exibir_mensagem(f"⚠ {msg}")
+                                self.exibir_mensagem(f"Aviso: {msg}")
 
     def _ajustar_scroll_magia(self):
         """Garante que a magia selecionada permaneça visível no viewport com scroll."""
@@ -368,7 +377,7 @@ class InventoryState(State):
                 self.game.conquistas.desbloquear("primeira_receita")
             halia.recalcular_status_derivados(manter_porcentagem=False)
         else:
-            self.exibir_mensagem(f"⚠ {msg}")
+            self.exibir_mensagem(f"Aviso: {msg}")
 
     def _gerar_tooltip_item(self, item, quantidade=None):
         """Gera título, descrição e detalhes para a caixa flutuante de tooltip."""
@@ -382,13 +391,13 @@ class InventoryState(State):
 
         if isinstance(item, ConsumivelItem):
             if item.tipo_consumivel == "CURA_HP":
-                linhas_detalhes.append(f"✦ Efeito: Restaura +{item.valor_efeito} Pontos de Vida (HP)")
+                linhas_detalhes.append(f"• Efeito: Restaura +{item.valor_efeito} Pontos de Vida (HP)")
             elif item.tipo_consumivel == "RESTAURA_MP":
-                linhas_detalhes.append(f"✦ Efeito: Restaura +{item.valor_efeito} Pontos de Mana (MP)")
+                linhas_detalhes.append(f"• Efeito: Restaura +{item.valor_efeito} Pontos de Mana (MP)")
             elif item.tipo_consumivel == "DANO_OFENSIVO":
-                linhas_detalhes.append(f"⚔ Efeito: Causa {item.valor_efeito} de dano")
+                linhas_detalhes.append(f"• Efeito: Causa {item.valor_efeito} de dano")
             elif item.tipo_consumivel == "CURA_CONDICAO":
-                linhas_detalhes.append("✦ Efeito: Purifica venenos e aflições")
+                linhas_detalhes.append("• Efeito: Purifica venenos e aflições")
 
         elif isinstance(item, EquipamentoItem):
             up = getattr(item, 'nivel_upgrade', 0)
@@ -453,15 +462,15 @@ class InventoryState(State):
             self.game.filtro_memoria.aplicar_filtro(tela)
 
     def _desenhar_cabecalho_abas(self, tela):
-        """Renderiza os botões superiores das 4 abas principais."""
+        """Renderiza os botões superiores das 4 abas principais e o botão fechar [X]."""
         self.rects_abas_principais.clear()
         txt_nome = self.fonte_titulo.render("Halia", True, MARFIM_OFFWHITE)
         tela.blit(txt_nome, (self.x_menu + 35, self.y_menu + 20))
         desenhar_flor_botanica(tela, self.x_menu + 120, self.y_menu + 32, cor=CINZA_LINHO, escala=0.65)
 
-        x_aba = self.x_menu + 260
+        x_aba = self.x_menu + 250
         y_aba = self.y_menu + 18
-        largura_btn = 150
+        largura_btn = 152
         altura_btn = 34
 
         for i, nome_aba in enumerate(self.abas_principais):
@@ -469,26 +478,36 @@ class InventoryState(State):
             rect_btn = pygame.Rect(x_aba, y_aba, largura_btn, altura_btn)
             self.rects_abas_principais.append(rect_btn)
 
+            label = f"[{i+1}] {nome_aba}"
             if ativa:
                 fundo = (38, 38, 48)
                 cor_borda = MARFIM_OFFWHITE
                 cor_texto = MARFIM_OFFWHITE
-                label = f"✦ [{i+1}] {nome_aba}"
             else:
                 fundo = (22, 22, 28)
                 cor_borda = CINZA_ARDOSIA
                 cor_texto = CINZA_LINHO
-                label = f"[{i+1}] {nome_aba}"
 
             pygame.draw.rect(tela, fundo, rect_btn, border_radius=3)
             pygame.draw.rect(tela, cor_borda, rect_btn, 2 if ativa else 1, border_radius=3)
 
+            txt_btn = self.fonte_abas_principais.render(label, True, cor_texto)
             if ativa:
                 pygame.draw.line(tela, (230, 215, 160), (rect_btn.left + 6, rect_btn.bottom - 2), (rect_btn.right - 6, rect_btn.bottom - 2), 2)
-
-            txt_btn = self.fonte_abas_principais.render(label, True, cor_texto)
-            tela.blit(txt_btn, (rect_btn.centerx - txt_btn.get_width() // 2, rect_btn.centery - txt_btn.get_height() // 2))
+                tx = rect_btn.centerx - txt_btn.get_width() // 2 + 6
+                desenhar_estrela_quatro_pontas(tela, tx - 11, rect_btn.centery, 4, 1, DOURADO_ENVELHECIDO)
+                tela.blit(txt_btn, (tx, rect_btn.centery - txt_btn.get_height() // 2))
+            else:
+                tela.blit(txt_btn, (rect_btn.centerx - txt_btn.get_width() // 2, rect_btn.centery - txt_btn.get_height() // 2))
             x_aba += largura_btn + 12
+
+        # Botão Fechar [ X ] no topo direito
+        self.rect_fechar = pygame.Rect(self.x_menu + self.largura_menu - 54, self.y_menu + 20, 28, 28)
+        cor_bg_f = BOTAO_FECHAR_HOVER if self.hover_fechar else (26, 26, 32)
+        cor_bd_f = AZUL_HOVER_MENU if self.hover_fechar else CINZA_ARDOSIA
+        pygame.draw.rect(tela, cor_bg_f, self.rect_fechar, border_radius=3)
+        pygame.draw.rect(tela, cor_bd_f, self.rect_fechar, 1, border_radius=3)
+        desenhar_icone_fechar(tela, self.rect_fechar, cor=BRANCO if self.hover_fechar else CINZA_LINHO, espessura=2)
 
         pygame.draw.line(tela, CINZA_ARDOSIA, (self.x_menu + 25, self.y_menu + 62), (self.x_menu + self.largura_menu - 25, self.y_menu + 62), 1)
 
@@ -538,7 +557,7 @@ class InventoryState(State):
         # Linhas de Texto
         y_txt = r_tool.y + 40
         for l in linhas_desc:
-            cor_l = (150, 220, 170) if "+" in l else ((140, 190, 240) if "•" in l or "✦" in l else MARFIM_OFFWHITE)
+            cor_l = (150, 220, 170) if "+" in l else ((140, 190, 240) if "•" in l else MARFIM_OFFWHITE)
             txt_l = self.fonte_mini.render(l, True, cor_l)
             tela.blit(txt_l, (r_tool.x + 14, y_txt))
             y_txt += 18
@@ -552,5 +571,5 @@ class InventoryState(State):
             txt_f = self.fonte_destaque.render(self.mensagem_feedback, True, (150, 240, 180))
             tela.blit(txt_f, (self.x_menu + 45, y_rodape))
         else:
-            txt_guia = self.fonte_mini.render("[1/2/3/4/Q/E] Trocar Abas   |   [Clique Esq] Usar / Equipar / Criar   |   [Clique Dir] Desequipar   |   [ESC/I] Fechar", True, CINZA_LINHO)
+            txt_guia = self.fonte_mini.render("[1/2/3/4/Q/E] Trocar Abas   |   [Clique Esq] Usar / Equipar / Criar   |   [Clique Dir] Desequipar   |   [ESC/TAB] Fechar", True, CINZA_LINHO)
             tela.blit(txt_guia, (self.x_menu + 45, y_rodape))

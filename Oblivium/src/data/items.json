@@ -141,6 +141,7 @@
       "raridade": "COMUM",
       "preco_compra": 75,
       "preco_venda": 35,
+      "icone_sprite": "props/Cajado.png",
       "bonus_atributos": {
         "intelecto": 3,
         "forca": 1
@@ -159,6 +160,7 @@
       "raridade": "RARO",
       "preco_compra": 220,
       "preco_venda": 110,
+      "icone_sprite": "props/Cajado.png",
       "bonus_atributos": {
         "intelecto": 6,
         "sabedoria": 3
@@ -216,6 +218,7 @@
       "raridade": "RARO",
       "preco_compra": 150,
       "preco_venda": 75,
+      "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "dano_fogo_bonus": 10
       }
@@ -229,6 +232,7 @@
       "raridade": "RARO",
       "preco_compra": 150,
       "preco_venda": 75,
+      "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "dano_gelo_bonus": 10
       }
@@ -242,6 +246,7 @@
       "raridade": "RARO",
       "preco_compra": 140,
       "preco_venda": 70,
+      "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "cura_bonus": 12
       }

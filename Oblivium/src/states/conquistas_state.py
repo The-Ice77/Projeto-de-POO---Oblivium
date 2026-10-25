@@ -8,6 +8,11 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
+from src.ui.icon_registry import (
+    desenhar_icone_conquista,
+    desenhar_icone_fechar,
+    desenhar_icone_missao_badge
+)
 
 
 class ConquistasState(State):
@@ -18,8 +23,8 @@ class ConquistasState(State):
     - Moldura em Carvão Profundo com contornos delicados em Cinza Linho / Marfim.
     - Barra de Platina no topo com percentual geral de conclusão.
     - Filtros por categoria: Todas, Desbloqueadas e Bloqueadas.
+    - Emblemas procedurais exclusivos gerados em código para cada conquista.
     - Lista de cards com scroll contínuo e suporte a teclado e roda do mouse.
-    - Badges distintos para conquistas desbloqueadas (dourado luminoso) e bloqueadas/ocultas.
     """
 
     def __init__(self, game):
@@ -33,8 +38,6 @@ class ConquistasState(State):
         self.fonte_card_data = ResourceManager.carregar_fonte("contrail", 12)
         self.fonte_status = ResourceManager.carregar_fonte("contrail", 14)
         self.fonte_filtro = ResourceManager.carregar_fonte("contrail", 16)
-        self.fonte_icone_grande = ResourceManager.carregar_fonte("sunday", 24)
-        self.fonte_icone_medio = ResourceManager.carregar_fonte("sunday", 20)
         self.fonte_rodape = ResourceManager.carregar_fonte("contrail", 15)
 
         # Filtros
@@ -50,8 +53,9 @@ class ConquistasState(State):
         self.largura_bloco = 880
         self.altura_bloco = 590
 
-        # Retângulo do Botão Voltar
+        # Retângulos de Botões
         self.rect_botao_voltar = pygame.Rect(0, 0, 0, 0)
+        self.rect_fechar = pygame.Rect(0, 0, 0, 0)
 
         # Overlay escurecido para quando acessado de telas de gameplay/pause
         self.overlay = pygame.Surface((self.game.LARGURA, self.game.ALTURA))
@@ -131,8 +135,8 @@ class ConquistasState(State):
                             self._tocar_sfx("ui_cursor")
                         return
 
-                # 2. Clique no botão Voltar
-                if self.rect_botao_voltar.collidepoint(evento.pos):
+                # 2. Clique no botão Voltar ou no botão [X] superior
+                if self.rect_botao_voltar.collidepoint(evento.pos) or self.rect_fechar.collidepoint(evento.pos):
                     self.voltar_origem()
                     return
 
@@ -157,6 +161,8 @@ class ConquistasState(State):
             if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
                 self.game.menu.efeito_petalas.desenhar(tela)
 
+        pos_mouse = pygame.mouse.get_pos()
+
         # 2. Painel Central
         x = (self.game.LARGURA - self.largura_bloco) // 2
         y = (self.game.ALTURA - self.altura_bloco) // 2
@@ -172,24 +178,33 @@ class ConquistasState(State):
         txt_titulo = self.fonte_titulo.render("Conquistas", True, MARFIM_OFFWHITE)
         tela.blit(txt_titulo, (x + 36, y + 20))
 
-        txt_sub = self.fonte_subtitulo.render("Seus marcos, memórias e glórias restauradas pelo caminho", True, CINZA_LINHO)
+        txt_sub = self.fonte_subtitulo.render("Marcos especiais, triunfos arcanos e memórias restauradas", True, CINZA_LINHO)
         tela.blit(txt_sub, (x + 38, y + 56))
 
-        # 4. Progresso da Platina (Canto Superior Direito)
+        # Botão Fechar [X] no canto superior direito
+        self.rect_fechar = pygame.Rect(x + self.largura_bloco - 60, y + 22, 26, 26)
+        hover_fechar = self.rect_fechar.collidepoint(pos_mouse)
+        pygame.draw.rect(tela, (45, 22, 26) if hover_fechar else (22, 24, 30), self.rect_fechar, border_radius=3)
+        pygame.draw.rect(tela, (230, 95, 95) if hover_fechar else CINZA_ARDOSIA, self.rect_fechar, 1, border_radius=3)
+        desenhar_icone_fechar(tela, self.rect_fechar, cor=(255, 160, 160) if hover_fechar else CINZA_LINHO, espessura=2)
+
+        # 4. Progresso da Platina (Ao lado do botão fechar)
         desbloqueadas, total, porcentagem = (0, 0, 0)
         if hasattr(self.game, 'conquistas') and self.game.conquistas:
             desbloqueadas, total, porcentagem = self.game.conquistas.obter_progresso()
 
-        gauge_w = 170
+        gauge_w = 180
         gauge_h = 10
-        gauge_x = x + self.largura_bloco - 36 - gauge_w
-        gauge_y = y + 42
+        gauge_x = self.rect_fechar.left - 18 - gauge_w
+        gauge_y = y + 44
 
-        # Rótulo de Platina
-        texto_platina = f"✦ Platina: {desbloqueadas}/{total} ({porcentagem}%)"
-        cor_platina = (220, 238, 255) if porcentagem == 100 else MARFIM_OFFWHITE
+        # Rótulo de Platina com emblema procedural
+        texto_platina = f"Platina: {desbloqueadas}/{total} ({porcentagem}%)"
+        cor_platina = (255, 225, 115) if porcentagem == 100 else MARFIM_OFFWHITE
         txt_plat_render = self.fonte_status.render(texto_platina, True, cor_platina)
-        tela.blit(txt_plat_render, (gauge_x + gauge_w - txt_plat_render.get_width(), y + 22))
+        tx_plat = gauge_x + gauge_w - txt_plat_render.get_width()
+        tela.blit(txt_plat_render, (tx_plat, y + 22))
+        desenhar_icone_missao_badge(tela, tx_plat - 12, y + 30, categoria="PRINCIPAL", cor=(255, 220, 110) if porcentagem == 100 else (160, 205, 245))
 
         # Barra Medidora da Platina
         rect_gauge_bg = pygame.Rect(gauge_x, gauge_y, gauge_w, gauge_h)
@@ -198,8 +213,9 @@ class ConquistasState(State):
 
         if porcentagem > 0:
             largura_preenchida = int((gauge_w - 2) * (porcentagem / 100.0))
+            cor_barra_plat = (245, 210, 100) if porcentagem == 100 else (140, 190, 235)
             rect_preenchido = pygame.Rect(gauge_x + 1, gauge_y + 1, max(2, largura_preenchida), gauge_h - 2)
-            pygame.draw.rect(tela, (140, 190, 235), rect_preenchido, border_radius=1)
+            pygame.draw.rect(tela, cor_barra_plat, rect_preenchido, border_radius=1)
 
         # Linha Divisória Superior
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 30, y + 82), (x + self.largura_bloco - 30, y + 82), 1)
@@ -209,7 +225,6 @@ class ConquistasState(State):
         pos_y_filtro = y + 92
         self.rects_filtros.clear()
 
-        # Contagens para os botões de filtro
         todas_c = self.game.conquistas.obter_todas() if hasattr(self.game, 'conquistas') and self.game.conquistas else []
         desbloq_count = sum(1 for c in todas_c if c.get("desbloqueada", False))
         bloq_count = len(todas_c) - desbloq_count
@@ -220,7 +235,6 @@ class ConquistasState(State):
             f"Bloqueadas ({bloq_count})"
         ]
 
-        pos_mouse = pygame.mouse.get_pos()
         for idx_f, rotulo in enumerate(rotulos_filtros):
             esta_ativo = (idx_f == self.filtro_ativo_idx)
             largura_btn = self.fonte_filtro.size(rotulo)[0] + 28
@@ -259,84 +273,80 @@ class ConquistasState(State):
         gap = 8
         altura_total = len(conquistas_filtradas) * (h_card + gap)
         self.max_scroll = max(0.0, float(altura_total - h_lista))
-
-        # Limita scroll para intervalo seguro
         self.scroll_y = max(0.0, min(self.max_scroll, self.scroll_y))
 
-        # Aplica Clip Rect para garantir que os cards não vazem para fora da área da lista
         clip_antigo = tela.get_clip()
         tela.set_clip(pygame.Rect(x_lista, y_lista, w_lista, h_lista))
 
-        w_card = w_lista - 16  # Deixa 16px para a scrollbar
+        w_card = w_lista - 16
         for i, c in enumerate(conquistas_filtradas):
             y_card = y_lista + (i * (h_card + gap)) - int(self.scroll_y)
 
-            # Culling: só renderiza se estiver visível dentro da janela de scroll
             if y_card + h_card < y_lista or y_card > y_lista + h_lista:
                 continue
 
             rect_card = pygame.Rect(x_lista, y_card, w_card, h_card)
             desbloqueada = c.get("desbloqueada", False)
             secreta = c.get("secreta", False)
+            cor_tema = tuple(c.get("cor", (180, 215, 245)))
 
-            # Estilo do Card
             if desbloqueada:
                 eh_mestre_platina = (c.get("id") == "mestre_platinador")
-                cor_fundo_card = (20, 24, 32)
-                cor_borda_card = (220, 235, 250) if eh_mestre_platina else (150, 185, 220)
-                cor_titulo = MARFIM_OFFWHITE
-                cor_desc = (185, 190, 200)
-                icone_txt = c.get("icone", "✦")
-                cor_icone = (235, 248, 255) if eh_mestre_platina else (180, 215, 245)
+                cor_fundo_card = (22, 26, 36)
+                cor_borda_card = (240, 215, 115) if eh_mestre_platina else (150, 185, 220)
+                cor_titulo = (255, 235, 150) if eh_mestre_platina else MARFIM_OFFWHITE
+                cor_desc = (195, 200, 210)
             else:
                 cor_fundo_card = (16, 17, 21)
                 cor_borda_card = (38, 42, 50)
-                cor_titulo = (135, 140, 150)
+                cor_titulo = (145, 150, 162)
                 cor_desc = UI_TEXTO_APAGADO
-                icone_txt = "✧"
-                cor_icone = (75, 80, 92)
 
-            # Desenha painel do card
             pygame.draw.rect(tela, cor_fundo_card, rect_card, border_radius=4)
             pygame.draw.rect(tela, cor_borda_card, rect_card, 1, border_radius=4)
 
-            # Caixa do Ícone Lateral (Esquerda)
+            # Caixa do Ícone Lateral com Arte Procedural Exclusiva
             rect_ico_box = pygame.Rect(x_lista + 8, y_card + 9, 50, 50)
             cor_bg_ico = (24, 30, 42) if desbloqueada else (12, 13, 16)
             pygame.draw.rect(tela, cor_bg_ico, rect_ico_box, border_radius=3)
-            pygame.draw.rect(tela, (130, 165, 195) if desbloqueada else (38, 42, 50), rect_ico_box, 1, border_radius=3)
+            pygame.draw.rect(tela, cor_tema if desbloqueada else (45, 48, 58), rect_ico_box, 1, border_radius=3)
 
-            rend_ico = self.fonte_icone_grande.render(icone_txt, True, cor_icone)
-            tela.blit(rend_ico, (rect_ico_box.centerx - rend_ico.get_width() // 2, rect_ico_box.centery - rend_ico.get_height() // 2))
+            desenhar_icone_conquista(
+                tela,
+                rect_ico_box,
+                c.get("id", ""),
+                cor=cor_tema,
+                desbloqueada=desbloqueada,
+                secreta=secreta
+            )
 
             # Título da Conquista
-            tit_render = self.fonte_card_titulo.render(c.get("titulo", "Conquista"), True, cor_titulo)
+            tit_texto = "??? (Conquista Secreta)" if (secreta and not desbloqueada) else c.get("titulo", "Conquista")
+            tit_render = self.fonte_card_titulo.render(tit_texto, True, cor_titulo)
             tela.blit(tit_render, (x_lista + 68, y_card + 10))
 
             # Descrição da Conquista
             if not desbloqueada and secreta:
-                texto_desc = "Conquista oculta. Avance na jornada para desvendar este marco."
+                texto_desc = "Conquista oculta. Superar um desafio extraordinário revelará este marco."
             else:
                 texto_desc = c.get("descricao", "")
 
-            # Trunca se for muito longa para caber em uma linha
-            if len(texto_desc) > 85:
-                texto_desc = texto_desc[:82] + "..."
+            if len(texto_desc) > 88:
+                texto_desc = texto_desc[:85] + "..."
 
             rend_desc = self.fonte_card_desc.render(texto_desc, True, cor_desc)
-            tela.blit(rend_desc, (x_lista + 68, y_card + 33))
+            tela.blit(rend_desc, (x_lista + 68, y_card + 36))
 
             # Status ou Data de Desbloqueio (Canto direito do card)
             if desbloqueada and c.get("data_desbloqueio"):
                 data_str = f"Desbloqueada em {c['data_desbloqueio']}"
-                rend_data = self.fonte_card_data.render(data_str, True, (150, 195, 225))
+                rend_data = self.fonte_card_data.render(data_str, True, (150, 215, 175))
                 tela.blit(rend_data, (x_lista + w_card - rend_data.get_width() - 14, y_card + 12))
             elif not desbloqueada:
                 status_str = "Bloqueada"
                 rend_status = self.fonte_card_data.render(status_str, True, UI_TEXTO_APAGADO)
                 tela.blit(rend_status, (x_lista + w_card - rend_status.get_width() - 14, y_card + 12))
 
-        # Restaura Clip Rect
         tela.set_clip(clip_antigo)
 
         # 7. Trilho e Slider da Scrollbar
@@ -353,10 +363,9 @@ class ConquistasState(State):
         # 8. Rodapé (Atalhos e Botão Voltar)
         pygame.draw.line(tela, CINZA_ARDOSIA, (x + 30, y + self.altura_bloco - 42), (x + self.largura_bloco - 30, y + self.altura_bloco - 42), 1)
 
-        txt_atalhos = self.fonte_rodape.render("[↑ / ↓ / Scroll] Rolar   •   [← / → / TAB] Filtros   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)
+        txt_atalhos = self.fonte_rodape.render("[Setas / Scroll] Rolar   |   [A / D / TAB] Filtros   |   [ESC] Retornar", True, UI_TEXTO_APAGADO)
         tela.blit(txt_atalhos, (x + 36, y + self.altura_bloco - 30))
 
-        # Botão Voltar clicável no canto direito inferior
         largura_btn_voltar = 100
         altura_btn_voltar = 28
         self.rect_botao_voltar = pygame.Rect(x + self.largura_bloco - 36 - largura_btn_voltar, y + self.altura_bloco - 36, largura_btn_voltar, altura_btn_voltar)
