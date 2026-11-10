@@ -807,16 +807,31 @@ class PlayingState(State):
         evt_atual = getattr(self.game.caixa_dialogo.manager, "evento_pendente", None)
         if abrir_loja_apos or evt_atual == "abrir_loja":
             self.game.caixa_dialogo.manager.consumir_evento()
-            if hasattr(self.game, "missoes") and self.game.missoes:
-                self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
-                self.game.missoes.atualizar_progresso("visitar_mercado", 1)
-            self.game.caixa_dialogo.ativo = False
             if not loja_id_alvo and hasattr(self.game, "npc_interagindo_atual") and self.game.npc_interagindo_atual:
                 loja_id_alvo = getattr(self.game.npc_interagindo_atual, "loja_id", None)
-            if hasattr(self.game, "abrir_loja"):
-                self.game.abrir_loja(loja_id_alvo)
-            else:
-                self.game.mudar_estado("LOJA")
+
+            # Validação estrita de pré-requisitos da loja do NPC
+            npc_atual = getattr(self.game, "npc_interagindo_atual", None)
+            pode_abrir = True
+            qm = getattr(self.game, "missoes", None)
+            if npc_atual and hasattr(npc_atual, "pode_abrir_loja"):
+                pode_abrir = npc_atual.pode_abrir_loja(qm)
+            elif loja_id_alvo and qm and hasattr(qm, "missoes"):
+                norm_l = str(loja_id_alvo).lower()
+                if "forja" in norm_l or "torvald" in norm_l:
+                    pode_abrir = (qm.missoes.get("missao_pedra_forja", {}).get("status") == "CONCLUIDA")
+                elif "botanica" in norm_l or "elara" in norm_l:
+                    pode_abrir = (qm.missoes.get("missao_ervas_medicinais", {}).get("status") == "CONCLUIDA")
+
+            self.game.caixa_dialogo.ativo = False
+            if pode_abrir:
+                if hasattr(self.game, "missoes") and self.game.missoes:
+                    self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
+                    self.game.missoes.atualizar_progresso("visitar_mercado", 1)
+                if hasattr(self.game, "abrir_loja"):
+                    self.game.abrir_loja(loja_id_alvo)
+                else:
+                    self.game.mudar_estado("LOJA")
         elif ir_patrulha_apos or (not self.game.caixa_dialogo.ativo and evt_atual == "ir_patrulha_doran"):
             self.game.caixa_dialogo.manager.consumir_evento()
             self.game.caixa_dialogo.ativo = False
@@ -925,10 +940,12 @@ class PlayingState(State):
                         self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
                 elif str(id_do_item).startswith("erva_lunar"):
+                    if hasattr(self.game, "halia") and hasattr(self.game.halia, "inventario") and self.game.halia.inventario:
+                        self.game.halia.inventario.adicionar_item("erva_lunar", 1)
                     if hasattr(self.game, "missoes") and self.game.missoes:
                         self.game.missoes.atualizar_progresso("coletar_ervas", 1)
                     self.game.caixa_dialogo.iniciar_dialogo([
-                        {"autor": "Halia", "texto": "Colhi uma Erva de Orvalho Lunar fresca. As folhas ainda brilham com as gotas da manhã."}
+                        {"autor": "Halia", "texto": "Colhi uma Erva de Orvalho Lunar fresca e a guardei na bolsa. As folhas ainda brilham com as gotas da manhã."}
                     ])
                 else:
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])

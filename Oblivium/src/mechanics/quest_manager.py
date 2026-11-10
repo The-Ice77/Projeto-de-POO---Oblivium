@@ -134,7 +134,13 @@ class QuestManager:
 
         objs_campo = [o for o in objetivos if not self._eh_objetivo_entrega_npc(o)]
         if objs_campo:
-            return all(o.get("concluido", False) for o in objs_campo)
+            if not all(o.get("concluido", False) for o in objs_campo):
+                return False
+
+        # Validação estrita de inventário para a entrega de ervas à Elara
+        if id_missao == "missao_ervas_medicinais" and self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
+            if self.game.halia.inventario.obter_quantidade("erva_lunar") < 3:
+                return False
 
         # Caso todos os objetivos sejam de entrega, verifica os anteriores ao último
         if len(objetivos) > 1:
@@ -172,6 +178,13 @@ class QuestManager:
                 self.progredir_objetivo("missao_boas_vindas", "ajudar_elara", 1)
             if self.missoes.get("missao_pedra_forja", {}).get("status") == "CONCLUIDA":
                 self.progredir_objetivo("missao_boas_vindas", "ajudar_torvald", 1)
+        elif id_missao == "missao_ervas_medicinais":
+            # Reconhece ervas já colhidas e armazenadas no inventário
+            if self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
+                qtd_ervas = self.game.halia.inventario.obter_quantidade("erva_lunar")
+                if qtd_ervas > 0:
+                    for _ in range(min(3, qtd_ervas)):
+                        self.progredir_objetivo("missao_ervas_medicinais", "coletar_ervas", 1)
 
         if not self.missao_rastreada_id:
             self.missao_rastreada_id = id_missao
@@ -307,8 +320,11 @@ class QuestManager:
                 for item_id in itens_rec:
                     halia.inventario.adicionar_item(item_id, 1)
 
-            if id_missao == "missao_ervas_medicinais" and hasattr(halia, "restaurar_total"):
-                halia.restaurar_total()
+            if id_missao == "missao_ervas_medicinais":
+                if hasattr(halia, 'inventario') and halia.inventario:
+                    halia.inventario.remover_item("erva_lunar", 3)
+                if hasattr(halia, "restaurar_total"):
+                    halia.restaurar_total()
 
         if id_missao == "missao_ervas_medicinais":
             self.atualizar_progresso("ajudar_elara", 1)

@@ -553,18 +553,31 @@ class Gato(Animal):
         self.descoberto_nesta_fase = True
 
         total = len(game.patusco_fases_encontradas)
-        if total >= self.TOTAL_APARICOES_PATUSCO and hasattr(game, "conquistas") and game.conquistas:
-            game.conquistas.desbloquear("amigo_dos_felinos")
+        concluiu_todos = (total >= self.TOTAL_APARICOES_PATUSCO)
 
-        if hasattr(game, "notificacoes") and game.notificacoes and primeira_vez_fase:
-            if hasattr(game.notificacoes, "adicionar_notificacao"):
+        # Recompensa e notificação disparadas exclusivamente no 7º gato (Easter Egg Silencioso)
+        if concluiu_todos and primeira_vez_fase:
+            if hasattr(game, "conquistas") and game.conquistas:
+                game.conquistas.desbloquear("amigo_dos_felinos")
+            if hasattr(game, "notificacoes") and game.notificacoes and hasattr(game.notificacoes, "adicionar_notificacao"):
                 game.notificacoes.adicionar_notificacao(
-                    f"Patusco Descoberto! ({total}/{self.TOTAL_APARICOES_PATUSCO})",
-                    "O bichano saltou do tufo de grama!"
+                    "Guardião dos Felinos!",
+                    "Você encontrou todos os 7 gatos escondidos pelo reino!"
                 )
 
         if hasattr(game, "caixa_dialogo") and game.caixa_dialogo:
-            if primeira_vez_fase:
+            if concluiu_todos and primeira_vez_fase:
+                dialogo = [
+                    {
+                        "autor": "Patusco",
+                        "texto": "Miau-prrr! (Patusco ronrona calorosamente e se esfrega com imenso carinho em seus pés, como se reconhecesse uma amiga leal de todas as jornadas.)"
+                    },
+                    {
+                        "autor": "Halia",
+                        "texto": "Você me acompanhou por cada recanto deste mundo, pequeno guardião... Sentir sua presença traz uma paz indescritível ao meu coração."
+                    }
+                ]
+            elif primeira_vez_fase:
                 dialogo = [
                     {
                         "autor": "Patusco",
@@ -572,14 +585,14 @@ class Gato(Animal):
                     },
                     {
                         "autor": "Halia",
-                        "texto": f"Ora, você estava escondido aí no meio das folhas esse tempo todo, pequeno? ({total}/{self.TOTAL_APARICOES_PATUSCO} aparições de Patusco encontradas)"
+                        "texto": "Ora, você estava escondido aí no meio das folhas esse tempo todo, pequeno? Que bom ver que os animais encontram paz por aqui."
                     }
                 ]
             else:
                 dialogo = [
                     {
                         "autor": "Patusco",
-                        "texto": f"Prrrr... (Patusco observa você de dentro do tufo de grama e ronrona baixinho. [{total}/{self.TOTAL_APARICOES_PATUSCO}])"
+                        "texto": "Prrrr... (Patusco observa você de dentro do tufo de grama e ronrona baixinho, semicerrando os olhos dourados em serenidade.)"
                     }
                 ]
             game.caixa_dialogo.iniciar_dialogo(dialogo)
@@ -589,3 +602,4 @@ class Gato(Animal):
 
 # Aliases de conveniência
 PassaroAmbiente = Passaro
+Patusco = Gato

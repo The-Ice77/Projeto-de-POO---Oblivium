@@ -1,4 +1,5 @@
 # src/mechanics/shop.py
+import copy
 import json
 import logging
 import os
@@ -93,6 +94,34 @@ class Loja:
         return cls._ALIASES.get(chave, chave)
 
     @classmethod
+    def resetar_lojas(cls):
+        """Limpa as instâncias ativas para isolamento estrito entre slots de save."""
+        cls._INSTANCIAS_ATIVAS.clear()
+
+    @classmethod
+    def salvar_estado_lojas(cls):
+        """Retorna o estado serializado dos estoques de todas as lojas instanciadas."""
+        estado = {}
+        for id_loja, loja in cls._INSTANCIAS_ATIVAS.items():
+            estado[id_loja] = {
+                item_id: merc.estoque_atual
+                for item_id, merc in loja.mercadorias.items()
+            }
+        return copy.deepcopy(estado)
+
+    @classmethod
+    def carregar_estado_lojas(cls, dados_lojas):
+        """Restaura o estado dos estoques a partir dos dados do save slot com isolamento estrito."""
+        cls.resetar_lojas()
+        if not dados_lojas or not isinstance(dados_lojas, dict):
+            return
+        for id_loja, estoques in dados_lojas.items():
+            loja = cls.obter_ou_criar(id_loja)
+            for item_id, qtd in estoques.items():
+                if item_id in loja.mercadorias:
+                    loja.mercadorias[item_id].estoque_atual = int(qtd)
+
+    @classmethod
     def obter_ou_criar(cls, loja_id):
         """
         Retorna a instância persistente da loja identificada por `loja_id`.
@@ -104,7 +133,7 @@ class Loja:
 
         catalogo = cls._obter_catalogo()
         if id_norm in catalogo:
-            dados = catalogo[id_norm]
+            dados = copy.deepcopy(catalogo[id_norm])
             nova_loja = cls(
                 id_loja=id_norm,
                 nome=dados.get("nome", "Loja"),
@@ -118,9 +147,9 @@ class Loja:
         return nova_loja
 
     def _carregar_dados_json(self, id_loja):
-        """Popula as mercadorias com base na definição do JSON."""
+        """Popula as mercadorias com base na definição do JSON via deepcopy."""
         catalogo = self._obter_catalogo()
-        dados = catalogo.get(id_loja, {})
+        dados = copy.deepcopy(catalogo.get(id_loja, {}))
         self.nome = dados.get("nome", self.nome)
         self.tipo = dados.get("tipo", self.tipo)
         self.descricao = dados.get("descricao", self.descricao)

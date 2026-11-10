@@ -17,8 +17,17 @@
         "opcoes": [
           {
             "id": "aldous_opcao_dormir",
-            "texto": "[Descansar por esta noite] A ronda com Doran terminou. Onde posso me recolher?",
-            "proximo": "fala_descanso_1"
+            "texto": "As tarefas na vila foram concluídas. Onde posso me recolher por esta noite?",
+            "proximo": "fala_descanso_1",
+            "condicao_missao_concluida": "missao_boas_vindas",
+            "repetivel": true
+          },
+          {
+            "id": "aldous_perguntar_descanso_bloqueado",
+            "texto": "Onde posso me recolher para passar a noite?",
+            "proximo": "fala_descanso_bloqueado",
+            "condicao_missao_nao_concluida": "missao_boas_vindas",
+            "repetivel": true
           },
           {
             "id": "aldous_sobre_estatua",
@@ -32,7 +41,7 @@
           },
           {
             "id": "aldous_aceitar_missao",
-            "texto": "[Missão Principal] Quero ajudar a vila e conhecer os moradores de Oakhaven.",
+            "texto": "Quero ajudar a vila e conhecer os moradores de Oakhaven.",
             "proximo": "fala_aceitar_aldous_1",
             "condicao_missao_disponivel": "missao_boas_vindas",
             "aceitar_missao": "missao_boas_vindas"
@@ -72,6 +81,11 @@
       "despedida_aldous": {
         "autor": "Ancião Aldous",
         "texto": "Caminhe em paz por Oakhaven, Halia."
+      },
+      "fala_descanso_bloqueado": {
+        "autor": "Ancião Aldous",
+        "texto": "Ainda há tarefas importantes antes do anoitecer, Halia. Nossa gente ainda se recupera das feridas da guerra. Converse com a Curandeira Elara na botânica e ajude o Ferreiro Torvald na forja. Quando a vila estiver em ordem, você terá todo o repouso que merece na Casa de Hóspedes.",
+        "proximo": "menu_aldous"
       },
       "fala_descanso_1": {
         "autor": "Ancião Aldous",
@@ -140,14 +154,22 @@
         "opcoes": [
           {
             "id": "elara_abrir_loja",
-            "texto": "[Loja] Ver elixires, poções e ervas medicinais",
+            "texto": "Gostaria de ver seus elixires, poções e ervas medicinais.",
             "acao": "abrir_loja",
             "loja_id": "botanica_elara",
+            "condicao_missao_concluida": "missao_ervas_medicinais",
+            "repetivel": true
+          },
+          {
+            "id": "elara_loja_bloqueada",
+            "texto": "Gostaria de comprar suprimentos médicos e poções.",
+            "proximo": "fala_elara_loja_fechada",
+            "condicao_missao_nao_concluida": "missao_ervas_medicinais",
             "repetivel": true
           },
           {
             "id": "elara_aceitar_missao",
-            "texto": "[Missão Secundária] Posso ajudar a coletar as Ervas de Orvalho Lunar.",
+            "texto": "Posso ajudar a colher as Ervas de Orvalho Lunar.",
             "proximo": "fala_aceitar_elara_1",
             "condicao_missao_disponivel": "missao_ervas_medicinais",
             "aceitar_missao": "missao_ervas_medicinais"
@@ -163,6 +185,11 @@
             "proximo": "fala_elara_caelen_1"
           }
         ]
+      },
+      "fala_elara_loja_fechada": {
+        "autor": "Curandeira Elara",
+        "texto": "Sinto muito, querida. Com a correria e a falta de ervas frescas da manhã, meu estoque de elixires está completamente esgotado. Se você puder me ajudar colhendo as 3 Ervas de Orvalho Lunar na clareira ao sul, poderei preparar novas misturas e abrir a botânica para você.",
+        "proximo": "menu_elara"
       },
       "fala_aceitar_elara_1": {
         "autor": "Curandeira Elara",
@@ -253,14 +280,22 @@
         "opcoes": [
           {
             "id": "torvald_abrir_loja",
-            "texto": "[Loja] Examinar armas, artefatos e minérios da forja",
+            "texto": "Gostaria de examinar armas, artefatos e peças forjadas.",
             "acao": "abrir_loja",
             "loja_id": "forja_torvald",
+            "condicao_missao_concluida": "missao_pedra_forja",
+            "repetivel": true
+          },
+          {
+            "id": "torvald_loja_bloqueada",
+            "texto": "Gostaria de ver suas armas e equipamentos forjados.",
+            "proximo": "fala_torvald_loja_fechada",
+            "condicao_missao_nao_concluida": "missao_pedra_forja",
             "repetivel": true
           },
           {
             "id": "torvald_aceitar_missao",
-            "texto": "[Missão Secundária] Posso quebrar aquela Rocha de Minério Bruto no pátio para você.",
+            "texto": "Posso quebrar aquela Rocha de Minério Bruto no pátio para você.",
             "proximo": "fala_aceitar_torvald_1",
             "condicao_missao_disponivel": "missao_pedra_forja",
             "aceitar_missao": "missao_pedra_forja"
@@ -276,6 +311,11 @@
             "proximo": "fala_torvald_portao_1"
           }
         ]
+      },
+      "fala_torvald_loja_fechada": {
+        "autor": "Ferreiro Torvald",
+        "texto": "A fornalha está fria e minhas ferramentas estão paradas, maga. Aquele bloco de minério bruto está trancando meu pátio e eu não tenho aço refinado no momento. Ajude-me a parti-lo primeiro e terei o maior prazer em lhe fornecer o melhor aço de Oakhaven.",
+        "proximo": "menu_torvald"
       },
       "fala_aceitar_torvald_1": {
         "autor": "Ferreiro Torvald",
@@ -355,7 +395,7 @@
         "opcoes": [
           {
             "id": "doran_aceitar_missao",
-            "texto": "[Missão Secundária] Vim ajudar a afastar os batedores demoníacos da Orla Norte.",
+            "texto": "Vim ajudar a afastar os batedores demoníacos da Orla Norte.",
             "proximo": "fala_aceitar_doran_1",
             "condicao_missao_disponivel": "missao_ronda_fronteiras",
             "aceitar_missao": "missao_ronda_fronteiras"
@@ -481,18 +521,18 @@
       },
       "menu_ancoragem_dragao": {
         "tipo": "escolha",
-        "cabecalho": "[Crise de Ansiedade — O Trauma do Fogo Noturno] Busque uma âncora sensorial para estabilizar sua respiração:",
+        "cabecalho": "O Trauma do Fogo Noturno — Busque uma âncora sensorial para estabilizar sua respiração:",
         "pode_fechar": false,
         "opcoes": [
           {
             "id": "ancorar_cha_elara",
-            "texto": "[Ancorar no Toque] Lembrar do bálsamo fresco de Orvalho Lunar com que Elara cuidou das suas mãos.",
+            "texto": "Lembrar do bálsamo fresco de Orvalho Lunar com que Elara cuidou das suas mãos.",
             "proximo": "ancoragem_sucesso_1",
             "repetivel": true
           },
           {
             "id": "ancorar_bigorna_torvald",
-            "texto": "[Ancorar no Som] Focar no peso do Amuleto do Guardião e na cadência firme do martelo de Torvald e Sylvan.",
+            "texto": "Focar no peso do Amuleto do Guardião e na cadência firme do martelo de Torvald e Sylvan.",
             "proximo": "ancoragem_sucesso_1",
             "repetivel": true
           }
@@ -608,12 +648,12 @@
         "opcoes": [
           {
             "id": "recordar_amigos_monumento",
-            "texto": "[Recordar Companheiros] Fechar os olhos e relembrar a noite ao redor da fogueira na grande estrada.",
+            "texto": "Fechar os olhos e relembrar a noite ao redor da fogueira na grande estrada.",
             "repetivel": true
           },
           {
             "id": "sair_monumento",
-            "texto": "[Afastar-se] Prestar respeito silencioso aos heróis e retornar à exploração de Oakhaven.",
+            "texto": "Prestar respeito silencioso aos heróis e retornar à exploração de Oakhaven.",
             "repetivel": true
           }
         ]

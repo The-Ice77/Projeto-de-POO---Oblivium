@@ -290,11 +290,27 @@ class NPC(Entidade):
 
     def pode_abrir_loja(self, quest_manager=None):
         """
-        Retorna True se o NPC possui loja e NÃO está bloqueado por uma missão ativa pendente.
-        Ao aceitar uma missão com o NPC, a loja fica bloqueada até que a missão seja concluída.
+        Retorna True se o NPC possui loja e seus pré-requisitos de missão foram cumpridos:
+        - Torvald (Ferreiro): Bloqueado até a conclusão de 'missao_pedra_forja'.
+        - Elara (Curandeira): Bloqueada até a conclusão de 'missao_ervas_medicinais'.
+        - Taberneiro / Outros: Disponível desde o início, exceto se houver missão ativa pendente.
         """
         if not self.tem_loja:
             return False
+
+        if quest_manager and hasattr(quest_manager, "missoes"):
+            # Torvald / Forja: requer conclusão da missão da rocha de minério
+            if self.arquetipo == "ferreiro" or "torvald" in self.npc_id or "forja" in str(self.loja_id or "").lower():
+                m_torvald = quest_manager.missoes.get("missao_pedra_forja")
+                if not m_torvald or m_torvald.get("status") != "CONCLUIDA":
+                    return False
+
+            # Elara / Botânica: requer conclusão da missão das ervas medicinais
+            if self.arquetipo == "curandeira" or "elara" in self.npc_id or "botanica" in str(self.loja_id or "").lower():
+                m_elara = quest_manager.missoes.get("missao_ervas_medicinais")
+                if not m_elara or m_elara.get("status") != "CONCLUIDA":
+                    return False
+
         if self.tem_missao_ativa(quest_manager):
             return False
         return True

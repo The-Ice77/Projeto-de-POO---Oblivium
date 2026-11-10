@@ -323,8 +323,20 @@ class DialogueManager:
         if opt_id in self.historico_escolhas and not self._opcao_eh_permanente(opt):
             return False
 
-        # Bloqueio de loja caso o NPC possua missão ativa em andamento
+        # Bloqueio de loja com pré-requisito ou missão ativa pendente
         if (opt.get("acao") == "abrir_loja" or opt.get("evento") == "abrir_loja" or "loja_id" in opt) and self.quest_manager:
+            loja_ref = str(opt.get("loja_id") or "").lower()
+            # Torvald / Forja: requer conclusão da missão da rocha
+            if "forja" in loja_ref or "torvald" in loja_ref:
+                m_t = self.quest_manager.missoes.get("missao_pedra_forja")
+                if not m_t or m_t.get("status") != "CONCLUIDA":
+                    return False
+            # Elara / Botânica: requer conclusão da missão das ervas
+            if "botanica" in loja_ref or "elara" in loja_ref:
+                m_e = self.quest_manager.missoes.get("missao_ervas_medicinais")
+                if not m_e or m_e.get("status") != "CONCLUIDA":
+                    return False
+
             npc_ref = opt.get("npc_id")
             if not npc_ref and self.conversa_id in self.banco_dialogos:
                 conv = self.banco_dialogos[self.conversa_id]
@@ -333,6 +345,23 @@ class DialogueManager:
                     no_ini = conv.get("nos", {}).get(conv.get("no_inicial"), {})
                     npc_ref = no_ini.get("autor")
             if npc_ref and self.quest_manager.obter_missao_ativa_do_npc(npc_ref):
+                return False
+
+        # Condição de missão concluída (única ou lista de IDs)
+        cond_conc = opt.get("condicao_missao_concluida")
+        if cond_conc and self.quest_manager:
+            lista_req = [cond_conc] if isinstance(cond_conc, str) else list(cond_conc)
+            for mid in lista_req:
+                m_obj = self.quest_manager.missoes.get(mid)
+                if not m_obj or m_obj.get("status") != "CONCLUIDA":
+                    return False
+
+        # Condição de missão pendente / NÃO concluída (única ou lista de IDs)
+        cond_nao_conc = opt.get("condicao_missao_nao_concluida")
+        if cond_nao_conc and self.quest_manager:
+            lista_pend = [cond_nao_conc] if isinstance(cond_nao_conc, str) else list(cond_nao_conc)
+            # Se todas as missões especificadas já estiverem concluídas, esconde esta opção alternativa
+            if all(self.quest_manager.missoes.get(mid, {}).get("status") == "CONCLUIDA" for mid in lista_pend):
                 return False
 
         # Condição de missão disponível
