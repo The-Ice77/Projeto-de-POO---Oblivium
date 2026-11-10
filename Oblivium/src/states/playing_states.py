@@ -5,6 +5,8 @@ from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.item_factory import ItemFactory
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.mechanics.cinematica_dragao import CinematicaAtaqueDragao
+from src.mechanics.minigame_ferraria import MinigameFerraria
+from src.mechanics.minigame_curandeira import MinigameCurandeira
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
@@ -13,6 +15,8 @@ class PlayingState(State):
         self.game = game
         self.cutscene = CutsceneManager(game)
         self.cinematica_dragao = CinematicaAtaqueDragao(game, self)
+        self.minigame_ferraria = MinigameFerraria(game, self)
+        self.minigame_curandeira = MinigameCurandeira(game, self)
         self.memoria_anterior_registrada = getattr(self.game.halia, 'fragmentos_memoria', 0)
         self.camera_x = 0.0
         self.camera_y = 0.0
@@ -62,6 +66,15 @@ class PlayingState(State):
                 self.cinematica_dragao.handle_event(evento)
             return
 
+        # Delegação aos minigames interativos da vila
+        if hasattr(self, "minigame_ferraria") and self.minigame_ferraria.ativo:
+            self.minigame_ferraria.handle_events(eventos, teclas)
+            return
+
+        if hasattr(self, "minigame_curandeira") and self.minigame_curandeira.ativo:
+            self.minigame_curandeira.handle_events(eventos, teclas)
+            return
+
         self._processar_movimento(teclas)
         
         for evento in eventos:
@@ -81,6 +94,15 @@ class PlayingState(State):
                 self._handle_clicks(evento)
 
     def update(self):
+        # Atualização prioritária de minigames interativos ativos
+        if hasattr(self, "minigame_ferraria") and self.minigame_ferraria.ativo:
+            self.minigame_ferraria.atualizar()
+            return
+
+        if hasattr(self, "minigame_curandeira") and self.minigame_curandeira.ativo:
+            self.minigame_curandeira.atualizar()
+            return
+
         # Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo)
         self.game.tempo_jogado += 1 / 60.0
 
@@ -282,6 +304,8 @@ class PlayingState(State):
 
     def _processar_movimento(self, teclas):
         if (hasattr(self, 'cinematica_dragao') and self.cinematica_dragao.ativo) or \
+           (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
+           (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or \
            self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or \
            self.game.flashback_sistema.estado != "INATIVO" or \
            (hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO") or \
@@ -917,6 +941,11 @@ class PlayingState(State):
         
         for item in self.game.mapa_casa.itens_no_chao[:]: 
             if area_interacao.colliderect(item.rect):
+                id_do_item = getattr(item, "id_unico", "desconhecido")
+                if str(id_do_item).startswith("erva_lunar"):
+                    self.minigame_curandeira.iniciar(item)
+                    return
+
                 self.game.mapa_casa.itens_no_chao.remove(item)
                 if hasattr(self.game, 'audio') and self.game.audio:
                     self.game.audio.tocar_sfx("item_coletar")
@@ -939,14 +968,6 @@ class PlayingState(State):
                     if tomo:
                         self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
-                elif str(id_do_item).startswith("erva_lunar"):
-                    if hasattr(self.game, "halia") and hasattr(self.game.halia, "inventario") and self.game.halia.inventario:
-                        self.game.halia.inventario.adicionar_item("erva_lunar", 1)
-                    if hasattr(self.game, "missoes") and self.game.missoes:
-                        self.game.missoes.atualizar_progresso("coletar_ervas", 1)
-                    self.game.caixa_dialogo.iniciar_dialogo([
-                        {"autor": "Halia", "texto": "Colhi uma Erva de Orvalho Lunar fresca e a guardei na bolsa. As folhas ainda brilham com as gotas da manhã."}
-                    ])
                 else:
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
                 return
@@ -1017,21 +1038,8 @@ class PlayingState(State):
                         else "NAO_INICIADA"
                     )
                     if estado_missao == "ATIVA" and not getattr(self.game, "pedra_torvald_quebrada", False):
-                        self.game.pedra_torvald_quebrada = True
-                        if hasattr(self.game.mapa_casa, "cenario_objeto") and self.game.mapa_casa.cenario_objeto:
-                            self.game.mapa_casa.cenario_objeto.inicializar_cenario()
-                        if hasattr(self.game, "missoes") and self.game.missoes:
-                            self.game.missoes.atualizar_progresso("quebrar_pedra_forja", 1)
-                        if hasattr(self.game, "audio") and self.game.audio:
-                            self.game.audio.tocar_sfx("item_coletar")
-                        if self.game.slot_atual:
-                            self.game.salvar_estado(self.game.slot_atual, tipo="autosave", silenciar_notificacao=True)
-                        self.game.caixa_dialogo.iniciar_dialogo([
-                            {
-                                "autor": "Halia",
-                                "texto": "Canalizei um pulso arcano pelo Cajado de Espinheiro direto na fenda da rocha! O bloco de minério bruto se partiu, expondo os veios puros de ferro estelar para o Ferreiro Torvald."
-                            }
-                        ])
+                        self.minigame_ferraria.iniciar()
+                        return
                     else:
                         self.game.caixa_dialogo.iniciar_dialogo([
                             {
@@ -1039,6 +1047,7 @@ class PlayingState(State):
                                 "texto": "Um grande bloco de minério bruto com veios metálicos azulados no pátio da forja. Talvez o Ferreiro Torvald precise de ajuda para parti-lo."
                             }
                         ])
+                        return
                     return
                 if "evento" in pt:
                     ev = pt["evento"]
@@ -1335,6 +1344,10 @@ class PlayingState(State):
         self._iniciar_climax_dragao_oakhaven()
 
     def _draw_interactable_prompts(self, tela):
+        if (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
+           (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo):
+            return
+
         area_interacao = pygame.Rect(self.game.halia.x - 24, self.game.halia.y - 24, self.game.halia.largura + 48, self.game.halia.altura + 48)
         tecla_interacao_str = pygame.key.name(self.game.controles['Interagir']).upper()
         
@@ -1383,6 +1396,12 @@ class PlayingState(State):
         self.game.transicao.desenhar(tela)
         self.game.flashback_sistema.desenhar(tela)
         self.game.caixa_dialogo.desenhar(tela)
+
+        # Minigames Interativos da Vila (Ferraria e Curandeira)
+        if hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo:
+            self.minigame_ferraria.desenhar(tela)
+        if hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo:
+            self.minigame_curandeira.desenhar(tela)
         
         # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar
         if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
