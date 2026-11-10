@@ -339,10 +339,7 @@ class MapaFlashbackAcampamento(CenarioBase):
             if surf:
                 orig_w, orig_h = surf.get_size()
                 larg_alvo = max(1, int(orig_w * (alt_alvo / orig_h)))
-                try:
-                    surf_sc = pygame.transform.smoothscale(surf, (larg_alvo, alt_alvo))
-                except Exception:
-                    surf_sc = pygame.transform.scale(surf, (larg_alvo, alt_alvo))
+                surf_sc = pygame.transform.scale(surf, (larg_alvo, alt_alvo))
                 if flip:
                     surf_sc = pygame.transform.flip(surf_sc, True, False)
                 frames.append(surf_sc)

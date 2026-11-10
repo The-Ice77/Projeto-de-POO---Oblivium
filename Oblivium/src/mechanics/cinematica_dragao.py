@@ -128,7 +128,7 @@ class CinematicaAtaqueDragao:
             canvas = pygame.Surface((cw, ch), pygame.SRCALPHA)
             nw = max(1, int(f.get_width() * self.dragao_escala))
             nh = max(1, int(f.get_height() * self.dragao_escala))
-            f_redim = pygame.transform.smoothscale(f, (nw, nh))
+            f_redim = pygame.transform.scale(f, (nw, nh))
             canvas.blit(f_redim, (0, int(off_y * self.dragao_escala)))
             frames_finais.append(canvas)
 
@@ -140,7 +140,7 @@ class CinematicaAtaqueDragao:
             surf = pygame.Surface(tamanho, pygame.SRCALPHA)
             pygame.draw.circle(surf, (255, 130, 20), (tamanho[0] // 2, tamanho[1] // 2), tamanho[0] // 2)
             return [surf]
-        return [pygame.transform.smoothscale(f, tamanho) for f in frames]
+        return [pygame.transform.scale(f, tamanho) for f in frames]
 
     def iniciar_sono(self):
         """Inicia a cutscene de descanso: Halia caminha pelas ruas da vila até a Casa de Hóspedes e dorme."""

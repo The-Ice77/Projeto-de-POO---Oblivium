@@ -47,6 +47,34 @@ class NPC(Entidade):
         self.tem_loja = bool(tem_loja)
         self.loja_id = loja_id
         self.arquetipo = arquetipo or self._inferir_arquetipo()
+
+        # Calibração de Proporções e Hitboxes 2.5D por Arquétipo (Itens 2.1 e 2.2)
+        dimensoes_arquetipos = {
+            "ferreiro": (82, 40, 36),     # Torvald: forjador robusto e alto
+            "torvald": (82, 40, 36),
+            "roland": (84, 42, 38),       # Roland: paladino em placa pesada
+            "sylvan": (65, 42, 32),       # Sylvan: guerreiro anão largo e baixo
+            "doran": (78, 38, 36),        # Doran: sentinela de cota de malha
+            "guarda": (78, 38, 36),
+            "caelen": (76, 36, 36),       # Caelen: clérigo esguio com túnica
+            "anciao": (74, 36, 36),       # Aldous: ancião curvado com cajado
+            "curandeira": (74, 36, 36),   # Elara: curandeira botânica
+            "elara": (74, 36, 36),
+            "aldeao": (74, 36, 36)
+        }
+        chave_arq = self.arquetipo.lower()
+        if "torvald" in self.npc_id:
+            chave_arq = "torvald"
+        elif "elara" in self.npc_id:
+            chave_arq = "elara"
+        elif "sylvan" in self.npc_id:
+            chave_arq = "sylvan"
+        elif "roland" in self.npc_id:
+            chave_arq = "roland"
+        elif "caelen" in self.npc_id:
+            chave_arq = "caelen"
+
+        self.alvo_h, self.largura, self.altura = dimensoes_arquetipos.get(chave_arq, (74, 36, 36))
         self._configurar_sprites_padrao()
 
     def _inferir_arquetipo(self):
@@ -232,12 +260,10 @@ class NPC(Entidade):
                     surf = ResourceManager.carregar_imagem(img_path)
                     if surf:
                         orig_w, orig_h = surf.get_size()
-                        alvo_h = 74
+                        alvo_h = getattr(self, "alvo_h", 74)
                         alvo_w = max(1, int(orig_w * (alvo_h / orig_h)))
-                        try:
-                            surf_scaled = pygame.transform.smoothscale(surf, (alvo_w, alvo_h))
-                        except Exception:
-                            surf_scaled = pygame.transform.scale(surf, (alvo_w, alvo_h))
+                        # Preservação estrita de nitidez pixel art por vizinho mais próximo (sem desfoque)
+                        surf_scaled = pygame.transform.scale(surf, (alvo_w, alvo_h))
                         frames.append(surf_scaled)
 
                 if frames:
@@ -257,11 +283,9 @@ class NPC(Entidade):
                                 s_sec = ResourceManager.carregar_imagem(rel_p)
                                 if s_sec:
                                     ow, oh = s_sec.get_size()
+                                    alvo_h = getattr(self, "alvo_h", 74)
                                     nw = max(1, int(ow * (alvo_h / oh)))
-                                    try:
-                                        sc = pygame.transform.smoothscale(s_sec, (nw, alvo_h))
-                                    except Exception:
-                                        sc = pygame.transform.scale(s_sec, (nw, alvo_h))
+                                    sc = pygame.transform.scale(s_sec, (nw, alvo_h))
                                     f_sec.append(sc)
                             if f_sec:
                                 self.animacoes[anim_sec] = Animacao(f_sec, velocidade=0.08, loop=True)

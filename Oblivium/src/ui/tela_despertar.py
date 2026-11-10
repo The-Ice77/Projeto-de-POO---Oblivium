@@ -351,7 +351,7 @@ class TelaDespertarMemoria:
         sprite_novo = self.sprites_amuleto_grande.get(self.novo_estagio)
         
         if sprite_novo:
-            s_esc = pygame.transform.smoothscale(sprite_novo, (tamanho, tamanho))
+            s_esc = pygame.transform.scale(sprite_novo, (tamanho, tamanho))
             ret = s_esc.get_rect(center=(pos_amu_x, pos_amu_y))
             s_esc.set_alpha(self.alpha_fundo)
             tela.blit(s_esc, ret.topleft)

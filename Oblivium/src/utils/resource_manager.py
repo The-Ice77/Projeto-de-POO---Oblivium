@@ -351,14 +351,8 @@ class ResourceManager:
                 else:
                     novo_w, novo_h = largura_alvo, altura_alvo
 
-                # Redução de alta resolução com interpolação bicúbica suave (evita pixelização)
-                if novo_w < imagem.get_width() or novo_h < imagem.get_height():
-                    try:
-                        imagem = pygame.transform.smoothscale(imagem, (novo_w, novo_h))
-                    except (ValueError, pygame.error):
-                        imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
-                else:
-                    imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
+                # Preservação estrita de nitidez pixel art por vizinho mais próximo (sem desfoque)
+                imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
                 
             cls._cache_imagens[chave] = imagem
             return imagem
@@ -631,9 +625,9 @@ class ResourceManager:
             else:
                 nw, nh = w, h
 
-            # Redimensionamento suave com preservação de detalhes
+            # Redimensionamento nítido com preservação de bordas pixel art
             if (nw, nh) != (w, h):
-                img_scaled = pygame.transform.smoothscale(img, (nw, nh))
+                img_scaled = pygame.transform.scale(img, (nw, nh))
             else:
                 img_scaled = img.copy()
 
@@ -687,7 +681,7 @@ class ResourceManager:
                     sub = sheet.subsurface(rect).copy()
                     
                     if tamanho_frame:
-                        sub = pygame.transform.smoothscale(sub, tamanho_frame)
+                        sub = pygame.transform.scale(sub, tamanho_frame)
                         
                     sw, sh = sub.get_size()
                     if remover_fundo_preto:

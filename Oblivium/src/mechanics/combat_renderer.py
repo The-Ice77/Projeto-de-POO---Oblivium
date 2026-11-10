@@ -301,10 +301,7 @@ class CombatRenderer:
         pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 12, draw_hy + alt_h - 12, max(larg_h + 24, 76), 22))
 
         if img_halia:
-            try:
-                img_c = pygame.transform.smoothscale(img_halia, (larg_h, alt_h))
-            except Exception:
-                img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
+            img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
             if self.cs.shake_timers.get(self.cs.jogador, 0) > 6:
                 flash_surf = img_c.copy()
                 flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
