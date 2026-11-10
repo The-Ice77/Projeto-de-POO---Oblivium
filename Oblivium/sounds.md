@@ -30,7 +30,7 @@ Oblivium/assets/audio/
 
 | Nome do Arquivo Esperado | Faixa de Referência (Inspiração) | Trecho / Momento no Jogo | Link de Referência |
 | :--- | :--- | :--- | :--- |
-| `menu_tema.ogg` | **OLD STORIES** (Made in Abyss) | Menu Principal, Seleção de Saves e Controles | — | [[Spotify]]([(https://open.spotify.com/intl-pt/track/5FHMiH3xAfrD8TN86wgYp1?si=933b18a7501b4e13) |
+| `menu_tema.ogg` | **OLD STORIES** (Made in Abyss) | Menu Principal, Seleção de Saves e Controles | [[Spotify]]([(https://open.spotify.com/intl-pt/track/5FHMiH3xAfrD8TN86wgYp1?si=933b18a7501b4e13) |
 | `cutscene_intro.ogg` | **For 1000 Years** (Frieren OST) | Cena de introdução do jogo (trecho inicial) | [[Spotify]](https://open.spotify.com/intl-pt/track/5REuZbHvPSPieO9GmI9cTT) |
 | `casa_halia.ogg` | **Before the Light Fades** (Frieren OST) | Despertar e exploração da cabana de Halia | [[Spotify]](https://open.spotify.com/intl-pt/track/5gtXuXuaRyryyyYOaFt4MG?si=ee65ae5e836b472f) |
 | `estrada_floresta.ogg` | **Life is Worth Living** (Frieren OST) | Exploração externa das Estradas 1 e 2 | [[Spotify]](https://open.spotify.com/intl-pt/track/25LDFStf0IOKR5CKkW7X4o) |
