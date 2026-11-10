@@ -346,6 +346,78 @@ class ExplosaoMagica:
             p.desenhar(tela)
 
 
+class DissipacaoErro:
+    """
+    Efeito visual suave de dissipação de partículas quando uma habilidade ou ataque falha/erra.
+    - Volutas etéreas de fumaça e fagulhas esvaecidas que se expandem suavemente e somem com fade-out rápido.
+    - Anel de dissipação tênue e translúcido (sem explosão de impacto ou tremor violento).
+    """
+    def __init__(self, x, y, elemento="ARCANO", motivo="erro"):
+        self.x = int(x)
+        self.y = int(y)
+        self.motivo = motivo
+        self.elemento = elemento.upper() if elemento else "ARCANO"
+        self.config = CORES_ELEMENTOS.get(self.elemento, CORES_ELEMENTOS["ARCANO"])
+        
+        # Cor suave das volutas de dissipação (mais azulada se for esquiva, fumaça acinzentada neutra se erro)
+        if motivo == "esquiva":
+            cor_particula = (140, 210, 255) # Cyan suave
+        else:
+            cor_particula = (195, 190, 185) # Fumaça translúcida
+            
+        self.particulas = []
+        qtd = random.randint(8, 12)
+        for _ in range(qtd):
+            ang = random.uniform(0, math.pi * 2)
+            spd = random.uniform(1.2, 3.5)
+            self.particulas.append(
+                ParticulaVisual(
+                    x=self.x,
+                    y=self.y,
+                    vx=math.cos(ang) * spd,
+                    vy=math.sin(ang) * spd,
+                    vida=random.uniform(10.0, 16.0),
+                    cor=cor_particula,
+                    raio=random.uniform(2.0, 4.0),
+                    desaceleracao=0.88,
+                    gravidade=-0.04 # Flutua suavemente para cima como fumaça
+                )
+            )
+            
+        self.raio_onda = 4.0
+        self.raio_onda_max = 24.0
+        self.velocidade_onda = 2.5
+        self.concluida = False
+
+    def atualizar(self, dt=1.0):
+        self.raio_onda += self.velocidade_onda * dt
+        self.particulas = [p for p in self.particulas if p.atualizar(dt)]
+        
+        onda_terminou = self.raio_onda >= self.raio_onda_max
+        particulas_terminaram = not self.particulas
+        if onda_terminou and particulas_terminaram:
+            self.concluida = True
+            return False
+        return True
+
+    def desenhar(self, tela):
+        # 1. Anel sutil e tênue de dissipação
+        if self.raio_onda < self.raio_onda_max:
+            ratio = max(0.0, min(1.0, 1.0 - (self.raio_onda / self.raio_onda_max)))
+            alpha = int(140 * ratio)
+            r_int = int(self.raio_onda)
+            if r_int > 1:
+                diam = r_int * 2
+                surf = pygame.Surface((diam, diam), pygame.SRCALPHA)
+                cor_anel = (190, 195, 205, alpha) if self.motivo != "esquiva" else (120, 210, 255, alpha)
+                pygame.draw.circle(surf, cor_anel, (r_int, r_int), r_int, width=1)
+                tela.blit(surf, (self.x - r_int, self.y - r_int))
+
+        # 2. Partículas suaves de fumaça
+        for p in self.particulas:
+            p.desenhar(tela)
+
+
 class FlashConjuracao:
     """Flash luminoso e fagulhas emitidas na ponta do cajado de Halia no início do lançamento."""
     def __init__(self, x, y, elemento="ARCANO"):
@@ -401,6 +473,7 @@ class CombatVisualEffects:
         self.projeteis = []
         self.explosoes = []
         self.flashes = []
+        self.dissipacoes = []
         self._cache_frames_explosao = {}
 
     def _obter_frames_explosao(self, elemento, escala=1.15):
@@ -494,14 +567,24 @@ class CombatVisualEffects:
 
             def criar_callback(alvo_e, dados_d):
                 def _callback(proj):
-                    # Spawna explosão elemental centrada no inimigo
-                    frames = self._obter_frames_explosao(elemento, escala=1.15)
-                    self.explosoes.append(
-                        ExplosaoMagica(proj.destino_x, proj.destino_y, elemento=elemento, frames=frames)
-                    )
+                    # Unpack defensivo se dados_d contiver chave interna 'dados'
+                    dados_reais = dados_d.get("dados", dados_d) if isinstance(dados_d, dict) else {}
+                    errou = dados_reais.get("errou", False)
+                    motivo = dados_reais.get("motivo", "erro")
+
+                    if errou:
+                        # Em caso de erro ou esquiva, dispara dissipação suave sem impacto explosivo
+                        self.adicionar_dissipacao_erro(proj.destino_x, proj.destino_y, elemento=elemento, motivo=motivo)
+                    else:
+                        # Spawna explosão elemental centrada no inimigo
+                        frames = self._obter_frames_explosao(elemento, escala=1.15)
+                        self.explosoes.append(
+                            ExplosaoMagica(proj.destino_x, proj.destino_y, elemento=elemento, frames=frames)
+                        )
+
                     # Dispara reações visuais e numéricas no combate
                     if on_impacto_alvo:
-                        on_impacto_alvo(alvo_e, dados_d)
+                        on_impacto_alvo(alvo_e, dados_reais)
                 return _callback
 
             p = ProjetilMagico(
@@ -519,35 +602,45 @@ class CombatVisualEffects:
             self.projeteis.append(p)
 
     def disparar_magia_alvo(self, acao, conjurador, alvo, dados_dano, on_impacto_alvo=None):
-        """Dispara um projétil direcionado e explosão para magias ofensivas direcionadas a alvo único."""
-        self.disparar_magia_aoe(acao, conjurador, [{"alvo": alvo, "dados": dados_dano}], on_impacto_alvo)
+        """Dispara um projétil direcionado e explosão/dissipação para magias ofensivas direcionadas a alvo único."""
+        dados_completos = dict(dados_dano) if isinstance(dados_dano, dict) else {}
+        dados_completos["alvo"] = alvo
+        self.disparar_magia_aoe(acao, conjurador, [dados_completos], on_impacto_alvo)
 
     def adicionar_explosao_direta(self, x, y, elemento="ARCANO", escala=1.15):
         """Permite adicionar uma explosão imediata em coordenadas específicas."""
         frames = self._obter_frames_explosao(elemento, escala=escala)
         self.explosoes.append(ExplosaoMagica(x, y, elemento=elemento, frames=frames))
 
+    def adicionar_dissipacao_erro(self, x, y, elemento="ARCANO", motivo="erro"):
+        """Permite adicionar uma dissipação de erro/esquiva suave imediata em coordenadas específicas."""
+        self.dissipacoes.append(DissipacaoErro(x, y, elemento=elemento, motivo=motivo))
+
     def atualizar(self, dt=1.0):
-        """Atualiza a física e ciclo de vida de todos os flashes, projéteis e explosões."""
+        """Atualiza a física e ciclo de vida de todos os flashes, projéteis, explosões e dissipações."""
         self.flashes = [f for f in self.flashes if f.atualizar(dt)]
         self.projeteis = [p for p in self.projeteis if p.atualizar(dt)]
         self.explosoes = [e for e in self.explosoes if e.atualizar(dt)]
+        self.dissipacoes = [d for d in self.dissipacoes if d.atualizar(dt)]
 
     def desenhar(self, tela):
-        """Renderiza flashes de conjuração, projéteis e explosões sobre a arena de combate."""
+        """Renderiza flashes de conjuração, projéteis, explosões e dissipações sobre a arena de combate."""
         for f in self.flashes:
             f.desenhar(tela)
         for p in self.projeteis:
             p.desenhar(tela)
         for e in self.explosoes:
             e.desenhar(tela)
+        for d in self.dissipacoes:
+            d.desenhar(tela)
 
     def tem_efeitos_ativos(self):
-        """Indica se ainda existem projéteis em voo ou explosões em andamento na arena."""
-        return bool(self.projeteis or self.explosoes)
+        """Indica se ainda existem projéteis em voo, explosões ou dissipações em andamento na arena."""
+        return bool(self.projeteis or self.explosoes or self.dissipacoes)
 
     def limpar(self):
         """Limpa imediatamente todos os efeitos visuais (ao sair do combate)."""
         self.projeteis.clear()
         self.explosoes.clear()
         self.flashes.clear()
+        self.dissipacoes.clear()

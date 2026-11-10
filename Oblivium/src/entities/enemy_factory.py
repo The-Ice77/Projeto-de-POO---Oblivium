@@ -170,9 +170,9 @@ class EnemyFactory:
         posicoes = posicoes_custom or posicoes_padrao
 
         tabelas_regiao = {
-            "estrada": ["sombra_menor", "sombra_guardia", "espectro_errante"],
-            "floresta": ["sombra_menor", "espectro_errante"],
-            "ruinas": ["sombra_guardia", "espectro_errante"]
+            "estrada": ["demonio_olho", "demonio_pequeno", "sombra_guardia"],
+            "floresta": ["demonio_olho", "demonio_pequeno", "espectro_errante"],
+            "ruinas": ["demonio_olho", "sombra_guardia", "espectro_errante"]
         }
 
         opcoes_inimigos = tabelas_regiao.get(regiao.lower(), ["sombra_menor"])

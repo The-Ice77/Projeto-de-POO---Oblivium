@@ -72,7 +72,7 @@ class Game:
         self.missoes = QuestManager(self)
         self.quest_manager = self.missoes
         self.caixa_dialogo.manager.quest_manager = self.missoes
-        self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
+        self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
         self.dt_fator = 1.0
         self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---

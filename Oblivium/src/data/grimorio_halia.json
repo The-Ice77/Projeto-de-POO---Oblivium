@@ -42,9 +42,9 @@
         "descricao": "Gira o cajado invocando lâminas de vento que varrem e fustigam todos os adversários no campo.",
         "tipo": "MAGICO",
         "elemento": "VENTO",
-        "custo_mana": 16,
+        "custo_mana": 20,
         "alvo_tipo": "TODOS_INIMIGOS",
-        "poder_base": 18,
+        "poder_base": 14,
         "memorias_necessarias": 0
     },
     "estilhaco_glacial": {

@@ -103,9 +103,9 @@
         "descricao": "Gira o cajado invocando lâminas de vento que varrem e fustigam todos os adversários no campo.",
         "tipo": "MAGICO",
         "elemento": "VENTO",
-        "custo_mana": 16,
+        "custo_mana": 20,
         "alvo_tipo": "TODOS_INIMIGOS",
-        "poder_base": 18
+        "poder_base": 14
     },
     "estilhaco_glacial": {
         "id_acao": "estilhaco_glacial",
@@ -379,7 +379,7 @@
         "elemento": "FOGO",
         "custo_mana": 14,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 20,
+        "poder_base": 22,
         "condicao_aplicada": {
             "id_condicao": "queimadura",
             "chance": 50
@@ -393,7 +393,7 @@
         "elemento": "FISICO",
         "custo_mana": 0,
         "alvo_tipo": "TODOS_INIMIGOS",
-        "poder_base": 14
+        "poder_base": 15
     },
     "escamas_incandescentes": {
         "id_acao": "escamas_incandescentes",
@@ -404,5 +404,43 @@
         "custo_mana": 10,
         "alvo_tipo": "PROPRIO",
         "poder_base": 0
+    },
+    "raio_ocular": {
+        "id_acao": "raio_ocular",
+        "nome": "Raio Ocular Sombrio",
+        "descricao": "Dispara um feixe cirúrgico de energia corrompida diretamente da pupila abissal.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 8,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 13,
+        "condicao_aplicada": {
+            "id_condicao": "sangramento",
+            "chance": 35
+        }
+    },
+    "olhar_sombrio": {
+        "id_acao": "olhar_sombrio",
+        "nome": "Olhar Paralisante",
+        "descricao": "Fixa o olhar sobrenatural na mente do alvo, buscando atordoá-lo e minar sua determinação.",
+        "tipo": "MAGICO",
+        "elemento": "SOMBRA",
+        "custo_mana": 10,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 11,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 25
+        }
+    },
+    "dreno_mental": {
+        "id_acao": "dreno_mental",
+        "nome": "Dreno Mental",
+        "descricao": "Invade psiquicamente a consciência da vítima, consumindo seu foco espiritual.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 6,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 12
     }
 }

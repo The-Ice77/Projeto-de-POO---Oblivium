@@ -50,7 +50,11 @@ class Enemy(Entidade):
             nome_low = self.nome.lower()
             if any(k in nome_low for k in ["superior", "demonio_superior", "gulosao", "gulosão", "anomalia", "boss", "guardiao", "guardião"]):
                 self.pasta_sprites = "demonio_superior"
-            elif any(k in nome_low for k in ["banco", "espectro", "olho", "observador"]):
+            elif any(k in nome_low for k in ["demonio_olho", "olho", "observador"]):
+                self.pasta_sprites = "demonio_olho"
+            elif any(k in nome_low for k in ["pequeno", "demonio_pequeno"]):
+                self.pasta_sprites = "demonio_pequeno"
+            elif any(k in nome_low for k in ["banco", "espectro"]):
                 self.pasta_sprites = "banco"
             else:
                 self.pasta_sprites = "demonio_inferior"
@@ -82,6 +86,20 @@ class Enemy(Entidade):
             self.flutuante = False
             self.escala_combate = 1.05
             self.cor = (150, 0, 200)
+        elif "olho" in pasta_low:
+            escala = 0.65
+            self.largura = 42
+            self.altura = 42
+            self.flutuante = True
+            self.escala_combate = 0.95
+            self.cor = (140, 30, 90)
+        elif "pequeno" in pasta_low:
+            escala = 0.60
+            self.largura = 38
+            self.altura = 38
+            self.flutuante = False
+            self.escala_combate = 0.90
+            self.cor = (110, 25, 70)
         elif "banco" in pasta_low:
             escala = 0.55
             self.largura = 36
@@ -89,20 +107,6 @@ class Enemy(Entidade):
             self.flutuante = True
             self.escala_combate = 0.85
             self.cor = (50, 80, 140)
-        elif "orc_berserker" in pasta_low:
-            escala = 0.65
-            self.largura = 50
-            self.altura = 50
-            self.flutuante = False
-            self.escala_combate = 1.05
-            self.cor = (140, 50, 40)
-        elif "orc" in pasta_low:
-            escala = 0.60
-            self.largura = 45
-            self.altura = 45
-            self.flutuante = False
-            self.escala_combate = 0.95
-            self.cor = (85, 120, 60)
         else: # demonio_inferior / padrão
             escala = 0.55
             self.largura = 36

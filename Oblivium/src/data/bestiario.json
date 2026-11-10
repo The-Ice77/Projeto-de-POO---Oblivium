@@ -365,17 +365,17 @@
         "nome": "Ignis'Vahr, o Dragão Vermelho Ancestral",
         "classe": "Boss",
         "pasta_sprites": "dragao_vermelho",
-        "vida_base": 135,
-        "mana_base": 80,
-        "velocidade": 1.8,
+        "vida_base": 150,
+        "mana_base": 90,
+        "velocidade": 2.0,
         "dano_base": 18,
         "atributos": {
             "forca": 18,
-            "destreza": 11,
+            "destreza": 12,
             "constituicao": 18,
-            "intelecto": 15,
+            "intelecto": 16,
             "sabedoria": 14,
-            "presenca": 17
+            "presenca": 18
         },
         "habilidades": [
             "sopro_de_brasas",
@@ -398,113 +398,76 @@
             36
         ]
     },
-    "orc_guerreiro": {
-        "nome": "Guerreiro Orc de Vanguarda",
+    "demonio_olho": {
+        "nome": "Olho Demoníaco Abissal",
         "classe": "Enemy",
-        "pasta_sprites": "orc_guerreiro",
-        "vida_base": 55,
-        "mana_base": 20,
-        "velocidade": 2.2,
+        "pasta_sprites": "demonio_olho",
+        "vida_base": 52,
+        "mana_base": 40,
+        "velocidade": 2.5,
         "dano_base": 12,
         "atributos": {
-            "forca": 14,
-            "destreza": 11,
-            "constituicao": 14,
-            "intelecto": 8,
-            "sabedoria": 9,
-            "presenca": 11
+            "forca": 8,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 15,
+            "sabedoria": 13,
+            "presenca": 12
         },
         "habilidades": [
-            "ataque_basico",
-            "golpe_concentrado",
-            "estocada_perfurante"
+            "raio_ocular",
+            "olhar_sombrio",
+            "dreno_mental"
         ],
         "recompensas": {
-            "moedas": 22,
+            "moedas": 25,
             "memorias": 0,
             "xp": 35
         },
         "dimensoes": [
-            45,
-            45
+            42,
+            42
         ],
         "cor": [
-            85,
-            120,
-            60
+            140,
+            30,
+            90
         ]
     },
-    "orc_cacadora": {
-        "nome": "Caçadora Orc Rastreadora",
+    "demonio_pequeno": {
+        "nome": "Demônio Menor do Abismo",
         "classe": "Enemy",
-        "pasta_sprites": "orc_cacadora",
-        "vida_base": 42,
+        "pasta_sprites": "demonio_pequeno",
+        "vida_base": 46,
         "mana_base": 30,
-        "velocidade": 2.8,
+        "velocidade": 2.6,
         "dano_base": 11,
         "atributos": {
-            "forca": 11,
-            "destreza": 16,
-            "constituicao": 11,
-            "intelecto": 10,
-            "sabedoria": 13,
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 9,
+            "sabedoria": 9,
             "presenca": 10
         },
         "habilidades": [
-            "ataque_basico",
-            "golpe_sombrio",
-            "investida_sombria"
+            "garras_sombrias",
+            "investida_sombria",
+            "golpe_sombrio"
         ],
         "recompensas": {
             "moedas": 20,
             "memorias": 0,
-            "xp": 32
+            "xp": 30
         },
         "dimensoes": [
-            40,
-            45
+            38,
+            38
         ],
         "cor": [
-            95,
-            135,
+            110,
+            25,
             70
-        ]
-    },
-    "orc_berserker": {
-        "nome": "Orc Berserker Enfurecido",
-        "classe": "Enemy",
-        "pasta_sprites": "orc_berserker",
-        "vida_base": 78,
-        "mana_base": 25,
-        "velocidade": 2.0,
-        "dano_base": 16,
-        "atributos": {
-            "forca": 17,
-            "destreza": 10,
-            "constituicao": 16,
-            "intelecto": 7,
-            "sabedoria": 8,
-            "presenca": 14
-        },
-        "habilidades": [
-            "ataque_basico",
-            "golpe_concentrado",
-            "impacto_anomalo",
-            "varredura_de_cajado"
-        ],
-        "recompensas": {
-            "moedas": 35,
-            "memorias": 1,
-            "xp": 55
-        },
-        "dimensoes": [
-            50,
-            50
-        ],
-        "cor": [
-            140,
-            50,
-            40
         ]
     }
 }

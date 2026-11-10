@@ -559,8 +559,8 @@ class PlayingState(State):
             self.game.halia.mudar_estado("idle")
                 
             if self.game.magia_usada_no_puzzle == "FOGO":
-                sombra1 = EnemyFactory.criar("demonio_inferior", x=1180, y=290, nome_custom="Demônio Inferior 1")
-                sombra2 = EnemyFactory.criar("demonio_inferior", x=1180, y=420, nome_custom="Demônio Inferior 2")
+                sombra1 = EnemyFactory.criar("demonio_olho", x=1180, y=290, nome_custom="Olho Demoníaco Voraz")
+                sombra2 = EnemyFactory.criar("demonio_olho", x=1180, y=420, nome_custom="Olho Demoníaco Vigia")
                 sombra1.velocidade = 3.5
                 sombra2.velocidade = 3.5
                 sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
@@ -1110,7 +1110,7 @@ class PlayingState(State):
                             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                         self.game.mudar_estado("JOGANDO")
                         self.game.caixa_dialogo.iniciar_dialogo([
-                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Os 2 Batedores Demoníacos foram dissipados. Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
+                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Os 2 Olhos Demoníacos batedores foram dissipados. Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
                         ])
                         return
 
@@ -1257,8 +1257,8 @@ class PlayingState(State):
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
-        batedor1 = EnemyFactory.criar("demonio_inferior", x=565, y=285, nome_custom="Batedor Demoníaco 1")
-        batedor2 = EnemyFactory.criar("demonio_inferior", x=665, y=305, nome_custom="Batedor Demoníaco 2")
+        batedor1 = EnemyFactory.criar("demonio_olho", x=565, y=285, nome_custom="Batedor Olho Demoníaco 1")
+        batedor2 = EnemyFactory.criar("demonio_olho", x=665, y=305, nome_custom="Batedor Olho Demoníaco 2")
         for bat in (batedor1, batedor2):
             bat.velocidade = 0
             bat.virado_direita = False
@@ -1269,7 +1269,7 @@ class PlayingState(State):
         self.game.caixa_dialogo.iniciar_dialogo([
             {
                 "autor": "Guarda Doran",
-                "texto": "Chegamos ao ponto, Halia! Aqueles 2 Batedores Demoníacos estão bem ali no centro da clareira. Eu cubro a passagem do portão — aproxime-se deles para iniciar o combate!"
+                "texto": "Chegamos ao ponto, Halia! Aqueles 2 Olhos Demoníacos batedores estão bem ali no centro da clareira. Eu cubro a passagem do portão — aproxime-se deles para iniciar o combate!"
             }
         ])
 
