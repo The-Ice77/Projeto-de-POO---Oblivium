@@ -1,4 +1,6 @@
 # src/ui/flashback.py
+import math
+import random
 import pygame
 from src.utils.colors import (
     PRETO, TXT_ECO_PASSADO, TXT_PENSAMENTO_FANTASMA, 
@@ -6,52 +8,93 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
+from src.maps.mapa_flashback import MapaFlashbackAcampamento
+
 
 class Flashback:
     """
-    Sistema de Memórias e Flashbacks de Halia:
-    - Escuridão imersiva com chuva sutil de pétalas de memória do menu inicial
-    - Efeito máquina de escrever (typewriter) com digitação poética das memórias
-    - Avanço intuitivo: acelerar frase atual ou avançar para a próxima com Enter/Clique/Espaço
+    Sistema de Memórias e Flashbacks de Halia (Oblivium):
+    
+    Dois modos imersivos integrados à arquitetura canônica do projeto:
+    1. 'acampamento': Cena visual viva renderizada no mapa real (MapaFlashbackAcampamento)
+       com fogueira acesa animada, props autênticos de estrada/floresta, árvores ancestrais,
+       estrelas na abóbada celeste e os quatro heróis ao redor do fogo.
+       Os diálogos são delegados 100% à DialogueBox oficial do jogo (src/ui/dialogue_box.py),
+       com retratos, tipografia canônica, máquina de escrever e efeitos sonoros.
+    2. 'texto': Escuridão solene e poética com digitação typewriter e pétalas flutuantes,
+       utilizado para ecos ancestrais da ruína.
     """
-    def __init__(self, largura, altura):
+
+    def __init__(self, largura, altura, game=None):
         self.largura = largura
         self.altura = altura
+        self.game = game
         self.superficie_preta = pygame.Surface((largura, altura))
         self.superficie_preta.fill(PRETO)
         
+        # Cenário real de acampamento em CenarioBase
+        self.mapa_acampamento = MapaFlashbackAcampamento(
+            game=game, largura_tela=largura, altura_tela=altura
+        )
+
+        # Fontes do modo texto introspectivo
         self.fonte_flashback = ResourceManager.carregar_fonte("just_breathe", 36)
         self.fonte_avanco = ResourceManager.carregar_fonte("contrail", 18)
-        self.estado = "INATIVO" # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
+
+        self.estado = "INATIVO"  # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
         self.alpha = 0
         self.velocidade = 5 
+        self.tipo = "texto"  # "texto" ou "acampamento"
+        self.tempo_cena = 0.0
+        self.dialogo_iniciado = False
         
         # Pétalas de memória em segundo plano
         self.efeito_petalas = EfeitoPetalas(
             largura, altura, 
-            quantidade_petalas=20, 
+            quantidade_petalas=22, 
             alpha=(100, 180),
             escala=(0.55, 0.85)
         )
         
-        # --- MÁQUINA DE ESCREVER DO FLASHBACK ---
+        # Máquina de escrever para o modo texto
         self.texto_alpha = 255
-        self.texto_estado = "DIGITANDO" # "DIGITANDO", "WAIT", "FADE_OUT"
+        self.texto_estado = "DIGITANDO"
         self.velocidade_texto = 5     
         self.caractere_atual = 0.0
-        self.velocidade_digitacao = 0.50 # ~30 caracteres por segundo
+        self.velocidade_digitacao = 0.50
         
         self.textos = []
         self.indice_texto = 0
         self.tempo_ultimo_input = 0
 
-    def iniciar(self, textos_memorias):
-        self.textos = textos_memorias
+    # =========================================================================
+    # Ciclo de Vida do Flashback
+    # =========================================================================
+    def iniciar(self, textos_memorias, tipo=None, game=None):
+        if game is not None:
+            self.game = game
+            self.mapa_acampamento.game = game
+
+        self.textos = textos_memorias or []
         self.indice_texto = 0
         self.estado = "ESCURECENDO"
         self.alpha = 0
+        self.tempo_cena = 0.0
+        self.dialogo_iniciado = False
+
+        # Auto-detecção inteligente do tipo de flashback se não especificado
+        if tipo is not None:
+            self.tipo = tipo
+        else:
+            tem_amigos = False
+            for t in self.textos:
+                conteudo = f"{t.get('autor', '')} {t.get('texto', '')}".lower()
+                if any(w in conteudo for w in ["sylvan", "roland", "caelen", "amigo", "forja", "escudo"]):
+                    tem_amigos = True
+                    break
+            self.tipo = "acampamento" if tem_amigos else "texto"
         
-        # Reseta os controles do texto para a primeira frase
+        # Reseta os controles de texto
         self.texto_alpha = 255
         self.texto_estado = "DIGITANDO"
         self.caractere_atual = 0.0
@@ -59,7 +102,7 @@ class Flashback:
         self.efeito_petalas.reiniciar(inicializar_na_tela=True)
 
     def _obter_texto_formatado_atual(self):
-        """Retorna o texto completo da memória atual com a formatação por autor."""
+        """Retorna o texto da memória atual para o modo texto introspectivo."""
         if not self.textos or self.indice_texto >= len(self.textos):
             return "", TXT_SISTEMA_NARRADOR
             
@@ -79,77 +122,115 @@ class Flashback:
             
         return texto_final, cor_texto
 
-    def processar_input(self):
-        """Gerencia o avanço dos textos: acelera digitação ou passa para a próxima frase."""
+    def processar_input(self, forcar=False):
+        """Gerencia o avanço exclusivo do modo texto puro (modo acampamento é gerido pela DialogueBox)."""
+        if self.tipo == "acampamento":
+            # No modo acampamento, todo o input é conduzido diretamente pela DialogueBox oficial!
+            if self.game and hasattr(self.game, 'caixa_dialogo') and self.game.caixa_dialogo.ativo:
+                self.game.caixa_dialogo.proximo_texto()
+            return
+
         if self.estado != "ESCURIDAO": 
             return
 
         tempo_atual = pygame.time.get_ticks()
-        if tempo_atual - self.tempo_ultimo_input < 200: 
+        if not forcar and self.texto_estado == "WAIT" and tempo_atual - self.tempo_ultimo_input < 140: 
             return
         self.tempo_ultimo_input = tempo_atual
 
         texto_final, _ = self._obter_texto_formatado_atual()
         
         if self.texto_estado == "DIGITANDO":
-            # Se o jogador apertar enquanto digita, completa a frase na hora
             self.caractere_atual = float(len(texto_final))
             self.texto_estado = "WAIT"
         elif self.texto_estado == "WAIT":
-            # Se já terminou de digitar, inicia o fade out para a próxima memória
             self.texto_estado = "FADE_OUT"
 
     def atualizar(self, dt=0.016):
         if self.estado == "INATIVO":
             return False
 
+        self.tempo_cena += dt
+
         # Atualiza a chuva sutil de pétalas
         self.efeito_petalas.atualizar(dt)
 
+        # Atualiza animações físicas e visuais do acampamento
+        if self.tipo == "acampamento":
+            self.mapa_acampamento.atualizar(dt)
+
+        # Transição de entrada (fade in)
         if self.estado == "ESCURECENDO":
-            self.alpha += self.velocidade
+            self.alpha += int(self.velocidade * 35.0 * dt)
             if self.alpha >= 255:
                 self.alpha = 255
                 self.estado = "ESCURIDAO"
+                
+                # Se for acampamento, aciona a DialogueBox oficial imediatamente com a lista de falas!
+                if self.tipo == "acampamento":
+                    if self.game and hasattr(self.game, 'caixa_dialogo') and self.textos and not self.dialogo_iniciado:
+                        self.dialogo_iniciado = True
+                        self.game.caixa_dialogo.iniciar_dialogo(self.textos)
+                else:
+                    self.texto_alpha = 255
+                    self.texto_estado = "DIGITANDO"
+                    self.caractere_atual = 0.0
 
         elif self.estado == "ESCURIDAO":
-            texto_final, _ = self._obter_texto_formatado_atual()
-            total_chars = len(texto_final)
-            
-            if self.texto_estado == "DIGITANDO":
-                self.caractere_atual += self.velocidade_digitacao
-                if self.caractere_atual >= total_chars:
-                    self.caractere_atual = float(total_chars)
-                    self.texto_estado = "WAIT"
-            
-            elif self.texto_estado == "FADE_OUT":
-                self.texto_alpha -= self.velocidade_texto * 1.5
-                if self.texto_alpha <= 0:
-                    self.texto_alpha = 255
-                    self.caractere_atual = 0.0
-                    self.indice_texto += 1
-                    
-                    if self.indice_texto >= len(self.textos):
-                        self.estado = "CLAREANDO" # Acabaram as memórias, sai do flashback
+            if self.tipo == "acampamento":
+                # Monitora a conclusão do diálogo na DialogueBox oficial
+                if self.dialogo_iniciado:
+                    if self.game and hasattr(self.game, 'caixa_dialogo'):
+                        if not self.game.caixa_dialogo.ativo:
+                            # A conversa dos amigos foi concluída na caixa oficial! Inicia o fade out!
+                            self.estado = "CLAREANDO"
+                else:
+                    if self.game and hasattr(self.game, 'caixa_dialogo') and self.textos:
+                        self.dialogo_iniciado = True
+                        self.game.caixa_dialogo.iniciar_dialogo(self.textos)
                     else:
-                        self.texto_estado = "DIGITANDO" # Digita a próxima memória
+                        self.estado = "CLAREANDO"
+            else:
+                # Máquina de escrever do modo texto puro
+                texto_final, _ = self._obter_texto_formatado_atual()
+                total_chars = len(texto_final)
+                
+                if self.texto_estado == "DIGITANDO":
+                    self.caractere_atual += self.velocidade_digitacao * (dt * 60.0)
+                    if self.caractere_atual >= total_chars:
+                        self.caractere_atual = float(total_chars)
+                        self.texto_estado = "WAIT"
+                
+                elif self.texto_estado == "FADE_OUT":
+                    self.texto_alpha -= (self.velocidade_texto * 2.2) * (dt * 60.0)
+                    if self.texto_alpha <= 0:
+                        self.texto_alpha = 255
+                        self.caractere_atual = 0.0
+                        self.indice_texto += 1
+                        
+                        if self.indice_texto >= len(self.textos):
+                            self.estado = "CLAREANDO"
+                        else:
+                            self.texto_estado = "DIGITANDO"
 
         elif self.estado == "CLAREANDO":
-            self.alpha -= self.velocidade
+            self.alpha -= int(self.velocidade * 35.0 * dt)
             if self.alpha <= 0:
                 self.alpha = 0
                 self.estado = "INATIVO"
-                return True # Flashback concluído!
+                self.dialogo_iniciado = False
+                return True  # Flashback 100% concluído!
 
         return False
 
-    def _quebrar_texto(self, texto, largura_maxima):
+    def _quebrar_texto(self, texto, largura_maxima, fonte=None):
+        f = fonte or self.fonte_flashback
         palavras = texto.split(' ')
         linhas = []
         linha_atual = ""
         for palavra in palavras:
             teste_linha = linha_atual + palavra + " "
-            if self.fonte_flashback.size(teste_linha)[0] <= largura_maxima:
+            if f.size(teste_linha)[0] <= largura_maxima:
                 linha_atual = teste_linha
             else:
                 if linha_atual: 
@@ -159,26 +240,49 @@ class Flashback:
             linhas.append(linha_atual.rstrip())
         return linhas
 
+    # =========================================================================
+    # Desenho Principal (Acampamento vs Modo Texto)
+    # =========================================================================
     def desenhar(self, tela):
         if self.estado == "INATIVO": 
             return
 
-        # 1. Desenha o fundo preto com o alpha atual
+        # 1. Modo Visual de Acampamento no Mapa Real
+        if self.tipo == "acampamento":
+            # Desenha o mapa real com todos os seus elementos autênticos
+            self.mapa_acampamento.desenhar(tela)
+
+            # Pétalas sutis de recordação
+            self.efeito_petalas.desenhar(tela, alpha_multiplicador=0.7)
+
+            # Transições suaves de entrada e saída
+            if self.estado == "ESCURECENDO":
+                fade_alpha = max(0, min(255, 255 - self.alpha))
+                if fade_alpha > 0:
+                    overlay = pygame.Surface((self.largura, self.altura))
+                    overlay.fill((8, 10, 16))
+                    overlay.set_alpha(fade_alpha)
+                    tela.blit(overlay, (0, 0))
+            elif self.estado == "CLAREANDO":
+                fade_alpha = max(0, min(255, 255 - self.alpha))
+                if fade_alpha > 0:
+                    overlay = pygame.Surface((self.largura, self.altura))
+                    overlay.fill((8, 10, 16))
+                    overlay.set_alpha(fade_alpha)
+                    tela.blit(overlay, (0, 0))
+            return
+
+        # 2. Modo Clássico de Texto Puro sobre Escuridão
         self.superficie_preta.set_alpha(self.alpha)
         tela.blit(self.superficie_preta, (0, 0))
 
-        # 2. Desenha as pétalas de memória suaves emergindo e flutuando
         if self.estado in ("ESCURECENDO", "ESCURIDAO", "CLAREANDO"):
             alpha_petalas = min(1.0, max(0.08, self.alpha / 220.0))
             self.efeito_petalas.desenhar(tela, alpha_multiplicador=alpha_petalas)
 
-        # 3. Se estiver em escuridão total, renderiza o texto sendo digitado
         if self.estado == "ESCURIDAO" and self.indice_texto < len(self.textos):
             texto_final, cor_texto = self._obter_texto_formatado_atual()
-
-            # Quebra o texto completo para garantir layout estável
             linhas = self._quebrar_texto(texto_final, self.largura - 240)
-            
             altura_linha = 40
             altura_bloco = len(linhas) * altura_linha
             y_inicial = (self.altura // 2) - (altura_bloco // 2)
@@ -218,7 +322,6 @@ class Flashback:
                         cursor_surf.fill((*cor_texto[:3], alpha_c))
                         tela.blit(cursor_surf, (x_cursor, y_cursor))
 
-            # Desenha o rodapé de avanço / aceleração
             if self.texto_estado == "DIGITANDO":
                 aviso_txt = "Clique ou pressione [ENTER / ESPAÇO] para acelerar"
             else:

@@ -2,6 +2,12 @@
 from src.maps.mapa_casa import MapaCasa
 from src.maps.mapa_estrada import MapaEstrada
 from src.maps.mapa_estrada_2 import MapaEstrada2
+from src.maps.mapa_oakhaven import (
+    MapaOakhaven,
+    MapaOrlaNorte,
+    MapaOakhavenDestruida,
+    MapaNinhoDragao,
+)
 
 
 class Mapa:
@@ -23,7 +29,11 @@ class Mapa:
         self.cenarios = {
             "CASA": MapaCasa(game, largura_tela, altura_tela),
             "ESTRADA": MapaEstrada(game, largura_tela, altura_tela),
-            "ESTRADA_2": MapaEstrada2(game, largura_tela, altura_tela)
+            "ESTRADA_2": MapaEstrada2(game, largura_tela, altura_tela),
+            "OAKHAVEN": MapaOakhaven(game, largura_tela, altura_tela),
+            "ORLA_NORTE": MapaOrlaNorte(game, largura_tela, altura_tela),
+            "OAKHAVEN_DESTRUIDA": MapaOakhavenDestruida(game, largura_tela, altura_tela),
+            "NINHO_DRAGAO": MapaNinhoDragao(game, largura_tela, altura_tela),
         }
 
         self.cenario_atual = "CASA"
@@ -44,14 +54,37 @@ class Mapa:
             if hasattr(self.game, 'audio') and self.game.audio and getattr(self.game, 'nome_estado_atual', '') != 'COMBATE':
                 if nome_cenario == "CASA":
                     self.game.audio.tocar_musica("casa_halia", loop=-1, fade_ms=1000)
-                elif nome_cenario in ["ESTRADA", "ESTRADA_2"]:
+                elif nome_cenario in ["ESTRADA", "ESTRADA_2", "ORLA_NORTE"]:
                     self.game.audio.tocar_musica("estrada_floresta", loop=-1, fade_ms=1000)
+                elif nome_cenario == "OAKHAVEN":
+                    self.game.audio.tocar_musica("vila_oakhaven", loop=-1, fade_ms=1000)
+                elif nome_cenario in ["OAKHAVEN_DESTRUIDA", "NINHO_DRAGAO"]:
+                    self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=1000)
         else:
             print(f"[MapLoader] Aviso: Cenário '{nome_cenario}' não reconhecido.")
 
     # =========================================================================
     # DELEGAÇÃO E PROPRIEDADES POLIMÓRFICAS (COMPATIBILIDADE TOTAL)
     # =========================================================================
+    @property
+    def largura_mundo(self):
+        return getattr(self.cenario_objeto, "largura_mundo", self.largura_tela)
+
+    @property
+    def altura_mundo(self):
+        return getattr(self.cenario_objeto, "altura_mundo", self.altura_tela)
+
+    @property
+    def npcs(self):
+        return getattr(self.cenario_objeto, "npcs", [])
+
+    @property
+    def animais(self):
+        return getattr(self.cenario_objeto, "animais", [])
+
+    @property
+    def pontos_interacao(self):
+        return getattr(self.cenario_objeto, "pontos_interacao", [])
     @property
     def hitboxes(self):
         """Retorna a lista viva de hitboxes do cenário ativo."""

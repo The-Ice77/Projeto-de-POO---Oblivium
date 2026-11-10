@@ -1,0 +1,582 @@
+{
+  "hub_carroceiro": {
+    "no_inicial": "cumprimento",
+    "nos": {
+      "cumprimento": {
+        "autor": "Carroceiro",
+        "texto": "Ora, finalmente nos encontramos! Demorei um bocado para achar aquela cabana escondida na mata. Você está pálida como geada, moça... Está pronta para a estrada?",
+        "proximo": "menu_principal"
+      },
+      "menu_principal": {
+        "tipo": "escolha",
+        "cabecalho": "Sobre o que deseja conversar?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_conversa",
+        "resultado_fechar": "despedida_fechar",
+        "opcoes": [
+          {
+            "id": "sobre_mundo",
+            "texto": "O mundo sempre foi tão cinzento e silencioso assim?",
+            "proximo": "fala_mundo_1"
+          },
+          {
+            "id": "sobre_passado",
+            "texto": "O que as pessoas nas vilas contam sobre o fim da guerra?",
+            "proximo": "fala_passado_1"
+          },
+          {
+            "id": "sobre_gengibre",
+            "texto": "Sinto um cheiro forte de gengibre e raízes vindo da carroça...",
+            "proximo": "fala_gengibre_1"
+          },
+          {
+            "id": "sobre_caixas",
+            "texto": "Esses caixotes na traseira estão empilhados todos tortos.",
+            "proximo": "fala_caixas_1"
+          },
+          {
+            "id": "sobre_tempo",
+            "texto": "Você não se cansa de passar a vida inteira nas estradas?",
+            "proximo": "fala_tempo_1"
+          },
+          {
+            "id": "sobre_cantar",
+            "texto": "Que melodia era aquela que você cantarolava ao chegar?",
+            "proximo": "fala_cantar_1"
+          },
+          {
+            "id": "prosseguir",
+            "texto": "Estou pronta. Podemos partir rumo ao Refúgio de Oakhaven.",
+            "proximo": "fala_prosseguir_1",
+            "repetivel": true
+          }
+        ]
+      },
+      "despedida_fechar": {
+        "autor": "Carroceiro",
+        "texto": "Sem pressa, moça. Vou ajustar os arreios do Trovão aqui mesmo; me avise quando quiser partir."
+      },
+      "fala_mundo_1": {
+        "autor": "Carroceiro",
+        "texto": "Cinzento? Nos meses de inverno até que sim, mas estamos na metade da estação quente! A relva está verde-esmeralda e o sol doura as folhas das árvores... Não entendo o que quer dizer.",
+        "proximo": "fala_mundo_2"
+      },
+      "fala_mundo_2": {
+        "autor": "Pensamento",
+        "texto": "A relva está verde e o sol doura as folhas?... Então o mundo só perdeu as cores para os meus olhos.",
+        "proximo": "menu_principal"
+      },
+      "fala_passado_1": {
+        "autor": "Carroceiro",
+        "texto": "Dizem que a senhorita é a Grã-Maga Elfa que derrotou o Rei Demônio no continente sombrio! O Ancião Aldous, lá no Refúgio de Oakhaven, conhece os relatos antigos muito melhor do que este velho estradeiro.",
+        "proximo": "fala_passado_2"
+      },
+      "fala_passado_2": {
+        "autor": "Pensamento",
+        "texto": "Eu derrotei o Rei Demônio?... Se vencemos a guerra, por que acordei sozinha com três xícaras vazias sobre a mesa?",
+        "proximo": "submenu_passado"
+      },
+      "submenu_passado": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja perguntar sobre o passado?",
+        "pode_fechar": false,
+        "opcoes": [
+          {
+            "id": "passado_rei_demonio",
+            "texto": "O que aconteceu com os outros que lutaram na batalha final?",
+            "proximo": "fala_detalhe_demonio"
+          },
+          {
+            "id": "passado_ancioes",
+            "texto": "Onde fica esse Refúgio de Oakhaven?",
+            "proximo": "fala_detalhe_ancioes"
+          },
+          {
+            "id": "passado_voltar",
+            "texto": "« Voltar aos outros assuntos",
+            "proximo": "menu_principal",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_detalhe_demonio": {
+        "autor": "Carroceiro",
+        "texto": "Contam que três companheiros marcharam ao seu lado até a sala do trono, mas apenas você voltou. Na praça central de Oakhaven, ergueram uma estátua de pedra em memória deles.",
+        "proximo": "submenu_passado"
+      },
+      "fala_detalhe_ancioes": {
+        "autor": "Carroceiro",
+        "texto": "Fica no vale ao sul, depois da trilha da encosta. O Ancião Aldous cuida dos arquivos da vila diante da Estátua dos Heróis.",
+        "proximo": "submenu_passado"
+      },
+      "fala_gengibre_1": {
+        "autor": "Carroceiro",
+        "texto": "Ha! Bom olfato, moça! Levo um fardo de raízes de gengibre e maçãs secas para a botânica da Curandeira Elara, lá em Oakhaven. Quer um pedaço?",
+        "proximo": "fala_gengibre_2"
+      },
+      "fala_gengibre_2": {
+        "autor": "Halia",
+        "texto": "Esse aroma quente e picante... (Pensamento) É curioso: não consigo lembrar o rosto de quem caminhava comigo, mas tenho certeza absoluta de que adoro chá de gengibre e raízes.",
+        "proximo": "menu_principal"
+      },
+      "fala_caixas_1": {
+        "autor": "Halia",
+        "texto": "Se o caixote menor continuar embaixo do barril de sal, a corda vai ceder na primeira subida. Empilhe os fardos retos pela largura da madeira.",
+        "proximo": "fala_caixas_2"
+      },
+      "fala_caixas_2": {
+        "autor": "Carroceiro",
+        "texto": "Pelos ventos, você tem olho clínico para arrumação! Não suporta ver nada fora de esquadro, hein?",
+        "proximo": "menu_principal"
+      },
+      "fala_tempo_1": {
+        "autor": "Carroceiro",
+        "texto": "Cansar? Todo ano minhas costas reclamam mais! Quando comprei o Trovão, ele era um potro arisco e eu nem tinha fios brancos na barba. Dez anos para um humano passam num piscar de olhos.",
+        "proximo": "fala_tempo_2"
+      },
+      "fala_tempo_2": {
+        "autor": "Halia",
+        "texto": "Dez anos... Para mim, dez anos sempre pareceram apenas um breve cochilo entre uma estação e outra. Mas agora sinto que deixei escapar algo que jamais voltará.",
+        "proximo": "fala_tempo_3"
+      },
+      "fala_tempo_3": {
+        "autor": "Carroceiro",
+        "texto": "É justamente porque a nossa vida é curta que cada parada na estrada importa, moça. Um prato de sopa quente e uma boa conversa valem mais que um século de solidão.",
+        "proximo": "menu_principal"
+      },
+      "fala_cantar_1": {
+        "autor": "Carroceiro",
+        "texto": "Ah, é uma velha canção de acampamento dos guardas do norte. Fala sobre quatro viajantes que dividiam o mesmo fogo enquanto a geada caía.",
+        "proximo": "fala_cantar_2"
+      },
+      "fala_cantar_2": {
+        "autor": "Halia",
+        "texto": "Você apressou o segundo verso... Há uma pausa antes do refrão, exatamente o tempo de bater as canecas de madeira perto das brasas.",
+        "proximo": "fala_cantar_3"
+      },
+      "fala_cantar_3": {
+        "autor": "Carroceiro",
+        "texto": "Ora, veja só! Sua cabeça pode estar nublada, mas seu coração ainda guarda o ritmo das fogueiras!",
+        "proximo": "menu_principal"
+      },
+      "fala_prosseguir_1": {
+        "autor": "Carroceiro",
+        "texto": "Segure firme nas tábuas da carroça! O caminho até o Refúgio de Oakhaven é sinuoso e a neblina da serra está descendo.",
+        "proximo": "fala_prosseguir_2"
+      },
+      "fala_prosseguir_2": {
+        "autor": "Sistema",
+        "texto": "Iniciando viagem rumo ao Refúgio de Oakhaven...",
+        "evento": "prosseguir"
+      }
+    }
+  },
+
+  "investigar_pedras": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Estes blocos de granito rolaram da encosta e fecharam toda a passagem... Força física não será suficiente para movê-los.",
+        "proximo": "menu_puzzle"
+      },
+      "menu_puzzle": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja fazer?",
+        "pode_fechar": true,
+        "id_cancelamento": "desistir_puzzle",
+        "opcoes": [
+          {
+            "id": "analisar_pedras",
+            "texto": "Tocar a rocha fria e examinar as fendas detalhadamente",
+            "evento": "analisar_pedras",
+            "repetivel": true
+          },
+          {
+            "id": "desistir_puzzle",
+            "texto": "Afastar-se das rochas por um instante",
+            "evento": "desistir_puzzle",
+            "repetivel": true
+          }
+        ]
+      }
+    }
+  },
+
+  "escolha_magias": {
+    "no_inicial": "menu_magias",
+    "nos": {
+      "menu_magias": {
+        "tipo": "escolha",
+        "cabecalho": "Qual magia deseja conjurar?",
+        "pode_fechar": true,
+        "id_cancelamento": "voltar_magia",
+        "opcoes": [
+          {
+            "id": "escolha_fogo",
+            "texto": "Conjurar Bola de Fogo (Puzzle de Mira)",
+            "proximo": "fala_fogo_1",
+            "repetivel": true
+          },
+          {
+            "id": "escolha_levitar",
+            "texto": "Conjurar Pulso de Gravidade (Puzzle de Concentração)",
+            "proximo": "fala_levitar_1",
+            "repetivel": true
+          },
+          {
+            "id": "voltar_magia",
+            "texto": "Respirar fundo e observar o bloqueio novamente",
+            "evento": "voltar_magia",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_fogo_1": {
+        "autor": "Pensamento",
+        "texto": "Se eu concentrar o calor da brasa no ponto de fratura, posso conjurar uma explosão limpa para estilhaçar estas rochas!",
+        "proximo": "fala_fogo_2"
+      },
+      "fala_fogo_2": {
+        "autor": "Sistema",
+        "texto": "Bola de Fogo selecionada. Prepare-se para mirar!",
+        "evento": "escolha_fogo"
+      },
+      "fala_levitar_1": {
+        "autor": "Pensamento",
+        "texto": "Se eu envolver as fendas em um fluxo constante de éter, posso erguer estas pedras e pousá-las fora da estrada.",
+        "proximo": "fala_levitar_2"
+      },
+      "fala_levitar_2": {
+        "autor": "Sistema",
+        "texto": "Pulso de Gravidade selecionado. Prepare-se para concentrar a mana!",
+        "evento": "escolha_levitar"
+      }
+    }
+  },
+
+  "flashback_magia": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Narrador",
+        "texto": "Ao pousar a palma da mão sobre o granito frio, o ruído do vento na estrada silencia por completo...",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Eco do Passado",
+        "texto": "Halia... Escute o calor que corre sob a terra. Você não nasceu para caminhar de mãos vazias na escuridão.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Pensamento",
+        "texto": "Por um breve segundo, ouvi o crepitar de uma fogueira distante e vozes amigas ao meu lado... Minhas mãos conhecem este calor. Eu sou uma Maga!",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Sistema",
+        "texto": "Sua conexão com a mana ancestral despertou novamente."
+      }
+    }
+  },
+
+  "pos_fogo": {
+    "no_inicial": "fala_narrador",
+    "nos": {
+      "fala_narrador": {
+        "autor": "Narrador",
+        "texto": "CABUM! A esfera flamejante estilhaça o bloqueio de granito em centenas de fragmentos incandescentes.",
+        "proximo": "fala_1"
+      },
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Pelos antigos, que explosão foi essa?! Meus ouvidos ainda estão zunindo!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "O caminho para Oakhaven está aberto. Podemos prosseguir.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Carroceiro",
+        "texto": "Sim, vamos depressa... Espere. Você ouviu esse rosnado? O estrondo da magia atraiu coisa ruim da mata!",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Narrador",
+        "texto": "Das sombras à margem da estrada, duas criaturas corrompidas avançam na direção da carroça!",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Sistema",
+        "texto": "PREPARE-SE PARA O COMBATE! (2 Inimigos)"
+      }
+    }
+  },
+
+  "pos_levitar": {
+    "no_inicial": "fala_narrador",
+    "nos": {
+      "fala_narrador": {
+        "autor": "Narrador",
+        "texto": "Com um gesto sereno e firme, os pesados blocos de rocha flutuam no ar e pousam nas margens da estrada.",
+        "proximo": "fala_1"
+      },
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Você moveu toneladas de granito como se fossem folhas secas ao vento... Jamais vi conjuração igual.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "O caminho para Oakhaven está aberto. Podemos prosseguir.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Carroceiro",
+        "texto": "Vamos antes que a neblina feche... Quieto, Trovão! Algo pesado está saindo do meio das árvores.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Narrador",
+        "texto": "O pulso intenso de mana ancestral atraiu uma anomalia poderosa que vagava pela serra...",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Sistema",
+        "texto": "PREPARE-SE PARA O COMBATE! (1 Inimigo Forte)"
+      }
+    }
+  },
+
+  "falha_timing": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "A centelha dissipou-se entre os meus dedos... Perdi o compasso da respiração. Preciso me concentrar e tentar novamente.",
+        "proximo": "menu_magias"
+      },
+      "menu_magias": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "escolha_magias"
+      }
+    }
+  },
+
+  "falha_mash": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "As rochas ainda pesam demais... Meu fluxo de mana oscilou antes da hora. Preciso sustentar a vontade com mais firmeza.",
+        "proximo": "menu_magias"
+      },
+      "menu_magias": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "escolha_magias"
+      }
+    }
+  },
+
+  "porta_abriu": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Pronto, recolhi o grimório, o cajado e as moedas. O ferrolho da porta cedeu.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Sistema",
+        "texto": "A porta está aberta. Atravesse o jardim e siga pela trilha de terra ao leste."
+      }
+    }
+  },
+
+  "porta_trancada": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Ainda há pertences meus espalhados pelo chão da cabana. Não devo partir de mãos vazias."
+      }
+    }
+  },
+
+  "fechar_porta": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Tranquei a porta da cabana atrás de mim... Agora devo seguir pela trilha de terra para encontrar a estrada.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Sistema",
+        "texto": "Siga pela pequena estrada de terra através do jardim até a saída leste."
+      }
+    }
+  },
+
+  "avistar_carroceiro": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Ouço o ranger de rodas de madeira e cascos na terra... Há um carroceiro se aproximando pela trilha!"
+      }
+    }
+  },
+
+  "entrada_estrada1": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Que brisa fria... Mesmo fora da cabana, toda a floresta continua mergulhada neste silêncio sem cor.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Pensamento",
+        "texto": "Preciso caminhar ao longo desta estrada de terra. Talvez algum viajante saiba para onde esta trilha conduz.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Sistema",
+        "texto": "Objetivo: Siga para a direita ao longo da estrada para encontrar o carroceiro."
+      }
+    }
+  },
+
+  "entrada_estrada2": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Narrador",
+        "texto": "Algum tempo de viagem depois, a carroça diminui o passo e para abruptamente na garganta da serra.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Carroceiro",
+        "texto": "Pelas raízes do mundo... Um deslizamento de terra! Olhe o tamanho daquelas rochas fechando a estrada para Oakhaven.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Pensamento",
+        "texto": "A carroça jamais passará por cima desse granito. Vou me aproximar das pedras para examinar o bloqueio."
+      }
+    }
+  },
+
+  "carroceiro_estrada2": {
+    "no_inicial": "menu_estrada2",
+    "nos": {
+      "menu_estrada2": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja fazer?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_estrada2",
+        "resultado_fechar": "fala_fechar_estrada2",
+        "opcoes": [
+          {
+            "id": "seguir_capital",
+            "texto": "Subir na carroça e seguir viagem para o Refúgio de Oakhaven",
+            "proximo": "fala_seguir_1",
+            "repetivel": true
+          },
+          {
+            "id": "falar_batalha",
+            "texto": "Essas criaturas das sombras... o que eram elas?",
+            "proximo": "fala_batalha_1"
+          }
+        ]
+      },
+      "fala_fechar_estrada2": {
+        "autor": "Carroceiro",
+        "texto": "Estarei pronto quando você estiver, moça. Basta me avisar para partirmos rumo a Oakhaven."
+      },
+      "fala_seguir_1": {
+        "autor": "Carroceiro",
+        "texto": "Excelente! Suba na carroça; já dá para avistar as chaminés do Refúgio de Oakhaven logo depois desta colina.",
+        "proximo": "fala_seguir_2"
+      },
+      "fala_seguir_2": {
+        "autor": "Narrador",
+        "texto": "Com as anomalias derrotadas e a estrada desobstruída, Halia sobe na carroça e a jornada prossegue...",
+        "proximo": "fala_seguir_3"
+      },
+      "fala_seguir_3": {
+        "autor": "Pensamento",
+        "texto": "Enquanto as rodas giram rumo a Oakhaven, olho para as minhas mãos... Uma primeira centelha quente finalmente rompeu o gelo dentro de mim.",
+        "evento": "seguir_capital"
+      },
+      "fala_batalha_1": {
+        "autor": "Carroceiro",
+        "texto": "São batedores e anomalias desgarradas da guerra. Mesmo após a queda do Rei Demônio, criaturas sem mestre ainda rondam as estradas ermas.",
+        "proximo": "fala_batalha_2"
+      },
+      "fala_batalha_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) O meu corpo reagiu aos golpes por puro reflexo, mas lutar sozinha na vanguarda parece... silencioso demais.",
+        "proximo": "menu_estrada2"
+      }
+    }
+  },
+
+  "pos_combate_vitoria": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Impressionante, Halia! Você afastou todas aquelas criaturas e a estrada para Oakhaven está segura.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Carroceiro",
+        "texto": "Podemos retomar a viagem quando você quiser.",
+        "proximo": "menu_redirecionar"
+      },
+      "menu_redirecionar": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "carroceiro_estrada2"
+      }
+    }
+  },
+
+  "carroceiro_pos_combate": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "A passagem está livre e segura. Pronta para seguir viagem até o Refúgio de Oakhaven?",
+        "proximo": "menu_redirecionar"
+      },
+      "menu_redirecionar": {
+        "tipo": "link_dialogo",
+        "dialogo_alvo": "carroceiro_estrada2"
+      }
+    }
+  },
+
+  "carroceiro_pos_puzzle": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Cuidado com essas criaturas das sombras, Halia!"
+      }
+    }
+  },
+
+  "carroceiro_impedimento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Carroceiro",
+        "texto": "Não há como passar com a carroça por cima desse desmoronamento. Precisamos dar um jeito nessas rochas primeiro!"
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@
     "fuga_impossivel": "Halia tentou recuar, mas a presença imponente do inimigo impede qualquer fuga!",
     "fuga_sucesso": "Halia recuou com agilidade e escapou do combate com sucesso!",
     "fuga_falhou": "Tentativa de fuga falhou! Os inimigos bloquearam a passagem e cercaram Halia.",
-    "vitoria": "Vitória! Ganhou {moedas} moedas e {memorias} memórias.",
+    "vitoria": "Vitória! Ganhou {moedas} moedas, {xp} XP e {memorias} memórias.",
     "derrota": "Halia sucumbiu e retornará ao último checkpoint..."
   },
   "popups_flutuantes": {

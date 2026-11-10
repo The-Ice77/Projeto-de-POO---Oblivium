@@ -171,8 +171,8 @@ class ComandosDev:
         self._notificar("Cutscenes", "Diálogos e bloqueios pulados com sucesso!")
 
     def cmd_mudar_mapa(self):
-        """Alterna ciclicamente entre CASA, ESTRADA e ESTRADA_2."""
-        mapas_ciclo = ["CASA", "ESTRADA", "ESTRADA_2"]
+        """Alterna ciclicamente entre CASA, ESTRADA, ESTRADA_2 e OAKHAVEN."""
+        mapas_ciclo = ["CASA", "ESTRADA", "ESTRADA_2", "OAKHAVEN"]
         cenario_atual = getattr(getattr(self.game, 'mapa_casa', None), 'cenario_atual', "CASA")
         idx = (mapas_ciclo.index(cenario_atual) + 1) % len(mapas_ciclo) if cenario_atual in mapas_ciclo else 0
         novo_mapa = mapas_ciclo[idx]
@@ -207,6 +207,15 @@ class ComandosDev:
             self.game.carroceiro.x, self.game.carroceiro.y = 200, 330
             self.game.carroceiro.velocidade = 0
             self.game.carroceiro.mudar_estado("idle")
+        elif novo_mapa == "OAKHAVEN":
+            self.game.halia.x, self.game.halia.y = 1102, 830
+            self.game.carroceiro_visivel = False
+            self.game.carroceiro_andando = False
+
+        if hasattr(self.game, "estados") and "JOGANDO" in self.game.estados:
+            playing = self.game.estados["JOGANDO"]
+            if hasattr(playing, "atualizar_camera"):
+                playing.atualizar_camera(instantaneo=True)
 
         self.game.inimigos_em_cena.clear()
         self.game.cena_inimigos_andando = False
@@ -388,8 +397,12 @@ class ComandosDev:
                     mid = missao["id"]
                     for obj in missao.get("objetivos", []):
                         if not obj.get("concluido", False):
-                            qm.progredir_objetivo(mid, obj["id"], 1)
-                            self._notificar("Teste de Missão", f"Progresso em '{missao['titulo']}': {obj['descricao']}")
+                            if qm._eh_objetivo_entrega_npc(obj):
+                                qm.processar_interacao_npc(missao.get("npc_id") or missao.get("doador"))
+                                self._notificar("Teste de Missão", f"Entrega no NPC concluída: {missao['titulo']}")
+                            else:
+                                qm.progredir_objetivo(mid, obj["id"], 1)
+                                self._notificar("Teste de Missão", f"Progresso em '{missao['titulo']}': {obj['descricao']}")
                             return
                     # Caso todos os objetivos dessa missão já estejam concluídos, finaliza-a
                     qm.concluir_missao(mid)

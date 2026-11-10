@@ -2,22 +2,29 @@
 import os
 import json
 
+
 class DialogueManager:
     """
     Gerenciador Central de Diálogos e Árvores de Decisão Narrativa (POO).
     
     Responsabilidades:
-    - Carregar e validar diálogos estruturados a partir do arquivo JSON externo.
+    - Carregar e mesclar diálogos estruturados a partir da pasta modular `src/data/dialogos/`
+      (`dialogos_prologo.json`, `dialogos_fase1.json`, etc.) e `src/data/dialogos.json`.
     - Controlar o estado do fluxo de nós (falas sequenciais, escolhas, links entre diálogos).
-    - Manter histórico de escolhas já selecionadas para evitar repetições desnecessárias.
-    - Disparar eventos narrativos para o motor do jogo (combates, transições, puzzles).
+    - Manter histórico de escolhas já selecionadas para que os assuntos de conversa
+      se esgotem naturalmente, enquanto opções funcionais (como Lojas e Saídas) permanecem.
+    - Integrar-se ao `QuestManager` para filtrar opções de missão e disparar aceitação/conclusão.
+    - Disparar eventos narrativos para o motor do jogo (combates, transições, puzzles, lojas).
     - Fornecer retrocompatibilidade com sequências manuais de falas (listas de dicionários).
     """
 
-    _CAMINHO_PADRAO_JSON = os.path.join(os.path.dirname(__file__), "..", "data", "dialogos.json")
+    _DIRETORIO_DATA = os.path.join(os.path.dirname(__file__), "..", "data")
+    _PASTA_DIALOGOS_MODULAR = os.path.join(_DIRETORIO_DATA, "dialogos")
+    _CAMINHO_PADRAO_JSON = os.path.join(_DIRETORIO_DATA, "dialogos.json")
 
-    def __init__(self, caminho_json=None):
+    def __init__(self, caminho_json=None, quest_manager=None):
         self.caminho_json = caminho_json or self._CAMINHO_PADRAO_JSON
+        self.quest_manager = quest_manager
         self.banco_dialogos = {}
         
         # Estado atual da conversa
@@ -30,8 +37,9 @@ class DialogueManager:
         self.historico_escolhas = set()
         self.flags = {}
         
-        # Eventos pendentes a serem consumidos pelo jogo
+        # Eventos e lojas pendentes a serem consumidos pelo jogo
         self.evento_pendente = None
+        self.loja_pendente = None
         
         # Modo de lista direta (retrocompatibilidade com diálogos gerados em tempo de execução)
         self.modo_lista = False
@@ -41,17 +49,62 @@ class DialogueManager:
         self.carregar_dados()
 
     def carregar_dados(self):
-        """Carrega e valida o arquivo JSON contendo as conversas."""
+        """
+        Carrega e mescla os arquivos JSON de diálogos:
+        1. Carrega o arquivo base (`dialogos.json` ou `caminho_json` informado).
+        2. Carrega todos os arquivos `*.json` na pasta modular `src/data/dialogos/` em ordem alfabética.
+        """
+        self.banco_dialogos = {}
         try:
-            if os.path.exists(self.caminho_json):
+            # Se caminho_json for um diretório, carrega todos os JSONs dele
+            if self.caminho_json and os.path.isdir(self.caminho_json):
+                self._carregar_pasta_modular(self.caminho_json)
+                return
+
+            # 1. Carrega o arquivo base se existir
+            if self.caminho_json and os.path.isfile(self.caminho_json):
                 with open(self.caminho_json, "r", encoding="utf-8") as arquivo:
-                    self.banco_dialogos = json.load(arquivo)
-            else:
-                print(f"[DialogueManager] Aviso: Arquivo de diálogos não encontrado em {self.caminho_json}")
-                self.banco_dialogos = {}
+                    dados_base = json.load(arquivo)
+                    if isinstance(dados_base, dict):
+                        self.banco_dialogos.update(dados_base)
+
+            # 2. Carrega e mescla os módulos por fase de src/data/dialogos/
+            if os.path.isdir(self._PASTA_DIALOGOS_MODULAR):
+                self._carregar_pasta_modular(self._PASTA_DIALOGOS_MODULAR)
+
+            if not self.banco_dialogos:
+                print(f"[DialogueManager] Aviso: Nenhum diálogo encontrado em {self.caminho_json}")
         except Exception as erro:
-            print(f"[DialogueManager] Erro ao carregar dialogos.json: {erro}")
-            self.banco_dialogos = {}
+            print(f"[DialogueManager] Erro ao carregar diálogos: {erro}")
+
+    def _carregar_pasta_modular(self, pasta):
+        """Lê todos os arquivos .json de uma pasta em ordem alfabética e mescla no banco."""
+        for nome_arq in sorted(os.listdir(pasta)):
+            if nome_arq.lower().endswith(".json"):
+                caminho_mod = os.path.join(pasta, nome_arq)
+                if os.path.isfile(caminho_mod):
+                    try:
+                        with open(caminho_mod, "r", encoding="utf-8") as f:
+                            dados_mod = json.load(f)
+                            if isinstance(dados_mod, dict):
+                                self.banco_dialogos.update(dados_mod)
+                    except Exception as e:
+                        print(f"[DialogueManager] Erro ao ler módulo {nome_arq}: {e}")
+
+    @staticmethod
+    def _opcao_eh_permanente(opcao):
+        """
+        Define se uma opção de diálogo NUNCA deve desaparecer do menu:
+        - Opções de acesso a loja ('acao': 'abrir_loja', 'evento': 'abrir_loja', 'loja_id')
+        - Opções marcadas com 'repetivel': True ou 'persistente': True
+        """
+        if not isinstance(opcao, dict):
+            return False
+        if opcao.get("desaparecer") or opcao.get("unica_vez") or opcao.get("desaparecer_apos_uso"):
+            return False
+        if opcao.get("acao") == "abrir_loja" or opcao.get("evento") == "abrir_loja" or "loja_id" in opcao:
+            return True
+        return bool(opcao.get("repetivel", False) or opcao.get("persistente", False))
 
     def iniciar_conversa(self, conversa_id, no_inicial=None):
         """
@@ -81,6 +134,7 @@ class DialogueManager:
         self.no_atual = nos[id_inicio]
         self.ativo = True
         self.evento_pendente = None
+        self.loja_pendente = None
 
         self._processar_no_atual()
         return True
@@ -102,10 +156,11 @@ class DialogueManager:
         self.no_atual = self.lista_dialogos[0]
         self.ativo = True
         self.evento_pendente = None
+        self.loja_pendente = None
         return True
 
     def _processar_no_atual(self):
-        """Processa o nó atual, verificando se há links diretos ou eventos imediatos."""
+        """Processa o nó atual, verificando se há links diretos, missões ou eventos imediatos."""
         if not self.no_atual:
             self.finalizar()
             return
@@ -119,6 +174,24 @@ class DialogueManager:
             else:
                 self.finalizar()
             return
+
+        # Gatilhos de missão em nós
+        if "aceitar_missao" in self.no_atual and self.quest_manager:
+            self.quest_manager.aceitar_missao(self.no_atual["aceitar_missao"])
+        if "concluir_missao" in self.no_atual and self.quest_manager:
+            self.quest_manager.concluir_missao(self.no_atual["concluir_missao"])
+
+        # Se for um nó de escolha e todas as opções já tiverem acabado, cai para no_esgotado se existir
+        if self.no_atual.get("tipo") == "escolha":
+            opcoes_restantes = self.obter_opcoes_filtradas()
+            if not opcoes_restantes:
+                no_esgotado = self.no_atual.get("no_esgotado") or self.no_atual.get("resultado_fechar")
+                nos = self.banco_dialogos.get(self.conversa_id, {}).get("nos", {})
+                if no_esgotado and no_esgotado in nos and no_esgotado != self.no_id_atual:
+                    self.no_id_atual = no_esgotado
+                    self.no_atual = nos[no_esgotado]
+                    self._processar_no_atual()
+                    return
 
         # Registra evento se o nó possuir um
         if "evento" in self.no_atual:
@@ -167,17 +240,38 @@ class DialogueManager:
     def escolher_opcao(self, opcao):
         """
         Processa uma escolha do jogador no menu de opções:
-        Recebe o dicionário da opção selecionada.
+        - Assuntos comuns são adicionados a `historico_escolhas` e somem do menu.
+        - Opções de loja ou marcadas com `repetivel: true` permanecem sempre disponíveis.
+        - Aciona `aceitar_missao`, `concluir_missao` ou `abrir_loja` quando configurados.
         """
         if not self.ativo or not self.no_atual:
             return False
 
-        # Marca no histórico se a opção não for repetível
         opt_id = opcao.get("id")
-        if opt_id and not opcao.get("repetivel", False):
+        if opt_id and not self._opcao_eh_permanente(opcao):
             self.historico_escolhas.add(opt_id)
 
-        # Registra evento caso a opção possua
+        # Integração direta com QuestManager
+        if "aceitar_missao" in opcao:
+            id_m = opcao["aceitar_missao"]
+            if self.quest_manager:
+                self.quest_manager.aceitar_missao(id_m)
+            if "evento" not in opcao:
+                self.evento_pendente = f"aceitar_missao:{id_m}"
+
+        if "concluir_missao" in opcao:
+            id_m = opcao["concluir_missao"]
+            if self.quest_manager:
+                self.quest_manager.concluir_missao(id_m)
+            if "evento" not in opcao:
+                self.evento_pendente = f"concluir_missao:{id_m}"
+
+        # Integração direta com Loja
+        if opcao.get("acao") == "abrir_loja" or opcao.get("evento") == "abrir_loja":
+            self.evento_pendente = "abrir_loja"
+            self.loja_pendente = opcao.get("loja_id")
+
+        # Registra evento explícito caso a opção possua
         if "evento" in opcao:
             self.evento_pendente = opcao["evento"]
 
@@ -223,13 +317,45 @@ class DialogueManager:
         """Retorna o nó de diálogo ativo."""
         return self.no_atual if self.ativo else None
 
+    def _opcao_atende_condicoes(self, opt):
+        """Verifica se uma opção atende às condições de histórico, missão e flags."""
+        opt_id = opt.get("id")
+        if opt_id in self.historico_escolhas and not self._opcao_eh_permanente(opt):
+            return False
+
+        # Bloqueio de loja caso o NPC possua missão ativa em andamento
+        if (opt.get("acao") == "abrir_loja" or opt.get("evento") == "abrir_loja" or "loja_id" in opt) and self.quest_manager:
+            npc_ref = opt.get("npc_id")
+            if not npc_ref and self.conversa_id in self.banco_dialogos:
+                conv = self.banco_dialogos[self.conversa_id]
+                npc_ref = conv.get("npc_id")
+                if not npc_ref:
+                    no_ini = conv.get("nos", {}).get(conv.get("no_inicial"), {})
+                    npc_ref = no_ini.get("autor")
+            if npc_ref and self.quest_manager.obter_missao_ativa_do_npc(npc_ref):
+                return False
+
+        # Condição de missão disponível
+        id_missao_disp = opt.get("condicao_missao_disponivel") or opt.get("aceitar_missao")
+        if id_missao_disp and self.quest_manager:
+            missao = self.quest_manager.missoes.get(id_missao_disp)
+            if not missao or missao.get("status") != "DISPONIVEL":
+                return False
+
+        # Condição de flag narrativa
+        flag_req = opt.get("condicao_flag")
+        if flag_req and not self.flags.get(flag_req, False):
+            return False
+
+        return True
+
     def obter_opcoes_filtradas(self):
-        """Retorna as opções válidas do nó atual, excluindo as já utilizadas não-repetíveis."""
+        """Retorna as opções válidas do nó atual, excluindo as já utilizadas não-repetíveis e missões indisponíveis."""
         if not self.ativo or not self.no_atual or self.no_atual.get("tipo") != "escolha":
             return []
         
         opcoes = self.no_atual.get("opcoes", [])
-        return [opt for opt in opcoes if opt.get("id") not in self.historico_escolhas]
+        return [opt for opt in opcoes if self._opcao_atende_condicoes(opt)]
 
     def consumir_evento(self):
         """Retorna e limpa o último evento gerado por nó ou escolha."""

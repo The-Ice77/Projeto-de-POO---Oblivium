@@ -214,28 +214,34 @@
       "nome": "Tomo da Chama Ancestral",
       "descricao": "Escritura sagrada dos arcanistas que ensina e aprimora a evocação da Bola de Fogo.",
       "categoria": "GRIMORIO",
-      "magia_id": "bola_fogo",
+      "magia_id": "bola_de_fogo",
       "raridade": "RARO",
       "preco_compra": 150,
       "preco_venda": 75,
       "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "dano_fogo_bonus": 10
-      }
+      },
+      "bonus_poder": 4,
+      "reducao_custo": 1,
+      "xp_concedida": 35
     },
     "tomo_geada_eterna": {
       "id": "tomo_geada_eterna",
       "nome": "Tomo da Geada Eterna",
-      "descricao": "Páginas gélidas que ensinam o feitiço Raio de Gelo e reduzem seu custo de mana.",
+      "descricao": "Páginas gélidas que ensinam o feitiço Estilhaço Glacial e reduzem seu custo de mana.",
       "categoria": "GRIMORIO",
-      "magia_id": "raio_gelo",
+      "magia_id": "estilhaco_glacial",
       "raridade": "RARO",
       "preco_compra": 150,
       "preco_venda": 75,
       "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "dano_gelo_bonus": 10
-      }
+      },
+      "bonus_poder": 4,
+      "reducao_custo": 1,
+      "xp_concedida": 35
     },
     "tomo_brisa_restauradora": {
       "id": "tomo_brisa_restauradora",
@@ -249,7 +255,104 @@
       "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "cura_bonus": 12
-      }
+      },
+      "bonus_poder": 5,
+      "reducao_custo": 2,
+      "xp_concedida": 35
+    },
+    "tomo_onda_chamas": {
+      "id": "tomo_onda_chamas",
+      "nome": "Tomo da Onda de Chamas",
+      "descricao": "Grimório encadernado em bronze que ensina a projetar uma torrente de fogo expansiva sobre múltiplos alvos.",
+      "categoria": "GRIMORIO",
+      "magia_id": "onda_de_chamas",
+      "raridade": "EPICO",
+      "preco_compra": 180,
+      "preco_venda": 90,
+      "icone_sprite": "props/Grimório.png",
+      "bonus_stats": {
+        "dano_fogo_bonus": 8
+      },
+      "bonus_poder": 5,
+      "reducao_custo": 2,
+      "xp_concedida": 45
+    }
+  },
+  "ensinamentos": {
+    "pergaminho_raio_arcano": {
+      "id": "pergaminho_raio_arcano",
+      "nome": "Ensinamento: Raio Arcano",
+      "descricao": "Pergaminho translúcido com runas de aceleração que ensina o feitiço Raio Arcano ou aprimora sua potência mágica.",
+      "categoria": "ENSINAMENTO",
+      "magia_id": "raio_arcano",
+      "bonus_poder": 5,
+      "reducao_custo": 2,
+      "xp_concedida": 40,
+      "raridade": "INCOMUM",
+      "preco_compra": 130,
+      "preco_venda": 65,
+      "acumulavel": true,
+      "quantidade_maxima": 10
+    },
+    "pergaminho_escudo_etereo": {
+      "id": "pergaminho_escudo_etereo",
+      "nome": "Ensinamento: Escudo Etéreo",
+      "descricao": "Páginas preservadas em couro antigo que transmitem os mistérios de proteção e barreira do Escudo Etéreo.",
+      "categoria": "ENSINAMENTO",
+      "magia_id": "escudo_etereo",
+      "bonus_poder": 0,
+      "reducao_custo": 3,
+      "xp_concedida": 40,
+      "raridade": "RARO",
+      "preco_compra": 140,
+      "preco_venda": 70,
+      "acumulavel": true,
+      "quantidade_maxima": 10
+    },
+    "pagina_tempestade_estatica": {
+      "id": "pagina_tempestade_estatica",
+      "nome": "Página Rúnica: Tempestade Estática",
+      "descricao": "Fragmento crepitante de grimório que desperta a evocação em área da Tempestade Estática.",
+      "categoria": "ENSINAMENTO",
+      "magia_id": "tempestade_estatica",
+      "bonus_poder": 6,
+      "reducao_custo": 2,
+      "xp_concedida": 50,
+      "raridade": "EPICO",
+      "preco_compra": 190,
+      "preco_venda": 95,
+      "acumulavel": true,
+      "quantidade_maxima": 10
+    },
+    "escritura_luz_caelen": {
+      "id": "escritura_luz_caelen",
+      "nome": "Escritura Sagrada: Luz de Caelen",
+      "descricao": "Manuscrito litúrgico dedicado ao curandeiro ancestral Caelen, revelando a sublime Luz Restauradora.",
+      "categoria": "ENSINAMENTO",
+      "magia_id": "luz_restauradora_caelen",
+      "bonus_poder": 10,
+      "reducao_custo": 3,
+      "xp_concedida": 60,
+      "raridade": "LENDARIO",
+      "preco_compra": 240,
+      "preco_venda": 120,
+      "acumulavel": false,
+      "quantidade_maxima": 1
+    },
+    "pergaminho_vendaval": {
+      "id": "pergaminho_vendaval",
+      "nome": "Pergaminho do Vendaval Cortante",
+      "descricao": "Fórmula eólica que desperta ou aprimora a lâmina aérea do Vendaval Cortante.",
+      "categoria": "ENSINAMENTO",
+      "magia_id": "vendaval_cortante",
+      "bonus_poder": 4,
+      "reducao_custo": 1,
+      "xp_concedida": 30,
+      "raridade": "COMUM",
+      "preco_compra": 100,
+      "preco_venda": 50,
+      "acumulavel": true,
+      "quantidade_maxima": 10
     }
   },
   "materiais": {

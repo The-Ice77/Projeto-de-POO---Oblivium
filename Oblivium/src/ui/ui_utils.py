@@ -211,31 +211,33 @@ def desenhar_tooltip_formatado(superficie, *args, **kwargs):
 
 def desenhar_indicador_tecla(superficie, x, y, tecla="E", acao="para interagir", fonte=None):
     """
-    Renderiza o badge retangular nítido de tecla de ação: [ Pressione E para interagir ].
+    Renderiza o badge compacto e semitransparente de tecla de ação: [E] para interagir,
+    com leve flutuação senoidal e bordas arredondadas para nunca cobrir sprites pequenas.
     """
-    f = fonte or ResourceManager.carregar_fonte("contrail", 16)
-    txt_prefixo = "Pressione "
+    f = fonte or ResourceManager.carregar_fonte("contrail", 15)
     txt_tecla = f" {tecla} "
     txt_sufixo = f" {acao}"
 
-    r_pre = f.render(txt_prefixo, True, GIZ_SUAVE)
     r_tec = f.render(txt_tecla, True, MARFIM_OFFWHITE)
     r_suf = f.render(txt_sufixo, True, GIZ_SUAVE)
 
-    largura_total = r_pre.get_width() + r_tec.get_width() + 10 + r_suf.get_width() + 20
-    altura_box = 28
-    rect_box = pygame.Rect(x - largura_total // 2, y, largura_total, altura_box)
+    largura_total = r_tec.get_width() + 8 + r_suf.get_width() + 18
+    altura_box = 24
+    flutuacao_y = int(math.sin(pygame.time.get_ticks() * 0.006) * 2)
 
-    pygame.draw.rect(superficie, (10, 10, 14), rect_box)
-    pygame.draw.rect(superficie, CINZA_LINHO, rect_box, 1)
+    bx = max(6, min(superficie.get_width() - largura_total - 6, int(x - largura_total // 2)))
+    by = max(6, int(y + flutuacao_y))
+    rect_box = pygame.Rect(bx, by, largura_total, altura_box)
 
-    cur_x = rect_box.x + 10
-    superficie.blit(r_pre, (cur_x, rect_box.centery - r_pre.get_height() // 2))
-    cur_x += r_pre.get_width()
+    surf_box = pygame.Surface((largura_total, altura_box), pygame.SRCALPHA)
+    pygame.draw.rect(surf_box, (10, 12, 18, 210), (0, 0, largura_total, altura_box), border_radius=5)
+    pygame.draw.rect(surf_box, (*CINZA_LINHO[:3], 220), (0, 0, largura_total, altura_box), 1, border_radius=5)
+    superficie.blit(surf_box, rect_box.topleft)
 
-    tec_box = pygame.Rect(cur_x, rect_box.centery - 9, r_tec.get_width() + 4, 18)
-    pygame.draw.rect(superficie, (26, 34, 46), tec_box)
-    pygame.draw.rect(superficie, AZUL_HOVER_MENU, tec_box, 1)
+    cur_x = rect_box.x + 6
+    tec_box = pygame.Rect(cur_x, rect_box.centery - 8, r_tec.get_width() + 4, 16)
+    pygame.draw.rect(superficie, (26, 36, 50), tec_box, border_radius=3)
+    pygame.draw.rect(superficie, AZUL_HOVER_MENU, tec_box, 1, border_radius=3)
     superficie.blit(r_tec, (tec_box.x + 2, tec_box.centery - r_tec.get_height() // 2))
     cur_x += tec_box.width + 4
 

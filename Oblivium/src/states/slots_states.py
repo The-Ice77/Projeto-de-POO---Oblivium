@@ -213,17 +213,20 @@ class SlotsState(State):
         
         man = info_slot.get("manual", {})
         auto = info_slot.get("autosave", {})
+        mais_recente = info_slot.get("mais_recente", "nenhum")
 
         if man.get("existe"):
+            tag_rec = " [ Mais Recente ]" if mais_recente == "manual" else ""
             self.opcoes_modal_versao.append({
                 "tipo": "manual",
-                "titulo": "✦ Carregar Save Manual",
+                "titulo": f"✦ Carregar Save Manual{tag_rec}",
                 "dados": man
             })
         if auto.get("existe"):
+            tag_rec = " [ Mais Recente ]" if mais_recente == "autosave" else ""
             self.opcoes_modal_versao.append({
                 "tipo": "autosave",
-                "titulo": "⚡ Carregar Autosave (Checkpoint)",
+                "titulo": f"⚡ Carregar Autosave (Checkpoint){tag_rec}",
                 "dados": auto
             })
             
@@ -334,9 +337,11 @@ class SlotsState(State):
             pos_x_info = pos_x + 185
             if tem_save:
                 if man.get("existe"):
-                    fase_m = man.get("cenario", "").replace("_", " ").capitalize()
+                    fase_m = man.get("cenario_formatado", man.get("cenario", "").replace("_", " ").title())
                     tempo_m = formatar_tempo(man.get("tempo_jogado", 0.0))
-                    txt_man = f"✦ Manual: {fase_m} | {tempo_m}"
+                    data_m = man.get("data_hora", "")
+                    txt_data_m = f" ({data_m})" if data_m else ""
+                    txt_man = f"✦ Manual: {fase_m} | {tempo_m}{txt_data_m}"
                     cor_man = MARFIM_OFFWHITE
                 else:
                     txt_man = "✦ Manual: Nenhum"
@@ -346,9 +351,11 @@ class SlotsState(State):
                 tela.blit(render_man, (pos_x_info, pos_y + 14))
                 
                 if auto.get("existe"):
-                    fase_a = auto.get("cenario", "").replace("_", " ").capitalize()
+                    fase_a = auto.get("cenario_formatado", auto.get("cenario", "").replace("_", " ").title())
                     tempo_a = formatar_tempo(auto.get("tempo_jogado", 0.0))
-                    txt_auto = f"⚡ Autosave: {fase_a} | {tempo_a}"
+                    data_a = auto.get("data_hora", "")
+                    txt_data_a = f" ({data_a})" if data_a else ""
+                    txt_auto = f"⚡ Autosave: {fase_a} | {tempo_a}{txt_data_a}"
                     cor_auto = CINZA_LINHO
                 else:
                     txt_auto = "⚡ Autosave: Nenhum"
@@ -400,8 +407,8 @@ class SlotsState(State):
 
     def _draw_modal_versao(self, tela):
         """Modal comparativo entre Save Manual e Autosave com layout Dark Souls / Metroidvania."""
-        larg_modal = 640
-        alt_modal = 420
+        larg_modal = 720
+        alt_modal = 430
         cx = (self.game.LARGURA - larg_modal) // 2
         cy = (self.game.ALTURA - alt_modal) // 2
 
@@ -463,19 +470,26 @@ class SlotsState(State):
                 tela.blit(render_tit, (card_rect.x + 12, card_rect.y + 10))
                 
                 dados = item.get("dados", {})
-                fase = dados.get("cenario", "Desconhecido").replace("_", " ").capitalize()
+                fase = dados.get("cenario_formatado", dados.get("cenario", "Desconhecido").replace("_", " ").title())
                 tempo = formatar_tempo(dados.get("tempo_jogado", 0.0))
+                data_hora = dados.get("data_hora", "")
+                missao_info = dados.get("missao_ativa", {})
+                missao_tit = missao_info.get("titulo", "") if isinstance(missao_info, dict) else ""
                 halia = dados.get("halia", {})
-                hp_atual = halia.get("vida_atual", 100)
-                hp_max = halia.get("vida_maxima", 100)
-                mp_atual = halia.get("mana_atual", 50)
-                mp_max = halia.get("mana_maxima", 50)
+                hp_atual = int(halia.get("vida_atual", 100))
+                hp_max = int(halia.get("vida_maxima", 100))
+                mp_atual = int(halia.get("mana_atual", 50))
+                mp_max = int(halia.get("mana_maxima", 50))
                 mems = halia.get("fragmentos_memoria", 0)
+                ouro = halia.get("dinheiro", 0)
                 
-                linha1 = f"Cenário: {fase}   •   Tempo Jogado: {tempo}"
-                linha2 = f"HP: {hp_atual}/{hp_max}   •   MP: {mp_atual}/{mp_max}   •   Memórias: {mems}"
+                txt_data = f"   •   {data_hora}" if data_hora else ""
+                txt_missao = f"   •   Missão: {missao_tit}" if missao_tit and missao_tit != "Sem Missão Ativa" else ""
+                linha1 = f"Local: {fase}   •   Tempo: {tempo}{txt_data}"
+                linha2 = f"HP: {hp_atual}/{hp_max}   •   MP: {mp_atual}/{mp_max}   •   Ouro: {ouro}{txt_missao}"
                 
                 render_l1 = self.fonte_status.render(linha1, True, MARFIM_OFFWHITE)
+                render_l2 = self.fonte_status.render(linha2, True, CINZA_LINHO)
                 render_l2 = self.fonte_status.render(linha2, True, CINZA_LINHO)
                 
                 tela.blit(render_l1, (card_rect.x + 35, card_rect.y + 42))

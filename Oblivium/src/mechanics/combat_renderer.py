@@ -261,37 +261,50 @@ class CombatRenderer:
                 txt_mp = self.cs.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
                 tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
 
-        # 3. RENDERIZAR HALIA (Lado Esquerdo)
-        halia_x, halia_y = 160, 160
+        # 3. RENDERIZAR HALIA COM AS NOVAS SPRITES DE ALTA FIDELIDADE (Lado Esquerdo)
+        halia_x, halia_y = 160, 150
         offset_h_x = random.randint(-3, 3) if self.cs.shake_timers.get(self.cs.jogador, 0) > 0 else 0
         offset_h_y = random.randint(-2, 2) if self.cs.shake_timers.get(self.cs.jogador, 0) > 0 else 0
         
         draw_hx = halia_x + offset_h_x
         draw_hy = halia_y + offset_h_y
 
-        # Plataforma / Sombra sutil no chão sob Halia
-        pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 10, draw_hy + 90, 105, 22))
+        # Seleciona o estado da animação oficial da Halia no combate
+        estado_halia = "combate_idle"
+        if getattr(self.cs, "submenu_atual", None) == "magias" or getattr(self.cs, "animando_magia_halia", False):
+            estado_halia = "combate_special"
 
-        # Imagem ou Bloco da Halia (Sempre voltada para a direita durante o combate)
         img_halia = None
-        if hasattr(self.cs.jogador, 'animacoes') and "idle_direita" in self.cs.jogador.animacoes:
+        if hasattr(self.cs.jogador, 'animacoes') and estado_halia in self.cs.jogador.animacoes:
+            anim_h = self.cs.jogador.animacoes[estado_halia]
+            anim_h.atualizar()
+            img_halia = anim_h.get_imagem()
+        elif hasattr(self.cs.jogador, 'animacoes') and "combate_idle" in self.cs.jogador.animacoes:
+            anim_h = self.cs.jogador.animacoes["combate_idle"]
+            anim_h.atualizar()
+            img_halia = anim_h.get_imagem()
+        elif hasattr(self.cs.jogador, 'animacoes') and "idle_direita" in self.cs.jogador.animacoes:
             anim_h = self.cs.jogador.animacoes["idle_direita"]
             anim_h.atualizar()
             img_halia = anim_h.get_imagem()
-        elif hasattr(self.cs.jogador, 'animacoes') and "andar_direita" in self.cs.jogador.animacoes:
-            anim_h = self.cs.jogador.animacoes["andar_direita"]
-            img_halia = anim_h.get_imagem()
         
-        if not img_halia:
-            img_halia = ResourceManager.carregar_imagem("halia/andando_direita/Halia_parado_direita.png")
         if not img_halia:
             img_halia = getattr(self.cs.jogador, 'imagem_atual', None)
 
-        larg_h = 64
-        alt_h = 96
+        alt_h = 120
+        larg_h = 50
+        if img_halia:
+            ow_h, oh_h = img_halia.get_size()
+            larg_h = max(1, int(alt_h * (ow_h / oh_h)))
+
+        # Plataforma / Sombra sutil no chão sob Halia ancorada aos pés
+        pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 12, draw_hy + alt_h - 12, max(larg_h + 24, 76), 22))
 
         if img_halia:
-            img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
+            try:
+                img_c = pygame.transform.smoothscale(img_halia, (larg_h, alt_h))
+            except Exception:
+                img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
             if self.cs.shake_timers.get(self.cs.jogador, 0) > 6:
                 flash_surf = img_c.copy()
                 flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
@@ -342,6 +355,10 @@ class CombatRenderer:
         self.desenhar_barra(tela, draw_hx, base_h_bar_y + 20, mana_h_v, self.cs.jogador.mana_maxima, BARRA_MANA, largura=larg_h_bar, altura=alt_h_bar)
         tela.blit(self.cs.fonte_status.render(f"MP {int(mana_h_v)}/{self.cs.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))
 
+        # Efeitos Mágicos Visuais (Projéteis Direcionados, Rastros, Flashes e Explosões Elementais)
+        if hasattr(self.cs, "efeitos_visuais") and self.cs.efeitos_visuais:
+            self.cs.efeitos_visuais.desenhar(tela)
+
         # 4. PAINEL INFERIOR DE MENUS E COMBAT LOG
         altura_painel = 245
         painel_rect = pygame.Rect(40, self.altura - altura_painel - 20, self.largura - 80, altura_painel)
@@ -391,15 +408,18 @@ class CombatRenderer:
                     pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
                     pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
                     cor = AZUL_HOVER_MENU
-                    marcador = "►  "
+                    marcador = "> "
                 else:
                     pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
                     pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
                     cor = CINZA_LINHO
-                    marcador = "    "
+                    marcador = "  "
                     
-                custo_str = f"({ataque.custo_mana} MP)" if ataque.custo_mana > 0 else ""
-                txt = self.cs.fonte_menu.render(f"{marcador}{ataque.nome} {custo_str}".strip(), True, cor)
+                custo_atq = ataque.obter_custo_mana(self.cs.jogador) if hasattr(ataque, 'obter_custo_mana') else getattr(ataque, 'custo_mana', 0)
+                custo_str = f"({custo_atq} MP)" if custo_atq > 0 else ""
+                eh_aoe = getattr(ataque, 'alvo_tipo', '') in ["TODOS_INIMIGOS", "TODOS"] or getattr(ataque, 'tipo_alvo', '') in ["todos_inimigos", "todos"]
+                aoe_tag = " [ÁREA]" if eh_aoe else ""
+                txt = self.cs.fonte_menu.render(f"{marcador}{ataque.nome} {custo_str}{aoe_tag}".strip(), True, cor)
                 tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SUBMENU DE MAGIAS
@@ -419,15 +439,18 @@ class CombatRenderer:
                     pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
                     pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
                     cor = AZUL_HOVER_MENU
-                    marcador = "►  "
+                    marcador = "> "
                 else:
                     pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
                     pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
                     cor = CINZA_LINHO
-                    marcador = "    "
+                    marcador = "  "
                     
-                custo_txt = f"({magia.custo_mana} MP)" if magia.custo_mana > 0 else "(Gratis)"
-                txt = self.cs.fonte_menu.render(f"{marcador}{magia.nome} {custo_txt}", True, cor)
+                custo_efetivo = magia.obter_custo_mana(self.cs.jogador) if hasattr(magia, 'obter_custo_mana') else magia.custo_mana
+                custo_txt = f"({custo_efetivo} MP)" if custo_efetivo > 0 else "(Grátis)"
+                eh_aoe = getattr(magia, 'alvo_tipo', '') in ["TODOS_INIMIGOS", "TODOS"] or getattr(magia, 'tipo_alvo', '') in ["todos_inimigos", "todos"]
+                aoe_tag = " [ÁREA]" if eh_aoe else ""
+                txt = self.cs.fonte_menu.render(f"{marcador}{magia.nome} {custo_txt}{aoe_tag}", True, cor)
                 tela.blit(txt, (item_rect.x + 10, item_rect.centery - txt.get_height() // 2))
 
         # RENDERIZAR SUBMENU DE CONCENTRAR
@@ -447,12 +470,12 @@ class CombatRenderer:
                     pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
                     pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
                     cor = AZUL_HOVER_MENU
-                    marcador = "►  "
+                    marcador = "> "
                 else:
                     pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
                     pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
                     cor = CINZA_LINHO
-                    marcador = "    "
+                    marcador = "  "
                     
                 sufixo = "(+MP)" if acao.id_acao == "foco_espiritual" else "(Guarda)"
                 txt = self.cs.fonte_menu.render(f"{marcador}{acao.nome} {sufixo}", True, cor)
@@ -477,12 +500,12 @@ class CombatRenderer:
                     pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
                     pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
                     cor = AZUL_HOVER_MENU
-                    marcador = "►  "
+                    marcador = "> "
                 else:
                     pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
                     pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
                     cor = CINZA_LINHO
-                    marcador = "    "
+                    marcador = "  "
                     
                 txt_it = self.cs.fonte_menu.render(f"{marcador}{item.nome} (x{qtd})", True, cor)
                 tela.blit(txt_it, (item_rect.x + 10, item_rect.centery - txt_it.get_height() // 2))
@@ -566,29 +589,49 @@ class CombatRenderer:
         categoria = getattr(acao, 'categoria', '').upper()
         elemento = getattr(acao, 'elemento', 'NEUTRO').upper()
         desc = getattr(acao, 'descricao', '')
-        custo = getattr(acao, 'custo_mana', 0)
+        custo = acao.obter_custo_mana(self.cs.jogador) if hasattr(acao, 'obter_custo_mana') else getattr(acao, 'custo_mana', 0)
         custo_str = f" | Custo: {custo} MP" if custo > 0 else (" | Custo: Grátis" if tipo == "MAGICO" else "")
+
+        alvo_t = str(getattr(acao, 'alvo_tipo', getattr(acao, 'tipo_alvo', ''))).upper()
+        if alvo_t in ("TODOS_INIMIGOS", "TODOS"):
+            alvo_tag = " [ÁREA]"
+            alvo_info = " | Alvo: Todos os Inimigos"
+        elif alvo_t in ("PROPRIO", "ALIADO"):
+            alvo_tag = ""
+            alvo_info = " | Alvo: Próprio"
+        else:
+            alvo_tag = ""
+            alvo_info = " | Alvo: Inimigo Único"
 
         if categoria == "CONSUMIVEL":
             tipo_c = getattr(acao, 'tipo_consumivel', '')
             if tipo_c == "CURA_HP":
-                detalhe = f"[ITEM CURA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} HP - {desc}"
+                detalhe = f"[ITEM CURA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} HP{alvo_info} - {desc}"
             elif tipo_c == "RESTAURA_MP":
-                detalhe = f"[ITEM MANA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} MP - {desc}"
+                detalhe = f"[ITEM MANA] {acao.nome} | Restaura {getattr(acao, 'valor_efeito', 0)} MP{alvo_info} - {desc}"
             elif tipo_c == "DANO_OFENSIVO":
-                detalhe = f"[ITEM OFENSIVO] {acao.nome} | Causa {getattr(acao, 'valor_efeito', 0)} Dano - {desc}"
+                detalhe = f"[ITEM OFENSIVO{alvo_tag}] {acao.nome} | Causa {getattr(acao, 'valor_efeito', 0)} Dano{alvo_info} - {desc}"
             else:
-                detalhe = f"[ITEM] {acao.nome} - {desc}"
+                detalhe = f"[ITEM] {acao.nome}{alvo_info} - {desc}"
         elif tipo == "MAGICO":
-            detalhe = f"[{elemento}] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)} - {desc}"
+            bonus_m = self.cs.jogador.maestria_feiticos.get(getattr(acao, 'id_acao', ''), {}).get('bonus_poder', 0) if hasattr(self.cs.jogador, 'maestria_feiticos') else 0
+            bonus_g = 0
+            if hasattr(self.cs.jogador, 'inventario') and self.cs.jogador.inventario:
+                for g_s in ['GRIMORIO_1', 'GRIMORIO_2', 'GRIMORIO_3', 'GRIMORIO_4']:
+                    tomo = self.cs.jogador.inventario.equipados.get(g_s)
+                    if tomo and getattr(tomo, 'magia_id', None) == getattr(acao, 'id_acao', ''):
+                        bonus_g += getattr(tomo, 'bonus_poder', 0)
+            p_base = getattr(acao, 'poder_base', 0)
+            p_txt = f"{p_base} (+{bonus_m + bonus_g})" if (bonus_m + bonus_g) > 0 else f"{p_base}"
+            detalhe = f"[{elemento}{alvo_tag}] {acao.nome}{custo_str} | Poder: {p_txt}{alvo_info} - {desc}"
         elif tipo == "FOCO":
             detalhe = f"[TÁTICO] {acao.nome} - {desc}"
         elif tipo == "DEFESA":
             detalhe = f"[TÁTICO] {acao.nome} - {desc}"
         elif tipo == "FISICO":
-            detalhe = f"[FÍSICO] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)} - {desc}"
+            detalhe = f"[FÍSICO{alvo_tag}] {acao.nome}{custo_str} | Poder: {getattr(acao, 'poder_base', 0)}{alvo_info} - {desc}"
         else:
-            detalhe = f"[{elemento}] {acao.nome} - {desc}"
+            detalhe = f"[{elemento}{alvo_tag}] {acao.nome}{alvo_info} - {desc}"
 
         if largura_max is None:
             largura_max = self.largura - x - 40

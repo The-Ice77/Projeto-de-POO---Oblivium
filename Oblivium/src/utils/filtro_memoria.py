@@ -32,6 +32,10 @@ class FiltroMemoria:
         self.alpha_visual = float(self.ESTAGIOS[0]["alpha_cinza"])
         self.desativado = False
         
+        # Superfície pré-alocada em resolução 100% NATIVA (1280x720) sem downscale
+        # Elimina alocações de 3.6 MB por frame no Garbage Collector mantendo nitidez máxima
+        self._camada_cinza = pygame.Surface((self.largura, self.altura))
+        
         # Superfície de Flash / Onda de Expansão de Cor ao absorver memória
         self.overlay_flash = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
         self.flash_alpha = 0.0
@@ -99,16 +103,16 @@ class FiltroMemoria:
         alpha_int = int(max(0, min(255, self.alpha_visual)))
         
         if alpha_int > 0:
-            # 1. Converte a tela colorida em escala de cinza fotográfica real
-            camada_cinza = pygame.transform.grayscale(tela)
+            # 1. Converte a tela em escala de cinza nativa 1280x720 reutilizando o buffer pré-alocado
+            pygame.transform.grayscale(tela, self._camada_cinza)
             
-            # 2. Se estiver 100% preto e branco (Estágio 0), desenha direto para máximo desempenho
+            # 2. Se estiver 100% preto e branco (Estágio 0), blit opaco direto (máxima fidelidade e nitidez)
             if alpha_int >= 254:
-                tela.blit(camada_cinza, (0, 0))
+                tela.blit(self._camada_cinza, (0, 0))
             else:
                 # 3. Se for estágio intermediário, mescla proporcionalmente para dar efeito de saturação parcial
-                camada_cinza.set_alpha(alpha_int)
-                tela.blit(camada_cinza, (0, 0))
+                self._camada_cinza.set_alpha(alpha_int)
+                tela.blit(self._camada_cinza, (0, 0))
 
         # 4. Onda de Expansão de Cor ao Despertar
         if self.onda_ativa:

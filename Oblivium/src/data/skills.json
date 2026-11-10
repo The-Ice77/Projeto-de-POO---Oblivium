@@ -19,6 +19,30 @@
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 18
     },
+    "varredura_de_cajado": {
+        "id_acao": "varredura_de_cajado",
+        "nome": "Varredura de Cajado",
+        "descricao": "Um giro rápido e amplo com o cajado que atinge todos os inimigos à frente com impacto físico.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 6,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 14
+    },
+    "estocada_perfurante": {
+        "id_acao": "estocada_perfurante",
+        "nome": "Estocada Perfurante",
+        "descricao": "Uma investida ágil e concentrada mirando os pontos vitais do adversário com chance de sangramento.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 8,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 24,
+        "condicao_aplicada": {
+            "id_condicao": "sangramento",
+            "chance": 40
+        }
+    },
     "defender": {
         "id_acao": "defender",
         "nome": "Defender",
@@ -56,7 +80,7 @@
     "levitar": {
         "id_acao": "levitar",
         "nome": "Pulso de Gravidade",
-        "descricao": "Manipula a gravidade ao redor do alvo, arremessando detritos arcanos.",
+        "descricao": "Manipula o campo gravitacional ao redor do alvo, arremessando detritos arcanos.",
         "tipo": "MAGICO",
         "elemento": "ARCANO",
         "custo_mana": 14,
@@ -66,12 +90,36 @@
     "brisa_curativa": {
         "id_acao": "brisa_curativa",
         "nome": "Brisa Curativa",
-        "descricao": "Evoca ventos suaves impregnados de energia vital para curar ferimentos.",
+        "descricao": "Evoca ventos suaves impregnados de energia vital para restaurar vida.",
         "tipo": "CURA",
         "elemento": "SAGRADO",
         "custo_mana": 15,
         "alvo_tipo": "PROPRIO",
         "poder_base": 28
+    },
+    "vendaval_cortante": {
+        "id_acao": "vendaval_cortante",
+        "nome": "Vendaval Cortante",
+        "descricao": "Gira o cajado invocando lâminas de vento que varrem e fustigam todos os adversários no campo.",
+        "tipo": "MAGICO",
+        "elemento": "VENTO",
+        "custo_mana": 16,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 18
+    },
+    "estilhaco_glacial": {
+        "id_acao": "estilhaco_glacial",
+        "nome": "Estilhaço Glacial",
+        "descricao": "Dispara agulhas de gelo translúcido que congelam as extremidades do inimigo.",
+        "tipo": "MAGICO",
+        "elemento": "GELO",
+        "custo_mana": 10,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 20,
+        "condicao_aplicada": {
+            "id_condicao": "congelado",
+            "chance": 30
+        }
     },
     "raio_arcano": {
         "id_acao": "raio_arcano",
@@ -83,6 +131,34 @@
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 30
     },
+    "onda_de_chamas": {
+        "id_acao": "onda_de_chamas",
+        "nome": "Onda de Chamas",
+        "descricao": "Bate o cajado no solo e propaga uma maré de fogo vivo sobre todos os inimigos à frente.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 20,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 24,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 40
+        }
+    },
+    "bencao_da_terra": {
+        "id_acao": "bencao_da_terra",
+        "nome": "Bênção da Terra",
+        "descricao": "Canaliza a firmeza das raízes antigas, curando Halia e envolvendo seu corpo em uma couraça protetora.",
+        "tipo": "CURA",
+        "elemento": "TERRA",
+        "custo_mana": 14,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 20,
+        "condicao_aplicada": {
+            "id_condicao": "escudo_arcano",
+            "chance": 100
+        }
+    },
     "impacto_anomalo": {
         "id_acao": "impacto_anomalo",
         "nome": "Impacto Anômalo",
@@ -91,10 +167,38 @@
         "elemento": "ARCANO",
         "custo_mana": 20,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 26,
+        "poder_base": 34,
         "condicao_aplicada": {
             "id_condicao": "atordoado",
-            "chance": 28
+            "chance": 40
+        }
+    },
+    "tempestade_estatica": {
+        "id_acao": "tempestade_estatica",
+        "nome": "Tempestade Estática",
+        "descricao": "Descarrega uma saraivada de relâmpagos bifurcados que saltam entre todos os inimigos presentes.",
+        "tipo": "MAGICO",
+        "elemento": "ELETRICO",
+        "custo_mana": 24,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 30,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 30
+        }
+    },
+    "lamina_ignea_de_sylvan": {
+        "id_acao": "lamina_ignea_de_sylvan",
+        "nome": "Lâmina Ígnea de Sylvan",
+        "descricao": "Halia recorda o calor da forja do anão Sylvan e manifesta um golpe incendiário concentrado de poder devastador.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 18,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 38,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 50
         }
     },
     "escudo_etereo": {
@@ -107,6 +211,30 @@
         "alvo_tipo": "PROPRIO",
         "poder_base": 0
     },
+    "nevasca_ancestral": {
+        "id_acao": "nevasca_ancestral",
+        "nome": "Nevasca Ancestral",
+        "descricao": "Invoca um vórtice polar de neve cortante que envolve e congela todos os adversários.",
+        "tipo": "MAGICO",
+        "elemento": "GELO",
+        "custo_mana": 26,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 36,
+        "condicao_aplicada": {
+            "id_condicao": "congelado",
+            "chance": 40
+        }
+    },
+    "luz_restauradora_caelen": {
+        "id_acao": "luz_restauradora_caelen",
+        "nome": "Luz Restauradora de Caelen",
+        "descricao": "Em memória ao curandeiro Caelen, uma prece luminosa sara os ferimentos mais profundos de Halia.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 22,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 48
+    },
     "vortice_abissal": {
         "id_acao": "vortice_abissal",
         "nome": "Vórtice Abissal",
@@ -117,6 +245,30 @@
         "alvo_tipo": "TODOS_INIMIGOS",
         "poder_base": 42
     },
+    "julgamento_aurora_roland": {
+        "id_acao": "julgamento_aurora_roland",
+        "nome": "Julgamento da Aurora",
+        "descricao": "Ergue o cajado como a espada da aurora do paladino Roland, desferindo um raio sagrado inclemente.",
+        "tipo": "MAGICO",
+        "elemento": "SAGRADO",
+        "custo_mana": 26,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 50
+    },
+    "jardim_de_espinheiros": {
+        "id_acao": "jardim_de_espinheiros",
+        "nome": "Jardim de Espinheiros",
+        "descricao": "Ergue uma muralha de espinhos venenosos do chão que lacera todos os inimigos e drena sua força.",
+        "tipo": "MAGICO",
+        "elemento": "TERRA",
+        "custo_mana": 30,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 34,
+        "condicao_aplicada": {
+            "id_condicao": "veneno",
+            "chance": 40
+        }
+    },
     "claridade_ancestral": {
         "id_acao": "claridade_ancestral",
         "nome": "Claridade Ancestral",
@@ -125,12 +277,50 @@
         "elemento": "SAGRADO",
         "custo_mana": 25,
         "alvo_tipo": "PROPRIO",
-        "poder_base": 55
+        "poder_base": 60
+    },
+    "cometa_estelar": {
+        "id_acao": "cometa_estelar",
+        "nome": "Cometa Estelar",
+        "descricao": "Convoca fragmentos estelares cadentes que colidem em cadeia explodindo em luz cósmica sobre todos os alvos.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 34,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 48
+    },
+    "singularidade_oblivium": {
+        "id_acao": "singularidade_oblivium",
+        "nome": "Singularidade de Oblivium",
+        "descricao": "Distorce o próprio tecido do espaço-tempo, obliterando a matéria e a mente do adversário.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 40,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 65,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 60
+        }
+    },
+    "chamas_da_ressonancia": {
+        "id_acao": "chamas_da_ressonancia",
+        "nome": "Chamas da Ressonância",
+        "descricao": "As chamas ancestrais de Oakhaven unem-se ao poder primordial de Halia em uma tempestade de fogo eterno.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 42,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 58,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 60
+        }
     },
     "garras_sombrias": {
         "id_acao": "garras_sombrias",
         "nome": "Garras Sombrias",
-        "descricao": "Desfere um arranhao rapido e afiado carregado de escuridao.",
+        "descricao": "Desfere um arranhão rápido e afiado carregado de escuridão.",
         "tipo": "FISICO",
         "elemento": "SOMBRA",
         "custo_mana": 0,
@@ -140,7 +330,7 @@
     "investida_sombria": {
         "id_acao": "investida_sombria",
         "nome": "Investida Sombria",
-        "descricao": "Avanca com forca esmagadora contra o alvo.",
+        "descricao": "Avança com força esmagadora contra o alvo.",
         "tipo": "FISICO",
         "elemento": "SOMBRA",
         "custo_mana": 0,
@@ -150,7 +340,7 @@
     "toque_espectral": {
         "id_acao": "toque_espectral",
         "nome": "Toque Espectral",
-        "descricao": "Drena a vitalidade do alvo com um toque gelido.",
+        "descricao": "Drena a vitalidade do alvo com um toque gélido.",
         "tipo": "MAGICO",
         "elemento": "SOMBRA",
         "custo_mana": 0,
@@ -160,7 +350,7 @@
     "golpe_sombrio": {
         "id_acao": "golpe_sombrio",
         "nome": "Golpe Sombrio",
-        "descricao": "Uma investida envolta em sombras que atinge o alvo com forca fantasmagorica.",
+        "descricao": "Uma investida envolta em sombras que atinge o alvo com força fantasmagórica.",
         "tipo": "FISICO",
         "elemento": "SOMBRA",
         "custo_mana": 0,
@@ -170,15 +360,49 @@
     "onda_corrosiva": {
         "id_acao": "onda_corrosiva",
         "nome": "Onda Corrosiva",
-        "descricao": "Expele miasma sombrio causando dano mágico corrosivo e envenenamento.",
+        "descricao": "Expele miasma sombrio causando dano mágico corrosivo e envenenamento em todos os oponentes.",
         "tipo": "MAGICO",
         "elemento": "SOMBRA",
-        "custo_mana": 10,
-        "alvo_tipo": "INIMIGO_UNICO",
+        "custo_mana": 12,
+        "alvo_tipo": "TODOS_INIMIGOS",
         "poder_base": 14,
         "condicao_aplicada": {
             "id_condicao": "veneno",
             "chance": 35
         }
+    },
+    "sopro_de_brasas": {
+        "id_acao": "sopro_de_brasas",
+        "nome": "Sopro de Brasas Ancestrais",
+        "descricao": "Exala uma torrente ardente de chamas ancestrais que incendeia o alvo.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 14,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 20,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 50
+        }
+    },
+    "batida_de_asas": {
+        "id_acao": "batida_de_asas",
+        "nome": "Vendaval de Asas Rubras",
+        "descricao": "Bate as colossais asas coriáceas, lançando uma onda de impacto esmagadora em todos os adversários.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 0,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 14
+    },
+    "escamas_incandescentes": {
+        "id_acao": "escamas_incandescentes",
+        "nome": "Escamas Incandescentes",
+        "descricao": "Aquece a couraça dracônica até brilhar em brasa viva, reduzindo o dano sofrido.",
+        "tipo": "DEFESA",
+        "elemento": "FOGO",
+        "custo_mana": 10,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 0
     }
 }

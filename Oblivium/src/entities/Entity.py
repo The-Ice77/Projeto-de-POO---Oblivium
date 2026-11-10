@@ -98,7 +98,7 @@ class Entidade(ABC):
         for estado, animacao in pacote.items():
             self.animacoes[estado] = animacao
 
-    def atualizar_animacao(self):
+    def atualizar_animacao(self, dt=None):
         """Atualiza o frame atual da animação baseada no estado da entidade."""
         if not self.vivo and self.estado_atual not in ["morrer", "dead", "morte"]:
             self.mudar_estado("morrer")

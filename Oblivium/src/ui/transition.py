@@ -51,6 +51,17 @@ class Transition:
         self.caractere_atual = 0.0
         self.velocidade_digitacao = 0.55 # Digitação fluida de nomes/capítulos
 
+    @property
+    def ativo(self):
+        """Retorna True se a transição estiver em andamento (qualquer estado diferente de INATIVO)."""
+        return self.estado != "INATIVO"
+
+    @ativo.setter
+    def ativo(self, valor):
+        if not valor:
+            self.estado = "INATIVO"
+            self.alpha = 0
+
     def iniciar(self, texto_opcional=""):
         """
         Ativa o efeito de fade-out e transição poética. 

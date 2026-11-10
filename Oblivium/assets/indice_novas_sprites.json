@@ -1,0 +1,753 @@
+{
+  "halia": {
+    "nome": "Halia",
+    "tipo": "jogador",
+    "pasta": "Oblivium/assets/halia/novas_sprites",
+    "animacoes": {
+      "idle": {
+        "num_frames": 6,
+        "canvas": [
+          52,
+          125
+        ],
+        "pasta": "Oblivium/assets/halia/novas_sprites\\idle"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          52,
+          125
+        ],
+        "pasta": "Oblivium/assets/halia/novas_sprites\\dialogue"
+      },
+      "special": {
+        "num_frames": 6,
+        "canvas": [
+          57,
+          124
+        ],
+        "pasta": "Oblivium/assets/halia/novas_sprites\\special"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          65,
+          130
+        ],
+        "pasta": "Oblivium/assets/halia/novas_sprites\\walk"
+      },
+      "idle_2": {
+        "num_frames": 6,
+        "canvas": [
+          64,
+          96
+        ],
+        "pasta": "Oblivium/assets/halia/novas_sprites\\idle_2"
+      }
+    }
+  },
+  "sylvan_1": {
+    "nome": "Sylvan (Anão) - Folha 1",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/sylvan_anao",
+    "animacoes": {
+      "idle": {
+        "num_frames": 5,
+        "canvas": [
+          76,
+          107
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\idle"
+      },
+      "idle_2": {
+        "num_frames": 5,
+        "canvas": [
+          72,
+          106
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\idle_2"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          58,
+          108
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\walk"
+      },
+      "run": {
+        "num_frames": 7,
+        "canvas": [
+          83,
+          107
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\run"
+      },
+      "jump": {
+        "num_frames": 7,
+        "canvas": [
+          94,
+          130
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\jump"
+      }
+    }
+  },
+  "sylvan_2": {
+    "nome": "Sylvan (Anão) - Folha 2",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/sylvan_anao",
+    "animacoes": {
+      "attack_1": {
+        "num_frames": 5,
+        "canvas": [
+          125,
+          117
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\attack_1"
+      },
+      "attack_2": {
+        "num_frames": 6,
+        "canvas": [
+          126,
+          138
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\attack_2"
+      },
+      "special": {
+        "num_frames": 7,
+        "canvas": [
+          118,
+          123
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\special"
+      },
+      "hurt": {
+        "num_frames": 3,
+        "canvas": [
+          68,
+          102
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\hurt"
+      },
+      "dead": {
+        "num_frames": 4,
+        "canvas": [
+          131,
+          94
+        ],
+        "pasta": "Oblivium/assets/npc/sylvan_anao\\dead"
+      }
+    }
+  },
+  "roland": {
+    "nome": "Roland (Paladino)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/roland_paladino",
+    "animacoes": {
+      "idle": {
+        "num_frames": 4,
+        "canvas": [
+          92,
+          130
+        ],
+        "pasta": "Oblivium/assets/npc/roland_paladino\\idle"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          73,
+          132
+        ],
+        "pasta": "Oblivium/assets/npc/roland_paladino\\walk"
+      },
+      "attack": {
+        "num_frames": 3,
+        "canvas": [
+          180,
+          131
+        ],
+        "pasta": "Oblivium/assets/npc/roland_paladino\\attack"
+      },
+      "hurt": {
+        "num_frames": 3,
+        "canvas": [
+          91,
+          121
+        ],
+        "pasta": "Oblivium/assets/npc/roland_paladino\\hurt"
+      },
+      "dead": {
+        "num_frames": 4,
+        "canvas": [
+          126,
+          125
+        ],
+        "pasta": "Oblivium/assets/npc/roland_paladino\\dead"
+      }
+    }
+  },
+  "caelen": {
+    "nome": "Caelen (Clérigo)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/caelen_clerigo",
+    "animacoes": {
+      "idle": {
+        "num_frames": 7,
+        "canvas": [
+          62,
+          124
+        ],
+        "pasta": "Oblivium/assets/npc/caelen_clerigo\\idle"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          63,
+          122
+        ],
+        "pasta": "Oblivium/assets/npc/caelen_clerigo\\dialogue"
+      },
+      "special": {
+        "num_frames": 7,
+        "canvas": [
+          71,
+          121
+        ],
+        "pasta": "Oblivium/assets/npc/caelen_clerigo\\special"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          65,
+          125
+        ],
+        "pasta": "Oblivium/assets/npc/caelen_clerigo\\walk"
+      },
+      "attack": {
+        "num_frames": 7,
+        "canvas": [
+          109,
+          122
+        ],
+        "pasta": "Oblivium/assets/npc/caelen_clerigo\\attack"
+      }
+    }
+  },
+  "aldous": {
+    "nome": "Aldous (Líder da Vila)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/aldous_lider",
+    "animacoes": {
+      "idle": {
+        "num_frames": 5,
+        "canvas": [
+          86,
+          136
+        ],
+        "pasta": "Oblivium/assets/npc/aldous_lider\\idle"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          86,
+          133
+        ],
+        "pasta": "Oblivium/assets/npc/aldous_lider\\dialogue"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          78,
+          135
+        ],
+        "pasta": "Oblivium/assets/npc/aldous_lider\\walk"
+      },
+      "attack": {
+        "num_frames": 5,
+        "canvas": [
+          123,
+          132
+        ],
+        "pasta": "Oblivium/assets/npc/aldous_lider\\attack"
+      },
+      "special": {
+        "num_frames": 7,
+        "canvas": [
+          134,
+          134
+        ],
+        "pasta": "Oblivium/assets/npc/aldous_lider\\special"
+      }
+    }
+  },
+  "elara": {
+    "nome": "Elara (Curandeira)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/elara_curandeira",
+    "animacoes": {
+      "idle": {
+        "num_frames": 5,
+        "canvas": [
+          61,
+          129
+        ],
+        "pasta": "Oblivium/assets/npc/elara_curandeira\\idle"
+      },
+      "idle_2": {
+        "num_frames": 6,
+        "canvas": [
+          65,
+          129
+        ],
+        "pasta": "Oblivium/assets/npc/elara_curandeira\\idle_2"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          63,
+          128
+        ],
+        "pasta": "Oblivium/assets/npc/elara_curandeira\\walk"
+      },
+      "run": {
+        "num_frames": 7,
+        "canvas": [
+          83,
+          131
+        ],
+        "pasta": "Oblivium/assets/npc/elara_curandeira\\run"
+      },
+      "jump": {
+        "num_frames": 7,
+        "canvas": [
+          72,
+          138
+        ],
+        "pasta": "Oblivium/assets/npc/elara_curandeira\\jump"
+      }
+    }
+  },
+  "torvald": {
+    "nome": "Torvald (Ferreiro)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/torvald_ferreiro",
+    "animacoes": {
+      "idle": {
+        "num_frames": 7,
+        "canvas": [
+          91,
+          171
+        ],
+        "pasta": "Oblivium/assets/npc/torvald_ferreiro\\idle"
+      },
+      "idle_2": {
+        "num_frames": 6,
+        "canvas": [
+          90,
+          136
+        ],
+        "pasta": "Oblivium/assets/npc/torvald_ferreiro\\idle_2"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          84,
+          122
+        ],
+        "pasta": "Oblivium/assets/npc/torvald_ferreiro\\dialogue"
+      }
+    }
+  },
+  "taberneira_bartender": {
+    "nome": "Atendente da Taverna (Bartender)",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/taberneira_bartender",
+    "animacoes": {
+      "idle": {
+        "num_frames": 6,
+        "canvas": [
+          91,
+          127
+        ],
+        "pasta": "Oblivium/assets/npc/taberneira_bartender\\idle"
+      },
+      "dialogue": {
+        "num_frames": 6,
+        "canvas": [
+          91,
+          125
+        ],
+        "pasta": "Oblivium/assets/npc/taberneira_bartender\\dialogue"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          66,
+          127
+        ],
+        "pasta": "Oblivium/assets/npc/taberneira_bartender\\walk"
+      },
+      "sell": {
+        "num_frames": 7,
+        "canvas": [
+          85,
+          126
+        ],
+        "pasta": "Oblivium/assets/npc/taberneira_bartender\\sell"
+      }
+    }
+  },
+  "taberneiro_chefe": {
+    "nome": "Taberneiro Chefe",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/taberneiro_chefe",
+    "animacoes": {
+      "idle": {
+        "num_frames": 7,
+        "canvas": [
+          68,
+          133
+        ],
+        "pasta": "Oblivium/assets/npc/taberneiro_chefe\\idle"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          75,
+          133
+        ],
+        "pasta": "Oblivium/assets/npc/taberneiro_chefe\\dialogue"
+      },
+      "sell": {
+        "num_frames": 7,
+        "canvas": [
+          75,
+          130
+        ],
+        "pasta": "Oblivium/assets/npc/taberneiro_chefe\\sell"
+      }
+    }
+  },
+  "aventureiro": {
+    "nome": "Aventureiro / Guarda",
+    "tipo": "npc",
+    "pasta": "Oblivium/assets/npc/aventureiro",
+    "animacoes": {
+      "idle": {
+        "num_frames": 6,
+        "canvas": [
+          65,
+          129
+        ],
+        "pasta": "Oblivium/assets/npc/aventureiro\\idle"
+      },
+      "dialogue": {
+        "num_frames": 7,
+        "canvas": [
+          65,
+          127
+        ],
+        "pasta": "Oblivium/assets/npc/aventureiro\\dialogue"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          58,
+          128
+        ],
+        "pasta": "Oblivium/assets/npc/aventureiro\\walk"
+      },
+      "sell": {
+        "num_frames": 7,
+        "canvas": [
+          102,
+          126
+        ],
+        "pasta": "Oblivium/assets/npc/aventureiro\\sell"
+      }
+    }
+  },
+  "orc_guerreiro_1": {
+    "nome": "Orc Guerreiro (Verde) - Folha 1",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_guerreiro",
+    "animacoes": {
+      "idle": {
+        "num_frames": 6,
+        "canvas": [
+          89,
+          148
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\idle"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          75,
+          148
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\walk"
+      },
+      "run": {
+        "num_frames": 7,
+        "canvas": [
+          94,
+          147
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\run"
+      },
+      "run_attack": {
+        "num_frames": 4,
+        "canvas": [
+          114,
+          138
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\run_attack"
+      },
+      "attack_1": {
+        "num_frames": 4,
+        "canvas": [
+          148,
+          145
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\attack_1"
+      }
+    }
+  },
+  "orc_guerreiro_2": {
+    "nome": "Orc Guerreiro (Verde) - Folha 2",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_guerreiro",
+    "animacoes": {
+      "attack_2": {
+        "num_frames": 3,
+        "canvas": [
+          115,
+          131
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\attack_2"
+      },
+      "attack_3": {
+        "num_frames": 3,
+        "canvas": [
+          133,
+          126
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\attack_3"
+      },
+      "jump": {
+        "num_frames": 7,
+        "canvas": [
+          122,
+          177
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\jump"
+      },
+      "hurt": {
+        "num_frames": 2,
+        "canvas": [
+          78,
+          139
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\hurt"
+      },
+      "dead": {
+        "num_frames": 4,
+        "canvas": [
+          135,
+          127
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_guerreiro\\dead"
+      }
+    }
+  },
+  "orc_cacadora_1": {
+    "nome": "Orc Caçadora (Mulher) - Folha 1",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_cacadora",
+    "animacoes": {
+      "idle": {
+        "num_frames": 5,
+        "canvas": [
+          62,
+          143
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\idle"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          63,
+          141
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\walk"
+      },
+      "run": {
+        "num_frames": 7,
+        "canvas": [
+          97,
+          133
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\run"
+      },
+      "run_attack": {
+        "num_frames": 5,
+        "canvas": [
+          111,
+          133
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\run_attack"
+      },
+      "attack_1": {
+        "num_frames": 5,
+        "canvas": [
+          115,
+          138
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\attack_1"
+      }
+    }
+  },
+  "orc_cacadora_2": {
+    "nome": "Orc Caçadora (Mulher) - Folha 2",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_cacadora",
+    "animacoes": {
+      "attack_2": {
+        "num_frames": 3,
+        "canvas": [
+          128,
+          154
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\attack_2"
+      },
+      "attack_3": {
+        "num_frames": 3,
+        "canvas": [
+          133,
+          120
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\attack_3"
+      },
+      "jump": {
+        "num_frames": 7,
+        "canvas": [
+          80,
+          151
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\jump"
+      },
+      "hurt": {
+        "num_frames": 2,
+        "canvas": [
+          63,
+          134
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\hurt"
+      },
+      "dead": {
+        "num_frames": 4,
+        "canvas": [
+          116,
+          128
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_cacadora\\dead"
+      }
+    }
+  },
+  "orc_berserker_1": {
+    "nome": "Orc Berserker (Vermelho) - Folha 1",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_berserker",
+    "animacoes": {
+      "idle": {
+        "num_frames": 6,
+        "canvas": [
+          89,
+          148
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\idle"
+      },
+      "walk": {
+        "num_frames": 7,
+        "canvas": [
+          75,
+          148
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\walk"
+      },
+      "run": {
+        "num_frames": 7,
+        "canvas": [
+          94,
+          147
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\run"
+      },
+      "run_attack": {
+        "num_frames": 4,
+        "canvas": [
+          114,
+          140
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\run_attack"
+      },
+      "attack_1": {
+        "num_frames": 4,
+        "canvas": [
+          139,
+          145
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\attack_1"
+      }
+    }
+  },
+  "orc_berserker_2": {
+    "nome": "Orc Berserker (Vermelho) - Folha 2",
+    "tipo": "inimigo",
+    "pasta": "Oblivium/assets/inimigos/orc_berserker",
+    "animacoes": {
+      "attack_2": {
+        "num_frames": 3,
+        "canvas": [
+          114,
+          131
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\attack_2"
+      },
+      "attack_3": {
+        "num_frames": 3,
+        "canvas": [
+          134,
+          134
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\attack_3"
+      },
+      "jump": {
+        "num_frames": 7,
+        "canvas": [
+          121,
+          174
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\jump"
+      },
+      "hurt": {
+        "num_frames": 2,
+        "canvas": [
+          79,
+          139
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\hurt"
+      },
+      "dead": {
+        "num_frames": 4,
+        "canvas": [
+          137,
+          127
+        ],
+        "pasta": "Oblivium/assets/inimigos/orc_berserker\\dead"
+      }
+    }
+  }
+}

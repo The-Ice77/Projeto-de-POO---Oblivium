@@ -473,12 +473,18 @@ class CombatInputHandler:
             return
 
         ataque = self.cs.ataques_fisicos_disponiveis[self.cs.indice_ataque_fisico]
-        if ataque.custo_mana > 0 and self.cs.jogador.mana_atual < ataque.custo_mana:
+        custo_atq = ataque.obter_custo_mana(self.cs.jogador) if hasattr(ataque, 'obter_custo_mana') else getattr(ataque, 'custo_mana', 0)
+        if custo_atq > 0 and self.cs.jogador.mana_atual < custo_atq:
             self.cs._tocar_sfx("ui_erro")
-            self.cs.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.cs.jogador.mana_atual, custo_mana=ataque.custo_mana))
+            self.cs.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.cs.jogador.mana_atual, custo_mana=custo_atq))
             return
 
         self.cs._tocar_sfx("ui_confirmar")
+        alvo_tipo = getattr(ataque, 'tipo_alvo', getattr(ataque, 'alvo_tipo', 'inimigo_unico')).lower()
+        if alvo_tipo in ["todos_inimigos", "todos"]:
+            self.cs._executar_acao_jogador(ataque, self.cs.inimigos)
+            return
+
         inimigos_vivos = self.cs._obter_inimigos_vivos()
         if len(inimigos_vivos) == 1:
             self.cs._executar_acao_jogador(ataque, inimigos_vivos[0])
@@ -501,9 +507,10 @@ class CombatInputHandler:
             return
 
         magia = self.cs.magias_disponiveis[self.cs.indice_magia]
-        if self.cs.jogador.mana_atual < magia.custo_mana:
+        custo_magia = magia.obter_custo_mana(self.cs.jogador) if hasattr(magia, 'obter_custo_mana') else magia.custo_mana
+        if self.cs.jogador.mana_atual < custo_magia:
             self.cs._tocar_sfx("ui_erro")
-            self.cs.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.cs.jogador.mana_atual, custo_mana=magia.custo_mana))
+            self.cs.adicionar_log(CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.cs.jogador.mana_atual, custo_mana=custo_magia))
             return
 
         self.cs._tocar_sfx("ui_confirmar")

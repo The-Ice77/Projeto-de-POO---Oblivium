@@ -15,14 +15,25 @@
             "sabedoria": 8,
             "presenca": 9
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
+        "habilidades": [
+            "garras_sombrias",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
         "recompensas": {
             "moedas": 12,
             "memorias": 0,
             "xp": 20
         },
-        "dimensoes": [36, 36],
-        "cor": [80, 30, 110]
+        "dimensoes": [
+            36,
+            36
+        ],
+        "cor": [
+            80,
+            30,
+            110
+        ]
     },
     "sombra_menor": {
         "nome": "Demônio Inferior das Sombras",
@@ -40,14 +51,25 @@
             "sabedoria": 8,
             "presenca": 9
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
+        "habilidades": [
+            "garras_sombrias",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
         "recompensas": {
             "moedas": 10,
             "memorias": 0,
             "xp": 18
         },
-        "dimensoes": [36, 36],
-        "cor": [80, 30, 110]
+        "dimensoes": [
+            36,
+            36
+        ],
+        "cor": [
+            80,
+            30,
+            110
+        ]
     },
     "gulosinho": {
         "nome": "Demônio Inferior",
@@ -65,14 +87,25 @@
             "sabedoria": 8,
             "presenca": 9
         },
-        "habilidades": ["garras_sombrias", "golpe_sombrio", "investida_sombria"],
+        "habilidades": [
+            "garras_sombrias",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
         "recompensas": {
             "moedas": 12,
             "memorias": 0,
             "xp": 20
         },
-        "dimensoes": [36, 36],
-        "cor": [80, 30, 110]
+        "dimensoes": [
+            36,
+            36
+        ],
+        "cor": [
+            80,
+            30,
+            110
+        ]
     },
     "sombra_guardia": {
         "nome": "Sombra Guardiã",
@@ -90,14 +123,24 @@
             "sabedoria": 8,
             "presenca": 9
         },
-        "habilidades": ["investida_sombria", "golpe_sombrio"],
+        "habilidades": [
+            "investida_sombria",
+            "golpe_sombrio"
+        ],
         "recompensas": {
             "moedas": 15,
             "memorias": 0,
             "xp": 20
         },
-        "dimensoes": [40, 40],
-        "cor": [60, 20, 90]
+        "dimensoes": [
+            40,
+            40
+        ],
+        "cor": [
+            60,
+            20,
+            90
+        ]
     },
     "espectro_errante": {
         "nome": "Olho Espectral",
@@ -115,14 +158,25 @@
             "sabedoria": 12,
             "presenca": 11
         },
-        "habilidades": ["toque_espectral", "onda_corrosiva", "golpe_sombrio"],
+        "habilidades": [
+            "toque_espectral",
+            "onda_corrosiva",
+            "golpe_sombrio"
+        ],
         "recompensas": {
             "moedas": 12,
             "memorias": 0,
             "xp": 18
         },
-        "dimensoes": [36, 36],
-        "cor": [50, 80, 140]
+        "dimensoes": [
+            36,
+            36
+        ],
+        "cor": [
+            50,
+            80,
+            140
+        ]
     },
     "banco": {
         "nome": "Olho Voraz",
@@ -140,14 +194,25 @@
             "sabedoria": 12,
             "presenca": 11
         },
-        "habilidades": ["toque_espectral", "onda_corrosiva", "golpe_sombrio"],
+        "habilidades": [
+            "toque_espectral",
+            "onda_corrosiva",
+            "golpe_sombrio"
+        ],
         "recompensas": {
             "moedas": 15,
             "memorias": 0,
             "xp": 20
         },
-        "dimensoes": [36, 36],
-        "cor": [50, 80, 140]
+        "dimensoes": [
+            36,
+            36
+        ],
+        "cor": [
+            50,
+            80,
+            140
+        ]
     },
     "demonio_superior": {
         "nome": "Demônio Superior",
@@ -165,14 +230,26 @@
             "sabedoria": 11,
             "presenca": 14
         },
-        "habilidades": ["golpe_sombrio", "investida_sombria", "impacto_anomalo", "onda_corrosiva"],
+        "habilidades": [
+            "golpe_sombrio",
+            "investida_sombria",
+            "impacto_anomalo",
+            "onda_corrosiva"
+        ],
         "recompensas": {
             "moedas": 50,
             "memorias": 1,
             "xp": 100
         },
-        "dimensoes": [55, 50],
-        "cor": [150, 0, 200]
+        "dimensoes": [
+            55,
+            50
+        ],
+        "cor": [
+            150,
+            0,
+            200
+        ]
     },
     "anomalia_maior": {
         "nome": "Demônio Superior Enfurecido",
@@ -190,14 +267,26 @@
             "sabedoria": 11,
             "presenca": 14
         },
-        "habilidades": ["golpe_sombrio", "investida_sombria", "impacto_anomalo", "onda_corrosiva"],
+        "habilidades": [
+            "golpe_sombrio",
+            "investida_sombria",
+            "impacto_anomalo",
+            "onda_corrosiva"
+        ],
         "recompensas": {
             "moedas": 45,
             "memorias": 1,
             "xp": 80
         },
-        "dimensoes": [55, 50],
-        "cor": [150, 0, 200]
+        "dimensoes": [
+            55,
+            50
+        ],
+        "cor": [
+            150,
+            0,
+            200
+        ]
     },
     "gulosao": {
         "nome": "Demônio Superior",
@@ -215,14 +304,26 @@
             "sabedoria": 11,
             "presenca": 14
         },
-        "habilidades": ["golpe_sombrio", "investida_sombria", "impacto_anomalo", "onda_corrosiva"],
+        "habilidades": [
+            "golpe_sombrio",
+            "investida_sombria",
+            "impacto_anomalo",
+            "onda_corrosiva"
+        ],
         "recompensas": {
             "moedas": 50,
             "memorias": 1,
             "xp": 100
         },
-        "dimensoes": [55, 50],
-        "cor": [150, 0, 200]
+        "dimensoes": [
+            55,
+            50
+        ],
+        "cor": [
+            150,
+            0,
+            200
+        ]
     },
     "guardiao_antigo": {
         "nome": "Guardião Antigo das Rochas",
@@ -240,13 +341,170 @@
             "sabedoria": 14,
             "presenca": 15
         },
-        "habilidades": ["investida_sombria", "golpe_sombrio", "impacto_anomalo"],
+        "habilidades": [
+            "investida_sombria",
+            "golpe_sombrio",
+            "impacto_anomalo"
+        ],
         "recompensas": {
             "moedas": 75,
             "memorias": 2,
             "xp": 150
         },
-        "dimensoes": [65, 55],
-        "cor": [110, 50, 40]
+        "dimensoes": [
+            65,
+            55
+        ],
+        "cor": [
+            110,
+            50,
+            40
+        ]
+    },
+    "dragao_vermelho": {
+        "nome": "Ignis'Vahr, o Dragão Vermelho Ancestral",
+        "classe": "Boss",
+        "pasta_sprites": "dragao_vermelho",
+        "vida_base": 135,
+        "mana_base": 80,
+        "velocidade": 1.8,
+        "dano_base": 18,
+        "atributos": {
+            "forca": 18,
+            "destreza": 11,
+            "constituicao": 18,
+            "intelecto": 15,
+            "sabedoria": 14,
+            "presenca": 17
+        },
+        "habilidades": [
+            "sopro_de_brasas",
+            "batida_de_asas",
+            "escamas_incandescentes",
+            "investida_sombria"
+        ],
+        "recompensas": {
+            "moedas": 120,
+            "memorias": 0,
+            "xp": 220
+        },
+        "dimensoes": [
+            180,
+            110
+        ],
+        "cor": [
+            195,
+            42,
+            36
+        ]
+    },
+    "orc_guerreiro": {
+        "nome": "Guerreiro Orc de Vanguarda",
+        "classe": "Enemy",
+        "pasta_sprites": "orc_guerreiro",
+        "vida_base": 55,
+        "mana_base": 20,
+        "velocidade": 2.2,
+        "dano_base": 12,
+        "atributos": {
+            "forca": 14,
+            "destreza": 11,
+            "constituicao": 14,
+            "intelecto": 8,
+            "sabedoria": 9,
+            "presenca": 11
+        },
+        "habilidades": [
+            "ataque_basico",
+            "golpe_concentrado",
+            "estocada_perfurante"
+        ],
+        "recompensas": {
+            "moedas": 22,
+            "memorias": 0,
+            "xp": 35
+        },
+        "dimensoes": [
+            45,
+            45
+        ],
+        "cor": [
+            85,
+            120,
+            60
+        ]
+    },
+    "orc_cacadora": {
+        "nome": "Caçadora Orc Rastreadora",
+        "classe": "Enemy",
+        "pasta_sprites": "orc_cacadora",
+        "vida_base": 42,
+        "mana_base": 30,
+        "velocidade": 2.8,
+        "dano_base": 11,
+        "atributos": {
+            "forca": 11,
+            "destreza": 16,
+            "constituicao": 11,
+            "intelecto": 10,
+            "sabedoria": 13,
+            "presenca": 10
+        },
+        "habilidades": [
+            "ataque_basico",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
+        "recompensas": {
+            "moedas": 20,
+            "memorias": 0,
+            "xp": 32
+        },
+        "dimensoes": [
+            40,
+            45
+        ],
+        "cor": [
+            95,
+            135,
+            70
+        ]
+    },
+    "orc_berserker": {
+        "nome": "Orc Berserker Enfurecido",
+        "classe": "Enemy",
+        "pasta_sprites": "orc_berserker",
+        "vida_base": 78,
+        "mana_base": 25,
+        "velocidade": 2.0,
+        "dano_base": 16,
+        "atributos": {
+            "forca": 17,
+            "destreza": 10,
+            "constituicao": 16,
+            "intelecto": 7,
+            "sabedoria": 8,
+            "presenca": 14
+        },
+        "habilidades": [
+            "ataque_basico",
+            "golpe_concentrado",
+            "impacto_anomalo",
+            "varredura_de_cajado"
+        ],
+        "recompensas": {
+            "moedas": 35,
+            "memorias": 1,
+            "xp": 55
+        },
+        "dimensoes": [
+            50,
+            50
+        ],
+        "cor": [
+            140,
+            50,
+            40
+        ]
     }
 }

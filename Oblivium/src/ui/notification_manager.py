@@ -233,6 +233,40 @@ class NotificationManager:
     def notificar_sincronia_aumentada(self, nivel):
         self.notificar("notificacao_sincronia", nivel=nivel)
 
+    def notificar_level(self, nivel):
+        """Dispara banner de novo nível alcançado a partir do catálogo oficial."""
+        self.notificar("notificacao_level", nivel=nivel)
+
+    def adicionar(self, titulo_ou_mensagem, mensagem=None, tipo="ITEM", duracao_ticks=150, icone="✦", **kwargs):
+        """
+        Método de compatibilidade universal com chamadas legadas:
+        - Suporta `adicionar("Mensagem")` (1 argumento)
+        - Suporta `adicionar("Título", "Mensagem")` (2 argumentos)
+        - Suporta kwargs como `tipo="MEMORIA"`, `duracao_ticks=200`, etc.
+        """
+        if mensagem is None:
+            texto = str(titulo_ou_mensagem)
+            if "!" in texto:
+                partes = texto.split("!", 1)
+                titulo = (partes[0] + "!").strip()
+                corpo = partes[1].strip() or titulo
+            elif ":" in texto:
+                partes = texto.split(":", 1)
+                titulo = partes[0].strip()
+                corpo = partes[1].strip() or titulo
+            else:
+                titulo = "Aviso"
+                corpo = texto
+
+            tipo_detectado = "MEMORIA" if any(w in texto.lower() for w in ["level", "nível", "nivel"]) else tipo
+            self.notificar(titulo, corpo, tipo=kwargs.get("tipo", tipo_detectado), duracao_ticks=duracao_ticks, icone=icone, **kwargs)
+        else:
+            self.notificar(titulo_ou_mensagem, mensagem, tipo=tipo, duracao_ticks=duracao_ticks, icone=icone, **kwargs)
+
+    def adicionar_notificacao(self, titulo, mensagem=None, tipo="ITEM", duracao_ticks=150, icone="✦", **kwargs):
+        """Alias para manter 100% de retrocompatibilidade com chamadas legadas."""
+        self.adicionar(titulo, mensagem, tipo=tipo, duracao_ticks=duracao_ticks, icone=icone, **kwargs)
+
     def notificar_conquista(self, conquista):
         """
         Dispara banner comemorativo no formato Steam Dark Fantasy para uma nova conquista.

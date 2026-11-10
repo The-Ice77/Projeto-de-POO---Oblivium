@@ -68,7 +68,14 @@ class Enemy(Entidade):
         self.pasta_sprites = pasta_sprites
         pasta_low = pasta_sprites.lower()
 
-        if "superior" in pasta_low or "gulosao" in pasta_low:
+        if "dragao" in pasta_low:
+            escala = 2.0
+            self.largura = 220
+            self.altura = 130
+            self.flutuante = False
+            self.escala_combate = 1.15
+            self.cor = (195, 42, 36)
+        elif "superior" in pasta_low or "gulosao" in pasta_low or "grande" in pasta_low:
             escala = 0.70
             self.largura = 55
             self.altura = 50
@@ -82,6 +89,20 @@ class Enemy(Entidade):
             self.flutuante = True
             self.escala_combate = 0.85
             self.cor = (50, 80, 140)
+        elif "orc_berserker" in pasta_low:
+            escala = 0.65
+            self.largura = 50
+            self.altura = 50
+            self.flutuante = False
+            self.escala_combate = 1.05
+            self.cor = (140, 50, 40)
+        elif "orc" in pasta_low:
+            escala = 0.60
+            self.largura = 45
+            self.altura = 45
+            self.flutuante = False
+            self.escala_combate = 0.95
+            self.cor = (85, 120, 60)
         else: # demonio_inferior / padrão
             escala = 0.55
             self.largura = 36
@@ -154,6 +175,13 @@ class Enemy(Entidade):
             offset_x = (largura_img - getattr(self, 'largura', 40)) / 2
             offset_y = altura_img - getattr(self, 'altura', 40)
             offset_flutuante = -12 if getattr(self, 'flutuante', False) else 0
+
+            # Sombra e calor residual imponente sob o corpo colossal do dragão
+            if "dragao" in getattr(self, 'pasta_sprites', '').lower():
+                sombra_dragao = pygame.Surface((250, 42), pygame.SRCALPHA)
+                pygame.draw.ellipse(sombra_dragao, (12, 6, 6, 120), (0, 0, 250, 42))
+                pygame.draw.ellipse(sombra_dragao, (215, 45, 15, 45), (20, 6, 210, 30))
+                tela.blit(sombra_dragao, (int(self.x + getattr(self, 'largura', 180) // 2 - 125), int(self.y + getattr(self, 'altura', 110) - 16)))
 
             tela.blit(imagem, (int(self.x - offset_x), int(self.y - offset_y + offset_flutuante)))
         else:

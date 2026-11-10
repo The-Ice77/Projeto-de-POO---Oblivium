@@ -4,28 +4,39 @@
       "id": "missao_boas_vindas",
       "titulo": "O Refúgio de Oakhaven",
       "categoria": "PRINCIPAL",
-      "doador": "Ancião da Vila",
-      "descricao": "Encontre o Ancião no vilarejo para obter respostas sobre seu passado e as anomalias da névoa.",
+      "doador": "Ancião Aldous",
+      "npc_id": "anciao_aldous",
+      "dialogo_andamento": "aldous_missao_andamento",
+      "dialogo_conclusao": "aldous_missao_concluir",
+      "descricao": "Converse com a Curandeira Elara na botânica e com o Ferreiro Torvald na forja, conclua as tarefas secundárias de ambos para ajudar a vila e retorne ao Ancião Aldous.",
       "objetivos": [
         {
-          "id": "falar_anciao",
-          "descricao": "Apresentar-se ao Ancião da Vila",
+          "id": "ajudar_elara",
+          "descricao": "Ajudar a Curandeira Elara com as Ervas de Orvalho Lunar",
           "atual": 0,
           "alvo": 1,
           "concluido": false
         },
         {
-          "id": "conhecer_mercado",
-          "descricao": "Explorar o mercado central e a forja",
+          "id": "ajudar_torvald",
+          "descricao": "Ajudar o Ferreiro Torvald quebrando a Rocha de Minério",
           "atual": 0,
           "alvo": 1,
           "concluido": false
+        },
+        {
+          "id": "falar_anciao",
+          "descricao": "Retornar e conversar com o Ancião Aldous na Praça Central",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false,
+          "tipo": "entrega_npc"
         }
       ],
       "recompensas": {
         "dinheiro": 200,
         "xp": 100,
-        "itens": ["pocao_cura"]
+        "itens": ["pocao_vida_menor"]
       },
       "status": "DISPONIVEL"
     },
@@ -34,11 +45,14 @@
       "titulo": "Reagentes para a Cura",
       "categoria": "SECUNDARIA",
       "doador": "Curandeira Elara",
-      "descricao": "Colete 3 Ervas Medicinais na orla da floresta para renovar o estoque da enfermaria.",
+      "npc_id": "curandeira_elara",
+      "dialogo_andamento": "elara_missao_andamento",
+      "dialogo_conclusao": "elara_missao_concluir",
+      "descricao": "Colete 3 Ervas de Orvalho Lunar na clareira botânica de Oakhaven e entregue-as à Curandeira Elara, que também cuidará dos seus ferimentos da estrada.",
       "objetivos": [
         {
           "id": "coletar_ervas",
-          "descricao": "Coletar Ervas Medicinais",
+          "descricao": "Coletar Ervas de Orvalho Lunar",
           "atual": 0,
           "alvo": 3,
           "concluido": false
@@ -48,13 +62,47 @@
           "descricao": "Entregar as ervas à Curandeira Elara",
           "atual": 0,
           "alvo": 1,
-          "concluido": false
+          "concluido": false,
+          "tipo": "entrega_npc"
         }
       ],
       "recompensas": {
         "dinheiro": 150,
         "xp": 75,
-        "itens": ["frasco_mana"]
+        "itens": ["elixir_mana_menor"]
+      },
+      "status": "DISPONIVEL"
+    },
+    {
+      "id": "missao_pedra_forja",
+      "titulo": "O Minério Estilhaçado",
+      "categoria": "SECUNDARIA",
+      "doador": "Ferreiro Torvald",
+      "npc_id": "ferreiro_torvald",
+      "dialogo_andamento": "torvald_missao_andamento",
+      "dialogo_conclusao": "torvald_missao_concluir",
+      "descricao": "Quebre a dura Rocha de Minério Bruto no pátio da forja para expor o núcleo metálico e fale novamente com o Ferreiro Torvald para receber um equipamento forjado.",
+      "objetivos": [
+        {
+          "id": "quebrar_pedra_forja",
+          "descricao": "Quebrar a Rocha de Minério Bruto no pátio da forja",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false
+        },
+        {
+          "id": "entregar_minerio_torvald",
+          "descricao": "Falar com o Ferreiro Torvald para receber sua recompensa",
+          "atual": 0,
+          "alvo": 1,
+          "concluido": false,
+          "tipo": "entrega_npc"
+        }
+      ],
+      "recompensas": {
+        "dinheiro": 180,
+        "xp": 90,
+        "itens": ["amuleto_guardiao_antigo"]
       },
       "status": "DISPONIVEL"
     },
@@ -62,28 +110,32 @@
       "id": "missao_ronda_fronteiras",
       "titulo": "Ronda nas Fronteiras",
       "categoria": "SECUNDARIA",
-      "doador": "Guarda da Paliçada",
-      "descricao": "Elimine 2 Demônios Inferiores que rondam as cercanias da vila para assegurar a passagem.",
+      "doador": "Guarda Doran",
+      "npc_id": "guarda_doran",
+      "dialogo_andamento": "doran_missao_andamento",
+      "dialogo_conclusao": "doran_missao_concluir",
+      "descricao": "Acompanhe o Guarda Doran até a clareira da Orla Norte para afastar os 2 Batedores Demoníacos e retorne à vila ao cair da noite.",
       "objetivos": [
         {
           "id": "derrotar_demonios",
-          "descricao": "Derrotar Demônios Inferiores",
+          "descricao": "Derrotar os 2 Batedores Demoníacos na Orla Norte",
           "atual": 0,
           "alvo": 2,
           "concluido": false
         },
         {
           "id": "relatar_guarda",
-          "descricao": "Relatar a segurança ao Guarda",
+          "descricao": "Relatar a segurança ao Guarda Doran em Oakhaven",
           "atual": 0,
           "alvo": 1,
-          "concluido": false
+          "concluido": false,
+          "tipo": "entrega_npc"
         }
       ],
       "recompensas": {
         "dinheiro": 300,
         "xp": 150,
-        "itens": ["cristal_arcano"]
+        "itens": ["po_eter"]
       },
       "status": "DISPONIVEL"
     }

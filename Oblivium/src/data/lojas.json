@@ -1,0 +1,216 @@
+{
+  "botanica_elara": {
+    "id": "botanica_elara",
+    "nome": "Boticário & Ervanária de Elara",
+    "tipo": "ALQUIMIA",
+    "descricao": "Ervas frescas, poções medicinais e elixires restauradores colhidos e destilados em Oakhaven.",
+    "itens": [
+      {
+        "item_id": "pocao_vida_menor",
+        "preco_compra": 25,
+        "preco_venda": 12,
+        "estoque_inicial": 10,
+        "estoque_maximo": 20
+      },
+      {
+        "item_id": "pocao_vida_maior",
+        "preco_compra": 70,
+        "preco_venda": 35,
+        "estoque_inicial": 4,
+        "estoque_maximo": 10
+      },
+      {
+        "item_id": "elixir_mana_menor",
+        "preco_compra": 30,
+        "preco_venda": 15,
+        "estoque_inicial": 8,
+        "estoque_maximo": 15
+      },
+      {
+        "item_id": "elixir_mana_maior",
+        "preco_compra": 85,
+        "preco_venda": 42,
+        "estoque_inicial": 3,
+        "estoque_maximo": 8
+      },
+      {
+        "item_id": "unguento_purificador",
+        "preco_compra": 40,
+        "preco_venda": 18,
+        "estoque_inicial": 6,
+        "estoque_maximo": 12
+      },
+      {
+        "item_id": "erva_lunar",
+        "preco_compra": 10,
+        "preco_venda": 5,
+        "estoque_inicial": 15,
+        "estoque_maximo": 30
+      },
+      {
+        "item_id": "po_eter",
+        "preco_compra": 15,
+        "preco_venda": 7,
+        "estoque_inicial": 12,
+        "estoque_maximo": 25
+      },
+      {
+        "item_id": "tomo_brisa_restauradora",
+        "preco_compra": 140,
+        "preco_venda": 70,
+        "estoque_inicial": 1,
+        "estoque_maximo": 1
+      }
+    ]
+  },
+  "forja_torvald": {
+    "id": "forja_torvald",
+    "nome": "Forja & Armaria de Torvald",
+    "tipo": "FERRARIA",
+    "descricao": "Armamentos rúnicos, artefatos reforçados e minérios brutos temperados nas brasas de Oakhaven.",
+    "itens": [
+      {
+        "item_id": "cajado_espinheiro",
+        "preco_compra": 75,
+        "preco_venda": 35,
+        "estoque_inicial": 3,
+        "estoque_maximo": 5
+      },
+      {
+        "item_id": "cajado_orvalho_estelar",
+        "preco_compra": 220,
+        "preco_venda": 110,
+        "estoque_inicial": 1,
+        "estoque_maximo": 1
+      },
+      {
+        "item_id": "manto_arcanista",
+        "preco_compra": 60,
+        "preco_venda": 30,
+        "estoque_inicial": 2,
+        "estoque_maximo": 4
+      },
+      {
+        "item_id": "anel_cristal_mana",
+        "preco_compra": 90,
+        "preco_venda": 45,
+        "estoque_inicial": 2,
+        "estoque_maximo": 3
+      },
+      {
+        "item_id": "amuleto_guardiao_antigo",
+        "preco_compra": 95,
+        "preco_venda": 48,
+        "estoque_inicial": 1,
+        "estoque_maximo": 2
+      },
+      {
+        "item_id": "minerio_sombrio",
+        "preco_compra": 35,
+        "preco_venda": 18,
+        "estoque_inicial": 8,
+        "estoque_maximo": 16
+      },
+      {
+        "item_id": "madeira_espinheiro",
+        "preco_compra": 12,
+        "preco_venda": 6,
+        "estoque_inicial": 10,
+        "estoque_maximo": 20
+      },
+      {
+        "item_id": "frasco_fogo_alquimico",
+        "preco_compra": 45,
+        "preco_venda": 20,
+        "estoque_inicial": 5,
+        "estoque_maximo": 10
+      },
+      {
+        "item_id": "tomo_chama_ancestral",
+        "preco_compra": 150,
+        "preco_venda": 75,
+        "estoque_inicial": 1,
+        "estoque_maximo": 1
+      }
+    ]
+  },
+  "emporio_viajante": {
+    "id": "emporio_viajante",
+    "nome": "Empório do Viajante",
+    "tipo": "GERAL",
+    "descricao": "Suprimentos essenciais, utilidades de estrada e mantimentos para longas travessias.",
+    "itens": [
+      {
+        "item_id": "pocao_vida_menor",
+        "preco_compra": 25,
+        "preco_venda": 12,
+        "estoque_inicial": 8,
+        "estoque_maximo": 15
+      },
+      {
+        "item_id": "elixir_mana_menor",
+        "preco_compra": 30,
+        "preco_venda": 15,
+        "estoque_inicial": 6,
+        "estoque_maximo": 12
+      },
+      {
+        "item_id": "frasco_fogo_alquimico",
+        "preco_compra": 45,
+        "preco_venda": 20,
+        "estoque_inicial": 4,
+        "estoque_maximo": 8
+      },
+      {
+        "item_id": "unguento_purificador",
+        "preco_compra": 40,
+        "preco_venda": 18,
+        "estoque_inicial": 5,
+        "estoque_maximo": 10
+      },
+      {
+        "item_id": "erva_lunar",
+        "preco_compra": 10,
+        "preco_venda": 5,
+        "estoque_inicial": 15,
+        "estoque_maximo": 30
+      },
+      {
+        "item_id": "po_eter",
+        "preco_compra": 15,
+        "preco_venda": 7,
+        "estoque_inicial": 10,
+        "estoque_maximo": 20
+      },
+      {
+        "item_id": "madeira_espinheiro",
+        "preco_compra": 12,
+        "preco_venda": 6,
+        "estoque_inicial": 8,
+        "estoque_maximo": 16
+      },
+      {
+        "item_id": "minerio_sombrio",
+        "preco_compra": 35,
+        "preco_venda": 18,
+        "estoque_inicial": 3,
+        "estoque_maximo": 6
+      },
+      {
+        "item_id": "anel_cristal_mana",
+        "preco_compra": 90,
+        "preco_venda": 45,
+        "estoque_inicial": 1,
+        "estoque_maximo": 1
+      },
+      {
+        "item_id": "amuleto_guardiao_antigo",
+        "preco_compra": 95,
+        "preco_venda": 48,
+        "estoque_inicial": 1,
+        "estoque_maximo": 1
+      }
+    ]
+  }
+}
+

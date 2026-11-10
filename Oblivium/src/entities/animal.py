@@ -74,7 +74,6 @@ class Animal(Entidade, ABC):
     def atualizar(self, dt=0.016, pos_jogador=None):
         """Método template padrão que orquestra a IA, reação e animação do animal."""
         if not self.visivel:
-            self.atualizar_comportamento(dt)
             return
 
         # Verifica aproximação se o animal estiver em estado receptivo (no solo)
@@ -302,9 +301,14 @@ class Passaro(Animal):
             else:
                 self.offset_y_ondulacao = 0.0
 
-            # Só desaparece ao sair fisicamente dos limites da tela
+            # Só desaparece ao subir alto no céu ou se afastar consideravelmente do ninho/solo
             altura_efetiva = self.y - self.altitude
-            if self.x < -80 or self.x > 1360 or altura_efetiva < -80:
+            dist_voo = math.hypot(self.x - self.x_origem, self.y - self.y_origem)
+            limite_x_min = min(-80.0, self.x_origem - 650.0)
+            limite_x_max = max(2400.0, self.x_origem + 650.0)
+
+            if (self.x < limite_x_min or self.x > limite_x_max or altura_efetiva < -80 or 
+                self.altitude > 160.0 or (self.tempo_voo > 4.5 and dist_voo > 360.0)):
                 self.visivel = False
                 self.timer_retorno = random.uniform(10.0, 18.0)
                 self.estado_atual = "fora_da_tela"
@@ -410,59 +414,177 @@ class Passaro(Animal):
 
 class Gato(Animal):
     """
-    Representa um felino doméstico/selvagem para compor a fauna (ex: Casa de Halia / Vilarejo).
-    Herda de Animal e está pronto para ser instanciado e explorado.
+    Representa Patusco (o gato recorrente de Oblivium / Easter Egg das 7 Fases)
+    ou um felino escondido na vegetação.
+
+    Dinâmica autêntica baseada na arte oficial (`cat_animation.png` — 17 quadros verticais):
+    - `idle` / `escondido` (quadros 01..08): Escondido no tufo de grama, apenas com a ponta
+      do rabo balançando suavemente entre as folhas.
+    - `espiando` (quadros 09..11): Quando Halia se aproxima a média distância (< 150px),
+      a grama farfalha e as orelhas despontam curiosas.
+    - `surgindo` (quadros 12..16): Quando Halia chega perto (< 90px) ou interage com [E],
+      Patusco salta de dentro do tufo de grama espalhando folhinhas no ar!
+    - `revelado` (quadros 12..14): Permanece visível fora do arbusto olhando para Halia
+      enquanto ela estiver próxima, permitindo carinho/interação.
+    - `escondendo` (quadros 17 -> 11 -> 08): Quando Halia se afasta (> 165px), ele se
+      abaixa novamente e volta a se esconder na grama.
     """
 
-    def __init__(self, x, y, direcao_inicial="direita"):
+    TOTAL_APARICOES_PATUSCO = 7
+
+    def __init__(self, x, y, direcao_inicial="direita", fase_id="OAKHAVEN", nome="Patusco", escala=1.65):
         super().__init__(
-            nome="Gato",
+            nome=nome,
             x=x,
             y=y,
-            velocidade=65.0,
-            largura=28,
-            altura=22,
-            direcao_inicial=direcao_inicial
+            velocidade=0.0,
+            largura=36,
+            altura=32,
+            direcao_inicial=direcao_inicial,
+            escala=escala
         )
-        self.raio_alerta = 85.0
-        self.sombra_raio_w = 8
+        self.fase_id = fase_id
+        self.raio_espiar = 155.0
+        self.raio_alerta = 92.0
+        self.raio_esconder = 175.0
+        self.sombra_raio_w = 10
         self.sombra_raio_h = 4
-        self.sombra_alpha = 75
+        self.sombra_alpha = 65
+        self.descoberto_nesta_fase = False
+        self.distancia_jogador = 9999.0
 
-        # Carrega ações do gato da pasta de sprites
-        frames_idle = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_01")
-        frames_andar = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_02")
-        frames_correr = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_03")
+        # Carrega a sequência vertical completa (01..17) da coluna f02 (folhagem verde-viva)
+        quadros_sequencia = ResourceManager.carregar_frames_pasta(
+            "animais/gato/acoes_separadas", filtro="_f02"
+        )
 
-        self.animacoes["idle"] = Animacao(frames_idle, velocidade=0.15, loop=True)
-        self.animacoes["andar"] = Animacao(frames_andar, velocidade=0.20, loop=True)
-        self.animacoes["correr"] = Animacao(frames_correr, velocidade=0.28, loop=True)
+        if len(quadros_sequencia) >= 17:
+            f_escondido = quadros_sequencia[0:8]                      # 01..08: rabo mexendo na grama
+            f_espiando = quadros_sequencia[8:11]                      # 09..11: orelhas espiando
+            f_surgindo = quadros_sequencia[10:16]                     # 11..16: pulando para fora com folhas
+            f_revelado = [quadros_sequencia[11], quadros_sequencia[12], quadros_sequencia[13], quadros_sequencia[12]]
+            f_escondendo = [quadros_sequencia[16], quadros_sequencia[10], quadros_sequencia[7]]
+        else:
+            f_escondido = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_01")
+            f_espiando = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_09") or f_escondido
+            f_surgindo = ResourceManager.carregar_frames_pasta("animais/gato/acoes_separadas", filtro="gato_acao_12") or f_escondido
+            f_revelado = f_surgindo
+            f_escondendo = f_escondido
+
+        # Estados da dinâmica de surgir na grama + chaves de compatibilidade ("idle", "andar", "correr")
+        self.animacoes["idle"] = Animacao(f_escondido, velocidade=0.12, loop=True)
+        self.animacoes["escondido"] = self.animacoes["idle"]
+        self.animacoes["espiando"] = Animacao(f_espiando, velocidade=0.14, loop=True)
+        self.animacoes["surgindo"] = Animacao(f_surgindo, velocidade=0.20, loop=False)
+        self.animacoes["revelado"] = Animacao(f_revelado, velocidade=0.10, loop=True)
+        self.animacoes["escondendo"] = Animacao(f_escondendo, velocidade=0.16, loop=False)
+
+        # Compatibilidade com testes legados que inspecionam 'andar' e 'correr'
+        self.animacoes["andar"] = self.animacoes["espiando"]
+        self.animacoes["correr"] = self.animacoes["surgindo"]
 
         self.estado_atual = "idle"
 
+    def verificar_proximidade_jogador(self, pos_jogador):
+        """Monitora a distância de Halia para controlar os estágios de espiar, surgir e esconder."""
+        if not pos_jogador or not self.visivel:
+            return False
+        px, py = pos_jogador
+        self.distancia_jogador = math.hypot(self.x - px, self.y - py)
+
+        # Orienta suavemente para o lado onde Halia está
+        if abs(px - self.x) > 6.0:
+            self.virado_direita = (px > self.x)
+
+        if self.distancia_jogador <= self.raio_alerta:
+            self.reagir_ao_jogador(pos_jogador)
+            return True
+        elif self.distancia_jogador <= self.raio_espiar:
+            if self.estado_atual in ("idle", "escondido"):
+                self.estado_atual = "espiando"
+                self.animacoes["espiando"].resetar()
+            return True
+        elif self.distancia_jogador > self.raio_esconder:
+            if self.estado_atual in ("revelado", "surgindo", "espiando"):
+                self.estado_atual = "escondendo"
+                self.animacoes["escondendo"].resetar()
+        return False
+
     def reagir_ao_jogador(self, pos_jogador):
-        """Ao ver Halia muito próxima, dá alguns passos rápidos para trás e deita ou olha alerta."""
-        if self.estado_atual == "idle":
-            px, _ = pos_jogador
-            self.virado_direita = (px < self.x)
-            self.timer_acao = random.uniform(2.0, 4.0)
+        """Ao sentir Halia bem próxima, Patusco salta de dentro do tufo de grama espalhando folhas!"""
+        if self.estado_atual in ("idle", "escondido", "espiando"):
+            self.estado_atual = "surgindo"
+            self.animacoes["surgindo"].resetar()
 
     def atualizar_comportamento(self, dt):
         anim = self.animacoes.get(self.estado_atual)
         if anim:
             anim.atualizar()
 
-        self.timer_acao -= dt
-        if self.timer_acao <= 0.0:
-            r = random.random()
-            if r < 0.40:
-                self.virado_direita = not self.virado_direita
-                self.timer_acao = random.uniform(2.0, 4.0)
-            elif r < 0.70:
-                self.estado_atual = "idle"
-                self.timer_acao = random.uniform(3.0, 6.0)
+        if self.estado_atual == "surgindo" and anim and anim.concluida:
+            self.estado_atual = "revelado"
+            self.animacoes["revelado"].resetar()
+        elif self.estado_atual == "escondendo" and anim and anim.concluida:
+            self.estado_atual = "idle"
+            self.animacoes["idle"].resetar()
+
+    def interagir(self, game):
+        """
+        Interação de Halia com Patusco ([E]):
+        Faz o gato saltar do tufo de grama (se ainda estiver escondido), registra o progresso
+        do Easter Egg (X/7 fases) e exibe o diálogo de carinho.
+        """
+        if getattr(game, "oakhaven_noite", False) or not self.visivel:
+            return None
+
+        if self.estado_atual not in ("surgindo", "revelado"):
+            self.estado_atual = "surgindo"
+            self.animacoes["surgindo"].resetar()
+        else:
+            self.estado_atual = "revelado"
+
+        if not hasattr(game, "patusco_fases_encontradas") or not isinstance(game.patusco_fases_encontradas, list):
+            game.patusco_fases_encontradas = []
+
+        primeira_vez_fase = False
+        if self.fase_id not in game.patusco_fases_encontradas:
+            game.patusco_fases_encontradas.append(self.fase_id)
+            primeira_vez_fase = True
+        self.descoberto_nesta_fase = True
+
+        total = len(game.patusco_fases_encontradas)
+        if total >= self.TOTAL_APARICOES_PATUSCO and hasattr(game, "conquistas") and game.conquistas:
+            game.conquistas.desbloquear("amigo_dos_felinos")
+
+        if hasattr(game, "notificacoes") and game.notificacoes and primeira_vez_fase:
+            if hasattr(game.notificacoes, "adicionar_notificacao"):
+                game.notificacoes.adicionar_notificacao(
+                    f"Patusco Descoberto! ({total}/{self.TOTAL_APARICOES_PATUSCO})",
+                    "O bichano saltou do tufo de grama!"
+                )
+
+        if hasattr(game, "caixa_dialogo") and game.caixa_dialogo:
+            if primeira_vez_fase:
+                dialogo = [
+                    {
+                        "autor": "Patusco",
+                        "texto": "Prrr-miaau! (O tufo de grama farfalha e um gatinho salta de repente entre as folhas, esfregando a cabeça na barra do seu manto.)"
+                    },
+                    {
+                        "autor": "Halia",
+                        "texto": f"Ora, você estava escondido aí no meio das folhas esse tempo todo, pequeno? ({total}/{self.TOTAL_APARICOES_PATUSCO} aparições de Patusco encontradas)"
+                    }
+                ]
             else:
-                self.timer_acao = random.uniform(2.0, 4.0)
+                dialogo = [
+                    {
+                        "autor": "Patusco",
+                        "texto": f"Prrrr... (Patusco observa você de dentro do tufo de grama e ronrona baixinho. [{total}/{self.TOTAL_APARICOES_PATUSCO}])"
+                    }
+                ]
+            game.caixa_dialogo.iniciar_dialogo(dialogo)
+            return dialogo
+        return None
 
 
 # Aliases de conveniência

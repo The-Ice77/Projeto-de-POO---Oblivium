@@ -36,6 +36,32 @@
         "poder_base": 28,
         "memorias_necessarias": 0
     },
+    "vendaval_cortante": {
+        "id_acao": "vendaval_cortante",
+        "nome": "Vendaval Cortante",
+        "descricao": "Gira o cajado invocando lâminas de vento que varrem e fustigam todos os adversários no campo.",
+        "tipo": "MAGICO",
+        "elemento": "VENTO",
+        "custo_mana": 16,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 18,
+        "memorias_necessarias": 0
+    },
+    "estilhaco_glacial": {
+        "id_acao": "estilhaco_glacial",
+        "nome": "Estilhaço Glacial",
+        "descricao": "Dispara agulhas de gelo translúcido que congelam as extremidades do inimigo.",
+        "tipo": "MAGICO",
+        "elemento": "GELO",
+        "custo_mana": 10,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 20,
+        "memorias_necessarias": 0,
+        "condicao_aplicada": {
+            "id_condicao": "congelado",
+            "chance": 30
+        }
+    },
     "raio_arcano": {
         "id_acao": "raio_arcano",
         "nome": "Raio Arcano",
@@ -46,6 +72,36 @@
         "alvo_tipo": "INIMIGO_UNICO",
         "poder_base": 30,
         "memorias_necessarias": 1
+    },
+    "onda_de_chamas": {
+        "id_acao": "onda_de_chamas",
+        "nome": "Onda de Chamas",
+        "descricao": "Bate o cajado no solo e propaga uma maré de fogo vivo sobre todos os inimigos à frente.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 20,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 24,
+        "memorias_necessarias": 1,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 40
+        }
+    },
+    "bencao_da_terra": {
+        "id_acao": "bencao_da_terra",
+        "nome": "Bênção da Terra",
+        "descricao": "Canaliza a firmeza das raízes antigas, curando Halia e envolvendo seu corpo em uma couraça protetora.",
+        "tipo": "CURA",
+        "elemento": "TERRA",
+        "custo_mana": 14,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 20,
+        "memorias_necessarias": 1,
+        "condicao_aplicada": {
+            "id_condicao": "escudo_arcano",
+            "chance": 100
+        }
     },
     "impacto_anomalo": {
         "id_acao": "impacto_anomalo",
@@ -62,15 +118,71 @@
             "chance": 40
         }
     },
+    "tempestade_estatica": {
+        "id_acao": "tempestade_estatica",
+        "nome": "Tempestade Estática",
+        "descricao": "Descarrega uma saraivada de relâmpagos bifurcados que saltam entre todos os inimigos presentes.",
+        "tipo": "MAGICO",
+        "elemento": "ELETRICO",
+        "custo_mana": 24,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 30,
+        "memorias_necessarias": 2,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 30
+        }
+    },
+    "lamina_ignea_de_sylvan": {
+        "id_acao": "lamina_ignea_de_sylvan",
+        "nome": "Lâmina Ígnea de Sylvan",
+        "descricao": "Halia recorda o calor da forja do anão Sylvan e manifesta um golpe incendiário concentrado de poder devastador.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 18,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 38,
+        "memorias_necessarias": 2,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 50
+        }
+    },
     "escudo_etereo": {
         "id_acao": "escudo_etereo",
         "nome": "Escudo Etéreo",
         "descricao": "Conjura uma barreira mágica cristalina que reduz drasticamente todo dano recebido no próximo turno.",
-        "tipo": "BUFF",
+        "tipo": "DEFESA",
         "elemento": "ARCANO",
         "custo_mana": 18,
         "alvo_tipo": "PROPRIO",
         "poder_base": 0,
+        "memorias_necessarias": 3
+    },
+    "nevasca_ancestral": {
+        "id_acao": "nevasca_ancestral",
+        "nome": "Nevasca Ancestral",
+        "descricao": "Invoca um vórtice polar de neve cortante que envolve e congela todos os adversários.",
+        "tipo": "MAGICO",
+        "elemento": "GELO",
+        "custo_mana": 26,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 36,
+        "memorias_necessarias": 3,
+        "condicao_aplicada": {
+            "id_condicao": "congelado",
+            "chance": 40
+        }
+    },
+    "luz_restauradora_caelen": {
+        "id_acao": "luz_restauradora_caelen",
+        "nome": "Luz Restauradora de Caelen",
+        "descricao": "Em memória ao curandeiro Caelen, uma prece luminosa sara os ferimentos mais profundos de Halia.",
+        "tipo": "CURA",
+        "elemento": "SAGRADO",
+        "custo_mana": 22,
+        "alvo_tipo": "PROPRIO",
+        "poder_base": 48,
         "memorias_necessarias": 3
     },
     "vortice_abissal": {
@@ -84,6 +196,32 @@
         "poder_base": 42,
         "memorias_necessarias": 4
     },
+    "julgamento_aurora_roland": {
+        "id_acao": "julgamento_aurora_roland",
+        "nome": "Julgamento da Aurora",
+        "descricao": "Ergue o cajado como a espada da aurora do paladino Roland, desferindo um raio sagrado inclemente.",
+        "tipo": "MAGICO",
+        "elemento": "SAGRADO",
+        "custo_mana": 26,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 50,
+        "memorias_necessarias": 4
+    },
+    "jardim_de_espinheiros": {
+        "id_acao": "jardim_de_espinheiros",
+        "nome": "Jardim de Espinheiros",
+        "descricao": "Ergue uma muralha de espinhos venenosos do chão que lacera todos os inimigos e drena sua força.",
+        "tipo": "MAGICO",
+        "elemento": "TERRA",
+        "custo_mana": 30,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 34,
+        "memorias_necessarias": 4,
+        "condicao_aplicada": {
+            "id_condicao": "veneno",
+            "chance": 40
+        }
+    },
     "claridade_ancestral": {
         "id_acao": "claridade_ancestral",
         "nome": "Claridade Ancestral",
@@ -92,7 +230,48 @@
         "elemento": "SAGRADO",
         "custo_mana": 25,
         "alvo_tipo": "PROPRIO",
-        "poder_base": 55,
+        "poder_base": 60,
         "memorias_necessarias": 5
+    },
+    "cometa_estelar": {
+        "id_acao": "cometa_estelar",
+        "nome": "Cometa Estelar",
+        "descricao": "Convoca fragmentos estelares cadentes que colidem em cadeia explodindo em luz cósmica sobre todos os alvos.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 34,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 48,
+        "memorias_necessarias": 5
+    },
+    "singularidade_oblivium": {
+        "id_acao": "singularidade_oblivium",
+        "nome": "Singularidade de Oblivium",
+        "descricao": "Distorce o próprio tecido do espaço-tempo, obliterando a matéria e a mente do adversário.",
+        "tipo": "MAGICO",
+        "elemento": "ARCANO",
+        "custo_mana": 40,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 65,
+        "memorias_necessarias": 6,
+        "condicao_aplicada": {
+            "id_condicao": "atordoado",
+            "chance": 60
+        }
+    },
+    "chamas_da_ressonancia": {
+        "id_acao": "chamas_da_ressonancia",
+        "nome": "Chamas da Ressonância",
+        "descricao": "As chamas ancestrais de Oakhaven unem-se ao poder primordial de Halia em uma tempestade de fogo eterno.",
+        "tipo": "MAGICO",
+        "elemento": "FOGO",
+        "custo_mana": 42,
+        "alvo_tipo": "TODOS_INIMIGOS",
+        "poder_base": 58,
+        "memorias_necessarias": 7,
+        "condicao_aplicada": {
+            "id_condicao": "queimadura",
+            "chance": 60
+        }
     }
 }

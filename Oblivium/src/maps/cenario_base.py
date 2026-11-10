@@ -14,13 +14,18 @@ class CenarioBase(ABC):
     - Camada Superior: Telhados, beirais e copas de árvores (passam por cima do jogador).
     """
 
-    def __init__(self, game, largura_tela, altura_tela, nome):
+    def __init__(self, game, largura_tela, altura_tela, nome, largura_mundo=None, altura_mundo=None):
         self.game = game
         self.largura_tela = largura_tela
         self.altura_tela = altura_tela
+        self.largura_mundo = int(largura_mundo) if largura_mundo else int(largura_tela)
+        self.altura_mundo = int(altura_mundo) if altura_mundo else int(altura_tela)
         self.nome = nome
         self.hitboxes = []
         self.itens_no_chao = []
+        self.npcs = []
+        self.animais = []
+        self.pontos_interacao = []
         self.carregar_recursos()
 
     @abstractmethod
@@ -38,7 +43,7 @@ class CenarioBase(ABC):
         pass
 
     @abstractmethod
-    def desenhar_camada_inferior(self, tela):
+    def desenhar_camada_inferior(self, tela, area_visivel=None):
         """Renderiza o chão, pisos, calçamento, terra e detalhes de relevo plano."""
         pass
 

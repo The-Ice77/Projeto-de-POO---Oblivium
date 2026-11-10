@@ -58,7 +58,7 @@ class Game:
         self.intro = Intro(self.LARGURA, self.ALTURA)
         self.mapa_casa = Mapa(self, self.LARGURA, self.ALTURA)
         self.transicao = Transition(self.LARGURA, self.ALTURA)
-        self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA) 
+        self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA, game=self) 
         self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
         self.tela_combate.game = self
@@ -71,7 +71,9 @@ class Game:
         self.conquistas = AchievementManager(self)
         self.missoes = QuestManager(self)
         self.quest_manager = self.missoes
-        self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
+        self.caixa_dialogo.manager.quest_manager = self.missoes
+        self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
+        self.dt_fator = 1.0
         self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido
@@ -216,6 +218,12 @@ class Game:
                 if hasattr(self, 'audio') and self.audio:
                     self.audio.tocar_musica("menu_tema")
 
+    def abrir_loja(self, loja_id=None):
+        """Abre a interface da loja configurando o catálogo específico do mercador."""
+        if "LOJA" in self.estados:
+            self.estados["LOJA"].configurar_loja(loja_id)
+        self.mudar_estado("LOJA")
+
     def iniciar_combate(self, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
         """Inicia um combate de forma modular e desacoplada em qualquer momento do jogo."""
         if isinstance(inimigos, (list, tuple)):
@@ -281,7 +289,8 @@ class Game:
                 self.notificacoes.draw(self.tela)
 
             pygame.display.flip()
-            self.clock.tick(60)
+            dt_ms = self.clock.tick(60)
+            self.dt_fator = max(0.5, min(2.0, dt_ms / 16.666)) if dt_ms > 0 else 1.0
 
     def salvar_estado(self, slot=None, tipo="manual", silenciar_notificacao=False):
         return self.save_manager.salvar_estado(slot, tipo=tipo, silenciar_notificacao=silenciar_notificacao)

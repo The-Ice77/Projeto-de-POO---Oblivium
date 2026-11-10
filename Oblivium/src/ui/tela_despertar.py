@@ -33,47 +33,50 @@ class TelaDespertarMemoria:
     }
 
     FEITICOS_ESTAGIO = {
-        2: "Raio Arcano",
-        4: "Bola de Fogo e Levitação",
-        6: "Tempestade de Éter",
+        1: "Raio Arcano",
+        2: "Impacto Anômalo",
+        3: "Escudo Etéreo",
+        4: "Vórtice Abissal",
+        5: "Claridade Ancestral",
+        6: "Ressonância dos Três Ecos",
         7: "Totalidade Arcana"
     }
 
     DADOS_ESTAGIOS = {
         1: {
-            "nome": "O Começo",
-            "descricao": "Uma primeira fagulha de consciência rompe a névoa. Os contornos da realidade começam a se erguer diante dos olhos de Halia.",
-            "desejo": "Procure ainda mais... a mente anseia por lembranças."
+            "nome": "A Centelha Esquecida",
+            "descricao": "Diante da rocha fria que bloqueava a estrada, as mãos de Halia lembraram antes da mente. O calor do fogo arcano rompe o torpor da cabana.",
+            "desejo": "Minhas mãos conhecem este calor... Quem caminhava ao meu lado quando aprendi a moldá-lo?"
         },
         2: {
-            "nome": "Ecos da Estrada",
-            "descricao": "Lembranças de passos antigos e da quietude esquecida fluem de volta para o coração de Halia.",
-            "desejo": "Ainda há muito a desvendar... continue a jornada."
+            "nome": "O Peso de um Nome (Sylvan)",
+            "descricao": "Entre as chamas de Oakhaven e a estátua de pedra, ecoa a gargalhada franca do anão Sylvan: a força simples de quem protegia a todos sem pedir nada em troca.",
+            "desejo": "Sylvan nunca deixava ninguém carregar o fardo sozinho... Preciso honrar a leveza que ele me ensinou."
         },
         3: {
-            "nome": "A Forma do Mundo",
-            "descricao": "A harmonia entre a essência de Halia e o ambiente se recompõe. O peso do ar e da terra ganham sentido e vida.",
-            "desejo": "O passado não pode ficar no esquecimento... busque os fragmentos."
+            "nome": "A Prece nas Águas (Caelen)",
+            "descricao": "O som das águas nos moinhos desperta a voz serena de Caelen, o curandeiro angélico que cuidava das feridas do grupo e via bondade mesmo nos dias mais escuros.",
+            "desejo": "Caelen dizia que não devemos temer o fim, mas viver cada instante... Quero ver o mundo com essa compaixão."
         },
         4: {
-            "nome": "Despertar Mágico",
-            "descricao": "O pulsar primordial do éter volta a queimar em suas veias. Feitiços ancestrais despertam de um longo silêncio.",
-            "desejo": "A magia ressoa... os segredos mais profundos aguardam."
+            "nome": "O Pôr do Sol na Fronteira (Roland)",
+            "descricao": "No alto da Grande Muralha de Ferro, o vento traz de volta o olhar firme do paladino Roland e a promessa silenciosa que ensinou uma elfa imortal a amar a brevidade humana.",
+            "desejo": "Roland... Cada nascer do sol ao seu lado era único. Não deixarei que essa luz se apague em mim."
         },
         5: {
-            "nome": "Além do Véu",
-            "descricao": "As barreiras da amnésia dissolvem-se como fumaça ao vento. A verdade aproxima-se com nitidez.",
-            "desejo": "Quase tudo está claro... não recue agora."
+            "nome": "A Narrativa das Pequenas Coisas",
+            "descricao": "Nas terras cinzentas além da barreira, as lembranças de noites simples ao redor da fogueira e os relatos dos dissidentes mostram que até na desolação existem escolhas e afetos.",
+            "desejo": "A névoa se dissipa... O caminho até onde tudo terminou finalmente se abre diante de mim."
         },
         6: {
-            "nome": "Sincronia Quase Plena",
-            "descricao": "A essência ancestral da Grã-Maga ressoa através do tempo e do espaço. Falta apenas o elo final.",
-            "desejo": "Resta apenas um passo para a totalidade."
+            "nome": "A Promessa na Quase-Morte",
+            "descricao": "Ferida em Kar'Vash pelos Dois Últimos Guardas do Castelo ao proteger o jovem batedor Owen, Halia ouve as vozes de Sylvan, Caelen e Roland pedindo que ela continue viva.",
+            "desejo": "Eles me deram o amanhã com suas próprias vidas... Resta apenas encarar os três túmulos no castelo."
         },
         7: {
-            "nome": "A Totalidade Desperta",
-            "descricao": "A integridade de suas memórias e o ápice do poder arcanista foram plenamente reconquistados.",
-            "desejo": "Sua mente está livre. A Grã-Maga ergue-se novamente."
+            "nome": "A Totalidade de Halia",
+            "descricao": "Diante dos túmulos de Roland, Caelen e Sylvan, Halia acolhe a dor da despedida sem fugir para o cinza. O mundo inteiro floresce em todas as suas cores.",
+            "desejo": "Eu me lembro de cada passo, de cada riso e de cada adeus. Viverei por tudo o que construímos juntos."
         }
     }
 

@@ -1,0 +1,664 @@
+{
+  "hub_aldous": {
+    "no_inicial": "saudacao_aldous",
+    "nos": {
+      "saudacao_aldous": {
+        "autor": "Ancião Aldous",
+        "texto": "Pelos ventos antigos... Quando o Carroceiro disse que trouxera uma elfa de cabelos prateados pela estrada do norte, achei que meus olhos cansados estavam me pregando peças. Bem-vinda ao Refúgio de Oakhaven, Grã-Maga Halia.",
+        "proximo": "menu_aldous"
+      },
+      "menu_aldous": {
+        "tipo": "escolha",
+        "cabecalho": "Sobre o que deseja conversar com o Ancião Aldous?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_aldous",
+        "resultado_fechar": "despedida_aldous",
+        "no_esgotado": "esgotado_aldous",
+        "opcoes": [
+          {
+            "id": "aldous_opcao_dormir",
+            "texto": "[Descansar por esta noite] A ronda com Doran terminou. Onde posso me recolher?",
+            "proximo": "fala_descanso_1"
+          },
+          {
+            "id": "aldous_sobre_estatua",
+            "texto": "Quem são os guerreiros esculpidos ao meu lado neste monumento?",
+            "proximo": "fala_estatua_1"
+          },
+          {
+            "id": "aldous_sobre_tremores",
+            "texto": "O Carroceiro mencionou que a terra vem tremendo ao norte...",
+            "proximo": "fala_tremores_1"
+          },
+          {
+            "id": "aldous_aceitar_missao",
+            "texto": "[Missão Principal] Quero ajudar a vila e conhecer os moradores de Oakhaven.",
+            "proximo": "fala_aceitar_aldous_1",
+            "condicao_missao_disponivel": "missao_boas_vindas",
+            "aceitar_missao": "missao_boas_vindas"
+          },
+          {
+            "id": "aldous_sair",
+            "texto": "Preciso caminhar um pouco pela praça.",
+            "proximo": "despedida_aldous",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_estatua_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Foram os seus companheiros de jornada, senhorita: o paladino Roland, o curandeiro Caelen e o guerreiro anão Sylvan. Quando o grupo passou por Oakhaven antes de marchar para o continente sombrio, Sylvan ajudou a erguer a nossa forja com as próprias mãos.",
+        "proximo": "fala_estatua_2"
+      },
+      "fala_estatua_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) Olho para o rosto do anão esculpido em granito... Não consigo lembrar o som da voz dele, mas sinto que a pedra é séria demais para quem ele realmente era.",
+        "proximo": "menu_aldous"
+      },
+      "fala_tremores_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Desde a semana passada, uma fumaça escura sobe dos picos ao norte e o ar ficou anormalmente quente. Receio que alguma criatura ancestral tenha despertado nas montanhas.",
+        "proximo": "menu_aldous"
+      },
+      "fala_aceitar_aldous_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Sua presença já traz alento ao nosso povo, Halia. Visite a botânica da Curandeira Elara a oeste e a oficina do Ferreiro Torvald a leste — ambos estão precisando de auxílio com suas tarefas hoje. Depois que ajudá-los, volte a falar comigo diante do monumento.",
+        "proximo": null
+      },
+      "esgotado_aldous": {
+        "autor": "Ancião Aldous",
+        "texto": "Que a memória daqueles que partiram ilumine os seus passos, Grã-Maga. Estarei aqui na praça sempre que precisar."
+      },
+      "despedida_aldous": {
+        "autor": "Ancião Aldous",
+        "texto": "Caminhe em paz por Oakhaven, Halia."
+      },
+      "fala_descanso_1": {
+        "autor": "Ancião Aldous",
+        "texto": "A Casa de Hóspedes logo ao lado da praça está com a lareira acesa e uma cama confortável esperando por você, Halia. Vá descansar em paz sob a proteção de Oakhaven.",
+        "proximo": "fala_descanso_2"
+      },
+      "fala_descanso_2": {
+        "autor": "Halia",
+        "texto": "Obrigada, Ancião. Vou me recolher por esta noite.",
+        "evento": "iniciar_cutscene_dormir_vila",
+        "proximo": null
+      }
+    }
+  },
+  "aldous_missao_andamento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Vá conversar com a Curandeira Elara na botânica a oeste e com o Ferreiro Torvald na oficina a leste, Halia. Ajude ambos com o que precisarem e depois retorne até mim.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "Vou ajudar Elara com as ervas e Torvald na forja, e voltarei assim que terminar.",
+        "proximo": null
+      }
+    }
+  },
+  "aldous_missao_concluir": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Elara e Torvald já mandaram notícias, Halia! Vejo que além de ter os ferimentos cuidados na botânica e um novo amuleto da forja, a sua visita despertou boas lembranças em nossa vila. Tome estas provisões em sinal da nossa gratidão.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "Obrigada, Ancião Aldous. As histórias de Elara e Torvald fizeram Oakhaven parecer um lugar muito próximo do meu coração.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Ancião Aldous",
+        "texto": "Infelizmente o entardecer traz uma preocupação urgente: o Guarda Doran, no Portão Norte da paliçada, avistou batedores demoníacos rondando a clareira da Orla Norte. Por favor, vá até o Guarda Doran e ajude-o a afastar essas criaturas antes que a noite caia!",
+        "aceitar_missao": "missao_ronda_fronteiras",
+        "proximo": null
+      }
+    }
+  },
+  "hub_elara": {
+    "no_inicial": "saudacao_elara",
+    "nos": {
+      "saudacao_elara": {
+        "autor": "Curandeira Elara",
+        "texto": "Entre, viajante. O aroma de gengibre e camomila sempre acalma quem chega da estrada... Espere. Esses olhos e esse cajado... Você é a senhorita Halia?",
+        "proximo": "menu_elara"
+      },
+      "menu_elara": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja tratar com a Curandeira Elara?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_elara",
+        "resultado_fechar": "despedida_elara",
+        "no_esgotado": "esgotado_elara",
+        "opcoes": [
+          {
+            "id": "elara_abrir_loja",
+            "texto": "[Loja] Ver elixires, poções e ervas medicinais",
+            "acao": "abrir_loja",
+            "loja_id": "botanica_elara",
+            "repetivel": true
+          },
+          {
+            "id": "elara_aceitar_missao",
+            "texto": "[Missão Secundária] Posso ajudar a coletar as Ervas de Orvalho Lunar.",
+            "proximo": "fala_aceitar_elara_1",
+            "condicao_missao_disponivel": "missao_ervas_medicinais",
+            "aceitar_missao": "missao_ervas_medicinais"
+          },
+          {
+            "id": "elara_sobre_vila",
+            "texto": "Você mencionou que já me conhecia de antes da guerra?",
+            "proximo": "fala_elara_vila_1"
+          },
+          {
+            "id": "elara_sobre_caelen",
+            "texto": "Quem lhe ensinou essa mistura de chá de gengibre com folhas prateadas?",
+            "proximo": "fala_elara_caelen_1"
+          }
+        ]
+      },
+      "fala_aceitar_elara_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Você faria isso por mim? Preciso de 3 Ervas de Orvalho Lunar que crescem no jardim botânico ao sul da minha tenda. Enquanto preparo os frascos para essa infusão, deixarei o balcão da loja fechado. Traga-as para mim assim que colhê-las!",
+        "proximo": null
+      },
+      "fala_elara_vila_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Eu era apenas uma aprendiz quando vocês passaram por Oakhaven. Você comprou todo o meu estoque de raízes de gengibre e ainda me deu um livro antigo sobre flores medicinais!",
+        "proximo": "fala_elara_vila_2"
+      },
+      "fala_elara_vila_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) Então até aqui eu gastava minhas moedas comprando grimórios e raízes... Algumas manias nunca mudam.",
+        "proximo": "menu_elara"
+      },
+      "fala_elara_caelen_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Foi o curandeiro Caelen, seu companheiro de asas brancas. Ele dizia que uma maga teimosa do grupo dele esquecia de dormir e só aceitava descansar se houvesse chá quente esperando.",
+        "proximo": "fala_elara_caelen_2"
+      },
+      "fala_elara_caelen_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) Um sorriso gentil e mãos que cheiravam a sálvia... O nome dele era Caelen.",
+        "proximo": "menu_elara"
+      },
+      "esgotado_elara": {
+        "autor": "Curandeira Elara",
+        "texto": "As portas da botânica estarão sempre abertas se precisar de poções ou de uma xícara de chá, Halia."
+      },
+      "despedida_elara": {
+        "autor": "Curandeira Elara",
+        "texto": "Cuide bem da sua respiração na estrada, Halia. Estarei aqui se precisar de cura."
+      }
+    }
+  },
+  "elara_missao_andamento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Ainda estou com as bancadas ocupadas preparando a base das infusões, Halia! Você já conseguiu colher as 3 Ervas de Orvalho Lunar na clareira botânica ao sul?",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "Ainda não reuni todas as três. Vou terminar a coleta e já trago para você.",
+        "proximo": null
+      }
+    }
+  },
+  "elara_missao_concluir": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Maravilha, Halia! Estas 3 Ervas de Orvalho Lunar estão frescas e cheias de luz... Mas espere um instante! Olhe só para os seus pulsos e esses machucados da estrada!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Curandeira Elara",
+        "texto": "Você enfrentou monstros na estrada e veio colher ervas para ajudar a vila inteira enquanto estava ferida desse jeito?! Sente-se aqui agora mesmo, vou cuidar desses ferimentos para você!",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Sistema",
+        "texto": "A Curandeira Elara aplica um bálsamo morno de Orvalho Lunar em seus machucados. Sua Vida e sua Mana foram totalmente restauradas! Você também recebeu 150 moedas, Elixir de Mana Menor e desbloqueou a Loja da Botânica.",
+        "evento": "cura_elara_missao",
+        "proximo": null
+      }
+    }
+  },
+  "hub_torvald": {
+    "no_inicial": "saudacao_torvald",
+    "nos": {
+      "saudacao_torvald": {
+        "autor": "Ferreiro Torvald",
+        "texto": "O ferro não mente, moça: quem caminha com postura de veterana já enfrentou coisa pior que estrada de lama! Aproxime-se da forja se quiser bons equipamentos.",
+        "proximo": "menu_torvald"
+      },
+      "menu_torvald": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja falar com o Ferreiro Torvald?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_torvald",
+        "resultado_fechar": "despedida_torvald",
+        "no_esgotado": "esgotado_torvald",
+        "opcoes": [
+          {
+            "id": "torvald_abrir_loja",
+            "texto": "[Loja] Examinar armas, artefatos e minérios da forja",
+            "acao": "abrir_loja",
+            "loja_id": "forja_torvald",
+            "repetivel": true
+          },
+          {
+            "id": "torvald_aceitar_missao",
+            "texto": "[Missão Secundária] Posso quebrar aquela Rocha de Minério Bruto no pátio para você.",
+            "proximo": "fala_aceitar_torvald_1",
+            "condicao_missao_disponivel": "missao_pedra_forja",
+            "aceitar_missao": "missao_pedra_forja"
+          },
+          {
+            "id": "torvald_sobre_sylvan",
+            "texto": "Aquele martelo pendurado acima da bigorna tem runas anãs...",
+            "proximo": "fala_torvald_sylvan_1"
+          },
+          {
+            "id": "torvald_sobre_portao",
+            "texto": "Foi você quem reforçou os portões de ferro da paliçada?",
+            "proximo": "fala_torvald_portao_1"
+          }
+        ]
+      },
+      "fala_aceitar_torvald_1": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Hahaha! Era exatamente disso que eu precisava! Trouxe aquela Rocha de Minério Bruto das encostas do norte, mas a crosta externa é dura demais para o meu malho. Ela está bem ali no pátio ao sul da forja — use um impacto do seu cajado ou magia para quebrá-la! Enquanto preparo o molde na bigorna, deixarei a loja fechada.",
+        "proximo": null
+      },
+      "fala_torvald_sylvan_1": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Bom olho! Foi presente do mestre Sylvan quando o grupo dos heróis pernoitou em Oakhaven. Aquele anão ria tão alto que fazia as telhas da oficina tremerem, mas tinha o coração mais leve que já conheci.",
+        "proximo": "fala_torvald_sylvan_2"
+      },
+      "fala_torvald_sylvan_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) Sylvan... Ele dizia que problema complicado é igual ferro torto: basta esquentar perto do fogo e bater com paciência.",
+        "proximo": "menu_torvald"
+      },
+      "fala_torvald_portao_1": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Eu e o próprio Sylvan! Ele viu que a dobradiça estava cedendo e passou a madrugada inteira malhando o aço comigo sem cobrar uma única moeda.",
+        "proximo": "menu_torvald"
+      },
+      "esgotado_torvald": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Já lhe contei todas as histórias desta velha bigorna, moça. Mas a forja continua acesa se quiser negociar!"
+      },
+      "despedida_torvald": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Mantenha a guarda alta, viajante. O fogo da forja estará aceso quando voltar."
+      }
+    }
+  },
+  "torvald_missao_andamento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ferreiro Torvald",
+        "texto": "A bigorna já está tinindo de quente, Halia! Vá até a Rocha de Minério Bruto ali no pátio da forja e quebre aquela crosta dura para eu forjar a sua peça!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "Vou quebrar a rocha de minério no pátio agora mesmo e já trago o núcleo metálico.",
+        "proximo": null
+      }
+    }
+  },
+  "torvald_missao_concluir": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Pelos martelos ancestrais! Você rachou aquela rocha estelar ao meio com uma precisão impecável, Halia! Olhe só a pureza desse veio de bronze e éter!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Como recompensa pelo seu trabalho, forjei este Amuleto do Guardião especialmente para você, junto com 180 moedas. E se precisar de mais armas ou tomos, minha loja já está aberta novamente!",
+        "proximo": null
+      }
+    }
+  },
+  "hub_doran": {
+    "no_inicial": "saudacao_doran",
+    "nos": {
+      "saudacao_doran": {
+        "autor": "Guarda Doran",
+        "texto": "Alto lá! Ah... perdão, Grã-Maga Halia. Estamos todos tensos na paliçada norte com essas sombras rondando a orla da mata.",
+        "proximo": "menu_doran"
+      },
+      "menu_doran": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja falar com o Guarda Doran?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_doran",
+        "resultado_fechar": "despedida_doran",
+        "no_esgotado": "esgotado_doran",
+        "opcoes": [
+          {
+            "id": "doran_aceitar_missao",
+            "texto": "[Missão Secundária] Vim ajudar a afastar os batedores demoníacos da Orla Norte.",
+            "proximo": "fala_aceitar_doran_1",
+            "condicao_missao_disponivel": "missao_ronda_fronteiras",
+            "aceitar_missao": "missao_ronda_fronteiras"
+          },
+          {
+            "id": "doran_sobre_carta",
+            "texto": "Você parece segurar um envelope amassado junto ao escudo...",
+            "proximo": "fala_doran_carta_1"
+          }
+        ]
+      },
+      "fala_aceitar_doran_1": {
+        "autor": "Guarda Doran",
+        "texto": "Sério?! Há 2 Batedores Demoníacos escondidos na clareira da Orla Norte, logo além deste portão. Venha comigo agora mesmo, eu levo você até o ponto exato onde eles estão!",
+        "evento": "ir_patrulha_doran",
+        "proximo": null
+      },
+      "fala_doran_carta_1": {
+        "autor": "Guarda Doran",
+        "texto": "É uma carta para a minha filha no Vale dos Moinhos. Prometi avisar que estou bem a cada mudança de lua, mas com os monstros cercando a estrada nenhum correio ousa sair.",
+        "proximo": "menu_doran"
+      },
+      "esgotado_doran": {
+        "autor": "Guarda Doran",
+        "texto": "Obrigado por vigiar a estrada conosco, senhorita. O turno aqui na paliçada é longo."
+      },
+      "despedida_doran": {
+        "autor": "Guarda Doran",
+        "texto": "Olhos atentos na neblina, viajante."
+      }
+    }
+  },
+  "doran_missao_andamento": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Guarda Doran",
+        "texto": "Mantenha a atenção, Halia! Os 2 Batedores Demoníacos estão na clareira da Orla Norte. Quer que eu a leve até o ponto onde eles estão agora?",
+        "proximo": "menu_doran_andamento"
+      },
+      "menu_doran_andamento": {
+        "tipo": "escolha",
+        "cabecalho": "Acompanhar o Guarda Doran até a Orla Norte?",
+        "pode_fechar": true,
+        "id_cancelamento": "ficar_vila_doran",
+        "resultado_fechar": "fala_preparar",
+        "opcoes": [
+          {
+            "id": "doran_ir_orla",
+            "texto": "Sim, leve-me até o ponto onde os batedores estão.",
+            "acao": "ir_patrulha_doran",
+            "proximo": null,
+            "repetivel": true
+          },
+          {
+            "id": "doran_ficar_vila",
+            "texto": "Vou me preparar na vila primeiro e já volto.",
+            "proximo": "fala_preparar",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_preparar": {
+        "autor": "Guarda Doran",
+        "texto": "Entendido! Estarei vigiando o portão norte. Avise-me assim que estiver pronta para irmos até eles.",
+        "proximo": null
+      }
+    }
+  },
+  "doran_missao_concluir": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Guarda Doran",
+        "texto": "Você derrotou os batedores na Orla Norte! Veja, a noite já caiu sobre Oakhaven depois de todas as tarefas que você cumpriu hoje.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Guarda Doran",
+        "texto": "Receba esta recompensa da guarda e este Pó de Éter. A ronda foi um sucesso e nós manteremos a vigília nos portões! Vá falar com o Ancião Aldous diante da praça central, Halia — ele reservou um abrigo seguro para você repousar esta noite.",
+        "proximo": null
+      }
+    }
+  },
+  "despertar_ataque_dragao_vila": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "(O estrondo colossal e o calor sufocante arrancam você do sono no meio da noite! Quando você corre para a praça, o céu noturno está tingido de chamas carmesins e as construções ardem em labaredas!)",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Ancião Aldous",
+        "texto": "Halia! Pelos deuses antigos, você está a salvo! Na calada da noite, Ignis'Vahr, o Dragão Vermelho Ancestral, desceu das montanhas vulcânicas e cuspiu fogo sobre nossas casas e lojas!",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Guarda Doran",
+        "texto": "A fera colossal alçou voo de volta para o Ninho do Dragão, no cume rochoso ao norte! Na escuridão da noite, o reflexo de suas labaredas ilumina o pico da montanha!",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Halia",
+        "texto": "Cuidem dos feridos e contenham as chamas! Eu vou subir a montanha agora mesmo — esse embate contra Ignis'Vahr termina esta noite no ninho dele!",
+        "evento": "ir_para_ninho_dragao",
+        "proximo": null
+      }
+    }
+  },
+  "crise_ansiedade_dragao_oakhaven": {
+    "no_inicial": "crise_1",
+    "nos": {
+      "crise_1": {
+        "autor": "Ignis'Vahr, o Dragão Vermelho",
+        "texto": "GRRROOOAAARRR! (No alto do ninho vulcânico sob o céu noturno estrelado, a fera colossal se ergue com os olhos chamejantes, abrindo suas asas gigantescas e banhando os penhascos em um mar de fogo.)",
+        "proximo": "crise_2"
+      },
+      "crise_2": {
+        "autor": "Halia",
+        "texto": "(Seu coração dispara em pânico. A escuridão da noite rasgada pelo fogo e o cheiro sufocante de cinzas fecham sua garganta... Suas mãos tremem no cajado como se você estivesse de volta ao cerco onde seu batalhão pereceu em chamas.)",
+        "proximo": "menu_ancoragem_dragao"
+      },
+      "menu_ancoragem_dragao": {
+        "tipo": "escolha",
+        "cabecalho": "[Crise de Ansiedade — O Trauma do Fogo Noturno] Busque uma âncora sensorial para estabilizar sua respiração:",
+        "pode_fechar": false,
+        "opcoes": [
+          {
+            "id": "ancorar_cha_elara",
+            "texto": "[Ancorar no Toque] Lembrar do bálsamo fresco de Orvalho Lunar com que Elara cuidou das suas mãos.",
+            "proximo": "ancoragem_sucesso_1",
+            "repetivel": true
+          },
+          {
+            "id": "ancorar_bigorna_torvald",
+            "texto": "[Ancorar no Som] Focar no peso do Amuleto do Guardião e na cadência firme do martelo de Torvald e Sylvan.",
+            "proximo": "ancoragem_sucesso_1",
+            "repetivel": true
+          }
+        ]
+      },
+      "ancoragem_sucesso_1": {
+        "autor": "Halia",
+        "texto": "(Você puxa o ar profundamente... Um, dois, três. O bálsamo fresco de Elara e o amuleto de Torvald ancoram sua mente no presente. Aqui, sob as estrelas e as chamas do Ninho do Dragão, você não precisa conter seu poder.)",
+        "proximo": "ancoragem_sucesso_2"
+      },
+      "ancoragem_sucesso_2": {
+        "autor": "Halia",
+        "texto": "Você jamais voltará a queimar Oakhaven, Ignis'Vahr!",
+        "evento": "iniciar_combate_dragao_oakhaven",
+        "proximo": null
+      }
+    }
+  },
+  "flashback_memoria_2_sylvan": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Voz Grave e Risonha",
+        "texto": "\"Hahaha! Você pensa demais antes de mexer os pés, maga! Problema grande é igual ferro torto na forja: não adianta ter medo da brasa, tem que bater enquanto está quente!\"",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia (Memória)",
+        "texto": "\"E você faz barulho demais para quem diz estar em missão furtiva, Sylvan! Se os sentinelas nos ouvirem, a culpa será desse seu martelo gigante.\"",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Sylvan, o Guerreiro Anão (Memória)",
+        "texto": "\"Que ouçam, Halia! Enquanto meu escudo estiver de pé ao seu lado, nenhuma chama deste mundo vai encostar um fio de cabelo em você!\"",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Roland (Paladino)",
+        "texto": "\"Mantenham a guarda, vocês dois. A estrada adiante é traiçoeira, mas enquanto marcharmos juntos sob este mesmo juramento, nenhuma sombra triunfará.\"",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Caelen (Clérigo)",
+        "texto": "\"Bebam o chá de ervas enquanto o fogo ainda crepita. O calor deste acampamento é o escudo que fortalece o espírito para o amanhã.\"",
+        "proximo": null
+      }
+    }
+  },
+  "pos_vitoria_dragao_oakhaven": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Por todos os ancestrais, Halia! Vimos das colinas o clarão azul do seu cajado dissipar as chamas no Ninho do Dragão! Você derrotou Ignis'Vahr e salvou o nosso povo!",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "Quando encarei o fogo do dragão lá no ninho... lembrei-me da voz dele, Aldous. Lembrei-me do riso de Sylvan e da promessa que fizemos antes de partir.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Hahaha! Eu sabia que aquele anão teimoso jamais deixaria uma amiga lutar sozinha! Já começamos a reerguer as vigas das casas, Halia — Oakhaven sempre será o seu lar.",
+        "proximo": null
+      }
+    }
+  },
+  "aldous_descanso_noite": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Halia! Doran já me enviou notícias pelos vigias da muralha. Os batedores foram rechaçados e nossa fronteira está em paz esta noite graças a você.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Ancião Aldous",
+        "texto": "Você fez tanto por nossa vila hoje... ajudou Elara com as ervas, Torvald na forja e Doran na patrulha. Vejo em seus olhos o peso das lembranças e o cansaço das batalhas.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Ancião Aldous",
+        "texto": "A Casa de Hóspedes logo ao sul da praça foi preparada com todo o carinho. Há uma lareira acesa e uma cama confortável esperando por você. Vá descansar, Halia — esta noite Oakhaven cuidará de você.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Halia",
+        "texto": "Obrigada, Ancião Aldous. Uma noite de repouso ao calor da lareira é exatamente o que minhas forças precisam.",
+        "evento": "iniciar_cutscene_dormir_vila",
+        "proximo": null
+      }
+    }
+  },
+  "monumento_herois": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "(O monumento de pedra retrata a antiga companhia de heróis lendários reunidos. No centro-direita, uma maga élfica ergue um cajado idêntico ao seu...)",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "(Ao lado do guerreiro de manto pesado, há uma inscrição gasta pelo musgo: 'Àqueles que seguraram o céu quando a primeira fenda se abriu'.)",
+        "proximo": "menu_monumento"
+      },
+      "menu_monumento": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja fazer diante do monumento dos heróis?",
+        "pode_fechar": true,
+        "id_cancelamento": "sair_monumento",
+        "opcoes": [
+          {
+            "id": "recordar_amigos_monumento",
+            "texto": "[Recordar Companheiros] Fechar os olhos e relembrar a noite ao redor da fogueira na grande estrada.",
+            "repetivel": true
+          },
+          {
+            "id": "sair_monumento",
+            "texto": "[Afastar-se] Prestar respeito silencioso aos heróis e retornar à exploração de Oakhaven.",
+            "repetivel": true
+          }
+        ]
+      }
+    }
+  },
+  "cena_pos_combate_ninho_dragao": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "(Arfa com dificuldade extrema... Suas mãos tremem ao redor do cajado de cristal, dormentes pelo desgaste total de sua mana. Suas vestes azuis estão cobertas de fuligem, cinzas e pequenos cortes.)",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Halia",
+        "texto": "(A batalha feroz contra Ignis'Vahr atravessou cada hora da noite sem um instante de descanso... esquivando de cauda, garras e labaredas devastadoras por toda a cratera vulcânica. Você lutou até o limite absoluto do seu corpo e da sua mente.)",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Halia",
+        "texto": "(Agora, os primeiros raios dourados da manhã rompem a espessa cortina de fumaça sobre os penhascos da montanha. À sua frente jaz o corpo colossal e imóvel do Dragão Ancestral, suas escamas escarlates finalmente resfriando sob a brisa fresca da alvorada.)",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Halia",
+        "texto": "Acabou... Foram horas intermináveis sob as chamas na escuridão... mas finalmente acabou. Oakhaven resistiu à noite. A vila está a salvo.",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Halia",
+        "texto": "(Você apoia o peso do corpo no cajado para não desabar na rocha. A exaustão é avassaladora... mas, no silêncio solene da manhã que nasce, um riso caloroso e protetor ecoa do fundo de sua alma.)",
+        "evento": "iniciar_flashback_sylvan_ninho",
+        "proximo": null
+      }
+    }
+  },
+  "examinar_corpo_dragao": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "(Você se aproxima da carcaça colossal de Ignis'Vahr, o Dragão Vermelho Ancestral. O calor infernal que emanava de suas escamas deu lugar ao frescor da brisa matinal. A fera titânica que aterrorizou o vale por gerações agora repousa eternamente sob a luz límpida da aurora.)",
+        "proximo": null
+      }
+    }
+  }
+}

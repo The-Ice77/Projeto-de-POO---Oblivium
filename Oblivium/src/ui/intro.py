@@ -18,11 +18,11 @@ class Intro:
         self.altura = altura
         
         self.textos = [
-           "Eu me sinto tão... diferente, tão vazia...",
-           "Já faz quanto tempo? Quanto desde a última vez que senti o mundo como devia?",
-           "Tudo perdeu suas cores... sua beleza e até seu significado...",
-           "Mas sinto que as coisas não deveriam ser assim... Não posso deixar este mundo cinza para sempre.",
-           "Preciso lembrar de tudo."
+           "Eu me sinto tão... distante, tão silenciosa por dentro...",
+           "Quanto tempo se passou desde a última vez que ouvi vozes familiares ao redor da fogueira?",
+           "O mundo perdeu suas cores, seu calor... e até os nomes que eu jurava jamais esquecer.",
+           "Mas este silêncio cinzento não é descanso. Há promessas que ainda pulsam sob a névoa.",
+           "Preciso caminhar outra vez... e lembrar de cada um deles."
         ]
         
         self.indice_atual = 0

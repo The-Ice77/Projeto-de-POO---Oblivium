@@ -348,9 +348,17 @@ class ResourceManager:
                     escala = min(largura_alvo / w_orig, altura_alvo / h_orig)
                     novo_w = max(1, int(w_orig * escala))
                     novo_h = max(1, int(h_orig * escala))
-                    imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
                 else:
-                    imagem = pygame.transform.scale(imagem, (largura_alvo, altura_alvo))
+                    novo_w, novo_h = largura_alvo, altura_alvo
+
+                # Redução de alta resolução com interpolação bicúbica suave (evita pixelização)
+                if novo_w < imagem.get_width() or novo_h < imagem.get_height():
+                    try:
+                        imagem = pygame.transform.smoothscale(imagem, (novo_w, novo_h))
+                    except (ValueError, pygame.error):
+                        imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
+                else:
+                    imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
                 
             cls._cache_imagens[chave] = imagem
             return imagem
@@ -472,7 +480,7 @@ class ResourceManager:
 
             arquivos = sorted([
                 f for f in os.listdir(pasta_abs)
-                if f.lower().endswith(".png") and (filtro is None or filtro in f)
+                if f.lower().endswith(".png") and not f.lower().endswith(("_sheet.png", "sheet.png")) and (filtro is None or filtro in f)
             ], key=_chave_natural)
             frames = []
             for arq in arquivos:
@@ -515,13 +523,20 @@ class ResourceManager:
             else:
                 return {}
 
-        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png")])
+        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png") and not f.lower().endswith("_sheet.png")])
         grupos = {}
+        prefixo = f"{pasta_inimigo.lower()}_"
         for nome_arq in arquivos:
-            partes = os.path.splitext(nome_arq)[0].split("_")
-            if len(partes) >= 2:
-                estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
+            nome_sem_ext = os.path.splitext(nome_arq)[0]
+            if nome_sem_ext.lower().startswith(prefixo):
+                resto = nome_sem_ext[len(prefixo):]
+                estado = resto.split("_")[0].lower()
                 grupos.setdefault(estado, []).append(nome_arq)
+            else:
+                partes = nome_sem_ext.split("_")
+                if len(partes) >= 2:
+                    estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
+                    grupos.setdefault(estado, []).append(nome_arq)
 
         # Configurações de velocidade e repetição por estado
         config_estados = {
@@ -805,6 +820,7 @@ class ResourceManager:
         arquivos = sorted([
             f for f in os.listdir(pasta_absoluta)
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp"))
+            and not f.lower().endswith(("_sheet.png", "sheet.png"))
             and (not filtro_prefixo or f.lower().startswith(filtro_prefixo.lower()))
         ])
 
