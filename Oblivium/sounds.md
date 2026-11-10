@@ -30,16 +30,16 @@ Oblivium/assets/audio/
 
 | Nome do Arquivo Esperado | Faixa de Referência (Inspiração) | Trecho / Momento no Jogo | Link de Referência |
 | :--- | :--- | :--- | :--- |
-| `menu_tema.ogg` | *Tema Melancólico / Dark Fantasy* | Menu Principal, Seleção de Saves e Controles | — |
+| `menu_tema.ogg` | **OLD STORIES** (Made in Abyss) | Menu Principal, Seleção de Saves e Controles | — | [[Spotify]]([(https://open.spotify.com/intl-pt/track/5FHMiH3xAfrD8TN86wgYp1?si=933b18a7501b4e13) |
 | `cutscene_intro.ogg` | **For 1000 Years** (Frieren OST) | Cena de introdução do jogo (trecho inicial) | [[Spotify]](https://open.spotify.com/intl-pt/track/5REuZbHvPSPieO9GmI9cTT) |
-| `casa_halia.ogg` | **Life is Worth Living** (Frieren OST) | Despertar e exploração da cabana de Halia | [[Spotify]](https://open.spotify.com/intl-pt/track/25LDFStf0IOKR5CKkW7X4o) |
+| `casa_halia.ogg` | **Before the Light Fades** (Frieren OST) | Despertar e exploração da cabana de Halia | [[Spotify]](https://open.spotify.com/intl-pt/track/5gtXuXuaRyryyyYOaFt4MG?si=ee65ae5e836b472f) |
 | `estrada_floresta.ogg` | **Life is Worth Living** (Frieren OST) | Exploração externa das Estradas 1 e 2 | [[Spotify]](https://open.spotify.com/intl-pt/track/25LDFStf0IOKR5CKkW7X4o) |
-| `cutscene_magia.ogg` | **Life and Legacy** (Frieren OST) | Momento do despertar e descoberta da magia | [[Spotify]](https://open.spotify.com/intl-pt/track/1kFcdw9X2f2jJ8h6xY8pPq) |
-| `combate_comum.ogg` | **Skirmish** (Frieren OST) | Luta contra demônios inferiores / monstros comuns | [[Spotify]](https://open.spotify.com/intl-pt/track/14bU8u65T3Wq3l3q3q3q3q) |
-| `combate_chefe.ogg` | **Demon's Bane** (Frieren OST) | Luta contra demônios superiores / chefes de área | [[Spotify]](https://open.spotify.com/intl-pt/track/14bU8u65T3Wq3l3q3q3q3q) |
+| `cutscene_magia.ogg` | **Life and Legacy** (Frieren OST) | Momento do despertar e descoberta da magia | [[Spotify]](https://open.spotify.com/intl-pt/track/6SikhD5725vrCkrypteTTr?si=d8d5754a0e634fc8) |
+| `combate_comum.ogg` | **Demon's Bane** (Frieren OST) | Luta contra demônios inferiores / monstros comuns | [[Spotify]](https://open.spotify.com/intl-pt/track/5pwqeBM9u6oLbB2jhqme3D?si=11c5b3363f0842d3) |
+| `combate_chefe.ogg` | **Treachery** (Bleach OST) | Luta contra demônios superiores / chefes de área | [[Spotify]](https://open.spotify.com/intl-pt/track/6a7su3dkJJXidSuFiowJC2?si=ed69f8e9461b4af5) |
 | `combate_dragao.ogg` | **Dragon Smasher** (Frieren OST) | Batalha climática contra o dragão ancestral | [[Spotify]](https://open.spotify.com/intl-pt/track/1Bn5xNMZYDfUk5e1eisPei) |
-| `vitoria.ogg` | *Fanfarra Curta de Vitória (~4s)* | Tela de vitória e recompensas pós-batalha | — |
-| `derrota.ogg` | *Jingle Fúnebre de Game Over (~5s)* | Queda de Halia e tela de derrota | — |
+| `vitoria.ogg` | *Fanfarra Curta de Vitória (~4s)* | Tela de vitória e recompensas pós-batalha | [[Spotify]](https://open.spotify.com/intl-pt/track/37rEStoUXtMSoLioh9BoM4?si=717fadf3ff9f4a0d) |
+| `derrota.ogg` | *Jingle Fúnebre de Game Over (~5s)* | Queda de Halia e tela de derrota | [[Spotify]](https://open.spotify.com/intl-pt/track/6faRsCMylJKKQqESbwJTA9?si=75e4f07d544b4eb7) |
 | `cutscene_final.ogg` | **Journey Of a Lifetime** (Frieren OST) | Última cena e encerramento do jogo | [[Spotify]](https://open.spotify.com/intl-pt/track/0ZpugAMYdppMFqp8FAGidT) |
 
 ---
