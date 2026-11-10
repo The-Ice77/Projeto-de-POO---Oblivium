@@ -132,11 +132,12 @@ class EfeitoPetalas(EfeitoChuvaParticulas):
     Reutiliza a base de EfeitoChuvaParticulas e ResourceManager.
     """
     def __init__(self, largura_tela=1280, altura_tela=720, quantidade_petalas=30, **kwargs):
+        qtd = kwargs.pop("quantidade", quantidade_petalas)
         super().__init__(
             sprites_ou_caminho="menu inicial/Spritesheet - Petálas Caindo.png",
             largura_tela=largura_tela,
             altura_tela=altura_tela,
-            quantidade=quantidade_petalas,
+            quantidade=qtd,
             **kwargs
         )
 

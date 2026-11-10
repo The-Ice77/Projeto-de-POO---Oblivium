@@ -1260,6 +1260,45 @@ class MapaOakhavenDestruida(MapaOakhaven):
         # Na vila destruída pelas chamas do dragão, a fauna não está presente
         for animal in self.animais:
             animal.visivel = False
+
+        # 6.2 Posicionamento dos NPCs Durante e Após o Ataque Noturno à Vila:
+        # Durante o ataque noturno / desespero: Ferreiro, Ancião e Curandeira (Elara) não aparecem na vila.
+        # Após Halia sair do desespero (desespero_superado = True ou dragao_derrotado = True):
+        # Apenas Curandeira (Elara) reunida junto ao Ancião (Aldous), mantendo o Ferreiro fora de cena.
+        desespero_superado = getattr(self.game, "desespero_superado", False) or getattr(self.game, "dragao_derrotado", False)
+        
+        # Remove hitboxes dos NPCs anteriores criados no super()
+        hitboxes_npcs = [pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura) for npc in self.npcs]
+        self.hitboxes = [h for h in self.hitboxes if h not in hitboxes_npcs]
+
+        if not desespero_superado:
+            # Durante o ataque: todos os três estão refugiados fora do mapa
+            self.npcs = []
+        else:
+            # Após o desespero: apenas Elara reunida junto ao Ancião Aldous na praça segura
+            self.npcs = [
+                NPC(
+                    nome="Ancião Aldous",
+                    x=1075,
+                    y=635,
+                    npc_id="anciao_aldous",
+                    dialogo_id="hub_aldous_destruida",
+                    tem_loja=False,
+                    arquetipo="anciao"
+                ),
+                NPC(
+                    nome="Curandeira Elara",
+                    x=1125,
+                    y=635,
+                    npc_id="curandeira_elara",
+                    dialogo_id="hub_elara_destruida",
+                    tem_loja=False,
+                    arquetipo="curandeira"
+                ),
+            ]
+            for npc in self.npcs:
+                self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))
+
         # Múltiplos focos de incêndio espalhados pelas ruínas de Oakhaven após o ataque do Dragão
         self.focos_fogo = [
             ChamaIndependente(390, 290, tipo="grande", escala=1.1, glow_base=45),

@@ -7,6 +7,7 @@ from src.mechanics.cutscene_manager import CutsceneManager
 from src.mechanics.cinematica_dragao import CinematicaAtaqueDragao
 from src.mechanics.minigame_ferraria import MinigameFerraria
 from src.mechanics.minigame_curandeira import MinigameCurandeira
+from src.mechanics.cutscene_timeskip import CutsceneTimeskipOakhaven
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
@@ -17,6 +18,7 @@ class PlayingState(State):
         self.cinematica_dragao = CinematicaAtaqueDragao(game, self)
         self.minigame_ferraria = MinigameFerraria(game, self)
         self.minigame_curandeira = MinigameCurandeira(game, self)
+        self.cutscene_timeskip = CutsceneTimeskipOakhaven(game, self)
         self.memoria_anterior_registrada = getattr(self.game.halia, 'fragmentos_memoria', 0)
         self.camera_x = 0.0
         self.camera_y = 0.0
@@ -61,6 +63,12 @@ class PlayingState(State):
                 self.camera_y = alvo_y
 
     def handle_events(self, eventos, teclas):
+        # Delegação à cutscene de encerramento / timeskip
+        if hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo:
+            for evento in eventos:
+                self.cutscene_timeskip.handle_event(evento)
+            return
+
         if hasattr(self, "cinematica_dragao") and self.cinematica_dragao.ativo:
             for evento in eventos:
                 self.cinematica_dragao.handle_event(evento)
@@ -94,7 +102,11 @@ class PlayingState(State):
                 self._handle_clicks(evento)
 
     def update(self):
-        # Atualização prioritária de minigames interativos ativos
+        # Atualização prioritária de timeskip e minigames ativos
+        if hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo:
+            self.cutscene_timeskip.atualizar(1 / 60.0)
+            return
+
         if hasattr(self, "minigame_ferraria") and self.minigame_ferraria.ativo:
             self.minigame_ferraria.atualizar()
             return
@@ -248,10 +260,23 @@ class PlayingState(State):
         if getattr(self.game.mapa_casa, 'cenario_atual', '') == "CASA":
             areas_excluidas.append(pygame.Rect(0, 0, 505, 545))
 
+        # Se houver diálogo ativo, exclui a região da caixa de diálogo para garantir leitura 100% limpa
+        if hasattr(self.game, 'caixa_dialogo') and self.game.caixa_dialogo.ativo:
+            areas_excluidas.append(pygame.Rect(60, 480, 1160, 225))
+
+        # Multiplicador de opacidade: durante diálogos ou cutscenes/flashbacks, folhas ficam sutis ao fundo (0.20)
+        em_dialogo_ou_cutscene = (
+            getattr(self.game.caixa_dialogo, 'ativo', False) or 
+            getattr(self.game.flashback_sistema, 'estado', 'INATIVO') != 'INATIVO' or
+            (hasattr(self, "cinematica_dragao") and self.cinematica_dragao.ativo and self.cinematica_dragao.fase == "DORMINDO") or
+            (hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo)
+        )
+        alpha_folhas = 0.20 if em_dialogo_ou_cutscene else 1.0
+
         # 1. Camada de fundo das folhas (passando suavemente atrás dos personagens e props)
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
             if hasattr(self.game.efeito_folhas, 'desenhar_camada_fundo'):
-                self.game.efeito_folhas.desenhar_camada_fundo(tela, areas_excluidas=areas_excluidas)
+                self.game.efeito_folhas.desenhar_camada_fundo(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_folhas)
 
         if not usa_ysort:
             if self.game.carroceiro_visivel:
@@ -267,9 +292,9 @@ class PlayingState(State):
         # 2. Camadas média e frontal das folhas (passando sobre os personagens e rente à tela do jogador)
         if hasattr(self.game, 'efeito_folhas') and self.game.efeito_folhas:
             if hasattr(self.game.efeito_folhas, 'desenhar_camada_frente'):
-                self.game.efeito_folhas.desenhar_camada_frente(tela, areas_excluidas=areas_excluidas)
+                self.game.efeito_folhas.desenhar_camada_frente(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_folhas)
             else:
-                self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas)
+                self.game.efeito_folhas.desenhar(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_folhas)
 
         # Efeito de clima (chuva comum ou chuva pesada com relâmpagos)
         if hasattr(self.game, 'efeito_chuva') and self.game.efeito_chuva and self.game.efeito_chuva.ativo:
@@ -302,8 +327,13 @@ class PlayingState(State):
         if hasattr(self, 'cinematica_dragao'):
             self.cinematica_dragao.desenhar_tela(tela)
 
+        # 5. Cutscene Cinemática de Timeskip de Oakhaven (encerramento da Fase 1)
+        if hasattr(self, 'cutscene_timeskip') and self.cutscene_timeskip.ativo:
+            self.cutscene_timeskip.desenhar(tela)
+
     def _processar_movimento(self, teclas):
-        if (hasattr(self, 'cinematica_dragao') and self.cinematica_dragao.ativo) or \
+        if (hasattr(self, 'cutscene_timeskip') and self.cutscene_timeskip.ativo) or \
+           (hasattr(self, 'cinematica_dragao') and self.cinematica_dragao.ativo) or \
            (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
            (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or \
            self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or \
@@ -639,6 +669,7 @@ class PlayingState(State):
             "iniciar_combate_dragao_oakhaven",
             "iniciar_flashback_sylvan_ninho",
             "retornar_oakhaven_vitoria",
+            "iniciar_timeskip_final_oakhaven",
         ):
             self.game.caixa_dialogo.manager.consumir_evento()
             if evt_pendente == "cura_elara_missao":
@@ -683,6 +714,10 @@ class PlayingState(State):
                 self.game.aguardando_dialogo_pos_dragao = True
                 if self.game.slot_atual:
                     self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+                return
+            elif evt_pendente == "iniciar_timeskip_final_oakhaven":
+                if hasattr(self, "cutscene_timeskip"):
+                    self.cutscene_timeskip.iniciar()
                 return
 
         if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
@@ -905,6 +940,11 @@ class PlayingState(State):
             self.game.aguardando_dialogo_pos_dragao = True
             if self.game.slot_atual:
                 self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_timeskip_final_oakhaven":
+            self.game.caixa_dialogo.manager.consumir_evento()
+            self.game.caixa_dialogo.ativo = False
+            if hasattr(self, "cutscene_timeskip"):
+                self.cutscene_timeskip.iniciar()
 
     def _processar_clique_escolha(self, pos):
         box = self.game.caixa_dialogo
@@ -1403,10 +1443,11 @@ class PlayingState(State):
         if hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo:
             self.minigame_curandeira.desenhar(tela)
         
-        # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar
-        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
+        # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar ou timeskip
+        timeskip_ativo = getattr(getattr(self, 'cutscene_timeskip', None), 'ativo', False)
+        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
             self.game.hud.desenhar(tela, self.game)
 
         # Quest Tracker no Canto Superior Direito da Tela
-        if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO':
+        if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
             self.game.quest_tracker.desenhar(tela, self.game)

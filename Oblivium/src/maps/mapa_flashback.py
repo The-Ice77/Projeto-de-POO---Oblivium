@@ -879,10 +879,14 @@ class MapaFlashbackAcampamento(CenarioBase):
                 tela.blit(surf_h, (int(vl.x - raio_halo), int(vl.y - raio_halo)))
                 pygame.draw.circle(tela, (255, 255, 255), (int(vl.x), int(vl.y)), 1)
 
-        # 5. Folhas de outono voando com o vento
+        # 5. Folhas de outono voando com o vento (com redução gradual de opacidade para total legibilidade do diálogo)
         if self.spr_folha:
             for f in self.folhas_vento:
+                # Evita cobrir a caixa inferior de diálogo/texto
+                if f.y > 470:
+                    continue
                 surf_f = pygame.transform.rotate(self.spr_folha, f.angulo)
+                surf_f.set_alpha(70)  # Folhas sutis ao fundo
                 tela.blit(surf_f, (int(f.x), int(f.y)))
 
         # 6. Vinheta Nostálgica de Recordação nas Bordas

@@ -3,6 +3,8 @@ import math
 import random
 import pygame
 from src.utils.resource_manager import ResourceManager
+from src.utils.animations import EfeitoPetalas
+from src.utils.colors import DOURADO_ENVELHECIDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_TEXTO_APAGADO
 from src.entities.elemento_cenario import ChamaIndependente
 
 
@@ -40,6 +42,9 @@ class CinematicaAtaqueDragao:
         self.timer_shake = 0.0
         self.intensidade_shake = 0.0
         self.flash_clarão = 0.0
+
+        # Transição poética ao dormir (pétalas suaves)
+        self.efeito_petalas = EfeitoPetalas(1280, 720, quantidade_petalas=24, alpha=(80, 160))
 
         # Coordenadas de Halia e da Casa de Hóspedes (Porta oficial de c1_f05 na base frontal sul)
         self.porta_casa_x = 1345
@@ -353,10 +358,11 @@ class CinematicaAtaqueDragao:
                 self.fase = "DORMINDO"
                 self.tempo_fase = 0.0
 
-        # 3. Noite de sono
+        # 3. Noite de sono (transição poética de atmosfera de flashback)
         elif self.fase == "DORMINDO":
             self.alpha_fade = 255.0
-            if self.tempo_fase >= 3.2:
+            self.efeito_petalas.atualizar(dt)
+            if self.tempo_fase >= 4.5:
                 self.iniciar_ataque_aereo()
 
         # 4. Voo e bombardeio aéreo de Ignis'Vahr em circuito contínuo
@@ -760,32 +766,44 @@ class CinematicaAtaqueDragao:
 
         larg_tela, alt_tela = tela.get_width(), tela.get_height()
 
-        # Vinheta narrativa durante o sono de Halia
+        # Vinheta poética durante o sono de Halia (estilo canônico de transição de flashback)
         if self.fase == "DORMINDO":
             overlay = pygame.Surface((larg_tela, alt_tela))
-            overlay.fill((10, 10, 14))
+            overlay.fill((8, 10, 14))
             tela.blit(overlay, (0, 0))
 
-            card_w, card_h = 760, 260
+            # Pétalas sutis de recordação
+            self.efeito_petalas.desenhar(tela, alpha_multiplicador=0.65)
+
+            card_w, card_h = 840, 275
             cx = (larg_tela - card_w) // 2
             cy = (alt_tela - card_h) // 2
-            pygame.draw.rect(tela, (16, 18, 24), (cx, cy, card_w, card_h), border_radius=8)
-            pygame.draw.rect(tela, (196, 191, 182), (cx, cy, card_w, card_h), width=1, border_radius=8)
-            pygame.draw.rect(tela, (215, 190, 135), (cx + 12, cy + 12, card_w - 24, card_h - 24), width=1, border_radius=6)
 
-            fonte_tit = ResourceManager.carregar_fonte("sunday", 26)
-            fonte_sub = ResourceManager.carregar_fonte("just_breathe", 23)
+            surf_card = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
+            surf_card.fill((14, 17, 24, 230))
+            pygame.draw.rect(surf_card, DOURADO_ENVELHECIDO, (0, 0, card_w, card_h), width=1, border_radius=8)
+            pygame.draw.rect(surf_card, (45, 52, 65, 140), (6, 6, card_w - 12, card_h - 12), width=1, border_radius=6)
+            tela.blit(surf_card, (cx, cy))
+
+            fonte_tit = ResourceManager.carregar_fonte("sunday", 24)
+            fonte_sub = ResourceManager.carregar_fonte("just_breathe", 25)
             fonte_pula = ResourceManager.carregar_fonte("contrail", 15)
 
-            txt_l1 = fonte_tit.render("A Noite no Refúgio de Oakhaven", True, (215, 190, 135))
-            txt_l2 = fonte_sub.render("O crepitar suave da lareira na Casa de Hóspedes envolvia a vila em silêncio...", True, (246, 243, 236))
-            txt_l3 = fonte_sub.render("Halia adormeceu sob o teto acolhedor, ignorando a tempestade de fogo que se aproximava.", True, (196, 191, 182))
-            txt_pula = fonte_pula.render("[ ENTER / ESPAÇO: Avançar ]", True, (125, 125, 132))
+            txt_tit = fonte_tit.render("O Silêncio da Noite em Oakhaven", True, DOURADO_ENVELHECIDO)
+            rect_tit = txt_tit.get_rect(center=(larg_tela // 2, cy + 38))
+            tela.blit(txt_tit, rect_tit)
 
-            tela.blit(txt_l1, (cx + (card_w - txt_l1.get_width()) // 2, cy + 42))
-            tela.blit(txt_l2, (cx + (card_w - txt_l2.get_width()) // 2, cy + 102))
-            tela.blit(txt_l3, (cx + (card_w - txt_l3.get_width()) // 2, cy + 144))
-            tela.blit(txt_pula, (cx + (card_w - txt_pula.get_width()) // 2, cy + card_h - 38))
+            pygame.draw.line(tela, DOURADO_ENVELHECIDO, (larg_tela // 2 - 160, cy + 58), (larg_tela // 2 + 160, cy + 58), 1)
+
+            txt_l1 = fonte_sub.render("Sob o teto acolhedor da Casa de Hóspedes, o crepitar da lareira dissipa o cansaço da estrada...", True, MARFIM_OFFWHITE)
+            txt_l2 = fonte_sub.render("Por uma breve noite, o peso do mundo e a dor das memórias esquecidas deram lugar à paz.", True, (230, 230, 235))
+            txt_l3 = fonte_sub.render("Halia adormeceu sob o abraço sereno do refúgio... alheia à tempestade de fogo que cruzava os céus.", True, CINZA_LINHO)
+            txt_pula = fonte_pula.render("[ ENTER / ESPAÇO: Avançar ]", True, UI_TEXTO_APAGADO)
+
+            tela.blit(txt_l1, (cx + (card_w - txt_l1.get_width()) // 2, cy + 86))
+            tela.blit(txt_l2, (cx + (card_w - txt_l2.get_width()) // 2, cy + 128))
+            tela.blit(txt_l3, (cx + (card_w - txt_l3.get_width()) // 2, cy + 170))
+            tela.blit(txt_pula, (cx + (card_w - txt_pula.get_width()) // 2, cy + card_h - 32))
 
         # Clarão de impacto das explosões (Flash de Calor)
         elif self.flash_clarão > 0 and self.fase == "VOO_DRAGAO":

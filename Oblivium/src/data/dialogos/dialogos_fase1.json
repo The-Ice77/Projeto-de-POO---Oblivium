@@ -586,17 +586,23 @@
     "nos": {
       "fala_1": {
         "autor": "Ancião Aldous",
-        "texto": "Por todos os ancestrais, Halia! Vimos das colinas o clarão azul do seu cajado dissipar as chamas no Ninho do Dragão! Você derrotou Ignis'Vahr e salvou o nosso povo!",
+        "texto": "Por todos os ancestrais, Halia! Vimos das colinas o clarão azul do seu cajado dissipar as chamas no Ninho do Dragão! Você derrotou Ignis'Vahr e salvou o que restou de nosso vilarejo!",
         "proximo": "fala_2"
       },
       "fala_2": {
         "autor": "Halia",
-        "texto": "Quando encarei o fogo do dragão lá no ninho... lembrei-me da voz dele, Aldous. Lembrei-me do riso de Sylvan e da promessa que fizemos antes de partir.",
+        "texto": "Quando encarei o fogo do dragão lá no cume... lembrei-me da voz de Sylvan e do juramento de meus companheiros. Foi essa força que me manteve firme contra o abismo.",
         "proximo": "fala_3"
       },
       "fala_3": {
-        "autor": "Ferreiro Torvald",
-        "texto": "Hahaha! Eu sabia que aquele anão teimoso jamais deixaria uma amiga lutar sozinha! Já começamos a reerguer as vigas das casas, Halia — Oakhaven sempre será o seu lar.",
+        "autor": "Curandeira Elara",
+        "texto": "Venha até aqui, Halia... deixe-me cuidar de suas feridas e queimaduras. Você enfrentou uma lenda ardente por nós quando ninguém mais podia empunhar magia. Oakhaven inteira deve sua vida à sua bravura.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Ancião Aldous",
+        "texto": "As chamas finalmente se extinguiram nas cinzas, minha jovem. Com seu exemplo e coragem, reergueremos cada viga e cada lar. Oakhaven sempre será a sua casa.",
+        "evento": "iniciar_timeskip_final_oakhaven",
         "proximo": null
       }
     }
