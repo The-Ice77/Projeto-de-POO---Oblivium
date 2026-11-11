@@ -222,7 +222,9 @@ class NPC(Entidade):
             return "elara_curandeira"
         if any(k in chave for k in ["torvald", "ferreiro", "forja"]):
             return "torvald_ferreiro"
-        if any(k in chave for k in ["doran", "guarda", "aventureiro", "sentinela"]):
+        if any(k in chave for k in ["guarda_doran", "doran", "guarda", "sentinela", "cavaleiro"]):
+            return "guarda_doran"
+        if any(k in chave for k in ["carroceiro", "carroca", "carroça", "aventureiro"]):
             return "aventureiro"
         if any(k in chave for k in ["sylvan", "anao", "anão"]):
             return "sylvan_anao"
