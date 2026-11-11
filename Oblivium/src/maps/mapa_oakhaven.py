@@ -824,49 +824,6 @@ class MapaOakhaven(CenarioBase):
                 self.itens_no_chao.append(item_erva)
                 self.ervas_coletaveis.append(item_erva)
 
-    def respawn_erva_alternativa(self, item_antigo=None):
-        """
-        Quando uma colheita falha e a flor murcha, remove o nó danificado e
-        faz brotar uma nova Erva de Orvalho Lunar em um local alternativo da vila.
-        """
-        if item_antigo and item_antigo in self.itens_no_chao:
-            self.itens_no_chao.remove(item_antigo)
-        if item_antigo and hasattr(self, "ervas_coletaveis") and item_antigo in self.ervas_coletaveis:
-            self.ervas_coletaveis.remove(item_antigo)
-
-        pontos_alternativos = [
-            (680, 1120),  # Próximo ao canteiro do riacho
-            (1420, 1080), # Perto da ponte leste
-            (1890, 680),  # Bosque ao fundo da taverna
-            (820, 520),   # Jardim ao lado da praça norte
-            (160, 640),   # Encosta oeste da botânica
-        ]
-        
-        # Filtra pontos livres onde não há itens muito próximos
-        pontos_livres = []
-        for px, py in pontos_alternativos:
-            muito_perto = any(abs(it.x - px) < 40 and abs(it.y - py) < 40 for it in self.itens_no_chao)
-            if not muito_perto:
-                pontos_livres.append((px, py))
-        
-        novo_x, novo_y = pontos_livres[0] if pontos_livres else (700, 1100)
-        
-        nova_erva = Item(
-            nome="Erva de Orvalho Lunar",
-            x=novo_x,
-            y=novo_y,
-            largura=28,
-            altura=28,
-            cor=(110, 235, 195)
-        )
-        nova_erva.id_unico = f"erva_lunar_respawn_{len(self.itens_no_chao)}"
-        nova_erva.imagem = self._gerar_sprite_erva_lunar()
-        self.itens_no_chao.append(nova_erva)
-        if hasattr(self, "ervas_coletaveis"):
-            self.ervas_coletaveis.append(nova_erva)
-            
-        return nova_erva
-
         # =====================================================================
         # 10. FAUNA VIVA: PÁSSAROS E PATUSCO (EASTER EGG 1/7 NO TUFO DE GRAMA)
         # =====================================================================
@@ -968,6 +925,49 @@ class MapaOakhaven(CenarioBase):
                     }
                 ]
             })
+
+    def respawn_erva_alternativa(self, item_antigo=None):
+        """
+        Quando uma colheita falha e a flor murcha, remove o nó danificado e
+        faz brotar uma nova Erva de Orvalho Lunar em um local alternativo da vila.
+        """
+        if item_antigo and item_antigo in self.itens_no_chao:
+            self.itens_no_chao.remove(item_antigo)
+        if item_antigo and hasattr(self, "ervas_coletaveis") and item_antigo in self.ervas_coletaveis:
+            self.ervas_coletaveis.remove(item_antigo)
+
+        pontos_alternativos = [
+            (680, 1120),  # Próximo ao canteiro do riacho
+            (1420, 1080), # Perto da ponte leste
+            (1890, 680),  # Bosque ao fundo da taverna
+            (820, 520),   # Jardim ao lado da praça norte
+            (160, 640),   # Encosta oeste da botânica
+        ]
+        
+        # Filtra pontos livres onde não há itens muito próximos
+        pontos_livres = []
+        for px, py in pontos_alternativos:
+            muito_perto = any(abs(it.x - px) < 40 and abs(it.y - py) < 40 for it in self.itens_no_chao)
+            if not muito_perto:
+                pontos_livres.append((px, py))
+        
+        novo_x, novo_y = pontos_livres[0] if pontos_livres else (700, 1100)
+        
+        nova_erva = Item(
+            nome="Erva de Orvalho Lunar",
+            x=novo_x,
+            y=novo_y,
+            largura=28,
+            altura=28,
+            cor=(110, 235, 195)
+        )
+        nova_erva.id_unico = f"erva_lunar_respawn_{len(self.itens_no_chao)}"
+        nova_erva.imagem = self._gerar_sprite_erva_lunar()
+        self.itens_no_chao.append(nova_erva)
+        if hasattr(self, "ervas_coletaveis"):
+            self.ervas_coletaveis.append(nova_erva)
+            
+        return nova_erva
 
     @staticmethod
     def _gerar_sprite_erva_lunar():

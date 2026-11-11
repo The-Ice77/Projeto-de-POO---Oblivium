@@ -85,6 +85,22 @@ class Mapa:
     @property
     def pontos_interacao(self):
         return getattr(self.cenario_objeto, "pontos_interacao", [])
+
+    @property
+    def ervas_coletaveis(self):
+        """Retorna a lista de ervas lunares coletáveis do cenário ativo."""
+        return getattr(self.cenario_objeto, "ervas_coletaveis", [])
+
+    @ervas_coletaveis.setter
+    def ervas_coletaveis(self, nova_lista):
+        if hasattr(self.cenario_objeto, "ervas_coletaveis"):
+            self.cenario_objeto.ervas_coletaveis = nova_lista
+
+    def respawn_erva_alternativa(self, item_antigo=None):
+        """Delega a geração de erva alternativa para o cenário ativo, se suportado."""
+        if hasattr(self.cenario_objeto, "respawn_erva_alternativa"):
+            return self.cenario_objeto.respawn_erva_alternativa(item_antigo)
+        return None
     @property
     def hitboxes(self):
         """Retorna a lista viva de hitboxes do cenário ativo."""
