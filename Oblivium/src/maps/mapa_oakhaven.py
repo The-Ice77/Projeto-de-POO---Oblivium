@@ -1315,10 +1315,10 @@ class MapaOakhavenDestruida(MapaOakhaven):
         self.hitboxes = [h for h in self.hitboxes if h not in hitboxes_npcs]
 
         if not desespero_superado:
-            # Durante o ataque: todos os três estão refugiados fora do mapa
+            # Durante o ataque: todos os NPCs estão escondidos/abrigados fora do alcance das chamas
             self.npcs = []
         else:
-            # Após o desespero: apenas Elara reunida junto ao Ancião Aldous na praça segura
+            # Após o combate contra o dragão: Ancião Aldous, Curandeira Elara e Guarda Doran reunidos na praça acolhendo Halia
             self.npcs = [
                 NPC(
                     nome="Ancião Aldous",
@@ -1337,6 +1337,15 @@ class MapaOakhavenDestruida(MapaOakhaven):
                     dialogo_id="hub_elara_destruida",
                     tem_loja=False,
                     arquetipo="curandeira"
+                ),
+                NPC(
+                    nome="Guarda Doran",
+                    x=1170,
+                    y=635,
+                    npc_id="guarda_doran",
+                    dialogo_id="hub_doran_destruida",
+                    tem_loja=False,
+                    arquetipo="guarda"
                 ),
             ]
             for npc in self.npcs:

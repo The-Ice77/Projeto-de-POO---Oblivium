@@ -7,7 +7,7 @@ from src.mechanics.cutscene_manager import CutsceneManager
 from src.mechanics.cinematica_dragao import CinematicaAtaqueDragao
 from src.mechanics.minigame_ferraria import MinigameFerraria
 from src.mechanics.minigame_curandeira import MinigameCurandeira
-from src.mechanics.cutscene_timeskip import CutsceneTimeskipOakhaven
+from src.mechanics.cutscene_reconstrucao_visual import CutsceneReconstrucaoVisual
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):
@@ -18,7 +18,7 @@ class PlayingState(State):
         self.cinematica_dragao = CinematicaAtaqueDragao(game, self)
         self.minigame_ferraria = MinigameFerraria(game, self)
         self.minigame_curandeira = MinigameCurandeira(game, self)
-        self.cutscene_timeskip = CutsceneTimeskipOakhaven(game, self)
+        self.cutscene_timeskip = CutsceneReconstrucaoVisual(game, self)
         self.memoria_anterior_registrada = getattr(self.game.halia, 'fragmentos_memoria', 0)
         self.camera_x = 0.0
         self.camera_y = 0.0
