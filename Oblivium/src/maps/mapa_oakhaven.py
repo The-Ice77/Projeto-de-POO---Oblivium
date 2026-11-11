@@ -905,12 +905,12 @@ class MapaOakhaven(CenarioBase):
                 "acao_texto": "para Examinar Monumento",
                 "dialogo": [
                     {
-                        "autor": "Halia",
-                        "texto": "(O monumento de pedra retrata a antiga companhia de seis heróis lendários. No centro-direita, uma maga élfica ergue um cajado com um cristal azul idêntico ao seu...)"
+                        "autor": "Narrador",
+                        "texto": "O monumento de pedra retrata a antiga companhia de seis heróis lendários. No centro-direita, uma maga élfica ergue um cajado com um cristal azul esculpido com fidelidade impressionante."
                     },
                     {
-                        "autor": "Halia",
-                        "texto": "(Ao lado do guerreiro de manto pesado, há uma inscrição desgastada pelo musgo: 'Àqueles que seguraram o céu quando a primeira fenda se abriu'. Seu peito aperta com uma saudade sem rosto.)"
+                        "autor": "Narrador",
+                        "texto": "Ao lado do guerreiro de manto pesado, há uma inscrição desgastada pelo musgo: 'Àqueles que seguraram o céu quando a primeira fenda se abriu'."
                     }
                 ]
             },
@@ -935,8 +935,8 @@ class MapaOakhaven(CenarioBase):
                 "acao_texto": "para Sentir o Aroma das Ervas",
                 "dialogo": [
                     {
-                        "autor": "Halia",
-                        "texto": "(O perfume quente de folhas de chá e gengibre fresco sobe do canteiro de Elara. Por um segundo, você quase ouve uma risada grave dizendo que seu chá sempre ficava amargo demais...)"
+                        "autor": "Narrador",
+                        "texto": "O perfume suave de folhas de chá e gengibre fresco sobe do canteiro de Elara, trazendo uma sensação acolhedora de calma ao ambiente."
                     }
                 ]
             },
@@ -948,8 +948,8 @@ class MapaOakhaven(CenarioBase):
                 "acao_texto": "para Examinar Bancada da Forja",
                 "dialogo": [
                     {
-                        "autor": "Halia",
-                        "texto": "(Pedras de amolar, óleo de têmpera e tiras de couro. Seus dedos reconhecem o peso de cada ferramenta antes mesmo de você pensar — como se você já tivesse visto alguém polir uma lâmina centenas de vezes ao redor de uma fogueira.)"
+                        "autor": "Narrador",
+                        "texto": "Pedras de amolar, óleo de têmpera e tiras de couro repousam organizadas sobre a bancada pesada do Ferreiro Torvald."
                     }
                 ]
             }
@@ -963,8 +963,8 @@ class MapaOakhaven(CenarioBase):
                 "acao_texto": "para Quebrar Rocha de Minério",
                 "dialogo": [
                     {
-                        "autor": "Halia",
-                        "texto": "(Uma grande Rocha de Minério Bruto trazida das encostas pelo Ferreiro Torvald. A casca rochosa brilha com veios metálicos no interior.)"
+                        "autor": "Narrador",
+                        "texto": "Uma grande Rocha de Minério Bruto trazida das encostas pelo Ferreiro Torvald. A casca rochosa brilha com veios metálicos no interior."
                     }
                 ]
             })

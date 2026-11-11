@@ -546,8 +546,8 @@ class PlayingState(State):
                 self.game.flashback_monumento_ativo = False
                 self.game.caixa_dialogo.iniciar_dialogo([
                     {
-                        "autor": "Halia",
-                        "texto": "(O calor daquela fogueira distante ainda ecoa em seu peito. As risadas francas de Sylvan, a vigília calma de Roland e o chá de ervas de Caelen... Você não está sozinha nesta batalha.)"
+                        "autor": "Narrador",
+                        "texto": "O calor daquela fogueira distante ainda ecoa no peito de Halia. As risadas francas de Sylvan, a vigília calma de Roland e o chá de ervas de Caelen... Ela não está sozinha nesta batalha."
                     }
                 ])
             elif getattr(self.game, "flashback_sylvan_ativo", False):
@@ -568,8 +568,8 @@ class PlayingState(State):
                     self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                 self.game.caixa_dialogo.iniciar_dialogo([
                     {
-                        "autor": "Halia",
-                        "texto": "(O riso caloroso de Sylvan ainda ecoa como uma brasa acolhedora em seu peito. A força daquela amizade antiga dissipa suas dores. O dragão colossal jaz inerte sob a luz límpida da aurora. É hora de descer pela trilha sul e levar as boas notícias ao povo de Oakhaven.)"
+                        "autor": "Narrador",
+                        "texto": "O riso caloroso de Sylvan ainda ecoa como uma brasa acolhedora na memória de Halia. A força daquela amizade antiga dissipa suas dores. O dragão colossal jaz inerte sob a luz límpida da aurora. É hora de descer pela trilha sul e levar as boas notícias ao povo de Oakhaven."
                     }
                 ])
             else:
@@ -1089,8 +1089,8 @@ class PlayingState(State):
                     else:
                         self.game.caixa_dialogo.iniciar_dialogo([
                             {
-                                "autor": "Halia",
-                                "texto": "Um grande bloco de minério bruto com veios metálicos azulados no pátio da forja. Talvez o Ferreiro Torvald precise de ajuda para parti-lo."
+                                "autor": "Narrador",
+                                "texto": "Um grande bloco de minério bruto com veios metálicos azulados repousa no pátio da forja. O Ferreiro Torvald parece precisar de auxílio para parti-lo."
                             }
                         ])
                         return
@@ -1165,7 +1165,7 @@ class PlayingState(State):
                             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                         self.game.mudar_estado("JOGANDO")
                         self.game.caixa_dialogo.iniciar_dialogo([
-                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Os 2 Olhos Demoníacos batedores foram dissipados. Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
+                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Os 2 Demônios Inferiores batedores foram dissipados. Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
                         ])
                         return
 
@@ -1290,8 +1290,8 @@ class PlayingState(State):
         pygame.event.clear()
         self.game.caixa_dialogo.iniciar_dialogo([
             {
-                "autor": "Halia",
-                "texto": "Oakhaven... As cores suaves do entardecer tocam os telhados da vila. No centro da praça à frente, vejo um grande monumento de pedra e um ancião aguardando."
+                "autor": "Narrador",
+                "texto": "As cores suaves do entardecer tocam os telhados de Oakhaven. No centro da praça à frente, ergue-se um monumento de pedra onde o Ancião Aldous aguarda em silêncio."
             }
         ])
         self.game.transicao.estado = "CLAREANDO"

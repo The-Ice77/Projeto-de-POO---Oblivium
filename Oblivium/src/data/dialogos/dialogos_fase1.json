@@ -484,8 +484,8 @@
     "no_inicial": "fala_1",
     "nos": {
       "fala_1": {
-        "autor": "Halia",
-        "texto": "(O estrondo colossal e o calor sufocante arrancam você do sono no meio da noite! Quando você corre para a praça, o céu noturno está tingido de chamas carmesins e as construções ardem em labaredas!)",
+        "autor": "Narrador",
+        "texto": "O estrondo colossal e o calor sufocante arrancam Halia do sono no meio da noite! Quando corre para a praça, o céu noturno está tingido de chamas carmesins e as construções ardem em labaredas!",
         "proximo": "fala_2"
       },
       "fala_2": {
@@ -637,13 +637,13 @@
     "no_inicial": "fala_1",
     "nos": {
       "fala_1": {
-        "autor": "Halia",
-        "texto": "(O monumento de pedra retrata a antiga companhia de heróis lendários reunidos. No centro-direita, uma maga élfica ergue um cajado idêntico ao seu...)",
+        "autor": "Narrador",
+        "texto": "O monumento de pedra retrata a antiga companhia de heróis lendários reunidos. No centro-direita, uma maga élfica ergue um cajado idêntico ao de Halia...",
         "proximo": "fala_2"
       },
       "fala_2": {
-        "autor": "Halia",
-        "texto": "(Ao lado do guerreiro de manto pesado, há uma inscrição gasta pelo musgo: 'Àqueles que seguraram o céu quando a primeira fenda se abriu'.)",
+        "autor": "Narrador",
+        "texto": "Ao lado do guerreiro de manto pesado, há uma inscrição gasta pelo musgo: 'Àqueles que seguraram o céu quando a primeira fenda se abriu'.",
         "proximo": "menu_monumento"
       },
       "menu_monumento": {
@@ -670,18 +670,18 @@
     "no_inicial": "fala_1",
     "nos": {
       "fala_1": {
-        "autor": "Halia",
-        "texto": "(Arfa com dificuldade extrema... Suas mãos tremem ao redor do cajado de cristal, dormentes pelo desgaste total de sua mana. Suas vestes azuis estão cobertas de fuligem, cinzas e pequenos cortes.)",
+        "autor": "Narrador",
+        "texto": "Halia arfa com dificuldade extrema... Suas mãos tremem ao redor do cajado de cristal, o pulso arcano fumegando em brasas residuais.",
         "proximo": "fala_2"
       },
       "fala_2": {
-        "autor": "Halia",
-        "texto": "(A batalha feroz contra Ignis'Vahr atravessou cada hora da noite sem um instante de descanso... esquivando de cauda, garras e labaredas devastadoras por toda a cratera vulcânica. Você lutou até o limite absoluto do seu corpo e da sua mente.)",
+        "autor": "Narrador",
+        "texto": "A batalha feroz contra Ignis'Vahr atravessou cada hora da noite sem um instante de descanso... esquivando de cauda, garras e labaredas devastadoras por toda a cratera vulcânica.",
         "proximo": "fala_3"
       },
       "fala_3": {
-        "autor": "Halia",
-        "texto": "(Agora, os primeiros raios dourados da manhã rompem a espessa cortina de fumaça sobre os penhascos da montanha. À sua frente jaz o corpo colossal e imóvel do Dragão Ancestral, suas escamas escarlates finalmente resfriando sob a brisa fresca da alvorada.)",
+        "autor": "Narrador",
+        "texto": "Agora, os primeiros raios dourados da manhã rompem a espessa cortina de fumaça sobre os penhascos da montanha. À frente jaz o corpo colossal e imóvel do Dragão Ancestral, suas escamas escarlates finalmente resfriando sob a brisa fresca da alvorada.",
         "proximo": "fala_4"
       },
       "fala_4": {
@@ -690,8 +690,8 @@
         "proximo": "fala_5"
       },
       "fala_5": {
-        "autor": "Halia",
-        "texto": "(Você apoia o peso do corpo no cajado para não desabar na rocha. A exaustão é avassaladora... mas, no silêncio solene da manhã que nasce, um riso caloroso e protetor ecoa do fundo de sua alma.)",
+        "autor": "Narrador",
+        "texto": "Halia apoia o peso do corpo no cajado para não desabar na rocha. A exaustão é avassaladora... mas, no silêncio solene da manhã que nasce, um riso caloroso e protetor ecoa do fundo de sua alma.",
         "evento": "iniciar_flashback_sylvan_ninho",
         "proximo": null
       }
@@ -701,8 +701,8 @@
     "no_inicial": "fala_1",
     "nos": {
       "fala_1": {
-        "autor": "Halia",
-        "texto": "(Você se aproxima da carcaça colossal de Ignis'Vahr, o Dragão Vermelho Ancestral. O calor infernal que emanava de suas escamas deu lugar ao frescor da brisa matinal. A fera titânica que aterrorizou o vale por gerações agora repousa eternamente sob a luz límpida da aurora.)",
+        "autor": "Narrador",
+        "texto": "A carcaça colossal de Ignis'Vahr, o Dragão Vermelho Ancestral, jaz silenciosa sobre a rocha vulcânica. O calor infernal que emanava de suas escamas deu lugar ao frescor da brisa matinal sob a luz límpida da aurora.",
         "proximo": null
       }
     }
