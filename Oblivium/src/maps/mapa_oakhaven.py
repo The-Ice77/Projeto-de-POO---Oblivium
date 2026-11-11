@@ -401,6 +401,7 @@ class MapaOakhaven(CenarioBase):
         cols = w // 32       # 70 colunas
         rows = (h // 32) + 1  # 47 linhas (1504px, recortado em 1480px)
         grade = [[0 for _ in range(cols)] for _ in range(rows)]
+        self.grade = grade
 
         def _marcar_rect(gx1, gy1, gx2, gy2, tipo):
             for gy in range(max(0, gy1), min(rows, gy2 + 1)):
@@ -519,13 +520,14 @@ class MapaOakhaven(CenarioBase):
                     surf.blit(sp, (px, py))
 
         # Canteiros naturais de grama alta nos recantos onde Patusco (Easter Egg 1/7) pode se esconder
+        # (Todos os 5 esconderijos calibrados exclusivamente em terreno gramado puro e com interação desobstruída)
         if self.sprites_grama_tufos:
             for cx, cy in [
-                (1855, 885),   # Pomar / recanto atrás da taverna
-                (220, 1060),   # Canteiro botânico oeste
-                (840, 540),    # Jardim ao lado da praça norte
-                (1380, 1050),  # Margem do riacho sul perto da ponte leste
-                (175, 490),    # Bosque oeste perto da paliçada
+                (176, 240),    # Bosque Noroeste atrás da taverna
+                (1360, 192),   # Bosque Nordeste perto da colina norte
+                (160, 480),    # Canteiro botânico oeste
+                (816, 944),    # Prado gramado do riacho sul
+                (1648, 944),   # Pomar sudeste perto da forja
             ]:
                 for ox, oy, idx in [
                     (-28, -10, 0), (14, -12, 1), (-32, 12, 2),
@@ -810,14 +812,15 @@ class MapaOakhaven(CenarioBase):
         # =====================================================================
         self.ervas_coletaveis = []
         coletados = getattr(self.game, "itens_coletados", [])
+        # Todas as 7 ervas posicionadas exclusivamente em solo de grama verde natural e em locais 100% acessíveis
         posicoes_ervas = [
-            ("erva_lunar_oakhaven_1", 255, 1015), # Clareira botânica sul 1
-            ("erva_lunar_oakhaven_2", 365, 1095), # Clareira botânica sul 2
-            ("erva_lunar_oakhaven_3", 445, 1020), # Clareira botânica sul 3
-            ("erva_lunar_oakhaven_4", 1910, 720), # Bosque isolado ao fundo da taverna
-            ("erva_lunar_oakhaven_5", 145, 620),  # Canteiro secreto na encosta oeste da botânica
-            ("erva_lunar_oakhaven_6", 1420, 1080),# Margens do riacho ao leste da praça perto da ponte
-            ("erva_lunar_oakhaven_7", 780, 260),  # Bosque norte junto às árvores e paliçada
+            ("erva_lunar_oakhaven_1", 176, 464),   # Clareira botânica oeste
+            ("erva_lunar_oakhaven_2", 304, 1264),  # Jardim campestre sudoeste
+            ("erva_lunar_oakhaven_3", 848, 976),   # Prado do riacho centro-sul
+            ("erva_lunar_oakhaven_4", 1648, 1344), # Campina residencial sul-leste
+            ("erva_lunar_oakhaven_5", 1616, 464),  # Bosque leste da forja
+            ("erva_lunar_oakhaven_6", 1424, 272),  # Bosque nordeste da paliçada
+            ("erva_lunar_oakhaven_7", 240, 240),   # Bosque noroeste da taverna
         ]
         spr_erva = self._gerar_sprite_erva_lunar()
         for id_erva, ex, ey in posicoes_ervas:
@@ -838,12 +841,13 @@ class MapaOakhaven(CenarioBase):
         # =====================================================================
         # 10. FAUNA VIVA: PÁSSAROS E PATUSCO (EASTER EGG 1/7 NO TUFO DE GRAMA)
         # =====================================================================
+        # Todos os esconderijos calibrados estritamente sobre tufos de grama verde (sem terra, pedra ou colisores)
         esconderijos_patusco = [
-            (1855, 885),   # Pomar / recanto atrás da taverna
-            (220, 1060),   # Canteiro botânico oeste perto das flores de Elara
-            (840, 540),    # Jardim ao lado da praça norte
-            (1380, 1050),  # Margem do riacho sul perto da ponte leste
-            (175, 490),    # Bosque oeste perto da paliçada
+            (176, 240),    # Bosque Noroeste atrás da taverna
+            (1360, 192),   # Bosque Nordeste perto da colina norte
+            (160, 480),    # Canteiro botânico oeste
+            (816, 944),    # Prado gramado do riacho sul
+            (1648, 944),   # Pomar sudeste perto da forja
         ]
         pos_salva = getattr(self.game, "patusco_pos_oakhaven", None)
         if pos_salva in esconderijos_patusco:
@@ -963,11 +967,11 @@ class MapaOakhaven(CenarioBase):
             self.ervas_coletaveis.remove(item_antigo)
 
         pontos_alternativos = [
-            (680, 1120),  # Próximo ao canteiro do riacho
-            (1420, 1080), # Perto da ponte leste
-            (1890, 680),  # Bosque ao fundo da taverna
-            (820, 520),   # Jardim ao lado da praça norte
-            (160, 640),   # Encosta oeste da botânica
+            (784, 944),   # Prado do riacho centro-sul (100% grama)
+            (1584, 944),  # Pomar sudeste (100% grama)
+            (1330, 192),  # Bosque nordeste (100% grama)
+            (848, 976),   # Prado gramado do riacho (100% grama)
+            (176, 464),   # Clareira botânica oeste (100% grama)
         ]
         
         # Filtra pontos livres onde não há itens muito próximos
@@ -1880,6 +1884,7 @@ class MapaOrlaNorte(CenarioBase):
         cols = w // 32       # 40
         rows = (h // 32) + 1  # 23
         grade = [[0 for _ in range(cols)] for _ in range(rows)]
+        self.grade = grade
 
         def _marcar_rect(gx1, gy1, gx2, gy2, tipo):
             for gy in range(max(0, gy1), min(rows, gy2 + 1)):
