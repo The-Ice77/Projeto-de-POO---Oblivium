@@ -1424,7 +1424,9 @@ class PlayingState(State):
             for npc in getattr(self.game.mapa_casa, "npcs", []):
                 r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
                 if area_interacao.colliderect(r_npc):
-                    desenhar_indicador_tecla(tela, int(npc.x + npc.largura // 2), int(npc.y - 58), tecla=tecla_interacao_str, acao=f"Falar com {npc.nome}")
+                    topo_y = npc.obter_topo_cabeca() if hasattr(npc, "obter_topo_cabeca") else int(npc.y - 42)
+                    prompt_y = int(topo_y - 34)
+                    desenhar_indicador_tecla(tela, int(npc.x + npc.largura // 2), prompt_y, tecla=tecla_interacao_str, acao=f"Falar com {npc.nome}")
                     return
 
             if not getattr(self.game, "oakhaven_noite", False):

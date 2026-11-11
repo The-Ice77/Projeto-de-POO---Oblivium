@@ -437,6 +437,33 @@ class NPC(Entidade):
             return alvo_dialogo
         return None
 
+    def obter_topo_cabeca(self):
+        """Retorna a coordenada Y do topo real da cabeça/elmo do NPC no mundo."""
+        if self.imagem_atual:
+            return self.y - (self.imagem_atual.get_height() - self.altura)
+        return self.y - (getattr(self, "alvo_h", 74) - self.altura)
+
+    def obter_posicao_marcador(self):
+        """
+        Retorna as coordenadas (cx, cy) base para o marcador/bolinha de interesse flutuante.
+        Calcula dinamicamente a partir do topo real do sprite do NPC.
+        Para o cavaleiro/guarda (Guarda Doran / Roland), aplica folga ampliada
+        para garantir que seu elmo e cabeça fiquem 100% visíveis e desobstruídos.
+        """
+        topo_sprite = self.obter_topo_cabeca()
+        chave = f"{self.npc_id} {self.nome} {self.arquetipo}".lower()
+        eh_cavaleiro = any(k in chave for k in ["cavaleiro", "guarda", "doran", "roland", "paladino", "sentinela"])
+
+        # O badge circular possui raio 12 (diâmetro 24).
+        # Para o cavaleiro: folga de 38px do centro da bolinha ao topo do elmo
+        # garante ~26px livres entre a borda inferior da bolinha e a cabeça do cavaleiro.
+        # Para os demais NPCs: folga de 28px garante ~16px livres acima da cabeça.
+        distancia = 38 if eh_cavaleiro else 28
+
+        cx = int(self.x + self.largura // 2)
+        cy = int(topo_sprite - distancia)
+        return cx, cy
+
     def desenhar(self, tela, quest_manager=None):
         # Sombra elíptica suave nos pés do NPC
         sombra = pygame.Surface((32, 12), pygame.SRCALPHA)
@@ -466,7 +493,7 @@ class NPC(Entidade):
             pygame.draw.rect(tela, (70, 90, 100), rect_npc)
             pygame.draw.rect(tela, (100, 120, 130), rect_npc, 2)
 
-        # Marcador flutuante de missão acima da cabeça (! / ? / ...)
+        # Marcador flutuante de missão/interesse acima da cabeça (! / ? / ...)
         if quest_manager:
             marcador = self.obter_marcador_missao(quest_manager)
             if marcador:
@@ -474,8 +501,8 @@ class NPC(Entidade):
                 flutuar = int(math.sin(pygame.time.get_ticks() * 0.006) * 3)
                 fonte = ResourceManager.carregar_fonte("ui", 18)
                 txt = fonte.render(simbolo, True, cor)
-                cx = int(self.x + self.largura // 2)
-                cy = int(self.y - 44 + flutuar)
+                cx, cy_base = self.obter_posicao_marcador()
+                cy = int(cy_base + flutuar)
                 badge = pygame.Surface((24, 24), pygame.SRCALPHA)
                 pygame.draw.circle(badge, (20, 24, 32, 210), (12, 12), 11)
                 pygame.draw.circle(badge, (*cor, 235), (12, 12), 11, 2)
