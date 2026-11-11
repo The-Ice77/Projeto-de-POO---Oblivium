@@ -102,6 +102,8 @@ class MinigameCurandeira:
         self.cor_feedback = (255, 255, 255)
         self.timer_feedback = 0
         self.timer_conclusao = 0
+        self.erros = 0
+        self.max_erros = 2
 
         # Partículas
         self.particulas = []
@@ -112,6 +114,7 @@ class MinigameCurandeira:
         self.ativo = True
         self.item_alvo = item
         self.raio_atual = self.raio_max
+        self.erros = 0
         self.shake_flor = 0
         self.flash_flor = 0
         self.flash_anel = 0
@@ -184,41 +187,51 @@ class MinigameCurandeira:
                 self.game.audio.tocar_sfx("item_coletar")
         else:
             # ERRO
-            self.shake_flor = 12
-            self.flash_anel = 16
-            self.cor_flash_anel = (255, 150, 95)
-            
-            if self.raio_atual > self.raio_alvo + self.tolerancia:
-                self.texto_feedback = "Você agiu cedo demais! Deixe o anel de orvalho se aproximar."
+            self.erros += 1
+            if self.erros < self.max_erros:
+                self.shake_flor = 14
+                self.flash_anel = 18
+                self.cor_flash_anel = (255, 140, 70)
+                if self.raio_atual > self.raio_alvo + self.tolerancia:
+                    self.texto_feedback = "Você agiu cedo demais! Cuidado: mais um erro e a flor murchará!"
+                else:
+                    self.texto_feedback = "Você esperou demais! Cuidado: mais um erro e a flor murchará!"
+                self.cor_feedback = (245, 150, 90)
+                self.timer_feedback = 60
+                self.raio_atual = self.raio_max
+                if hasattr(self.game, "audio") and self.game.audio:
+                    self.game.audio.tocar_sfx("ui_erro")
             else:
-                self.texto_feedback = "Você esperou demais! O anel passou do ponto de ressonância."
-            
-            self.cor_feedback = (245, 160, 110)
-            self.timer_feedback = 50
+                # FALHA DEFINITIVA
+                self.estado = "FALHA_ANIMACAO"
+                self.timer_conclusao = 60
+                self.shake_flor = 25
+                self.flash_flor = 30
+                self.flash_anel = 30
+                self.cor_flash_anel = (220, 60, 50)
+                self.texto_feedback = "A flor murchou completamente! A seiva secou e o broto se desfez."
+                self.cor_feedback = (235, 75, 65)
+                self.timer_feedback = 90
 
-            # Partículas sutis de névoa acinzentada
-            cx, cy = self.centro_x, self.centro_y
-            for _ in range(8):
-                ang = random.uniform(-math.pi, 0)
-                spd = random.uniform(1.0, 2.5)
-                self.particulas.append(
-                    ParticulaPetala(
-                        x=cx + random.randint(-20, 20),
-                        y=cy + random.randint(-15, 15),
-                        vx=math.cos(ang) * spd,
-                        vy=math.sin(ang) * spd,
-                        vida=random.uniform(12.0, 20.0),
-                        cor=(190, 190, 205),
-                        raio=3.0,
-                        gravidade=0.04
+                # Partículas de cinzas/névoa escura se dispersando
+                cx, cy = self.centro_x, self.centro_y
+                for _ in range(25):
+                    ang = random.uniform(0, math.pi * 2)
+                    spd = random.uniform(1.5, 4.0)
+                    self.particulas.append(
+                        ParticulaPetala(
+                            x=cx + math.cos(ang) * 10,
+                            y=cy + math.sin(ang) * 10,
+                            vx=math.cos(ang) * spd,
+                            vy=math.sin(ang) * spd,
+                            vida=random.uniform(30.0, 55.0),
+                            cor=random.choice([(110, 110, 120), (80, 80, 95), (140, 90, 80)]),
+                            raio=random.uniform(2.5, 4.5),
+                            gravidade=0.08
+                        )
                     )
-                )
-
-            # Reinicia a contração para permitir nova tentativa fluida
-            self.raio_atual = self.raio_max
-
-            if hasattr(self.game, "audio") and self.game.audio:
-                self.game.audio.tocar_sfx("ui_erro")
+                if hasattr(self.game, "audio") and self.game.audio:
+                    self.game.audio.tocar_sfx("ui_erro")
 
     def _concluir_com_sucesso(self):
         """Aplica os efeitos da colheita bem-sucedida e encerra o minigame."""
@@ -253,17 +266,40 @@ class MinigameCurandeira:
             }
         ])
 
+    def _concluir_com_falha(self):
+        """Aplica os efeitos da colheita fracassada: flor murcha, é removida e nova erva brota em outro local."""
+        self.ativo = False
+        self.estado = "FALHOU"
+
+        # 1. Remove a erva danificada do cenário
+        if self.item_alvo and hasattr(self.game, "mapa_casa") and hasattr(self.game.mapa_casa, "itens_no_chao"):
+            if self.item_alvo in self.game.mapa_casa.itens_no_chao:
+                self.game.mapa_casa.itens_no_chao.remove(self.item_alvo)
+            if hasattr(self.game.mapa_casa, "ervas_coletaveis") and self.item_alvo in self.game.mapa_casa.ervas_coletaveis:
+                self.game.mapa_casa.ervas_coletaveis.remove(self.item_alvo)
+
+            # 2. Gera novo broto em canteiro alternativo de Oakhaven
+            if hasattr(self.game.mapa_casa, "respawn_erva_alternativa"):
+                self.game.mapa_casa.respawn_erva_alternativa(self.item_alvo)
+
+        # 3. Notificação explicativa
+        if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+            self.game.caixa_dialogo.iniciar_dialogo([
+                {
+                    "autor": "Narrador",
+                    "texto": "O toque impreciso rompeu a ressonância mágica da planta. A flor murchou e suas pétalas se desfizeram em cinzas... Um novo broto de Orvalho Lunar germinou em outro canteiro da vila."
+                }
+            ])
+
     def _fechar_sem_sucesso(self):
         """Cancela o minigame sem consumir o item no cenário."""
         self.ativo = False
         self.estado = "INATIVO"
 
-    def atualizar(self):
+    def atualizar(self, dt=1.0):
         """Atualiza animações, contração de anéis e partículas."""
         if not self.ativo:
             return
-
-        dt = 1.0
 
         if self.estado == "JOGANDO":
             self.raio_atual -= self.velocidade_anel
@@ -289,6 +325,10 @@ class MinigameCurandeira:
             self.timer_conclusao -= 1
             if self.timer_conclusao <= 0:
                 self._concluir_com_sucesso()
+        elif self.estado == "FALHA_ANIMACAO":
+            self.timer_conclusao -= 1
+            if self.timer_conclusao <= 0:
+                self._concluir_com_falha()
 
     def update(self):
         """Compatibilidade State Pattern."""

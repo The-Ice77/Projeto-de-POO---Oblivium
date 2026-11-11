@@ -1443,17 +1443,24 @@ class PlayingState(State):
         self.game.flashback_sistema.desenhar(tela)
         self.game.caixa_dialogo.desenhar(tela)
 
+        minigame_ativo = (
+            (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or
+            (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or
+            getattr(self.game.mg_timing, 'ativo', False) or
+            getattr(self.game.mg_mash, 'ativo', False)
+        )
+
         # Minigames Interativos da Vila (Ferraria e Curandeira)
         if hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo:
             self.minigame_ferraria.desenhar(tela)
         if hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo:
             self.minigame_curandeira.desenhar(tela)
         
-        # O HUD deve ser desenhado normalmente quando não houver diálogos ou telas de despertar ou timeskip
+        # O HUD deve ser desenhado normalmente quando não houver minigames, diálogos ou telas de despertar ou timeskip
         timeskip_ativo = getattr(getattr(self, 'cutscene_timeskip', None), 'ativo', False)
-        if hasattr(self.game, 'hud') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
+        if hasattr(self.game, 'hud') and not minigame_ativo and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
             self.game.hud.desenhar(tela, self.game)
 
         # Quest Tracker no Canto Superior Direito da Tela
-        if hasattr(self.game, 'quest_tracker') and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
+        if hasattr(self.game, 'quest_tracker') and not minigame_ativo and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
             self.game.quest_tracker.desenhar(tela, self.game)
