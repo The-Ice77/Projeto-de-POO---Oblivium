@@ -750,24 +750,16 @@ class PlayingState(State):
             self.game.aguardando_fim_viagem = False; self.game.conversa_carroceiro_terminou = True
             self.game.transicao.iniciar("Algumas horas depois...")
 
-        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória 1 e Cores (Sem ativar missões de Oakhaven prematuramente)
+        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores (Padrão original do Prólogo)
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and getattr(self.game, 'partindo_estrada2', False) and not self.game.caixa_dialogo.ativo:
             self.game.partindo_estrada2 = False
             self.game.conversa_carroceiro_terminou = True
-            self.game.pronto_viajar_oakhaven = True
+            if hasattr(self.game, 'conquistas') and self.game.conquistas:
+                self.game.conquistas.desbloquear("rumo_a_vila")
             if self.game.halia.fragmentos_memoria < 1:
                 self.game.halia.recuperar_memoria(1)
             if self.game.slot_atual:
                 self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        # Após concluir o despertar da Memória 1 na Estrada 2 (ou ao caminhar para o leste desobstruído), segue para Oakhaven
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-            despertar_inativo = (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO")
-            if getattr(self.game, 'pronto_viajar_oakhaven', False) and despertar_inativo and self.memoria_anterior_registrada >= 1:
-                self.game.pronto_viajar_oakhaven = False
-                self.game.transicao.iniciar("Rumo aos portões de Oakhaven...")
-            elif getattr(self.game, 'combate_estrada_concluido', False) and self.game.halia.x > 1210 and despertar_inativo:
-                self.game.transicao.iniciar("Rumo aos portões de Oakhaven...")
 
         # No Ninho do Dragão após a vitória ao amanhecer: caminhar até a trilha sul (y > 645) retorna a Oakhaven
         if self.game.mapa_casa.cenario_atual == "NINHO_DRAGAO" and getattr(self.game.mapa_casa.cenario_objeto, "dragao_derrotado", False):
@@ -1241,8 +1233,6 @@ class PlayingState(State):
                 self._entrar_na_estrada_1()
             elif self.game.mapa_casa.cenario_atual == "ESTRADA":
                 self._entrar_na_estrada_2()
-            elif self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-                self._entrar_em_oakhaven()
 
     def _entrar_na_estrada_1(self):
         self.game.mapa_casa.carregar_cenario("ESTRADA")

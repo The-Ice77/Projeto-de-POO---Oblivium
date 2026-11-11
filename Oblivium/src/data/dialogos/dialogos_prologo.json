@@ -482,44 +482,44 @@
         "opcoes": [
           {
             "id": "seguir_capital",
-            "texto": "Subir na carroça e seguir viagem para o Refúgio de Oakhaven",
+            "texto": "Subir na carroça e seguir viagem para a Capital",
             "proximo": "fala_seguir_1",
             "repetivel": true
           },
           {
             "id": "falar_batalha",
-            "texto": "Essas criaturas das sombras... o que eram elas?",
+            "texto": "Essas criaturas... o que eram elas?",
             "proximo": "fala_batalha_1"
           }
         ]
       },
       "fala_fechar_estrada2": {
         "autor": "Carroceiro",
-        "texto": "Estarei pronto quando você estiver, moça. Basta me avisar para partirmos rumo a Oakhaven."
+        "texto": "Estarei pronto quando você estiver. Apenas me avise para partirmos."
       },
       "fala_seguir_1": {
         "autor": "Carroceiro",
-        "texto": "Excelente! Suba na carroça; já dá para avistar as chaminés do Refúgio de Oakhaven logo depois desta colina.",
+        "texto": "Excelente! Suba na carroça, a capital nos espera do outro lado deste vale.",
         "proximo": "fala_seguir_2"
       },
       "fala_seguir_2": {
         "autor": "Narrador",
-        "texto": "Com as anomalias derrotadas e a estrada desobstruída, Halia sobe na carroça e a jornada prossegue...",
+        "texto": "Com as ameaças derrotadas e o caminho liberado, Halia sobe na carroça e a viagem é retomada...",
         "proximo": "fala_seguir_3"
       },
       "fala_seguir_3": {
         "autor": "Pensamento",
-        "texto": "Enquanto as rodas giram rumo a Oakhaven, olho para as minhas mãos... Uma primeira centelha quente finalmente rompeu o gelo dentro de mim.",
+        "texto": "Conforme nos distanciamos deste vale esquecido... sinto uma chama há muito adormecida voltar a queimar em meu peito.",
         "evento": "seguir_capital"
       },
       "fala_batalha_1": {
         "autor": "Carroceiro",
-        "texto": "São batedores e anomalias desgarradas da guerra. Mesmo após a queda do Rei Demônio, criaturas sem mestre ainda rondam as estradas ermas.",
+        "texto": "Anomalias da névoa sombria. Desde a queda do lorde demônio, resquícios do poder dele ainda vagam sem rumo pelas estradas.",
         "proximo": "fala_batalha_2"
       },
       "fala_batalha_2": {
         "autor": "Halia",
-        "texto": "(Pensamento) O meu corpo reagiu aos golpes por puro reflexo, mas lutar sozinha na vanguarda parece... silencioso demais.",
+        "texto": "Entendo... Devo me manter alerta.",
         "proximo": "menu_estrada2"
       }
     }
@@ -530,12 +530,12 @@
     "nos": {
       "fala_1": {
         "autor": "Carroceiro",
-        "texto": "Impressionante, Halia! Você afastou todas aquelas criaturas e a estrada para Oakhaven está segura.",
+        "texto": "Incrível, Halia! Você derrotou as ameaças e a passagem está completamente desimpedida.",
         "proximo": "fala_2"
       },
       "fala_2": {
         "autor": "Carroceiro",
-        "texto": "Podemos retomar a viagem quando você quiser.",
+        "texto": "Podemos continuar viagem quando você quiser.",
         "proximo": "menu_redirecionar"
       },
       "menu_redirecionar": {
@@ -550,7 +550,7 @@
     "nos": {
       "fala_1": {
         "autor": "Carroceiro",
-        "texto": "A passagem está livre e segura. Pronta para seguir viagem até o Refúgio de Oakhaven?",
+        "texto": "A passagem está livre. Pronta para seguir viagem até a capital?",
         "proximo": "menu_redirecionar"
       },
       "menu_redirecionar": {
