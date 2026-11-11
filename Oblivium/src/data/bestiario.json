@@ -365,10 +365,10 @@
         "nome": "Ignis'Vahr, o Dragão Vermelho Ancestral",
         "classe": "Boss",
         "pasta_sprites": "dragao_vermelho",
-        "vida_base": 150,
+        "vida_base": 160,
         "mana_base": 90,
         "velocidade": 2.0,
-        "dano_base": 18,
+        "dano_base": 16,
         "atributos": {
             "forca": 18,
             "destreza": 12,
@@ -402,17 +402,17 @@
         "nome": "Olho Demoníaco Abissal",
         "classe": "Enemy",
         "pasta_sprites": "demonio_olho",
-        "vida_base": 52,
+        "vida_base": 42,
         "mana_base": 40,
         "velocidade": 2.5,
-        "dano_base": 12,
+        "dano_base": 9,
         "atributos": {
-            "forca": 8,
-            "destreza": 14,
-            "constituicao": 12,
-            "intelecto": 15,
-            "sabedoria": 13,
-            "presenca": 12
+            "forca": 7,
+            "destreza": 13,
+            "constituicao": 10,
+            "intelecto": 13,
+            "sabedoria": 12,
+            "presenca": 11
         },
         "habilidades": [
             "raio_ocular",

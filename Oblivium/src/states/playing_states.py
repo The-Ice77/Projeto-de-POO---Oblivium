@@ -613,8 +613,8 @@ class PlayingState(State):
             self.game.halia.mudar_estado("idle")
                 
             if self.game.magia_usada_no_puzzle == "FOGO":
-                sombra1 = EnemyFactory.criar("demonio_olho", x=1180, y=290, nome_custom="Olho Demoníaco Voraz")
-                sombra2 = EnemyFactory.criar("demonio_olho", x=1180, y=420, nome_custom="Olho Demoníaco Vigia")
+                sombra1 = EnemyFactory.criar("demonio_inferior", x=1180, y=290, nome_custom="Demônio Inferior Voraz")
+                sombra2 = EnemyFactory.criar("demonio_inferior", x=1180, y=420, nome_custom="Demônio Inferior Vigia")
                 sombra1.velocidade = 3.5
                 sombra2.velocidade = 3.5
                 sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
@@ -1001,7 +1001,7 @@ class PlayingState(State):
                     self.game.itens_coletados.append(id_do_item)
                 
                 if id_do_item == "item_moedas":
-                    self.game.halia.ganhar_dinheiro(1000) # 50 Moedas de Prata = 5 Moedas de Ouro
+                    self.game.halia.ganhar_dinheiro(50) # 50 Moedas de Prata = 5 Moedas de Ouro
                     self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
                 elif id_do_item == "item_cajado":
                     cajado = ItemFactory.criar("cajado_espinheiro")
@@ -1312,8 +1312,8 @@ class PlayingState(State):
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
-        batedor1 = EnemyFactory.criar("demonio_olho", x=565, y=285, nome_custom="Batedor Olho Demoníaco 1")
-        batedor2 = EnemyFactory.criar("demonio_olho", x=665, y=305, nome_custom="Batedor Olho Demoníaco 2")
+        batedor1 = EnemyFactory.criar("demonio_inferior", x=565, y=285, nome_custom="Batedor Inferior 1")
+        batedor2 = EnemyFactory.criar("demonio_inferior", x=665, y=305, nome_custom="Batedor Inferior 2")
         for bat in (batedor1, batedor2):
             bat.velocidade = 0
             bat.virado_direita = False
@@ -1324,7 +1324,7 @@ class PlayingState(State):
         self.game.caixa_dialogo.iniciar_dialogo([
             {
                 "autor": "Guarda Doran",
-                "texto": "Chegamos ao ponto, Halia! Aqueles 2 Olhos Demoníacos batedores estão bem ali no centro da clareira. Eu cubro a passagem do portão — aproxime-se deles para iniciar o combate!"
+                "texto": "Chegamos ao ponto, Halia! Aqueles 2 Demônios Inferiores batedores estão bem ali no centro da clareira. Eu cubro a passagem do portão — aproxime-se deles para iniciar o combate!"
             }
         ])
 

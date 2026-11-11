@@ -170,7 +170,7 @@ class EnemyFactory:
         posicoes = posicoes_custom or posicoes_padrao
 
         tabelas_regiao = {
-            "estrada": ["demonio_olho", "demonio_pequeno", "sombra_guardia"],
+            "estrada": ["demonio_inferior", "demonio_pequeno", "sombra_guardia"],
             "floresta": ["demonio_olho", "demonio_pequeno", "espectro_errante"],
             "ruinas": ["demonio_olho", "sombra_guardia", "espectro_errante"]
         }
