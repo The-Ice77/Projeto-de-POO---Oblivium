@@ -149,9 +149,24 @@ class Transition:
         self.superficie.set_alpha(int(self.alpha))
         tela.blit(self.superficie, (0, 0))
         
-        # 2. Desenha a brisa de pétalas do menu flutuando pela transição com transparência proporcional
+        # 2. Se houver texto ativo, calcula a área excluída para impedir que pétalas sobreponham a tipografia
+        areas_excluidas = []
+        if (self.estado == "EXIBINDO_TEXTO" or self.texto_atual) and self.texto_atual:
+            largura_total_texto = self.fonte.size(self.texto_atual)[0]
+            altura_texto = self.fonte.size(self.texto_atual)[1]
+            x_inicio_texto = (self.largura - largura_total_texto) // 2
+            y_centro = (self.altura // 2) - (altura_texto // 2) - 10
+            rect_texto = pygame.Rect(
+                x_inicio_texto - 40,
+                y_centro - 25,
+                largura_total_texto + 80,
+                altura_texto + 50
+            )
+            areas_excluidas.append(rect_texto)
+
+        # Desenha a brisa de pétalas do menu flutuando pela transição com transparência proporcional
         alpha_petalas = min(1.0, max(0.15, self.alpha / 220.0))
-        self.efeito_petalas.desenhar(tela, alpha_multiplicador=alpha_petalas)
+        self.efeito_petalas.desenhar(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_petalas)
         
         # 3. Se houver um texto ativo, renderiza com máquina de escrever e ornamentação delicada
         if self.estado == "EXIBINDO_TEXTO" and self.texto_atual:

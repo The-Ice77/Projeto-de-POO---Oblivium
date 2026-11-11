@@ -766,44 +766,38 @@ class CinematicaAtaqueDragao:
 
         larg_tela, alt_tela = tela.get_width(), tela.get_height()
 
-        # Vinheta poética durante o sono de Halia (estilo canônico de transição de flashback)
+        # Vinheta poética durante o sono de Halia (estilo canônico de tela de flashback)
         if self.fase == "DORMINDO":
             overlay = pygame.Surface((larg_tela, alt_tela))
             overlay.fill((8, 10, 14))
             tela.blit(overlay, (0, 0))
 
-            # Pétalas sutis de recordação
-            self.efeito_petalas.desenhar(tela, alpha_multiplicador=0.65)
-
-            card_w, card_h = 840, 275
-            cx = (larg_tela - card_w) // 2
-            cy = (alt_tela - card_h) // 2
-
-            surf_card = pygame.Surface((card_w, card_h), pygame.SRCALPHA)
-            surf_card.fill((14, 17, 24, 230))
-            pygame.draw.rect(surf_card, DOURADO_ENVELHECIDO, (0, 0, card_w, card_h), width=1, border_radius=8)
-            pygame.draw.rect(surf_card, (45, 52, 65, 140), (6, 6, card_w - 12, card_h - 12), width=1, border_radius=6)
-            tela.blit(surf_card, (cx, cy))
-
-            fonte_tit = ResourceManager.carregar_fonte("sunday", 24)
+            fonte_tit = ResourceManager.carregar_fonte("sunday", 26)
             fonte_sub = ResourceManager.carregar_fonte("just_breathe", 25)
-            fonte_pula = ResourceManager.carregar_fonte("contrail", 15)
+            fonte_pula = ResourceManager.carregar_fonte("contrail", 16)
 
-            txt_tit = fonte_tit.render("O Silêncio da Noite em Oakhaven", True, DOURADO_ENVELHECIDO)
-            rect_tit = txt_tit.get_rect(center=(larg_tela // 2, cy + 38))
-            tela.blit(txt_tit, rect_tit)
-
-            pygame.draw.line(tela, DOURADO_ENVELHECIDO, (larg_tela // 2 - 160, cy + 58), (larg_tela // 2 + 160, cy + 58), 1)
-
+            txt_tit = fonte_tit.render("✦ O SILÊNCIO DA NOITE EM OAKHAVEN ✦", True, DOURADO_ENVELHECIDO)
             txt_l1 = fonte_sub.render("Sob o teto acolhedor da Casa de Hóspedes, o crepitar da lareira dissipa o cansaço da estrada...", True, MARFIM_OFFWHITE)
             txt_l2 = fonte_sub.render("Por uma breve noite, o peso do mundo e a dor das memórias esquecidas deram lugar à paz.", True, (230, 230, 235))
-            txt_l3 = fonte_sub.render("Halia adormeceu sob o abraço sereno do refúgio... alheia à tempestade de fogo que cruzava os céus.", True, CINZA_LINHO)
-            txt_pula = fonte_pula.render("[ ENTER / ESPAÇO: Avançar ]", True, UI_TEXTO_APAGADO)
+            txt_l3 = fonte_sub.render("Halia adormeceu sob o abraço sereno do refúgio... alheia à tempestade que cruzava os céus.", True, CINZA_LINHO)
+            txt_pula = fonte_pula.render("[ Pressione ENTER ou ESPAÇO para despertar ]", True, UI_TEXTO_APAGADO)
 
-            tela.blit(txt_l1, (cx + (card_w - txt_l1.get_width()) // 2, cy + 86))
-            tela.blit(txt_l2, (cx + (card_w - txt_l2.get_width()) // 2, cy + 128))
-            tela.blit(txt_l3, (cx + (card_w - txt_l3.get_width()) // 2, cy + 170))
-            tela.blit(txt_pula, (cx + (card_w - txt_pula.get_width()) // 2, cy + card_h - 32))
+            # Define área excluída de proteção para manter legibilidade absoluta sem pétalas sobrepostas
+            cx_centro = larg_tela // 2
+            cy_centro = alt_tela // 2
+            rect_texto = pygame.Rect(cx_centro - 440, cy_centro - 140, 880, 280)
+
+            # Pétalas sutis de recordação ao fundo com exclusão do bloco de texto
+            self.efeito_petalas.desenhar(tela, areas_excluidas=[rect_texto], alpha_multiplicador=0.65)
+
+            # Renderização tipográfica canônica centralizada estilo flashback
+            tela.blit(txt_tit, txt_tit.get_rect(center=(cx_centro, cy_centro - 90)))
+            pygame.draw.line(tela, DOURADO_ENVELHECIDO, (cx_centro - 180, cy_centro - 65), (cx_centro + 180, cy_centro - 65), 1)
+
+            tela.blit(txt_l1, txt_l1.get_rect(center=(cx_centro, cy_centro - 20)))
+            tela.blit(txt_l2, txt_l2.get_rect(center=(cx_centro, cy_centro + 25)))
+            tela.blit(txt_l3, txt_l3.get_rect(center=(cx_centro, cy_centro + 70)))
+            tela.blit(txt_pula, txt_pula.get_rect(center=(cx_centro, cy_centro + 130)))
 
         # Clarão de impacto das explosões (Flash de Calor)
         elif self.flash_clarão > 0 and self.fase == "VOO_DRAGAO":

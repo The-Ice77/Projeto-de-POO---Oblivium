@@ -276,9 +276,26 @@ class Flashback:
         self.superficie_preta.set_alpha(self.alpha)
         tela.blit(self.superficie_preta, (0, 0))
 
+        areas_excluidas = []
+        if self.indice_texto < len(self.textos):
+            texto_final, _ = self._obter_texto_formatado_atual()
+            linhas = self._quebrar_texto(texto_final, self.largura - 240)
+            altura_linha = 40
+            altura_bloco = len(linhas) * altura_linha
+            y_inicial = (self.altura // 2) - (altura_bloco // 2)
+            larguras = [self.fonte_flashback.size(l)[0] for l in linhas] if linhas else [300]
+            max_w = max(larguras, default=300)
+            rect_txt = pygame.Rect(
+                (self.largura // 2) - (max_w // 2) - 35,
+                y_inicial - 25,
+                max_w + 70,
+                altura_bloco + 50
+            )
+            areas_excluidas.append(rect_txt)
+
         if self.estado in ("ESCURECENDO", "ESCURIDAO", "CLAREANDO"):
             alpha_petalas = min(1.0, max(0.08, self.alpha / 220.0))
-            self.efeito_petalas.desenhar(tela, alpha_multiplicador=alpha_petalas)
+            self.efeito_petalas.desenhar(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_petalas)
 
         if self.estado == "ESCURIDAO" and self.indice_texto < len(self.textos):
             texto_final, cor_texto = self._obter_texto_formatado_atual()
