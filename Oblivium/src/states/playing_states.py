@@ -16,6 +16,7 @@ class PlayingState(State):
         self.game = game
         self.cutscene = CutsceneManager(game)
         self.cinematica_dragao = CinematicaAtaqueDragao(game, self)
+        self.game.cinematica_dragao = self.cinematica_dragao
         self.minigame_ferraria = MinigameFerraria(game, self)
         self.minigame_curandeira = MinigameCurandeira(game, self)
         self.cutscene_timeskip = CutsceneReconstrucaoVisual(game, self)
@@ -661,6 +662,7 @@ class PlayingState(State):
         evt_pendente = getattr(self.game.caixa_dialogo.manager, "evento_pendente", None)
         if evt_pendente in (
             "cura_elara_missao",
+            "cura_elara_destruida",
             "ir_patrulha_doran",
             "iniciar_cutscene_dormir_vila",
             "iniciar_amanhecer_ataque_dragao",
@@ -672,10 +674,10 @@ class PlayingState(State):
             "iniciar_timeskip_final_oakhaven",
         ):
             self.game.caixa_dialogo.manager.consumir_evento()
-            if evt_pendente == "cura_elara_missao":
+            if evt_pendente in ("cura_elara_missao", "cura_elara_destruida"):
                 if hasattr(self.game, "halia") and self.game.halia:
                     self.game.halia.restaurar_total()
-                if hasattr(self.game, "missoes") and self.game.missoes:
+                if evt_pendente == "cura_elara_missao" and hasattr(self.game, "missoes") and self.game.missoes:
                     if self.game.missoes.missoes.get("missao_ervas_medicinais", {}).get("status") != "CONCLUIDA":
                         self.game.missoes.concluir_missao("missao_ervas_medicinais")
                 return
@@ -1129,6 +1131,8 @@ class PlayingState(State):
                         self.game.inimigos_em_cena.clear()
                         self.game.cena_inimigos_andando = False
                         self.game.oakhaven_noite = False  # A longa noite de batalha terminou: rompe a alvorada!
+                        self.game.dragao_derrotado = True
+                        self.game.desespero_superado = True
                         
                         # Halia permanece no NINHO_DRAGAO contemplando exausta o corpo do dragão ao amanhecer
                         self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")

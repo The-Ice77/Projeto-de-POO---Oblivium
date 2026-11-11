@@ -706,5 +706,163 @@
         "proximo": null
       }
     }
+  },
+  "hub_aldous_destruida": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Halia, que os deuses antigos protejam seus passos! As chamas de Ignis'Vahr ainda ardem em nossas casas, mas estamos contendo o fogo na praça. A fera alçou voo para o Ninho do Dragão no cume norte!",
+        "proximo": "menu_aldous_destruida"
+      },
+      "menu_aldous_destruida": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja dizer ao Ancião Aldous?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_aldous_dest",
+        "resultado_fechar": "fala_despedida",
+        "opcoes": [
+          {
+            "id": "partir_ninho_dragao",
+            "texto": "Estou pronta. Vou subir a montanha agora para derrotar Ignis'Vahr no ninho dele!",
+            "proximo": "fala_partida",
+            "repetivel": true
+          },
+          {
+            "id": "perguntar_situacao",
+            "texto": "Como estão os moradores e a praça?",
+            "proximo": "fala_situacao",
+            "repetivel": true
+          },
+          {
+            "id": "fechar_aldous_dest",
+            "texto": "Preciso de um instante para me preparar antes de subir o desfiladeiro.",
+            "proximo": "fala_despedida",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_partida": {
+        "autor": "Ancião Aldous",
+        "texto": "Vá com a bênção dos carvalhos ancestrais, Halia! Que a luz de sua magia disperse as trevas e liberte Oakhaven do pesadelo do fogo!",
+        "evento": "ir_para_ninho_dragao",
+        "proximo": null
+      },
+      "fala_situacao": {
+        "autor": "Ancião Aldous",
+        "texto": "Doran e os guardas estão protegendo os acessos contra novas ameaças, e Elara está tratando as queimaduras dos feridos. Mas se o Dragão Ancestral descer novamente, não teremos como resistir sem você.",
+        "proximo": "menu_aldous_destruida"
+      },
+      "fala_despedida": {
+        "autor": "Ancião Aldous",
+        "texto": "Tome o tempo que precisar para respirar, minha jovem, mas suba antes que a fera recupere o fôlego nas montanhas.",
+        "proximo": null
+      }
+    }
+  },
+  "hub_elara_destruida": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Halia! Venha até aqui, deixe-me cuidar de você! O calor foi terrível, mas meus ungüentos de Orvalho Lunar vão curar suas feridas e revigorar seu éter.",
+        "evento": "cura_elara_destruida",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Curandeira Elara",
+        "texto": "(Elara aplica um bálsamo fresco e calmante sobre suas mãos e fronte. Sua saúde e sua energia mágica foram completamente restauradas!)",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Curandeira Elara",
+        "texto": "Não deixe que o pânico do fogo nuble a sua mente lá no ninho vulcânico, Halia. Respire fundo, lembre-se do aroma das ervas e da firmeza dos seus companheiros. Estaremos orando por você!",
+        "proximo": null
+      }
+    }
+  },
+  "hub_doran_destruida": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Guarda Doran",
+        "texto": "Halia! O Dragão Ancestral voou para o Ninho do Dragão no topo dos penhascos rochosos ao norte! A subida é traiçoeira e íngreme.",
+        "proximo": "menu_doran_destruida"
+      },
+      "menu_doran_destruida": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja tratar com o Guarda Doran?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_doran_dest",
+        "resultado_fechar": "fala_despedida",
+        "opcoes": [
+          {
+            "id": "doran_partir_ninho",
+            "texto": "Mostre-me o caminho para o Ninho do Dragão. Vou confrontar Ignis'Vahr agora!",
+            "proximo": "fala_partida",
+            "repetivel": true
+          },
+          {
+            "id": "doran_seguranca_vila",
+            "texto": "Mantenha os sobreviventes e o perímetro seguros.",
+            "proximo": "fala_seguranca",
+            "repetivel": true
+          },
+          {
+            "id": "fechar_doran_dest",
+            "texto": "Vou checar meus equipamentos antes de partir.",
+            "proximo": "fala_despedida",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_partida": {
+        "autor": "Guarda Doran",
+        "texto": "O desfiladeiro norte está logo acima! Que sua magia guie sua lâmina e seu cajado, Grã-Maga. Honre a companhia dos heróis!",
+        "evento": "ir_para_ninho_dragao",
+        "proximo": null
+      },
+      "fala_seguranca": {
+        "autor": "Guarda Doran",
+        "texto": "Pode confiar na guarda! Nenhuma criatura passará por este portão enquanto eu respirar. Acabe com aquela besta colossal!",
+        "proximo": "menu_doran_destruida"
+      },
+      "fala_despedida": {
+        "autor": "Guarda Doran",
+        "texto": "Estou vigilante aqui na praça. Quando estiver pronta, avise-nos para partirmos!",
+        "proximo": null
+      }
+    }
+  },
+  "hub_aldous_vitoria": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Pelos céus e pela terra, Halia! O clarão do seu cajado no cume norte devolveu a esperança a Oakhaven. Ignis'Vahr caiu e a alvorada enfim despontou! Com o seu exemplo de bravura, reergueremos cada viga de nossa vila.",
+        "proximo": null
+      }
+    }
+  },
+  "hub_elara_vitoria": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Curandeira Elara",
+        "texto": "Halia! Que bênção indescritível vê-la descer da montanha sã e salva! O pesadelo das cinzas acabou... Oakhaven jamais esquecerá o que você fez por nós.",
+        "evento": "cura_elara_destruida",
+        "proximo": null
+      }
+    }
+  },
+  "hub_doran_vitoria": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Guarda Doran",
+        "texto": "Saudações, salvadora de Oakhaven! É a maior glória da minha vida testemunhar a derrota do Dragão Ancestral pelas suas mãos. A guarda e o povo estarão sempre em dívida com você!",
+        "proximo": null
+      }
+    }
   }
 }

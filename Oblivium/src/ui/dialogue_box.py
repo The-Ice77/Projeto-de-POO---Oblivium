@@ -614,6 +614,8 @@ class DialogueBox:
             return (130, 215, 160) # Verde menta / curandeira
         elif "torvald" in autor_limpo or "ferreiro" in autor_limpo:
             return (235, 120, 50)  # Laranja brasas / forja
+        elif "doran" in autor_limpo or "guarda" in autor_limpo or "cavaleiro" in autor_limpo:
+            return (200, 215, 230) # Aço polido / guarda nobre
         elif "maldição" in autor_limpo or "maldicao" in autor_limpo:
             return NOME_MALDICAO
         elif autor in ["Sistema", "Narrador"]:
@@ -643,6 +645,8 @@ class DialogueBox:
             return self.retratos.get("Elara")
         if "torvald" in autor_low or "ferreiro" in autor_low:
             return self.retratos.get("Torvald")
+        if "doran" in autor_low or "guarda" in autor_low:
+            return self.retratos.get("Roland")
         if "torvin" in autor_low:
             return self.retratos.get("Torvin")
         if "carroceiro" in autor_low:

@@ -390,10 +390,22 @@ class NPC(Entidade):
     def obter_dialogo_interacao(self, quest_manager=None):
         """
         Determina qual diálogo iniciar quando Halia interage com o NPC:
-        1. Se houver missão ATIVA deste NPC pronta para entregar -> Conclui a missão e retorna `dialogo_conclusao`.
-        2. Se houver missão ATIVA deste NPC ainda em andamento -> Trava em `dialogo_andamento` (loja bloqueada).
-        3. Caso contrário -> Retorna o hub normal `dialogo_id`.
+        1. Em Oakhaven Destruída (pós-ataque do Dragão): utiliza os hubs dramáticos de crise ou vitória.
+        2. Se houver missão ATIVA deste NPC pronta para entregar -> Conclui a missão e retorna `dialogo_conclusao`.
+        3. Se houver missão ATIVA deste NPC ainda em andamento -> Trava em `dialogo_andamento` (loja bloqueada).
+        4. Caso contrário -> Retorna o hub normal `dialogo_id`.
         """
+        game_ref = getattr(self, "game", None)
+        if game_ref and getattr(game_ref, "oakhaven_destruida", False):
+            if getattr(game_ref, "dragao_derrotado", False):
+                if "aldous" in self.npc_id.lower():
+                    return "hub_aldous_vitoria"
+                elif "elara" in self.npc_id.lower():
+                    return "hub_elara_vitoria"
+                elif "doran" in self.npc_id.lower():
+                    return "hub_doran_vitoria"
+            return self.dialogo_id or self.dialogos
+
         if quest_manager:
             res = quest_manager.processar_interacao_npc(self.npc_id)
             if res["estado"] == "LIVRE":
@@ -411,8 +423,12 @@ class NPC(Entidade):
         alvo_dialogo = self.obter_dialogo_interacao(qm)
 
         # À noite após a ronda de fronteira, Aldous convida Halia a descansar na Casa de Hóspedes
-        if getattr(game, "oakhaven_noite", False) and (
-            self.arquetipo == "anciao" or "aldous" in self.npc_id.lower() or "aldous" in self.nome.lower()
+        # (APENAS na vila intacta antes do ataque aéreo do dragão)
+        if (
+            getattr(game, "oakhaven_noite", False)
+            and not getattr(game, "oakhaven_destruida", False)
+            and not getattr(game, "dragao_derrotado", False)
+            and (self.arquetipo == "anciao" or "aldous" in self.npc_id.lower() or "aldous" in self.nome.lower())
         ):
             alvo_dialogo = "aldous_descanso_noite"
 

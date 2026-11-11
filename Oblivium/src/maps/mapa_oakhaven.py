@@ -1146,10 +1146,14 @@ class MapaOakhaven(CenarioBase):
                 fila_render.append((int(foco.y), "fogo", foco))
 
         # 3. NPCs da Vila com Frustum Culling
-        for npc in self.npcs:
-            r_npc = pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura)
-            if area_visivel is None or area_visivel.colliderect(r_npc):
-                fila_render.append((int(npc.y + npc.altura), "npc", npc))
+        # Durante o ataque aéreo do dragão na cutscene, os moradores se abrigam das chamas e não ficam na rua
+        cinematica = getattr(self.game, "cinematica_dragao", None)
+        em_ataque_cutscene = bool(cinematica and getattr(cinematica, "ativo", False) and getattr(cinematica, "fase", "") in ("VOO_DRAGAO", "DORMINDO"))
+        if not em_ataque_cutscene:
+            for npc in self.npcs:
+                r_npc = pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura)
+                if area_visivel is None or area_visivel.colliderect(r_npc):
+                    fila_render.append((int(npc.y + npc.altura), "npc", npc))
 
         # 4. Animais (Patusco no tufo de grama e Pássaros no solo)
         # Durante a noite, a fauna está dormindo e não participa do Y-sort nem voa
@@ -1330,52 +1334,43 @@ class MapaOakhavenDestruida(MapaOakhaven):
         for animal in self.animais:
             animal.visivel = False
 
-        # 6.2 Posicionamento dos NPCs Durante e Após o Ataque Noturno à Vila:
-        # Durante o ataque noturno / desespero: Ferreiro, Ancião e Curandeira (Elara) não aparecem na vila.
-        # Após Halia sair do desespero (desespero_superado = True ou dragao_derrotado = True):
-        # Apenas Curandeira (Elara) reunida junto ao Ancião (Aldous), mantendo o Ferreiro fora de cena.
-        desespero_superado = getattr(self.game, "desespero_superado", False) or getattr(self.game, "dragao_derrotado", False)
-        
-        # Remove hitboxes dos NPCs anteriores criados no super()
+        # Remove hitboxes dos NPCs anteriores criados no super() (como o Ferreiro em seu local original)
         hitboxes_npcs = [pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura) for npc in self.npcs]
         self.hitboxes = [h for h in self.hitboxes if h not in hitboxes_npcs]
 
-        if not desespero_superado:
-            # Durante o ataque: todos os NPCs estão escondidos/abrigados fora do alcance das chamas
-            self.npcs = []
-        else:
-            # Após o combate contra o dragão: Ancião Aldous, Curandeira Elara e Guarda Doran reunidos na praça acolhendo Halia
-            self.npcs = [
-                NPC(
-                    nome="Ancião Aldous",
-                    x=1075,
-                    y=635,
-                    npc_id="anciao_aldous",
-                    dialogo_id="hub_aldous_destruida",
-                    tem_loja=False,
-                    arquetipo="anciao"
-                ),
-                NPC(
-                    nome="Curandeira Elara",
-                    x=1125,
-                    y=635,
-                    npc_id="curandeira_elara",
-                    dialogo_id="hub_elara_destruida",
-                    tem_loja=False,
-                    arquetipo="curandeira"
-                ),
-                NPC(
-                    nome="Guarda Doran",
-                    x=1170,
-                    y=635,
-                    npc_id="guarda_doran",
-                    dialogo_id="hub_doran_destruida",
-                    tem_loja=False,
-                    arquetipo="guarda"
-                ),
-            ]
-            for npc in self.npcs:
-                self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))
+        # Na praça de Oakhaven Destruída, os sobreviventes estão reunidos acolhendo Halia:
+        # Ancião Aldous, Curandeira Elara e Guarda Doran (o Ferreiro Torvald permanece fora de cena na forja/escombros)
+        self.npcs = [
+            NPC(
+                nome="Ancião Aldous",
+                x=1060,
+                y=615,
+                npc_id="anciao_aldous",
+                dialogo_id="hub_aldous_destruida",
+                tem_loja=False,
+                arquetipo="anciao"
+            ),
+            NPC(
+                nome="Curandeira Elara",
+                x=1110,
+                y=615,
+                npc_id="curandeira_elara",
+                dialogo_id="hub_elara_destruida",
+                tem_loja=False,
+                arquetipo="curandeira"
+            ),
+            NPC(
+                nome="Guarda Doran",
+                x=1160,
+                y=615,
+                npc_id="guarda_doran",
+                dialogo_id="hub_doran_destruida",
+                tem_loja=False,
+                arquetipo="guarda"
+            ),
+        ]
+        for npc in self.npcs:
+            self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))
 
         # Múltiplos focos de incêndio espalhados pelas ruínas de Oakhaven após o ataque do Dragão
         self.focos_fogo = [

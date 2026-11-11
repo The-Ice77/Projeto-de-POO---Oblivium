@@ -28,6 +28,7 @@ class CinematicaAtaqueDragao:
     def __init__(self, game, playing):
         self.game = game
         self.playing = playing
+        self.game.cinematica_dragao = self
         self.ativo = False
         self.fase = "INATIVO"
         self.tempo_fase = 0.0
@@ -179,6 +180,7 @@ class CinematicaAtaqueDragao:
 
     def iniciar_ataque_aereo(self):
         """Dispara o ataque aéreo contínuo e devastador de Ignis'Vahr em Oakhaven."""
+        self.game.cinematica_dragao = self
         self.ativo = True
         self.fase = "VOO_DRAGAO"
         self.subfase_voo = "PASSE_NORTE"
