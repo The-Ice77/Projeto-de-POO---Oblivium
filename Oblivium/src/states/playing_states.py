@@ -675,6 +675,9 @@ class PlayingState(State):
             if evt_pendente == "cura_elara_missao":
                 if hasattr(self.game, "halia") and self.game.halia:
                     self.game.halia.restaurar_total()
+                if hasattr(self.game, "missoes") and self.game.missoes:
+                    if self.game.missoes.missoes.get("missao_ervas_medicinais", {}).get("status") != "CONCLUIDA":
+                        self.game.missoes.concluir_missao("missao_ervas_medicinais")
                 return
             elif evt_pendente == "ir_patrulha_doran":
                 self._ir_para_patrulha_orla_norte()
@@ -899,6 +902,9 @@ class PlayingState(State):
             self.game.caixa_dialogo.manager.consumir_evento()
             if hasattr(self.game, "halia") and self.game.halia:
                 self.game.halia.restaurar_total()
+            if hasattr(self.game, "missoes") and self.game.missoes:
+                if self.game.missoes.missoes.get("missao_ervas_medicinais", {}).get("status") != "CONCLUIDA":
+                    self.game.missoes.concluir_missao("missao_ervas_medicinais")
         elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_cutscene_dormir_vila":
             self.game.caixa_dialogo.manager.consumir_evento()
             self.game.caixa_dialogo.ativo = False

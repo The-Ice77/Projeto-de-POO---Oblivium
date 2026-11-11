@@ -132,14 +132,20 @@ class QuestManager:
         if not objetivos:
             return True
 
+        # Validação e sincronização estrita de inventário para a entrega de ervas à Elara
+        if id_missao == "missao_ervas_medicinais" and self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
+            qtd_ervas = self.game.halia.inventario.obter_quantidade("erva_lunar")
+            if qtd_ervas >= 3:
+                for obj in objetivos:
+                    if obj.get("id") == "coletar_ervas":
+                        obj["atual"] = max(obj.get("atual", 0), 3)
+                        obj["concluido"] = True
+            else:
+                return False
+
         objs_campo = [o for o in objetivos if not self._eh_objetivo_entrega_npc(o)]
         if objs_campo:
             if not all(o.get("concluido", False) for o in objs_campo):
-                return False
-
-        # Validação estrita de inventário para a entrega de ervas à Elara
-        if id_missao == "missao_ervas_medicinais" and self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
-            if self.game.halia.inventario.obter_quantidade("erva_lunar") < 3:
                 return False
 
         # Caso todos os objetivos sejam de entrega, verifica os anteriores ao último

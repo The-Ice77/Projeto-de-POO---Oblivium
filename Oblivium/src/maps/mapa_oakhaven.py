@@ -772,7 +772,7 @@ class MapaOakhaven(CenarioBase):
                 npc_id="curandeira_elara",
                 dialogo_id="hub_elara",
                 tem_loja=True,
-                loja_id="loja_elara",
+                loja_id="botanica_elara",
                 arquetipo="curandeira"
             ),
             NPC(
