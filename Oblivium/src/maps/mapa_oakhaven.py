@@ -804,9 +804,13 @@ class MapaOakhaven(CenarioBase):
         self.ervas_coletaveis = []
         coletados = getattr(self.game, "itens_coletados", [])
         posicoes_ervas = [
-            ("erva_lunar_oakhaven_1", 255, 1015),
-            ("erva_lunar_oakhaven_2", 365, 1095),
-            ("erva_lunar_oakhaven_3", 445, 1020),
+            ("erva_lunar_oakhaven_1", 255, 1015), # Clareira botânica sul 1
+            ("erva_lunar_oakhaven_2", 365, 1095), # Clareira botânica sul 2
+            ("erva_lunar_oakhaven_3", 445, 1020), # Clareira botânica sul 3
+            ("erva_lunar_oakhaven_4", 1910, 720), # Bosque isolado ao fundo da taverna
+            ("erva_lunar_oakhaven_5", 145, 620),  # Canteiro secreto na encosta oeste da botânica
+            ("erva_lunar_oakhaven_6", 1420, 1080),# Margens do riacho ao leste da praça perto da ponte
+            ("erva_lunar_oakhaven_7", 780, 260),  # Bosque norte junto às árvores e paliçada
         ]
         spr_erva = self._gerar_sprite_erva_lunar()
         for id_erva, ex, ey in posicoes_ervas:

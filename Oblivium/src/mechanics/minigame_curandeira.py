@@ -281,6 +281,8 @@ class MinigameCurandeira:
             # 2. Gera novo broto em canteiro alternativo de Oakhaven
             if hasattr(self.game.mapa_casa, "respawn_erva_alternativa"):
                 self.game.mapa_casa.respawn_erva_alternativa(self.item_alvo)
+            elif hasattr(getattr(self.game.mapa_casa, "cenario_objeto", None), "respawn_erva_alternativa"):
+                self.game.mapa_casa.cenario_objeto.respawn_erva_alternativa(self.item_alvo)
 
         # 3. Notificação explicativa
         if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
