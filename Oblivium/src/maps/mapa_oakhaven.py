@@ -518,14 +518,21 @@ class MapaOakhaven(CenarioBase):
                     sp = rng.choice(self.sprites_rochas)
                     surf.blit(sp, (px, py))
 
-        # Canteiro natural de grama alta onde Patusco (Easter Egg 1/7) se esconde (1855, 885)
+        # Canteiros naturais de grama alta nos recantos onde Patusco (Easter Egg 1/7) pode se esconder
         if self.sprites_grama_tufos:
-            for ox, oy, idx in [
-                (-28, -10, 0), (14, -12, 1), (-32, 12, 2),
-                (18, 10, 5), (-8, 18, 6), (4, -18, 7)
+            for cx, cy in [
+                (1855, 885),   # Pomar / recanto atrás da taverna
+                (220, 1060),   # Canteiro botânico oeste
+                (840, 540),    # Jardim ao lado da praça norte
+                (1380, 1050),  # Margem do riacho sul perto da ponte leste
+                (175, 490),    # Bosque oeste perto da paliçada
             ]:
-                sp_tufo = self.sprites_grama_tufos[idx % len(self.sprites_grama_tufos)]
-                surf.blit(sp_tufo, (1855 + ox, 885 + oy))
+                for ox, oy, idx in [
+                    (-28, -10, 0), (14, -12, 1), (-32, 12, 2),
+                    (18, 10, 5), (-8, 18, 6), (4, -18, 7)
+                ]:
+                    sp_tufo = self.sprites_grama_tufos[idx % len(self.sprites_grama_tufos)]
+                    surf.blit(sp_tufo, (cx + ox, cy + oy))
 
         return surf
 
@@ -831,9 +838,24 @@ class MapaOakhaven(CenarioBase):
         # =====================================================================
         # 10. FAUNA VIVA: PÁSSAROS E PATUSCO (EASTER EGG 1/7 NO TUFO DE GRAMA)
         # =====================================================================
+        esconderijos_patusco = [
+            (1855, 885),   # Pomar / recanto atrás da taverna
+            (220, 1060),   # Canteiro botânico oeste perto das flores de Elara
+            (840, 540),    # Jardim ao lado da praça norte
+            (1380, 1050),  # Margem do riacho sul perto da ponte leste
+            (175, 490),    # Bosque oeste perto da paliçada
+        ]
+        pos_salva = getattr(self.game, "patusco_pos_oakhaven", None)
+        if pos_salva in esconderijos_patusco:
+            pos_gato = pos_salva
+        else:
+            pos_gato = random.choice(esconderijos_patusco)
+            if self.game is not None:
+                self.game.patusco_pos_oakhaven = pos_gato
+
         self.patusco = Gato(
-            x=1855,
-            y=885,
+            x=pos_gato[0],
+            y=pos_gato[1],
             direcao_inicial="esquerda",
             fase_id="OAKHAVEN",
             nome="Patusco",
