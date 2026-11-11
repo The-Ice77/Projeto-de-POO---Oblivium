@@ -230,6 +230,10 @@ class Game:
             self.inimigos_em_cena = list(inimigos)
         else:
             self.inimigos_em_cena = [inimigos]
+
+        for inimigo in self.inimigos_em_cena:
+            if getattr(inimigo, "eh_mimico", False):
+                inimigo.finalizar_revelacao()
             
         self.mudar_estado("COMBATE")
         self.tela_combate.iniciar_combate(

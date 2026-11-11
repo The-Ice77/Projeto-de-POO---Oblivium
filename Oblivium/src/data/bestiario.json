@@ -1,4 +1,76 @@
 {
+    "mimico": {
+        "nome": "Mímico Soldado Abissal",
+        "classe": "Enemy",
+        "pasta_sprites": "mimico",
+        "vida_base": 42,
+        "mana_base": 25,
+        "velocidade": 2.5,
+        "dano_base": 11,
+        "atributos": {
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 8,
+            "sabedoria": 9,
+            "presenca": 12
+        },
+        "habilidades": [
+            "garras_sombrias",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
+        "recompensas": {
+            "moedas": 25,
+            "memorias": 0,
+            "xp": 45
+        },
+        "dimensoes": [
+            46,
+            40
+        ],
+        "cor": [
+            145,
+            45,
+            55
+        ]
+    },
+    "mimico_batedor": {
+        "nome": "Mímico Batedor Abissal",
+        "classe": "Enemy",
+        "pasta_sprites": "mimico",
+        "vida_base": 42,
+        "mana_base": 25,
+        "velocidade": 2.5,
+        "dano_base": 11,
+        "atributos": {
+            "forca": 12,
+            "destreza": 14,
+            "constituicao": 12,
+            "intelecto": 8,
+            "sabedoria": 9,
+            "presenca": 12
+        },
+        "habilidades": [
+            "garras_sombrias",
+            "golpe_sombrio",
+            "investida_sombria"
+        ],
+        "recompensas": {
+            "moedas": 25,
+            "memorias": 0,
+            "xp": 45
+        },
+        "dimensoes": [
+            46,
+            40
+        ],
+        "cor": [
+            145,
+            45,
+            55
+        ]
+    },
     "demonio_inferior": {
         "nome": "Demônio Inferior",
         "classe": "Enemy",

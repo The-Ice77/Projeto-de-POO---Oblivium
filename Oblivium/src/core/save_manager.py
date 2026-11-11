@@ -310,13 +310,17 @@ class SaveManager:
             missao_ronda = (self.game.missoes.obter_missao("missao_ronda_fronteiras") if hasattr(self.game, "missoes") else None)
             if missao_ronda and missao_ronda.get("status") == "ATIVA" and not self.game.missoes.pronta_para_entregar("missao_ronda_fronteiras"):
                 from src.entities.enemy_factory import EnemyFactory
-                b1 = EnemyFactory.criar("demonio_inferior", x=565, y=285, nome_custom="Batedor Demoníaco 1")
-                b2 = EnemyFactory.criar("demonio_inferior", x=665, y=305, nome_custom="Batedor Demoníaco 2")
+                b1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
+                b2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
                 for b in (b1, b2):
                     b.velocidade = 0
                     b.virado_direita = False
                     b.direcao = "esquerda"
                     b.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
+                    b.disfarcado = True
+                    b.revelado = False
+                    b.revelando = False
+                    b.mudar_estado("corpo")
                 self.game.inimigos_em_cena = [b1, b2]
         elif cenario_salvo == "NINHO_DRAGAO":
             if halia.fragmentos_memoria < 2:

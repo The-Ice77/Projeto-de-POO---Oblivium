@@ -185,6 +185,9 @@ class CombatScreen:
         """Prepara e inicia uma nova sessão de combate."""
         self.jogador = jogador
         self.inimigos = [i for i in inimigos if getattr(i, 'vivo', True)]
+        for inim in self.inimigos:
+            if getattr(inim, 'eh_mimico', False):
+                inim.finalizar_revelacao()
         self.on_vitoria = on_vitoria
         self.on_derrota = on_derrota
         self.on_fuga = on_fuga

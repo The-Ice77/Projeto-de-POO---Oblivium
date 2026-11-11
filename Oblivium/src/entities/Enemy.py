@@ -45,10 +45,22 @@ class Enemy(Entidade):
         self.escala_combate = 0.85
         self.virado_direita = True
 
+        # Suporte a inimigos Mímicos (disfarce de corpo de soldado no overworld e revelação em combate)
+        self.eh_mimico = "mimico" in str(self.pasta_sprites or "").lower()
+        self.disfarcado = self.eh_mimico
+        self.revelado = not self.eh_mimico
+        self.revelando = False
+        self.tempo_reveal = 0.0
+
         # Inferencia inteligente de sprites se não fornecido
         if not self.pasta_sprites:
             nome_low = self.nome.lower()
-            if any(k in nome_low for k in ["superior", "demonio_superior", "gulosao", "gulosão", "anomalia", "boss", "guardiao", "guardião"]):
+            if "mimico" in nome_low:
+                self.pasta_sprites = "mimico"
+                self.eh_mimico = True
+                self.disfarcado = True
+                self.revelado = False
+            elif any(k in nome_low for k in ["superior", "demonio_superior", "gulosao", "gulosão", "anomalia", "boss", "guardiao", "guardião"]):
                 self.pasta_sprites = "demonio_superior"
             elif any(k in nome_low for k in ["demonio_olho", "olho", "observador"]):
                 self.pasta_sprites = "demonio_olho"
@@ -107,6 +119,14 @@ class Enemy(Entidade):
             self.flutuante = True
             self.escala_combate = 0.85
             self.cor = (50, 80, 140)
+        elif "mimico" in pasta_low:
+            escala = 0.70
+            self.largura = 46
+            self.altura = 40
+            self.flutuante = False
+            self.escala_combate = 1.05
+            self.cor = (145, 45, 55)
+            self.eh_mimico = True
         else: # demonio_inferior / padrão
             escala = 0.55
             self.largura = 36
@@ -116,9 +136,46 @@ class Enemy(Entidade):
             self.cor = (80, 30, 110)
 
         self.animacoes = ResourceManager.carregar_animacoes_inimigo(pasta_sprites, escala_fator=escala)
-        if "idle" in self.animacoes:
+        if self.eh_mimico and getattr(self, "disfarcado", False) and "corpo" in self.animacoes:
+            self.estado_atual = "corpo"
+            self.imagem_atual = self.animacoes["corpo"].get_imagem()
+        elif "idle" in self.animacoes:
             self.estado_atual = "idle"
             self.imagem_atual = self.animacoes["idle"].get_imagem()
+
+    def iniciar_revelacao(self):
+        """Inicia a sequência de revelação do Mímico, saindo da forma de cadáver e erguendo-se como monstro feroz."""
+        if not getattr(self, 'eh_mimico', False) or getattr(self, 'revelado', False):
+            return
+        self.disfarcado = False
+        self.revelando = True
+        self.mudar_estado("reveal")
+
+    def finalizar_revelacao(self):
+        """Conclui a revelação tornando o Mímico totalmente erguido na sua forma feroz (para combate)."""
+        self.disfarcado = False
+        self.revelando = False
+        self.revelado = True
+        self.mudar_estado("idle")
+
+    def atualizar_animacao(self):
+        """Atualiza a animação corrente respeitando a transição de revelação do Mímico."""
+        if getattr(self, 'eh_mimico', False) and getattr(self, 'revelando', False):
+            anim = self.animacoes.get("reveal")
+            if anim:
+                anim.atualizar()
+                self.imagem_atual = anim.get_imagem()
+                if getattr(anim, "concluida", False):
+                    self.finalizar_revelacao()
+            return
+
+        super().atualizar_animacao()
+
+    def mudar_estado(self, novo_estado):
+        # Se for um mímico já revelado (ex: em combate), impede regressão para forma de corpo de soldado
+        if getattr(self, "eh_mimico", False) and getattr(self, "revelado", False) and novo_estado in ("corpo", "soldado"):
+            novo_estado = "idle"
+        super().mudar_estado(novo_estado)
 
     def mover(self, dx, dy, hitboxes_mapa=None):
         """Move o inimigo atualizando a animação de caminhar e a orientação do olhar."""
@@ -127,6 +184,8 @@ class Enemy(Entidade):
     # --- SISTEMA DE MOVIMENTO NO MAPA (Pré-Combate) ---
     def atualizar_movimento_mapa(self, alvo_x, alvo_y, lista_inimigos=None):
         if not getattr(self, 'vivo', True) or not getattr(self, 'agressivo', True):
+            return
+        if getattr(self, 'eh_mimico', False) and getattr(self, 'disfarcado', False):
             return
 
         dx_alvo = alvo_x - self.x

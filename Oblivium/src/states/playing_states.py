@@ -810,6 +810,10 @@ class PlayingState(State):
                 for inim in self.game.inimigos_em_cena:
                     r_inim = pygame.Rect(int(inim.x), int(inim.y), inim.largura, inim.altura)
                     if area_halia.colliderect(r_inim):
+                        # Revela a verdadeira forma feroz de mímico para o combate
+                        for inim_alvo in self.game.inimigos_em_cena:
+                            if getattr(inim_alvo, "eh_mimico", False):
+                                inim_alvo.finalizar_revelacao()
                         self.game.iniciando_combate = True
                         self.game.transicao.iniciar()
                         break
@@ -1169,7 +1173,7 @@ class PlayingState(State):
                             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                         self.game.mudar_estado("JOGANDO")
                         self.game.caixa_dialogo.iniciar_dialogo([
-                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Os 2 Demônios Inferiores batedores foram dissipados. Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
+                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Aqueles soldados caídos eram na verdade Mímicos ferozes disfarçados... Que emboscada hedionda! Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
                         ])
                         return
 
@@ -1221,6 +1225,11 @@ class PlayingState(State):
                         self.game.inimigos_em_cena.clear()
                     self.game.cena_inimigos_andando = False
                     self.game.mudar_estado("JOGANDO")
+
+                # Garante que durante o combate o mímico permaneça na sua forma feroz revelada
+                for inim_combate in self.game.inimigos_em_cena:
+                    if getattr(inim_combate, "eh_mimico", False):
+                        inim_combate.finalizar_revelacao()
 
                 self.game.iniciar_combate(
                     inimigos=self.game.inimigos_em_cena,
@@ -1316,19 +1325,23 @@ class PlayingState(State):
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
-        batedor1 = EnemyFactory.criar("demonio_inferior", x=565, y=285, nome_custom="Batedor Inferior 1")
-        batedor2 = EnemyFactory.criar("demonio_inferior", x=665, y=305, nome_custom="Batedor Inferior 2")
+        batedor1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
+        batedor2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
         for bat in (batedor1, batedor2):
             bat.velocidade = 0
             bat.virado_direita = False
             bat.direcao = "esquerda"
             bat.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
+            bat.disfarcado = True
+            bat.revelado = False
+            bat.revelando = False
+            bat.mudar_estado("corpo")
         self.game.inimigos_em_cena.extend([batedor1, batedor2])
 
         self.game.caixa_dialogo.iniciar_dialogo([
             {
                 "autor": "Guarda Doran",
-                "texto": "Chegamos ao ponto, Halia! Aqueles 2 Demônios Inferiores batedores estão bem ali no centro da clareira. Eu cubro a passagem do portão — aproxime-se deles para iniciar o combate!"
+                "texto": "Chegamos à clareira, Halia! Aqueles dois parecem corpos de soldados da patrulha caídos na grama... Mas sinto um miasma maligno no ar. Aproxime-se com cautela para investigar!"
             }
         ])
 

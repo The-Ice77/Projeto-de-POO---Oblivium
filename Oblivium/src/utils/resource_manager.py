@@ -539,7 +539,9 @@ class ResourceManager:
             "attack": {"vel": 0.18, "loop": False},
             "hurt": {"vel": 0.20, "loop": False},
             "dead": {"vel": 0.15, "loop": False},
-            "projectile": {"vel": 0.20, "loop": True}
+            "projectile": {"vel": 0.20, "loop": True},
+            "reveal": {"vel": 0.15, "loop": False},
+            "corpo": {"vel": 0.05, "loop": True}
         }
 
         dicionario_animacoes = {}
