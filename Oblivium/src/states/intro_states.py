@@ -21,12 +21,7 @@ class IntroState(State):
         if not self.game.intro.atualizar():
             pygame.event.clear()
             # Inicializa o diálogo inicial da Halia na caixa de diálogo global
-            self.game.caixa_dialogo.iniciar_dialogo([
-                {"autor": "Pensamento", "texto": "Hm... Que péssima noite de sono. Minhas costas estão me matando depois de dormir aqui."},
-                {"autor": "Pensamento", "texto": "Eu preciso pegar as minhas coisas e ir logo, o carroceiro que contratei já deve estar me esperando do lado de fora da casa."},
-                {"autor": "Narrador", "texto": "Encontre e pegue: A Bolsa de moedas, O Livro antigo e O Cajado mágico de Halia."},
-                {"autor": "Narrador", "texto": "Para coletar os itens encontrados se mova utilizando W,A,S,D ou as setas do teclado e aparte a tecla E"}
-            ])
+            self.game.caixa_dialogo.iniciar_dialogo("despertar_cabana")
             self.game.mudar_estado("JOGANDO")
 
     def draw(self, tela):

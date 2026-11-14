@@ -578,5 +578,30 @@
         "texto": "Não há como passar com a carroça por cima desse desmoronamento. Precisamos dar um jeito nessas rochas primeiro!"
       }
     }
+  },
+
+  "despertar_cabana": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Pensamento",
+        "texto": "Hm... Que péssima noite de sono. Minhas costas estão me matando depois de dormir aqui.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Pensamento",
+        "texto": "Eu preciso pegar as minhas coisas e ir logo, o carroceiro que contratei já deve estar me esperando do lado de fora da casa.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Narrador",
+        "texto": "Encontre e pegue: A Bolsa de moedas, O Livro antigo e O Cajado mágico de Halia.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Narrador",
+        "texto": "Para coletar os itens encontrados se mova utilizando {TECLAS_MOVER} e aperte a tecla {TECLA_INTERAGIR}"
+      }
+    }
   }
 }

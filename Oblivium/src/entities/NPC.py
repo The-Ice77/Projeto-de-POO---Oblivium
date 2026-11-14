@@ -33,48 +33,82 @@ class NPC(Entidade):
         vida_maxima=999,
         npc_id=None,
         dialogo_id=None,
-        tem_loja=False,
+        tem_loja=None,
         loja_id=None,
-        arquetipo=None
+        arquetipo=None,
+        config=None
     ):
-        super().__init__(nome, vida_maxima, x, y, velocidade)
+        cfg = dict(config) if isinstance(config, dict) else None
+        vel_inicial = cfg.get("velocidade", velocidade) if cfg and velocidade == 0 and "velocidade" in cfg else velocidade
+        vida_inicial = cfg.get("vida_maxima", vida_maxima) if cfg and vida_maxima == 999 and "vida_maxima" in cfg else vida_maxima
+        super().__init__(nome, vida_inicial, x, y, vel_inicial)
 
+        self.config = cfg
+        self.sprite_pasta = cfg.get("sprite_pasta") if cfg else None
         self.largura = 36
         self.altura = 36
-        self.npc_id = npc_id or str(nome).strip().lower().replace(" ", "_")
-        self.dialogo_id = dialogo_id
-        self.dialogos = dialogo_id or []
-        self.tem_loja = bool(tem_loja)
-        self.loja_id = loja_id
-        self.arquetipo = arquetipo or self._inferir_arquetipo()
+        npc_id_cfg = cfg.get("npc_id") if cfg else None
+        self.npc_id = npc_id or npc_id_cfg or str(nome).strip().lower().replace(" ", "_")
 
-        # Calibração de Proporções e Hitboxes 2.5D por Arquétipo (Itens 2.1 e 2.2)
-        dimensoes_arquetipos = {
-            "ferreiro": (82, 40, 36),     # Torvald: forjador robusto e alto
-            "torvald": (82, 40, 36),
-            "roland": (84, 42, 38),       # Roland: paladino em placa pesada
-            "sylvan": (65, 42, 32),       # Sylvan: guerreiro anão largo e baixo
-            "doran": (78, 38, 36),        # Doran: sentinela de cota de malha
-            "guarda": (78, 38, 36),
-            "caelen": (76, 36, 36),       # Caelen: clérigo esguio com túnica
-            "anciao": (74, 36, 36),       # Aldous: ancião curvado com cajado
-            "curandeira": (74, 36, 36),   # Elara: curandeira botânica
-            "elara": (74, 36, 36),
-            "aldeao": (74, 36, 36)
-        }
-        chave_arq = self.arquetipo.lower()
-        if "torvald" in self.npc_id:
-            chave_arq = "torvald"
-        elif "elara" in self.npc_id:
-            chave_arq = "elara"
-        elif "sylvan" in self.npc_id:
-            chave_arq = "sylvan"
-        elif "roland" in self.npc_id:
-            chave_arq = "roland"
-        elif "caelen" in self.npc_id:
-            chave_arq = "caelen"
+        if dialogo_id is not None:
+            self.dialogo_id = dialogo_id
+        elif cfg and "dialogo_id" in cfg:
+            self.dialogo_id = cfg.get("dialogo_id")
+        else:
+            self.dialogo_id = None
 
-        self.alvo_h, self.largura, self.altura = dimensoes_arquetipos.get(chave_arq, (74, 36, 36))
+        self.dialogos = self.dialogo_id or []
+
+        if tem_loja is not None:
+            self.tem_loja = bool(tem_loja)
+        elif cfg:
+            self.tem_loja = bool(cfg.get("tem_loja", False))
+        else:
+            self.tem_loja = False
+
+        if loja_id is not None:
+            self.loja_id = loja_id
+        elif cfg and "loja_id" in cfg:
+            self.loja_id = cfg.get("loja_id")
+        else:
+            self.loja_id = None
+
+        arquetipo_cfg = cfg.get("arquetipo") if cfg else None
+        self.arquetipo = arquetipo or arquetipo_cfg or self._inferir_arquetipo()
+
+        dimensoes_cfg = cfg.get("dimensoes") if cfg else None
+        if isinstance(dimensoes_cfg, dict):
+            self.alvo_h = int(dimensoes_cfg.get("alvo_h", 74))
+            self.largura = int(dimensoes_cfg.get("largura", 36))
+            self.altura = int(dimensoes_cfg.get("altura", 36))
+        else:
+            # Calibração de Proporções e Hitboxes 2.5D por Arquétipo (Itens 2.1 e 2.2)
+            dimensoes_arquetipos = {
+                "ferreiro": (82, 40, 36),     # Torvald: forjador robusto e alto
+                "torvald": (82, 40, 36),
+                "roland": (84, 42, 38),       # Roland: paladino em placa pesada
+                "sylvan": (65, 42, 32),       # Sylvan: guerreiro anão largo e baixo
+                "doran": (78, 38, 36),        # Doran: sentinela de cota de malha
+                "guarda": (78, 38, 36),
+                "caelen": (76, 36, 36),       # Caelen: clérigo esguio com túnica
+                "anciao": (74, 36, 36),       # Aldous: ancião curvado com cajado
+                "curandeira": (74, 36, 36),   # Elara: curandeira botânica
+                "elara": (74, 36, 36),
+                "aldeao": (74, 36, 36)
+            }
+            chave_arq = self.arquetipo.lower()
+            if "torvald" in self.npc_id:
+                chave_arq = "torvald"
+            elif "elara" in self.npc_id:
+                chave_arq = "elara"
+            elif "sylvan" in self.npc_id:
+                chave_arq = "sylvan"
+            elif "roland" in self.npc_id:
+                chave_arq = "roland"
+            elif "caelen" in self.npc_id:
+                chave_arq = "caelen"
+
+            self.alvo_h, self.largura, self.altura = dimensoes_arquetipos.get(chave_arq, (74, 36, 36))
         self._configurar_sprites_padrao()
 
     def _inferir_arquetipo(self):
@@ -215,6 +249,8 @@ class NPC(Entidade):
         return frames
 
     def _resolver_pasta_sprites(self):
+        if getattr(self, "sprite_pasta", None):
+            return self.sprite_pasta
         chave = f"{self.npc_id} {self.nome} {self.arquetipo}".lower()
         if any(k in chave for k in ["aldous", "anciao", "ancião", "lider"]):
             return "aldous_lider"

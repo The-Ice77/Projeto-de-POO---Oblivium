@@ -13,6 +13,61 @@ from src.utils.resource_manager import ResourceManager
 from src.mechanics.dialogue_manager import DialogueManager
 from src.core.audio_manager import AudioManager
 
+
+NOMES_TECLAS_PT = {
+    pygame.K_SPACE: "ESPAÇO",
+    pygame.K_RETURN: "ENTER",
+    pygame.K_KP_ENTER: "ENTER",
+    pygame.K_ESCAPE: "ESC",
+    pygame.K_TAB: "TAB",
+    pygame.K_UP: "SETA CIMA",
+    pygame.K_DOWN: "SETA BAIXO",
+    pygame.K_LEFT: "SETA ESQUERDA",
+    pygame.K_RIGHT: "SETA DIREITA",
+}
+
+
+def obter_nome_tecla_legivel(codigo_tecla, game=None):
+    """Converte um keycode Pygame em rótulo legível em português."""
+    if game is not None and hasattr(game, "obter_nome_tecla"):
+        return game.obter_nome_tecla(codigo_tecla)
+    if codigo_tecla in NOMES_TECLAS_PT:
+        return NOMES_TECLAS_PT[codigo_tecla]
+    return pygame.key.name(codigo_tecla).upper()
+
+
+def formatar_marcadores_controles(texto, controles=None, game=None):
+    """Substitui {TECLAS_MOVER} e {TECLA_INTERAGIR} pelas teclas configuradas no momento da exibição."""
+    if not isinstance(texto, str) or (
+        "{TECLAS_MOVER}" not in texto and "{TECLA_INTERAGIR}" not in texto
+    ):
+        return texto
+
+    mapa = controles if isinstance(controles, dict) else getattr(game, "controles", None)
+    if not isinstance(mapa, dict):
+        mapa = {}
+
+    if "{TECLAS_MOVER}" in texto:
+        teclas_mov = (
+            mapa.get("Cima", pygame.K_w),
+            mapa.get("Esquerda", pygame.K_a),
+            mapa.get("Baixo", pygame.K_s),
+            mapa.get("Direita", pygame.K_d),
+        )
+        if set(teclas_mov) == {pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT}:
+            rotulo_mover = "as setas do teclado"
+        else:
+            rotulo_mover = ", ".join(obter_nome_tecla_legivel(k, game=game) for k in teclas_mov)
+        texto = texto.replace("{TECLAS_MOVER}", rotulo_mover)
+
+    if "{TECLA_INTERAGIR}" in texto:
+        tecla_interagir = mapa.get("Interagir", pygame.K_e)
+        rotulo_interagir = obter_nome_tecla_legivel(tecla_interagir, game=game)
+        texto = texto.replace("{TECLA_INTERAGIR}", rotulo_interagir)
+
+    return texto
+
+
 class DialogueBox:
     """
     Caixa de Diálogo e Sistema de Escolhas de Oblivium (Visual + POO):
@@ -23,7 +78,8 @@ class DialogueBox:
     - Destaques visuais e hover no padrão azul clarinho do menu inicial
     - Totalmente retrocompatível com chamadas legadas de listas de falas
     """
-    def __init__(self, largura_tela, manager=None):
+    def __init__(self, largura_tela, manager=None, game=None):
+        self.game = game
         self.fonte_texto = ResourceManager.carregar_fonte("contrail", 20)
         self.fonte_nome = ResourceManager.carregar_fonte("sunday", 24)
         self.fonte_titulo_escolha = ResourceManager.carregar_fonte("sunday", 20)
@@ -203,6 +259,10 @@ class DialogueBox:
         self.tempo_ultimo_input = pygame.time.get_ticks()
         self._sincronizar_com_manager()
 
+    def formatar_texto_controles(self, texto):
+        """Substitui marcadores dinâmicos de controles no texto com base em self.game."""
+        return formatar_marcadores_controles(texto, game=self.game)
+
     def _sincronizar_com_manager(self):
         """Lê o nó ativo do DialogueManager e ajusta o estado da UI correspondente."""
         self.pop_up_aberto = False
@@ -220,14 +280,15 @@ class DialogueBox:
             return
 
         self.ativo = True
-        self.dados_atuais = no
+        self.dados_atuais = dict(no)
 
         tipo_no = no.get("tipo", "fala")
         if tipo_no == "escolha" or "escolhas" in no:
             self.em_escolha = True
             self.pode_fechar = no.get("pode_fechar", False)
             self.id_cancelamento_no = no.get("id_cancelamento", None)
-            self.cabecalho_escolha = no.get("cabecalho", no.get("titulo", "Sobre o que deseja conversar?"))
+            cabecalho_bruto = no.get("cabecalho", no.get("titulo", "Sobre o que deseja conversar?"))
+            self.cabecalho_escolha = self.formatar_texto_controles(cabecalho_bruto)
             self.pagina_atual = 0
             self.opcao_selecionada = 0
             self.rects_opcoes = []
@@ -262,7 +323,8 @@ class DialogueBox:
         else:
             self.em_escolha = False
             self.pode_fechar = False
-            self.texto_completo = no.get("texto", "")
+            self.texto_completo = self.formatar_texto_controles(no.get("texto", ""))
+            self.dados_atuais["texto"] = self.texto_completo
 
             autor = no.get("autor", "Narrador")
             tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])

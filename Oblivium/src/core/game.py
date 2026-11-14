@@ -8,7 +8,7 @@ from src.mechanics.attributes import Atributos
 from src.mechanics.inventory import Inventario
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
-from src.entities.NPC import NPC
+from src.entities.npc_factory import NPCFactory
 from src.ui.flashback import Flashback  
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
@@ -54,7 +54,7 @@ class Game:
 
         # --- Componentes Globais Compartilhados ---
         self.menu = Menu()
-        self.caixa_dialogo = DialogueBox(self.LARGURA) 
+        self.caixa_dialogo = DialogueBox(self.LARGURA, game=self) 
         self.intro = Intro(self.LARGURA, self.ALTURA)
         self.mapa_casa = Mapa(self, self.LARGURA, self.ALTURA)
         self.transicao = Transition(self.LARGURA, self.ALTURA)
@@ -111,7 +111,7 @@ class Game:
         # --- Entidades Estáveis ---
         self.halia = Player("Halia", 100, 210, 280, 3, mana_maxima=50, dinheiro=0)
         self.halia.game = self
-        self.carroceiro = NPC(nome="Carroceiro", x=1350, y=330, velocidade=2)
+        self.carroceiro = NPCFactory.criar("carroceiro", x=1350, y=330, velocidade=2)
 
         # --- Flags Globais de Progresso Permanente (Salvas, restauradas e resetadas via SaveManager) ---
         self.investigou_pedras = False
@@ -239,6 +239,10 @@ class Game:
             pygame.K_KP_ENTER: "ENTER",
             pygame.K_ESCAPE: "ESC",
             pygame.K_TAB: "TAB",
+            pygame.K_UP: "SETA CIMA",
+            pygame.K_DOWN: "SETA BAIXO",
+            pygame.K_LEFT: "SETA ESQUERDA",
+            pygame.K_RIGHT: "SETA DIREITA",
         }
         if codigo_tecla in mapa_nomes:
             return mapa_nomes[codigo_tecla]

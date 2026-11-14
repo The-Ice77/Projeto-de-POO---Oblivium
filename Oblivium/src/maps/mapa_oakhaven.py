@@ -4,7 +4,7 @@ import random
 import pygame
 from src.maps.cenario_base import CenarioBase
 from src.utils.resource_manager import ResourceManager
-from src.entities.NPC import NPC
+from src.entities.npc_factory import NPCFactory
 from src.entities.animal import Passaro, Gato
 from src.entities.elemento_cenario import ChamaIndependente
 from src.entities.item import Item
@@ -765,44 +765,10 @@ class MapaOakhaven(CenarioBase):
         # 8. OS 4 NPCS INTERATIVOS DE OAKHAVEN
         # =====================================================================
         self.npcs = [
-            NPC(
-                nome="Ancião Aldous",
-                x=1102,
-                y=615,
-                npc_id="anciao_aldous",
-                dialogo_id="hub_aldous",
-                tem_loja=False,
-                arquetipo="anciao"
-            ),
-            NPC(
-                nome="Curandeira Elara",
-                x=465,
-                y=625,
-                npc_id="curandeira_elara",
-                dialogo_id="hub_elara",
-                tem_loja=True,
-                loja_id="botanica_elara",
-                arquetipo="curandeira"
-            ),
-            NPC(
-                nome="Ferreiro Torvald",
-                x=1665,
-                y=625,
-                npc_id="ferreiro_torvald",
-                dialogo_id="hub_torvald",
-                tem_loja=True,
-                loja_id="loja_torvald",
-                arquetipo="ferreiro"
-            ),
-            NPC(
-                nome="Guarda Doran",
-                x=1102,
-                y=215,
-                npc_id="guarda_doran",
-                dialogo_id="hub_doran",
-                tem_loja=False,
-                arquetipo="guarda"
-            ),
+            NPCFactory.criar("anciao_aldous", x=1102, y=615),
+            NPCFactory.criar("curandeira_elara", x=465, y=625),
+            NPCFactory.criar("ferreiro_torvald", x=1665, y=625),
+            NPCFactory.criar("guarda_doran", x=1102, y=215),
         ]
         for npc in self.npcs:
             self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))
@@ -1345,32 +1311,26 @@ class MapaOakhavenDestruida(MapaOakhaven):
         # Na praça de Oakhaven Destruída, os sobreviventes estão reunidos acolhendo Halia:
         # Ancião Aldous, Curandeira Elara e Guarda Doran (o Ferreiro Torvald permanece fora de cena na forja/escombros)
         self.npcs = [
-            NPC(
-                nome="Ancião Aldous",
+            NPCFactory.criar(
+                "anciao_aldous",
                 x=1060,
                 y=615,
-                npc_id="anciao_aldous",
                 dialogo_id="hub_aldous_destruida",
                 tem_loja=False,
-                arquetipo="anciao"
             ),
-            NPC(
-                nome="Curandeira Elara",
+            NPCFactory.criar(
+                "curandeira_elara",
                 x=1110,
                 y=615,
-                npc_id="curandeira_elara",
                 dialogo_id="hub_elara_destruida",
                 tem_loja=False,
-                arquetipo="curandeira"
             ),
-            NPC(
-                nome="Guarda Doran",
+            NPCFactory.criar(
+                "guarda_doran",
                 x=1160,
                 y=615,
-                npc_id="guarda_doran",
                 dialogo_id="hub_doran_destruida",
                 tem_loja=False,
-                arquetipo="guarda"
             ),
         ]
         for npc in self.npcs:
@@ -1989,15 +1949,7 @@ class MapaOrlaNorte(CenarioBase):
 
         # Guarda Doran acompanhando Halia na entrada da clareira
         self.npcs = [
-            NPC(
-                nome="Guarda Doran",
-                x=485,
-                y=465,
-                npc_id="guarda_doran",
-                dialogo_id="hub_doran",
-                tem_loja=False,
-                arquetipo="guarda"
-            )
+            NPCFactory.criar("guarda_doran", x=485, y=465)
         ]
         for npc in self.npcs:
             self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))

@@ -1,6 +1,9 @@
 # src/mechanics/dialogue_manager.py
-import os
 import json
+import logging
+import os
+
+logger = logging.getLogger(__name__)
 
 
 class DialogueManager:
@@ -26,6 +29,7 @@ class DialogueManager:
         self.caminho_json = caminho_json or self._CAMINHO_PADRAO_JSON
         self.quest_manager = quest_manager
         self.banco_dialogos = {}
+        self._origens_dialogos = {}
         
         # Estado atual da conversa
         self.ativo = False
@@ -48,6 +52,23 @@ class DialogueManager:
 
         self.carregar_dados()
 
+    def _mesclar_dialogos(self, dados_novos, caminho_origem):
+        """Mescla um dicionário de diálogos no banco registrando warning em caso de colisão de ID."""
+        if not isinstance(dados_novos, dict):
+            return
+        nome_origem = os.path.basename(caminho_origem) if caminho_origem else "<desconhecido>"
+        for conv_id, conteudo in dados_novos.items():
+            if conv_id in self.banco_dialogos:
+                origem_anterior = self._origens_dialogos.get(conv_id, "<desconhecido>")
+                logger.warning(
+                    "[DialogueManager] ID de diálogo duplicado '%s': '%s' sobrescreveu '%s'.",
+                    conv_id,
+                    nome_origem,
+                    origem_anterior,
+                )
+            self.banco_dialogos[conv_id] = conteudo
+            self._origens_dialogos[conv_id] = nome_origem
+
     def carregar_dados(self):
         """
         Carrega e mescla os arquivos JSON de diálogos:
@@ -55,6 +76,7 @@ class DialogueManager:
         2. Carrega todos os arquivos `*.json` na pasta modular `src/data/dialogos/` em ordem alfabética.
         """
         self.banco_dialogos = {}
+        self._origens_dialogos = {}
         try:
             # Se caminho_json for um diretório, carrega todos os JSONs dele
             if self.caminho_json and os.path.isdir(self.caminho_json):
@@ -65,8 +87,7 @@ class DialogueManager:
             if self.caminho_json and os.path.isfile(self.caminho_json):
                 with open(self.caminho_json, "r", encoding="utf-8") as arquivo:
                     dados_base = json.load(arquivo)
-                    if isinstance(dados_base, dict):
-                        self.banco_dialogos.update(dados_base)
+                    self._mesclar_dialogos(dados_base, self.caminho_json)
 
             # 2. Carrega e mescla os módulos por fase de src/data/dialogos/
             if os.path.isdir(self._PASTA_DIALOGOS_MODULAR):
@@ -86,8 +107,7 @@ class DialogueManager:
                     try:
                         with open(caminho_mod, "r", encoding="utf-8") as f:
                             dados_mod = json.load(f)
-                            if isinstance(dados_mod, dict):
-                                self.banco_dialogos.update(dados_mod)
+                            self._mesclar_dialogos(dados_mod, caminho_mod)
                     except Exception as e:
                         print(f"[DialogueManager] Erro ao ler módulo {nome_arq}: {e}")
 
@@ -420,6 +440,61 @@ class DialogueManager:
                 resultado.append({"autor": no.get("autor", "Narrador"), "texto": no["texto"]})
             no_id = no.get("proximo")
         return resultado
+
+    def validar_integridade_nos(self, banco=None):
+        """Valida no_inicial, proximo, resultado_fechar, no_esgotado e link_dialogo das conversas."""
+        catalogo = self.banco_dialogos if banco is None else banco
+        if not isinstance(catalogo, dict):
+            return ["Catálogo de diálogos inválido (esperado dict)."]
+
+        erros = []
+        for conv_id, conv in sorted(catalogo.items()):
+            if not isinstance(conv, dict):
+                erros.append(f"[{conv_id}] Estrutura de conversa inválida (esperado dict).")
+                continue
+
+            nos = conv.get("nos")
+            if not isinstance(nos, dict):
+                erros.append(f"[{conv_id}] Bloco 'nos' ausente ou inválido.")
+                continue
+
+            no_inicial = conv.get("no_inicial")
+            if not no_inicial or no_inicial not in nos:
+                erros.append(f"[{conv_id}] 'no_inicial' aponta para nó inexistente: {no_inicial!r}")
+
+            for no_id, no in nos.items():
+                if not isinstance(no, dict):
+                    erros.append(f"[{conv_id}.{no_id}] Nó inválido (esperado dict).")
+                    continue
+
+                for campo in ("proximo", "resultado_fechar", "no_esgotado"):
+                    alvo = no.get(campo)
+                    if alvo and alvo not in nos:
+                        erros.append(f"[{conv_id}.{no_id}] '{campo}' aponta para nó inexistente: '{alvo}'")
+
+                for opt in no.get("opcoes", []):
+                    if not isinstance(opt, dict):
+                        continue
+                    op_id = opt.get("id", "<sem_id>")
+                    op_prox = opt.get("proximo")
+                    if op_prox and op_prox not in nos:
+                        erros.append(
+                            f"[{conv_id}.{no_id}.opcoes[{op_id}]] 'proximo' aponta para nó inexistente: '{op_prox}'"
+                        )
+
+                if no.get("tipo") == "link_dialogo":
+                    dialogo_alvo = no.get("dialogo_alvo")
+                    no_alvo = no.get("no_alvo")
+                    if not dialogo_alvo or dialogo_alvo not in catalogo:
+                        erros.append(
+                            f"[{conv_id}.{no_id}] 'dialogo_alvo' aponta para conversa inexistente: {dialogo_alvo!r}"
+                        )
+                    elif no_alvo and no_alvo not in catalogo[dialogo_alvo].get("nos", {}):
+                        erros.append(
+                            f"[{conv_id}.{no_id}] 'no_alvo' '{no_alvo}' não existe na conversa alvo '{dialogo_alvo}'"
+                        )
+
+        return erros
 
     def finalizar(self):
         """Encerra a conversa ativa."""

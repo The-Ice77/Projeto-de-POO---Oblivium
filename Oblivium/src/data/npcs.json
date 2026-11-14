@@ -1,0 +1,77 @@
+{
+    "carroceiro": {
+        "nome": "Carroceiro",
+        "arquetipo": "aldeao",
+        "sprite_pasta": "aventureiro",
+        "dimensoes": {
+            "alvo_h": 74,
+            "largura": 36,
+            "altura": 36
+        },
+        "velocidade": 2,
+        "vida_maxima": 999,
+        "dialogo_id": "hub_carroceiro",
+        "tem_loja": false,
+        "loja_id": null
+    },
+    "anciao_aldous": {
+        "nome": "Ancião Aldous",
+        "arquetipo": "anciao",
+        "sprite_pasta": "aldous_lider",
+        "dimensoes": {
+            "alvo_h": 74,
+            "largura": 36,
+            "altura": 36
+        },
+        "velocidade": 0,
+        "vida_maxima": 999,
+        "dialogo_id": "hub_aldous",
+        "tem_loja": false,
+        "loja_id": null
+    },
+    "curandeira_elara": {
+        "nome": "Curandeira Elara",
+        "arquetipo": "curandeira",
+        "sprite_pasta": "elara_curandeira",
+        "dimensoes": {
+            "alvo_h": 74,
+            "largura": 36,
+            "altura": 36
+        },
+        "velocidade": 0,
+        "vida_maxima": 999,
+        "dialogo_id": "hub_elara",
+        "tem_loja": true,
+        "loja_id": "botanica_elara"
+    },
+    "ferreiro_torvald": {
+        "nome": "Ferreiro Torvald",
+        "arquetipo": "ferreiro",
+        "sprite_pasta": "torvald_ferreiro",
+        "dimensoes": {
+            "alvo_h": 82,
+            "largura": 40,
+            "altura": 36
+        },
+        "velocidade": 0,
+        "vida_maxima": 999,
+        "dialogo_id": "hub_torvald",
+        "tem_loja": true,
+        "loja_id": "forja_torvald"
+    },
+    "guarda_doran": {
+        "nome": "Guarda Doran",
+        "arquetipo": "guarda",
+        "sprite_pasta": "guarda_doran",
+        "dimensoes": {
+            "alvo_h": 78,
+            "largura": 38,
+            "altura": 36
+        },
+        "velocidade": 0,
+        "vida_maxima": 999,
+        "dialogo_id": "hub_doran",
+        "tem_loja": false,
+        "loja_id": null
+    }
+}
