@@ -66,11 +66,25 @@
           "tipo": "entrega_npc"
         }
       ],
+      "requisitos_entrega": [
+        {
+          "item_id": "erva_lunar",
+          "quantidade": 3,
+          "objetivo_id": "coletar_ervas"
+        }
+      ],
       "recompensas": {
         "dinheiro": 150,
         "xp": 75,
-        "itens": ["elixir_mana_menor"]
+        "itens": ["elixir_mana_menor"],
+        "restaurar_total": true
       },
+      "progresso_ao_concluir": [
+        {
+          "objetivo_id": "ajudar_elara",
+          "incremento": 1
+        }
+      ],
       "status": "DISPONIVEL"
     },
     {
@@ -104,6 +118,12 @@
         "xp": 90,
         "itens": ["amuleto_guardiao_antigo"]
       },
+      "progresso_ao_concluir": [
+        {
+          "objetivo_id": "ajudar_torvald",
+          "incremento": 1
+        }
+      ],
       "status": "DISPONIVEL"
     },
     {

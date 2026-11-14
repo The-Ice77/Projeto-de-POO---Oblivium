@@ -96,8 +96,7 @@ class Game:
         self.audio.definir_volume_sfx(self.config_audio_sfx)
         self.audio.definir_volume_ambiente(self.config_audio_ambiente)
         self.save_manager = SaveManager(self)
-        self.tecla_interacao = pygame.K_e  # Tecla padrão para interagir
-        self.redefinindo_tecla = False     # Flag para escutar a nova tecla
+        self.redefinindo_tecla = False     # Mantido por compatibilidade (REGRAS §3); tecla_interacao usa self.controles["Interagir"]
        # --- CONTROLE DE SAVES / SLOTS ---
         self.acao_slots = "SALVAR" 
         self.origem_slots = "PAUSE"
@@ -114,31 +113,44 @@ class Game:
         self.halia.game = self
         self.carroceiro = NPC(nome="Carroceiro", x=1350, y=330, velocidade=2)
 
-        # --- Flags Globais de Progresso e Cutscenes (Lidas pelo PlayingState) ---
+        # --- Flags Globais de Progresso Permanente (Salvas, restauradas e resetadas via SaveManager) ---
+        self.investigou_pedras = False
+        self.flashback_magia_concluido = False
+        self.magia_ativa = None
+        self.magia_usada_no_puzzle = None
+        self.combate_estrada_concluido = False
+        self.pedra_torvald_quebrada = False
+        self.oakhaven_noite = False
+        self.oakhaven_destruida = False
+        self.dragao_derrotado = False
+        self.desespero_superado = False
+        self.patusco_pos_oakhaven = None
+        # Rastreia em que ponto da conversa cada NPC está
+        self.progresso_npcs = {
+            "carroceiro": 0  # 0: Início, 1: Falou com ele, 2: Viagem liberada, etc.
+        }
+
+        # --- Flags Transitórias de Cena, Cutscene, Minigame e Combate (Resetadas no load e Novo Jogo) ---
         self.fechando_porta = False
         self.aguardando_fim_viagem = False
-        self.investigou_pedras = False
-        self.flashback_magia_concluido = False 
-        
-        # Controle de Magia/Animações
-        self.magia_ativa = None          
-        self.timer_magia = 0            
-        self.distanciando_halia = False 
+        self.timer_magia = 0
+        self.distanciando_halia = False
         self.bola_fogo_x = 0
         self.bola_fogo_y = 0
-        self.bola_fogo_ativa = False    
-        self.magia_usada_no_puzzle = None 
-        self.magia_selecionada_temporaria = None 
-        
-        # Controle de Encontros de Combate no Overworld
+        self.bola_fogo_ativa = False
+        self.magia_selecionada_temporaria = None
         self.iniciando_combate = False
         self.cena_inimigos_andando = False
-        self.conversa_combate_ativa = False 
+        self.conversa_combate_ativa = False
         self.carroceiro_visivel = False
-        self.carroceiro_andando = False 
+        self.carroceiro_andando = False
         self.conversa_carroceiro_terminou = False
-        self.combate_estrada_concluido = False
-        self.inimigos_em_cena = [] 
+        self.combate_climax_dragao = False
+        self.aguardando_dialogo_pos_dragao = False
+        self.flashback_monumento_ativo = False
+        self.flashback_sylvan_ativo = False
+        self.partindo_estrada2 = False
+        self.inimigos_em_cena = []
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
         self.preset_controles = "WASD"
         self.controles = {
@@ -172,6 +184,7 @@ class Game:
         self.nome_estado_atual = "MENU"
         self.origem_configuracoes = "MENU"
         self.origem_conquistas = "MENU"
+        self.origem_creditos = "MENU"
         self.mudar_estado("MENU")
 
     def aplicar_preset_controles(self, tipo="WASD"):
@@ -202,11 +215,39 @@ class Game:
                 "Inventário": pygame.K_TAB,
                 "Missões": pygame.K_o
             }
-        self.origem_creditos = "MENU"
-        # Rastreia em que ponto da conversa cada NPC está
-        self.progresso_npcs = {
-            "carroceiro": 0  # 0: Início, 1: Falou com ele, 2: Viagem liberada, etc.
+
+    @property
+    def tecla_interacao(self):
+        """Retorna a tecla de interação atual a partir de self.controles['Interagir']."""
+        if hasattr(self, "controles") and isinstance(self.controles, dict):
+            return self.controles.get("Interagir", pygame.K_e)
+        return pygame.K_e
+
+    @tecla_interacao.setter
+    def tecla_interacao(self, nova_tecla):
+        """Atualiza a tecla de interação diretamente em self.controles['Interagir']."""
+        if not hasattr(self, "controles") or not isinstance(self.controles, dict):
+            self.controles = {"Interagir": nova_tecla}
+        else:
+            self.controles["Interagir"] = nova_tecla
+
+    def obter_nome_tecla(self, codigo_tecla):
+        """Retorna o nome legível em português de uma tecla do Pygame (ex.: SPACE -> ESPAÇO)."""
+        mapa_nomes = {
+            pygame.K_SPACE: "ESPAÇO",
+            pygame.K_RETURN: "ENTER",
+            pygame.K_KP_ENTER: "ENTER",
+            pygame.K_ESCAPE: "ESC",
+            pygame.K_TAB: "TAB",
         }
+        if codigo_tecla in mapa_nomes:
+            return mapa_nomes[codigo_tecla]
+        return pygame.key.name(codigo_tecla).upper()
+
+    @property
+    def nome_tecla_interacao(self):
+        """Retorna o rótulo em maiúsculas da tecla de interação ativa (ex.: 'E', 'ESPAÇO')."""
+        return self.obter_nome_tecla(self.tecla_interacao)
 
     def mudar_estado(self, novo_estado):
         """Altera dinamicamente o comportamento e as telas do jogo"""

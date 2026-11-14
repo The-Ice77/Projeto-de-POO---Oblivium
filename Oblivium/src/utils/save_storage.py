@@ -1,17 +1,19 @@
-# src/utils/save_manager.py
+# src/utils/save_storage.py
+import datetime
 import json
+import logging
 import os
 import shutil
-import logging
-import datetime
+import sys
 
 logger = logging.getLogger(__name__)
 
-DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__)) 
-DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)              
-DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_SRC)               
+DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)
+DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_SRC)
 
-PASTA_SAVES = os.path.join(DIRETORIO_RAIZ, "saves")
+PASTA_SAVES_PADRAO = os.path.join(DIRETORIO_RAIZ, "saves")
+PASTA_SAVES = PASTA_SAVES_PADRAO
 MAX_SLOTS = 4
 
 NOMES_AMIGAVEIS_CENARIOS = {
@@ -25,44 +27,98 @@ NOMES_AMIGAVEIS_CENARIOS = {
 }
 
 
+def definir_pasta_saves(caminho=None):
+    """
+    Define a pasta de saves usada pelas operações de I/O em disco.
+    Se caminho for None, restaura o diretório padrão (PASTA_SAVES_PADRAO).
+    Sincroniza módulos já carregados que referenciam PASTA_SAVES para manter isolamento em testes.
+    """
+    global PASTA_SAVES
+    PASTA_SAVES = os.fspath(caminho) if caminho is not None else PASTA_SAVES_PADRAO
+
+    for mod_name in ("src.mechanics.achievement_manager", "Oblivium.src.mechanics.achievement_manager"):
+        mod_ach = sys.modules.get(mod_name)
+        if mod_ach is not None:
+            mod_ach.PASTA_SAVES = PASTA_SAVES
+            mod_ach.ARQUIVO_CONQUISTAS_SAVE = os.path.join(PASTA_SAVES, "conquistas.json")
+
+    return PASTA_SAVES
+
+
+def normalizar_slot(slot):
+    """
+    Normaliza identificadores de slot para evitar nomes duplicados (ex.: 'slot_1' -> 1).
+    Retorna int quando o identificador numérico é válido, None se vazio/None, ou string limpa.
+    """
+    if slot is None:
+        return None
+    if isinstance(slot, int) and not isinstance(slot, bool):
+        return slot
+
+    texto = str(slot).strip()
+    if texto.startswith("autosave_slot_"):
+        texto = texto[len("autosave_slot_"):]
+    while texto.startswith("slot_"):
+        texto = texto[len("slot_"):]
+
+    if texto.isdigit():
+        return int(texto)
+    return texto
+
+
 def _obter_caminho_arquivo(slot, tipo="manual"):
     """Retorna o caminho do arquivo correspondente ao slot e tipo ('manual' ou 'autosave')."""
+    slot_norm = normalizar_slot(slot)
     if tipo == "autosave":
-        return os.path.join(PASTA_SAVES, f"autosave_slot_{slot}.json")
-    return os.path.join(PASTA_SAVES, f"slot_{slot}.json")
+        return os.path.join(PASTA_SAVES, f"autosave_slot_{slot_norm}.json")
+    return os.path.join(PASTA_SAVES, f"slot_{slot_norm}.json")
 
 
 def salvar_dados(slot, dados, tipo="manual"):
     """
     Salva os dados do jogo no slot especificado com gravação atômica (.tmp)
     e criação preventiva de backup (.bak) para evitar qualquer corrupção.
+    Retorna True em caso de sucesso ou False se ocorrer falha de serialização/E/S.
     """
-    if not os.path.exists(PASTA_SAVES):
-        os.makedirs(PASTA_SAVES, exist_ok=True)
-
     caminho = _obter_caminho_arquivo(slot, tipo)
     caminho_tmp = f"{caminho}.tmp"
     caminho_bak = f"{caminho}.bak"
 
-    # Injeta timestamp e data/hora se ainda não houver
-    if "data_hora" not in dados:
-        dados["data_hora"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
-    if "timestamp_epoch" not in dados:
-        dados["timestamp_epoch"] = datetime.datetime.now().timestamp()
+    try:
+        if not isinstance(dados, dict):
+            raise TypeError(f"Dados de save inválidos: esperado dict, recebido {type(dados).__name__}.")
 
-    # 1. Escreve primeiro no arquivo temporário
-    with open(caminho_tmp, "w", encoding="utf-8") as f:
-        json.dump(dados, f, indent=4, ensure_ascii=False)
+        if not os.path.exists(PASTA_SAVES):
+            os.makedirs(PASTA_SAVES, exist_ok=True)
 
-    # 2. Faz backup do arquivo estável anterior (se existir e tiver conteúdo válido)
-    if os.path.exists(caminho) and os.path.getsize(caminho) > 0:
-        try:
-            shutil.copy2(caminho, caminho_bak)
-        except Exception as e:
-            logger.warning(f"[SaveIO] Falha ao criar backup .bak de {caminho}: {e}")
+        # Injeta timestamp e data/hora se ainda não houver
+        if "data_hora" not in dados:
+            dados["data_hora"] = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        if "timestamp_epoch" not in dados:
+            dados["timestamp_epoch"] = datetime.datetime.now().timestamp()
 
-    # 3. Substitui atomicamente o arquivo principal
-    os.replace(caminho_tmp, caminho)
+        # 1. Escreve primeiro no arquivo temporário
+        with open(caminho_tmp, "w", encoding="utf-8") as f:
+            json.dump(dados, f, indent=4, ensure_ascii=False)
+
+        # 2. Faz backup do arquivo estável anterior (se existir e tiver conteúdo válido)
+        if os.path.exists(caminho) and os.path.getsize(caminho) > 0:
+            try:
+                shutil.copy2(caminho, caminho_bak)
+            except Exception as e:
+                logger.warning(f"[SaveIO] Falha ao criar backup .bak de {caminho}: {e}")
+
+        # 3. Substitui atomicamente o arquivo principal
+        os.replace(caminho_tmp, caminho)
+        return True
+    except (OSError, TypeError, ValueError) as e:
+        logger.error(f"[SaveIO] Erro ao salvar dados em {caminho}: {e}")
+        if os.path.exists(caminho_tmp):
+            try:
+                os.remove(caminho_tmp)
+            except OSError as e_rm:
+                logger.warning(f"[SaveIO] Falha ao remover temporário {caminho_tmp}: {e_rm}")
+        return False
 
 
 def carregar_dados(slot, tipo="manual"):
@@ -245,3 +301,21 @@ def obter_resumo_slots():
             "mais_recente": mais_recente
         }
     return resumos
+
+
+__all__ = [
+    "PASTA_SAVES_PADRAO",
+    "PASTA_SAVES",
+    "MAX_SLOTS",
+    "NOMES_AMIGAVEIS_CENARIOS",
+    "definir_pasta_saves",
+    "normalizar_slot",
+    "_obter_caminho_arquivo",
+    "salvar_dados",
+    "carregar_dados",
+    "save_existe",
+    "verificar_saves_globais",
+    "apagar_dados",
+    "_extrair_resumo_dado",
+    "obter_resumo_slots",
+]

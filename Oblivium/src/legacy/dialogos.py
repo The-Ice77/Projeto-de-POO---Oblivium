@@ -1,3 +1,4 @@
+# LEGADO: substituído por src.mechanics.dialogue_manager (DialogueManager). Mantido por histórico (REGRAS §3).
 # src/data/dialogos.py
 """
 Módulo de Diálogos de Oblivium (Camada de Compatibilidade).

@@ -1,3 +1,4 @@
+# LEGADO: substituído por src.utils.colors (tuplas RGB). Mantido por histórico (REGRAS §3).
 # src/utils/colors.py
 
 

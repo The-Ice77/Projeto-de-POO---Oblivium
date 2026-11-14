@@ -28,6 +28,8 @@ class QuestManager:
     - Serialização/desserialização integrada com o SaveManager.
     """
 
+    VERSAO_SCHEMA_SAVE = 2
+
     def __init__(self, game=None):
         self.game = game
         self.catalogo_base = []
@@ -117,6 +119,11 @@ class QuestManager:
                     return m
         return None
 
+    def _obter_inventario_jogador(self):
+        """Retorna o inventário da jogadora quando disponível na sessão atual."""
+        halia = getattr(self.game, "halia", None) if self.game else None
+        return getattr(halia, "inventario", None) if halia else None
+
     def pronta_para_entregar(self, id_missao):
         """
         Verifica se uma missão ATIVA já teve todos os seus requisitos de campo cumpridos,
@@ -129,19 +136,30 @@ class QuestManager:
             return False
 
         objetivos = missao.get("objetivos", [])
-        if not objetivos:
+        requisitos_entrega = missao.get("requisitos_entrega", [])
+        if not objetivos and not requisitos_entrega:
             return True
 
-        # Validação e sincronização estrita de inventário para a entrega de ervas à Elara
-        if id_missao == "missao_ervas_medicinais" and self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
-            qtd_ervas = self.game.halia.inventario.obter_quantidade("erva_lunar")
-            if qtd_ervas >= 3:
-                for obj in objetivos:
-                    if obj.get("id") == "coletar_ervas":
-                        obj["atual"] = max(obj.get("atual", 0), 3)
-                        obj["concluido"] = True
-            else:
+        # Validação e sincronização genérica dos itens declarados em 'requisitos_entrega'
+        if requisitos_entrega:
+            inventario = self._obter_inventario_jogador()
+            if not inventario:
                 return False
+            objs_campo_padrao = [o for o in objetivos if not self._eh_objetivo_entrega_npc(o)]
+            for req in requisitos_entrega:
+                item_id = req.get("item_id")
+                qtd_req = int(req.get("quantidade", 1))
+                obj_id_req = req.get("objetivo_id")
+                qtd_possuida = inventario.obter_quantidade(item_id) if item_id else 0
+                if qtd_possuida >= qtd_req:
+                    for obj in objetivos:
+                        if (obj_id_req and obj.get("id") == obj_id_req) or (
+                            not obj_id_req and objs_campo_padrao and obj is objs_campo_padrao[0]
+                        ):
+                            obj["atual"] = max(obj.get("atual", 0), qtd_req)
+                            obj["concluido"] = True
+                else:
+                    return False
 
         objs_campo = [o for o in objetivos if not self._eh_objetivo_entrega_npc(o)]
         if objs_campo:
@@ -179,18 +197,29 @@ class QuestManager:
 
         missao["status"] = "ATIVA"
 
-        if id_missao == "missao_boas_vindas":
-            if self.missoes.get("missao_ervas_medicinais", {}).get("status") == "CONCLUIDA":
-                self.progredir_objetivo("missao_boas_vindas", "ajudar_elara", 1)
-            if self.missoes.get("missao_pedra_forja", {}).get("status") == "CONCLUIDA":
-                self.progredir_objetivo("missao_boas_vindas", "ajudar_torvald", 1)
-        elif id_missao == "missao_ervas_medicinais":
-            # Reconhece ervas já colhidas e armazenadas no inventário
-            if self.game and hasattr(self.game, 'halia') and hasattr(self.game.halia, 'inventario'):
-                qtd_ervas = self.game.halia.inventario.obter_quantidade("erva_lunar")
-                if qtd_ervas > 0:
-                    for _ in range(min(3, qtd_ervas)):
-                        self.progredir_objetivo("missao_ervas_medicinais", "coletar_ervas", 1)
+        # Sincroniza objetivos que dependem de missões já concluídas anteriormente ('progresso_ao_concluir')
+        ids_obj_missao = {o.get("id") for o in missao.get("objetivos", []) if isinstance(o, dict) and o.get("id")}
+        for m_outra in self.missoes.values():
+            if m_outra.get("id") != id_missao and m_outra.get("status") == "CONCLUIDA":
+                for prog in m_outra.get("progresso_ao_concluir", []):
+                    obj_id_prog = prog.get("objetivo_id")
+                    inc_prog = int(prog.get("incremento", 1))
+                    if obj_id_prog in ids_obj_missao:
+                        self.progredir_objetivo(id_missao, obj_id_prog, inc_prog)
+
+        # Reconhece itens de 'requisitos_entrega' já coletados e armazenados no inventário
+        requisitos_entrega = missao.get("requisitos_entrega", [])
+        inventario = self._obter_inventario_jogador()
+        if requisitos_entrega and inventario:
+            objs_campo_padrao = [o for o in missao.get("objetivos", []) if not self._eh_objetivo_entrega_npc(o)]
+            for req in requisitos_entrega:
+                item_id = req.get("item_id")
+                qtd_req = int(req.get("quantidade", 1))
+                obj_id_req = req.get("objetivo_id") or (objs_campo_padrao[0].get("id") if objs_campo_padrao else None)
+                qtd_inv = inventario.obter_quantidade(item_id) if item_id else 0
+                if obj_id_req and qtd_inv > 0:
+                    for _ in range(min(qtd_req, qtd_inv)):
+                        self.progredir_objetivo(id_missao, obj_id_req, 1)
 
         if not self.missao_rastreada_id:
             self.missao_rastreada_id = id_missao
@@ -294,25 +323,55 @@ class QuestManager:
             "missao": missao
         }
 
-    def concluir_missao(self, id_missao):
-        """Marca a missão como concluída, entrega recompensas (ouro, XP e itens) e desbloqueia 'cumpridor_promessas'."""
+    def concluir_missao(self, id_missao, forcar=False):
+        """Marca a missão como concluída, consome requisitos de entrega, entrega recompensas e desbloqueia 'cumpridor_promessas'."""
         if id_missao not in self.missoes:
             return False
 
         missao = self.missoes[id_missao]
-        if missao["status"] == "CONCLUIDA":
+        if missao.get("status") == "CONCLUIDA":
             return False
 
+        if not forcar:
+            if missao.get("status") != "ATIVA" or not self.pronta_para_entregar(id_missao):
+                return False
+
+        requisitos_entrega = missao.get("requisitos_entrega", [])
+        halia = getattr(self.game, 'halia', None) if self.game else None
+        inventario = self._obter_inventario_jogador()
+
+        # 1. Validar posse dos itens declarados em 'requisitos_entrega'
+        if requisitos_entrega and not forcar:
+            if not inventario:
+                return False
+            for req in requisitos_entrega:
+                item_id = req.get("item_id")
+                qtd_req = int(req.get("quantidade", 1))
+                if not item_id or inventario.obter_quantidade(item_id) < qtd_req:
+                    return False
+
+        # 2. Remover itens de entrega
+        if requisitos_entrega and inventario:
+            for req in requisitos_entrega:
+                item_id = req.get("item_id")
+                qtd_req = int(req.get("quantidade", 1))
+                if item_id and qtd_req > 0:
+                    qtd_disp = inventario.obter_quantidade(item_id)
+                    qtd_remover = min(qtd_req, qtd_disp) if forcar else qtd_req
+                    if qtd_remover > 0 and not inventario.remover_item(item_id, qtd_remover):
+                        if not forcar:
+                            return False
+
+        # 3. Marcar objetivos e missão como concluídos
         for obj in missao.get("objetivos", []):
             obj["atual"] = obj.get("alvo", 1)
             obj["concluido"] = True
 
         missao["status"] = "CONCLUIDA"
 
-        # Entrega recompensas (Moedas, XP e Itens no Inventário)
+        # 4. Entregar recompensas (Moedas, XP, Itens e restauração opcional)
         recompensas = missao.get("recompensas", {})
-        if self.game and hasattr(self.game, 'halia') and self.game.halia:
-            halia = self.game.halia
+        if halia:
             moedas = recompensas.get("dinheiro", 0)
             if moedas > 0 and hasattr(halia, 'ganhar_dinheiro'):
                 halia.ganhar_dinheiro(moedas)
@@ -322,20 +381,19 @@ class QuestManager:
                 halia.ganhar_xp(xp)
 
             itens_rec = recompensas.get("itens", [])
-            if itens_rec and hasattr(halia, 'inventario') and halia.inventario:
+            if itens_rec and inventario:
                 for item_id in itens_rec:
-                    halia.inventario.adicionar_item(item_id, 1)
+                    inventario.adicionar_item(item_id, 1)
 
-            if id_missao == "missao_ervas_medicinais":
-                if hasattr(halia, 'inventario') and halia.inventario:
-                    halia.inventario.remover_item("erva_lunar", 3)
-                if hasattr(halia, "restaurar_total"):
-                    halia.restaurar_total()
+            if recompensas.get("restaurar_total") and hasattr(halia, "restaurar_total"):
+                halia.restaurar_total()
 
-        if id_missao == "missao_ervas_medicinais":
-            self.atualizar_progresso("ajudar_elara", 1)
-        elif id_missao == "missao_pedra_forja":
-            self.atualizar_progresso("ajudar_torvald", 1)
+        # 5. Progredir objetivos encadeados declarados no JSON
+        for prog in missao.get("progresso_ao_concluir", []):
+            obj_id = prog.get("objetivo_id")
+            incremento = int(prog.get("incremento", 1))
+            if obj_id:
+                self.atualizar_progresso(obj_id, incremento)
 
         # Desbloqueia a conquista especial de conclusão de missão
         if self.game and hasattr(self.game, 'conquistas') and self.game.conquistas:
@@ -414,21 +472,110 @@ class QuestManager:
                         tem_secundaria = True
 
     def to_dict(self):
-        """Serializa todo o estado das missões para gravação no SaveManager."""
+        """Serializa apenas o progresso das missões por ID (schema v2) para gravação no SaveManager."""
+        progresso = {}
+        for mid, missao in self.missoes.items():
+            objs_prog = {}
+            for obj in missao.get("objetivos", []):
+                if isinstance(obj, dict) and obj.get("id"):
+                    objs_prog[obj["id"]] = {
+                        "atual": int(obj.get("atual", 0)),
+                        "concluido": bool(obj.get("concluido", False)),
+                    }
+            progresso[mid] = {
+                "status": missao.get("status", "DISPONIVEL"),
+                "objetivos": objs_prog,
+            }
         return {
+            "versao_schema": self.VERSAO_SCHEMA_SAVE,
             "rastreada": self.missao_rastreada_id,
-            "missoes": self.missoes
+            "progresso": progresso,
         }
 
+    def _aplicar_progresso_missao(self, mid, status_salvo, objs_map, origem="v2"):
+        """Aplica o progresso salvo sobre a definição atual de `mid` no catálogo."""
+        if mid not in self.missoes:
+            logger.warning(f"[QuestManager] Missão '{mid}' ({origem}) não existe mais no catálogo atual; ignorando.")
+            return
+
+        missao_atual = self.missoes[mid]
+        if status_salvo in ("DISPONIVEL", "ATIVA", "CONCLUIDA"):
+            missao_atual["status"] = status_salvo
+
+        objs_catalogo = {
+            o.get("id"): o
+            for o in missao_atual.get("objetivos", [])
+            if isinstance(o, dict) and o.get("id")
+        }
+        if isinstance(objs_map, dict):
+            for obj_id, obj_prog in objs_map.items():
+                obj_cat = objs_catalogo.get(obj_id)
+                if obj_cat is None:
+                    logger.warning(
+                        f"[QuestManager] Objetivo '{obj_id}' da missão '{mid}' ({origem}) não existe mais no catálogo atual; ignorando."
+                    )
+                    continue
+                if isinstance(obj_prog, dict):
+                    alvo_cat = int(obj_cat.get("alvo", 1))
+                    atual_raw = obj_prog.get("atual", 0)
+                    try:
+                        atual_salvo = int(0 if atual_raw is None else atual_raw)
+                    except (TypeError, ValueError):
+                        atual_salvo = 0
+                    concluido_salvo = bool(obj_prog.get("concluido", False))
+                    if concluido_salvo:
+                        obj_cat["atual"] = alvo_cat
+                        obj_cat["concluido"] = True
+                    else:
+                        obj_cat["atual"] = max(0, min(alvo_cat, atual_salvo))
+                        obj_cat["concluido"] = (obj_cat["atual"] >= alvo_cat)
+
+        if missao_atual.get("status") == "CONCLUIDA":
+            for obj in missao_atual.get("objetivos", []):
+                if isinstance(obj, dict):
+                    obj["atual"] = int(obj.get("alvo", 1))
+                    obj["concluido"] = True
+
     def from_dict(self, dados):
-        """Restaura o estado completo das missões a partir de um save salvo."""
+        """
+        Restaura o estado das missões a partir do catálogo atual de `missoes.json`,
+        suportando o schema v2 (`progresso`) e migrando saves legados em schema v1 (`missoes`).
+        """
         if not dados or not isinstance(dados, dict):
             return
 
-        self.missao_rastreada_id = dados.get("rastreada")
-        missoes_salvas = dados.get("missoes", {})
+        self.resetar()
 
-        for mid, m_dados in missoes_salvas.items():
-            self.missoes[mid] = copy.deepcopy(m_dados)
+        if dados.get("versao_schema") == 2 or "progresso" in dados:
+            progresso_salvo = dados.get("progresso") or {}
+            if isinstance(progresso_salvo, dict):
+                for mid, m_prog in progresso_salvo.items():
+                    if isinstance(m_prog, dict):
+                        self._aplicar_progresso_missao(
+                            mid,
+                            m_prog.get("status"),
+                            m_prog.get("objetivos") or {},
+                            origem="v2",
+                        )
+        else:
+            missoes_v1 = dados.get("missoes") or {}
+            if isinstance(missoes_v1, dict):
+                for mid, m_dados in missoes_v1.items():
+                    if isinstance(m_dados, dict):
+                        objs_dict = {}
+                        for obj in (m_dados.get("objetivos") or []):
+                            if isinstance(obj, dict) and obj.get("id"):
+                                objs_dict[obj["id"]] = {
+                                    "atual": obj.get("atual", 0),
+                                    "concluido": obj.get("concluido", False),
+                                }
+                        self._aplicar_progresso_missao(
+                            mid,
+                            m_dados.get("status"),
+                            objs_dict,
+                            origem="v1",
+                        )
 
+        rastreada = dados.get("rastreada")
+        self.missao_rastreada_id = rastreada if rastreada in self.missoes else None
         self._sanitizar_limite_simultaneo()

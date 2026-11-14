@@ -8,7 +8,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
-from src.utils import save_manager as save_io
+from src.utils import save_storage as save_io
 
 class SettingsState(State):
     """

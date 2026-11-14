@@ -19,11 +19,20 @@ class PlayingState(State):
         self.game.cinematica_dragao = self.cinematica_dragao
         self.minigame_ferraria = MinigameFerraria(game, self)
         self.minigame_curandeira = MinigameCurandeira(game, self)
-        self.cutscene_timeskip = CutsceneReconstrucaoVisual(game, self)
+        self.cutscene_reconstrucao = CutsceneReconstrucaoVisual(game, self)
         self.memoria_anterior_registrada = getattr(self.game.halia, 'fragmentos_memoria', 0)
         self.camera_x = 0.0
         self.camera_y = 0.0
         self._superficie_mundo = None
+
+    @property
+    def cutscene_timeskip(self):
+        """Alias legado preservado por compatibilidade com testes e referências antigas."""
+        return self.cutscene_reconstrucao
+
+    @cutscene_timeskip.setter
+    def cutscene_timeskip(self, valor):
+        self.cutscene_reconstrucao = valor
 
     def atualizar_camera(self, instantaneo=False):
         """
@@ -65,9 +74,9 @@ class PlayingState(State):
 
     def handle_events(self, eventos, teclas):
         # Delegação à cutscene de encerramento / timeskip
-        if hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo:
+        if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao.ativo:
             for evento in eventos:
-                self.cutscene_timeskip.handle_event(evento)
+                self.cutscene_reconstrucao.handle_event(evento)
             return
 
         if hasattr(self, "cinematica_dragao") and self.cinematica_dragao.ativo:
@@ -104,8 +113,8 @@ class PlayingState(State):
 
     def update(self):
         # Atualização prioritária de timeskip e minigames ativos
-        if hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo:
-            self.cutscene_timeskip.atualizar(1 / 60.0)
+        if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao.ativo:
+            self.cutscene_reconstrucao.atualizar(1 / 60.0)
             return
 
         if hasattr(self, "minigame_ferraria") and self.minigame_ferraria.ativo:
@@ -128,10 +137,9 @@ class PlayingState(State):
                 if self.game.transicao.estado == "INATIVO":
                     self.game.transicao.iniciar("Halia sucumbiu... Retornando ao último marco.")
                 elif self.game.transicao.estado == "ESCURO":
-                    from src.utils import save_manager
-                    if self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
+                    if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
                         self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
-                    elif self.game.slot_atual and save_manager.save_existe(self.game.slot_atual, tipo="manual"):
+                    elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
                         self.game.carregar_estado(self.game.slot_atual, tipo="manual")
                     else:
                         self.game.halia.restaurar_total()
@@ -270,7 +278,7 @@ class PlayingState(State):
             getattr(self.game.caixa_dialogo, 'ativo', False) or 
             getattr(self.game.flashback_sistema, 'estado', 'INATIVO') != 'INATIVO' or
             (hasattr(self, "cinematica_dragao") and self.cinematica_dragao.ativo and self.cinematica_dragao.fase == "DORMINDO") or
-            (hasattr(self, "cutscene_timeskip") and self.cutscene_timeskip.ativo)
+            (hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao.ativo)
         )
         alpha_folhas = 0.20 if em_dialogo_ou_cutscene else 1.0
 
@@ -329,11 +337,11 @@ class PlayingState(State):
             self.cinematica_dragao.desenhar_tela(tela)
 
         # 5. Cutscene Cinemática de Timeskip de Oakhaven (encerramento da Fase 1)
-        if hasattr(self, 'cutscene_timeskip') and self.cutscene_timeskip.ativo:
-            self.cutscene_timeskip.desenhar(tela)
+        if hasattr(self, 'cutscene_reconstrucao') and self.cutscene_reconstrucao.ativo:
+            self.cutscene_reconstrucao.desenhar(tela)
 
     def _processar_movimento(self, teclas):
-        if (hasattr(self, 'cutscene_timeskip') and self.cutscene_timeskip.ativo) or \
+        if (hasattr(self, 'cutscene_reconstrucao') and self.cutscene_reconstrucao.ativo) or \
            (hasattr(self, 'cinematica_dragao') and self.cinematica_dragao.ativo) or \
            (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
            (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or \
@@ -456,7 +464,7 @@ class PlayingState(State):
         elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif not self.game.cena_inimigos_andando:
-            tecla_interacao = self.game.controles.get("Interagir", pygame.K_e)
+            tecla_interacao = self.game.tecla_interacao
             teclas_validas_interagir = [tecla_interacao]
             if tecla_interacao == pygame.K_SPACE:
                 teclas_validas_interagir.extend([pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_e])
@@ -721,8 +729,8 @@ class PlayingState(State):
                     self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                 return
             elif evt_pendente == "iniciar_timeskip_final_oakhaven":
-                if hasattr(self, "cutscene_timeskip"):
-                    self.cutscene_timeskip.iniciar()
+                if hasattr(self, "cutscene_reconstrucao"):
+                    self.cutscene_reconstrucao.iniciar()
                 return
 
         if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
@@ -947,8 +955,8 @@ class PlayingState(State):
         elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_timeskip_final_oakhaven":
             self.game.caixa_dialogo.manager.consumir_evento()
             self.game.caixa_dialogo.ativo = False
-            if hasattr(self, "cutscene_timeskip"):
-                self.cutscene_timeskip.iniciar()
+            if hasattr(self, "cutscene_reconstrucao"):
+                self.cutscene_reconstrucao.iniciar()
 
     def _processar_clique_escolha(self, pos):
         box = self.game.caixa_dialogo
@@ -999,8 +1007,8 @@ class PlayingState(State):
                     self.game.itens_coletados.append(id_do_item)
                 
                 if id_do_item == "item_moedas":
-                    self.game.halia.ganhar_dinheiro(50) # 50 Moedas de Prata = 5 Moedas de Ouro
-                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de prata (5 moedas de ouro)."}])
+                    self.game.halia.ganhar_dinheiro(50 * self.game.halia.COBRES_POR_OURO) # 50 Moedas de Ouro = 10.000 Cobres
+                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de ouro."}])
                 elif id_do_item == "item_cajado":
                     cajado = ItemFactory.criar("cajado_espinheiro")
                     if cajado:
@@ -1107,6 +1115,9 @@ class PlayingState(State):
                         if self.game.slot_atual:
                             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
                         return
+                    elif ev == "iniciar_climax_dragao_oakhaven":
+                        self._iniciar_climax_dragao_oakhaven()
+                        return
                 if pt.get("id") == "estatua_herois":
                     self.game.caixa_dialogo.iniciar_dialogo("monumento_herois")
                     return
@@ -1183,28 +1194,7 @@ class PlayingState(State):
                     self.game.caixa_dialogo.iniciar_dialogo("pos_combate_vitoria")
                     
                 def on_derrota():
-                    if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
-                        self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
-                    elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
-                        self.game.carregar_estado(self.game.slot_atual, tipo="manual")
-                    else:
-                        self.game.halia.restaurar_total()
-                        self.game.halia.x, self.game.halia.y = 60, 330
-                        self.game.inimigos_em_cena.clear()
-                        self.game.cena_inimigos_andando = False
-                    
-                    if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-                        self.game.combate_estrada_concluido = False
-                        self.game.inimigos_em_cena.clear()
-                        self.game.cena_inimigos_andando = False
-                        self.game.iniciando_combate = False
-                        self.game.halia.restaurar_total()
-                        self.game.magia_ativa = None
-                        self.game.investigou_pedras = False
-                        self.game.bola_fogo_ativa = False
-                        self.game.mapa_casa.restaurar_bloqueio_estrada2()
-                    
-                    self.game.mudar_estado("JOGANDO")
+                    self.on_derrota()
                     
                 def on_fuga():
                     if cenario_combate in ("OAKHAVEN", "ORLA_NORTE"):
@@ -1233,6 +1223,53 @@ class PlayingState(State):
                 self._entrar_na_estrada_1()
             elif self.game.mapa_casa.cenario_atual == "ESTRADA":
                 self._entrar_na_estrada_2()
+
+    def on_derrota(self):
+        """Recarrega o checkpoint após derrota e limpa uniformemente flags transitórias, cenas e inimigos."""
+        self.game.inimigos_em_cena.clear()
+        carregou_save = False
+        if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
+            carregou_save = bool(self.game.carregar_estado(self.game.slot_atual, tipo="autosave"))
+        elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
+            carregou_save = bool(self.game.carregar_estado(self.game.slot_atual, tipo="manual"))
+
+        if not carregou_save:
+            self.game.halia.restaurar_total()
+            self.game.halia.x, self.game.halia.y = 60, 330
+
+        for attr_game, padrao in self.game.save_manager.FLAGS_TRANSITORIAS:
+            setattr(self.game, attr_game, padrao)
+        self.game.iniciando_combate = False
+        self.game.cena_inimigos_andando = False
+        self.game.bola_fogo_ativa = False
+        self.game.distanciando_halia = False
+        self.game.timer_magia = 0
+        self.game.inimigos_em_cena.clear()
+
+        if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+            self.game.caixa_dialogo.ativo = False
+            self.game.caixa_dialogo.em_escolha = False
+            if hasattr(self.game.caixa_dialogo, "manager") and self.game.caixa_dialogo.manager:
+                self.game.caixa_dialogo.manager.consumir_evento()
+        if hasattr(self.game, "transicao") and self.game.transicao:
+            self.game.transicao.estado = "INATIVO"
+        if hasattr(self, "cinematica_dragao") and self.cinematica_dragao:
+            self.cinematica_dragao.ativo = False
+        if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao:
+            self.cutscene_reconstrucao.ativo = False
+
+        if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
+            self.game.combate_estrada_concluido = False
+            self.game.inimigos_em_cena.clear()
+            self.game.cena_inimigos_andando = False
+            self.game.iniciando_combate = False
+            self.game.halia.restaurar_total()
+            self.game.magia_ativa = None
+            self.game.investigou_pedras = False
+            self.game.bola_fogo_ativa = False
+            self.game.mapa_casa.restaurar_bloqueio_estrada2()
+
+        self.game.mudar_estado("JOGANDO")
 
     def _entrar_na_estrada_1(self):
         self.game.mapa_casa.carregar_cenario("ESTRADA")
@@ -1402,7 +1439,7 @@ class PlayingState(State):
             return
 
         area_interacao = pygame.Rect(self.game.halia.x - 24, self.game.halia.y - 24, self.game.halia.largura + 48, self.game.halia.altura + 48)
-        tecla_interacao_str = pygame.key.name(self.game.controles['Interagir']).upper()
+        tecla_interacao_str = self.game.nome_tecla_interacao
         
         if not self.game.caixa_dialogo.ativo:
             for item in self.game.mapa_casa.itens_no_chao:
@@ -1466,7 +1503,7 @@ class PlayingState(State):
             self.minigame_curandeira.desenhar(tela)
         
         # O HUD deve ser desenhado normalmente quando não houver minigames, diálogos ou telas de despertar ou timeskip
-        timeskip_ativo = getattr(getattr(self, 'cutscene_timeskip', None), 'ativo', False)
+        timeskip_ativo = getattr(getattr(self, 'cutscene_reconstrucao', None), 'ativo', False)
         if hasattr(self.game, 'hud') and not minigame_ativo and not self.game.caixa_dialogo.ativo and getattr(self.game.tela_despertar, 'estado', 'INATIVO') == 'INATIVO' and not timeskip_ativo:
             self.game.hud.desenhar(tela, self.game)
 

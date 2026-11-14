@@ -1,3 +1,4 @@
+# LEGADO: substituído por src.mechanics.cutscene_reconstrucao_visual (CutsceneReconstrucaoVisual). Mantido por histórico (REGRAS §3).
 # src/mechanics/cutscene_timeskip.py
 import pygame
 import math

@@ -1652,6 +1652,17 @@ class MapaNinhoDragao(CenarioBase):
                     "evento": "retornar_oakhaven_vitoria"
                 }
             ]
+        else:
+            self.pontos_interacao = [
+                {
+                    "id": "altar_desafiar_dragao",
+                    "rect": pygame.Rect(420, 140, 440, 180),
+                    "prompt_x": 640,
+                    "prompt_y": 195,
+                    "acao_texto": "para Enfrentar Ignis'Vahr",
+                    "evento": "iniciar_climax_dragao_oakhaven"
+                }
+            ]
 
     def atualizar(self, dt=0.016):
         for foco in self.focos_fogo:

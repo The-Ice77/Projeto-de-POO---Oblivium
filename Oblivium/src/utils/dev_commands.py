@@ -398,14 +398,16 @@ class ComandosDev:
                     for obj in missao.get("objetivos", []):
                         if not obj.get("concluido", False):
                             if qm._eh_objetivo_entrega_npc(obj):
-                                qm.processar_interacao_npc(missao.get("npc_id") or missao.get("doador"))
+                                res = qm.processar_interacao_npc(missao.get("npc_id") or missao.get("doador"))
+                                if res.get("estado") != "CONCLUIDA":
+                                    qm.concluir_missao(mid, forcar=True)
                                 self._notificar("Teste de Missão", f"Entrega no NPC concluída: {missao['titulo']}")
                             else:
                                 qm.progredir_objetivo(mid, obj["id"], 1)
                                 self._notificar("Teste de Missão", f"Progresso em '{missao['titulo']}': {obj['descricao']}")
                             return
                     # Caso todos os objetivos dessa missão já estejam concluídos, finaliza-a
-                    qm.concluir_missao(mid)
+                    qm.concluir_missao(mid, forcar=True)
                     self._notificar("Teste de Missão", f"Missão concluída: {missao['titulo']}")
                     return
 

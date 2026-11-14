@@ -1,3 +1,4 @@
+# LEGADO: substituído por src.mechanics.skills (MagiaOfensiva) e src.mechanics.grimorio (GrimorioHalia). Mantido por histórico (REGRAS §3).
 # src/mechanics/magia.py
 from src.mechanics.skills import MagiaOfensiva
 

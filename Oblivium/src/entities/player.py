@@ -26,6 +26,8 @@ from src.mechanics.inventory import Inventario
 
 from src.utils.resource_manager import ResourceManager, Animacao, PASTA_ASSETS
 
+COBRES_POR_PRATA = 20
+COBRES_POR_OURO = 200
 
 
 class Player(Entidade):
@@ -47,6 +49,8 @@ class Player(Entidade):
     """
 
     NIVEL_VERDADEIRO = 50 # Grã-Maga Suprema
+    COBRES_POR_PRATA = COBRES_POR_PRATA
+    COBRES_POR_OURO = COBRES_POR_OURO
 
 
 
@@ -349,7 +353,7 @@ class Player(Entidade):
 
         """1 Moeda de Ouro = 10 de Prata = 200 de Cobre."""
 
-        return self.dinheiro // 200
+        return self.dinheiro // self.COBRES_POR_OURO
 
 
 
@@ -359,7 +363,7 @@ class Player(Entidade):
 
         """20 Moedas de Cobre = 1 de Prata."""
 
-        return (self.dinheiro % 200) // 20
+        return (self.dinheiro % self.COBRES_POR_OURO) // self.COBRES_POR_PRATA
 
 
 
@@ -367,7 +371,7 @@ class Player(Entidade):
 
     def moedas_cobre(self):
 
-        return self.dinheiro % 20
+        return self.dinheiro % self.COBRES_POR_PRATA
 
 
 

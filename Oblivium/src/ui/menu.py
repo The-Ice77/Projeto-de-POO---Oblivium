@@ -1,6 +1,6 @@
 # src/ui/menu.py
 from src.utils.colors import PRETO
-from src.utils import save_manager
+from src.utils import save_storage
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.ui.ui_utils import BotaoGrafico
@@ -91,7 +91,7 @@ class Menu:
 
     def atualizar_opcoes(self):
         """Atualiza a lista de opções com base na presença de saves e posiciona com espaçamento aprimorado."""
-        if save_manager.verificar_saves_globais():
+        if save_storage.verificar_saves_globais():
             self.opcoes = ["Novo Jogo", "Continuar", "Conquistas", "Configurações", "Créditos", "Sair"]
         else:
             self.opcoes = ["Novo Jogo", "Conquistas", "Configurações", "Créditos", "Sair"]
