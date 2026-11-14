@@ -1,8 +1,8 @@
 # src/states/playing_states.py
 import pygame
 from src.states.states import State
-from src.entities.enemy_factory import EnemyFactory
-from src.mechanics.item_factory import ItemFactory
+from src.states.prologo_controller import PrologoController
+from src.states.oakhaven_controller import OakhavenController
 from src.mechanics.cutscene_manager import CutsceneManager
 from src.mechanics.cinematica_dragao import CinematicaAtaqueDragao
 from src.mechanics.minigame_ferraria import MinigameFerraria
@@ -14,6 +14,10 @@ class PlayingState(State):
     def __init__(self, game):
         super().__init__(game)
         self.game = game
+        self.prologo_controller = PrologoController(game, self)
+        self.prologo = self.prologo_controller
+        self.oakhaven_controller = OakhavenController(game, self)
+        self.oakhaven = self.oakhaven_controller
         self.cutscene = CutsceneManager(game)
         self.cinematica_dragao = CinematicaAtaqueDragao(game, self)
         self.game.cinematica_dragao = self.cinematica_dragao
@@ -552,35 +556,11 @@ class PlayingState(State):
             self.game.flashback_sistema.processar_input()
 
     def _checar_sucesso_timing(self):
-        res = self.game.mg_timing.checar_sucesso()
-        if res == "VENCEU" or res is True:
-            self.game.magia_ativa = "FOGO"
-            self.game.distanciando_halia = True
-            self.game.timer_magia = 0
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("chama_primordial")
-        elif res == "AVANCOU_ETAPA":
-            pass
-        else:
-            self.game.caixa_dialogo.iniciar_dialogo("falha_timing")
+        return self.prologo_controller.checar_sucesso_timing()
 
     def _finalizar_minigame_levitacao(self, res):
         """Finaliza a levitação, assenta as rochas e abre o diálogo pos_levitar."""
-        if res == "VENCEU":
-            if hasattr(self.game.mapa_casa, 'desobstruir_estrada'):
-                self.game.mapa_casa.desobstruir_estrada("LEVITAR")
-            self.game.magia_usada_no_puzzle = "LEVITAR"
-            self.game.magia_ativa = "CONCLUIDO"
-            self.game.distanciando_halia = False
-            self.game.timer_magia = 0
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("dominio_gravidade")
-            self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
-            self.game.conversa_combate_ativa = True
-        elif res == "PERDEU":
-            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
-                self.game.mapa_casa.atualizar_levitacao_minigame(0.0)
-            self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
+        return self.prologo_controller.finalizar_minigame_levitacao(res)
 
     def _update_minigames_e_flashbacks(self):
         dt = getattr(self.game, "dt", 1.0 / 60.0)
@@ -588,374 +568,41 @@ class PlayingState(State):
             if getattr(self.game.mapa_casa, "cenario_atual", None) == "NINHO_DRAGAO":
                 self.atualizar_camera(instantaneo=True)
 
-        if self.game.mg_timing.ativo:
-            self.game.mg_timing.atualizar(dt)
-        elif self.game.mg_mash.ativo:
-            res = self.game.mg_mash.atualizar(dt)
-
-            pct = self.game.mg_mash.get_progresso_pct()
-            if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
-                self.game.mapa_casa.atualizar_levitacao_minigame(pct)
-
-            if res in ["VENCEU", "PERDEU"]:
-                self._finalizar_minigame_levitacao(res)
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and self.game.magia_ativa is None and not self._bloqueio_ativo(incluir_transicao=False, incluir_inimigos_andando=False):
-            if self.game.magia_selecionada_temporaria == "FOGO":
-                self.game.magia_selecionada_temporaria = None
-                self.game.mg_timing.iniciar()
-            elif self.game.magia_selecionada_temporaria == "LEVITAR":
-                self.game.magia_selecionada_temporaria = None
-                self.game.mg_mash.iniciar()
+        self.prologo_controller.atualizar_minigames(dt)
 
     def _update_inimigos_e_triggers(self):
-        # 1. GATILHO DA CUTSCENE (Nascer dos inimigos)
-        if self.game.conversa_combate_ativa and not self.game.caixa_dialogo.ativo:
-            self.game.conversa_combate_ativa = False
-            self.game.cena_inimigos_andando = True
-            
-            if self.game.halia.x > 1000:
-                self.game.halia.x = 1000
-            self.game.halia.virado_direita = True
-            self.game.halia.direcao = "direita"
-            self.game.halia.mudar_estado("idle")
-                
-            if self.game.magia_usada_no_puzzle == "FOGO":
-                sombra1 = EnemyFactory.criar("demonio_inferior", x=1180, y=290, nome_custom="Demônio Inferior Voraz")
-                sombra2 = EnemyFactory.criar("demonio_inferior", x=1180, y=420, nome_custom="Demônio Inferior Vigia")
-                sombra1.velocidade = 3.5
-                sombra2.velocidade = 3.5
-                sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
-                sombra2.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
-                sombra1.virado_direita = False
-                sombra2.virado_direita = False
-                sombra1.direcao = "esquerda"
-                sombra2.direcao = "esquerda"
-                self.game.inimigos_em_cena.extend([sombra1, sombra2])
-            elif self.game.magia_usada_no_puzzle == "LEVITAR":
-                boss = EnemyFactory.criar_boss("demonio_superior", x=1180, y=310, nome_custom="Demônio Superior (Chefe)")
-                boss.velocidade = 3.5
-                boss.recompensas = {"moedas": 45, "memorias": 0, "xp": 80}
-                boss.virado_direita = False
-                boss.direcao = "esquerda"
-                self.game.inimigos_em_cena.append(boss)
-
-        # 2. MOVIMENTO DA CUTSCENE (Roteirizado)
-        if self.game.cena_inimigos_andando:
-            x_parada = max(self.game.halia.x + self.game.halia.largura + 100, 850)
-            alguem_chegou = False
-            
-            for inimigo in self.game.inimigos_em_cena:
-                if not self.game.iniciando_combate:
-                    inimigo.virado_direita = False
-                    inimigo.direcao = "esquerda"
-                    if inimigo.x > x_parada:
-                        inimigo.mover(-inimigo.velocidade, 0)
-                    else:
-                        inimigo.mover(0, 0)
-                        alguem_chegou = True
-                        
-            if alguem_chegou and not self.game.iniciando_combate:
-                self.game.iniciando_combate = True
-                self.game.transicao.iniciar()
-
+        self.prologo_controller.atualizar_inimigos_e_combate()
         self._check_map_zone_triggers()
 
     def _check_map_zone_triggers(self):
         if self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or self.game.cena_inimigos_andando:
             return
 
-        # Processa eventos de fim de diálogo (funcionando tanto via teclado quanto via clique do mouse)
-        evt_pendente = getattr(self.game.caixa_dialogo.manager, "evento_pendente", None)
-        if evt_pendente in (
-            "cura_elara_missao",
-            "cura_elara_destruida",
-            "ir_patrulha_doran",
-            "iniciar_cutscene_dormir_vila",
-            "iniciar_amanhecer_ataque_dragao",
-            "ir_para_ninho_dragao",
-            "iniciar_climax_dragao_oakhaven",
-            "iniciar_combate_dragao_oakhaven",
-            "iniciar_flashback_sylvan_ninho",
-            "retornar_oakhaven_vitoria",
-            "iniciar_timeskip_final_oakhaven",
-        ):
-            self.game.caixa_dialogo.manager.consumir_evento()
-            if evt_pendente in ("cura_elara_missao", "cura_elara_destruida"):
-                if hasattr(self.game, "halia") and self.game.halia:
-                    self.game.halia.restaurar_total()
-                if evt_pendente == "cura_elara_missao" and hasattr(self.game, "missoes") and self.game.missoes:
-                    if self.game.missoes.missoes.get("missao_ervas_medicinais", {}).get("status") != "CONCLUIDA":
-                        self.game.missoes.concluir_missao("missao_ervas_medicinais")
-                return
-            elif evt_pendente == "ir_patrulha_doran":
-                self._ir_para_patrulha_orla_norte()
-                return
-            elif evt_pendente == "iniciar_cutscene_dormir_vila":
-                self.game.caixa_dialogo.ativo = False
-                if hasattr(self, "cinematica_dragao"):
-                    self.cinematica_dragao.iniciar_sono()
-                return
-            elif evt_pendente == "iniciar_amanhecer_ataque_dragao":
-                if hasattr(self, "cinematica_dragao"):
-                    self.cinematica_dragao.iniciar_ataque_aereo()
-                else:
-                    self._iniciar_amanhecer_ataque_dragao()
-                return
-            elif evt_pendente in ("ir_para_ninho_dragao", "iniciar_climax_dragao_oakhaven"):
-                self._iniciar_climax_dragao_oakhaven()
-                return
-            elif evt_pendente == "iniciar_combate_dragao_oakhaven":
-                self.game.combate_climax_dragao = True
-                self.game.iniciando_combate = True
-                self.game.transicao.iniciar()
-                return
-            elif evt_pendente == "iniciar_flashback_sylvan_ninho":
-                seq_sylvan = self.game.caixa_dialogo.manager.obter_sequencia_linear("flashback_memoria_2_sylvan")
-                self.game.flashback_sylvan_ativo = True
-                self.game.flashback_sistema.iniciar(seq_sylvan, tipo="acampamento", game=self.game)
-                return
-            elif evt_pendente == "retornar_oakhaven_vitoria":
-                self.game.transicao.iniciar("Retornando vitoriosa a Oakhaven...")
-                cenario_retorno = "OAKHAVEN_DESTRUIDA" if getattr(self.game, "oakhaven_destruida", True) else "OAKHAVEN"
-                self.game.mapa_casa.carregar_cenario(cenario_retorno)
-                self.game.halia.x, self.game.halia.y = 1102, 660
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-                self.atualizar_camera(instantaneo=True)
-                self.game.aguardando_dialogo_pos_dragao = True
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                return
-            elif evt_pendente == "iniciar_timeskip_final_oakhaven":
-                if hasattr(self, "cutscene_reconstrucao"):
-                    self.cutscene_reconstrucao.iniciar()
-                return
+        if self.oakhaven_controller.verificar_gatilhos_zona():
+            return
 
-        if self.game.mapa_casa.cenario_atual == "CASA" and self.game.mapa_casa.porta_aberta and self.game.halia.y > 545:
-            self.game.mapa_casa.fechar_porta()
-            self.game.caixa_dialogo.iniciar_dialogo("fechar_porta")
-            
-        if self.game.mapa_casa.cenario_atual == "CASA" and not self.game.mapa_casa.porta_aberta and self.game.halia.x > 1220:
-            self.game.transicao.iniciar("Seguindo viagem...")
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA" and not self.game.carroceiro_visivel and self.game.halia.x > 640:
-            self.game.carroceiro_visivel = True
-            self.game.carroceiro_andando = True
-            self.game.carroceiro.velocidade = 2
-            self.game.carroceiro.mudar_estado("andar")
-            self.game.caixa_dialogo.iniciar_dialogo("avistar_carroceiro")
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and not self.game.investigou_pedras and self.game.halia.x > 1000:
-            self.game.investigou_pedras = True; self.game.halia.x = 980
-            self.game.caixa_dialogo.iniciar_dialogo("escolha_magias" if self.game.flashback_magia_concluido else "investigar_pedras")
-
-        if self.game.carroceiro_andando:
-            self._mover_carroceiro_autonomo()
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA" and self.game.aguardando_fim_viagem and not self.game.caixa_dialogo.ativo:
-            self.game.aguardando_fim_viagem = False; self.game.conversa_carroceiro_terminou = True
-            self.game.transicao.iniciar("Algumas horas depois...")
-
-        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores (Padrão original do Prólogo)
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and getattr(self.game, 'partindo_estrada2', False) and not self.game.caixa_dialogo.ativo:
-            self.game.partindo_estrada2 = False
-            self.game.conversa_carroceiro_terminou = True
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("rumo_a_vila")
-            if self.game.halia.fragmentos_memoria < 1:
-                self.game.halia.recuperar_memoria(1)
-            if self.game.slot_atual:
-                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        # No Ninho do Dragão após a vitória ao amanhecer: caminhar até a trilha sul (y > 645) retorna a Oakhaven
-        if self.game.mapa_casa.cenario_atual == "NINHO_DRAGAO" and getattr(self.game.mapa_casa.cenario_objeto, "dragao_derrotado", False):
-            if self.game.halia.y > 645 and self.game.transicao.estado == "INATIVO" and not self.game.caixa_dialogo.ativo:
-                self.game.transicao.iniciar("Retornando vitoriosa a Oakhaven...")
-                cenario_retorno = "OAKHAVEN_DESTRUIDA" if getattr(self.game, "oakhaven_destruida", True) else "OAKHAVEN"
-                self.game.mapa_casa.carregar_cenario(cenario_retorno)
-                self.game.halia.x, self.game.halia.y = 1102, 660
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-                self.atualizar_camera(instantaneo=True)
-                self.game.aguardando_dialogo_pos_dragao = True
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                return
-
-        # Após despertar da Memória 2 (Sylvan) no pós-clímax do Dragão em Oakhaven
-        if getattr(self.game, "aguardando_dialogo_pos_dragao", False):
-            despertar_inativo = (not hasattr(self.game, "tela_despertar") or self.game.tela_despertar.estado == "INATIVO")
-            if despertar_inativo and self.memoria_anterior_registrada >= 2:
-                self.game.aguardando_dialogo_pos_dragao = False
-                self.game.caixa_dialogo.iniciar_dialogo("pos_vitoria_dragao_oakhaven")
-                return
-
-        # Em ORLA_NORTE: onde o Guarda Doran levou Halia para enfrentar os 2 Batedores Demoníacos
-        if self.game.mapa_casa.cenario_atual == "ORLA_NORTE":
-            # Se Halia caminhar de volta pelo portão sul da clareira, retorna a Oakhaven
-            if self.game.halia.y > 660 and not getattr(self.game, "combate_climax_dragao", False):
-                self.game.inimigos_em_cena.clear()
-                self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-                self.game.halia.x, self.game.halia.y = 1102, 245
-                self.game.halia.direcao = "baixo"
-                self.game.halia.mudar_estado("idle")
-                self.atualizar_camera(instantaneo=True)
-                return
-
-            # Se Halia se aproximar dos batedores na clareira da Orla Norte, inicia o combate de patrulha
-            if self.game.inimigos_em_cena and not self.game.iniciando_combate:
-                area_halia = pygame.Rect(int(self.game.halia.x - 28), int(self.game.halia.y - 28), self.game.halia.largura + 56, self.game.halia.altura + 56)
-                for inim in self.game.inimigos_em_cena:
-                    r_inim = pygame.Rect(int(inim.x), int(inim.y), inim.largura, inim.altura)
-                    if area_halia.colliderect(r_inim):
-                        # Revela a verdadeira forma feroz de mímico para o combate
-                        for inim_alvo in self.game.inimigos_em_cena:
-                            if getattr(inim_alvo, "eh_mimico", False):
-                                inim_alvo.finalizar_revelacao()
-                        self.game.iniciando_combate = True
-                        self.game.transicao.iniciar()
-                        break
+        self.prologo_controller.verificar_gatilhos_zona()
 
     def _mover_carroceiro_autonomo(self):
-        next_h = pygame.Rect(int(self.game.carroceiro.x - 2), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
-        h_halia = pygame.Rect(int(self.game.halia.x), int(self.game.halia.y), self.game.halia.largura, self.game.halia.altura)
-        if not next_h.colliderect(h_halia): self.game.carroceiro.mover(-1, 0, [])
-        if self.game.carroceiro.x <= 900 or next_h.colliderect(h_halia):
-            if self.game.carroceiro.x <= 900: self.game.carroceiro.x = 900
-            self.game.carroceiro_andando = False
-            self.game.carroceiro.velocidade = 0
-            self.game.carroceiro.mudar_estado("idle")
-            self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
-            h_npc = pygame.Rect(int(self.game.carroceiro.x), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
-            if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
+        return self.prologo_controller.mover_carroceiro_autonomo()
 
     def _processar_avanco_dialogo(self):
-        abrir_loja_apos = False
-        loja_id_alvo = None
-        ir_patrulha_apos = False
+        res_oakhaven = {"abrir_loja": False, "loja_id": None, "ir_patrulha": False}
         if self.game.caixa_dialogo.em_escolha:
             if self.game.caixa_dialogo.opcoes_disponiveis and 0 <= self.game.caixa_dialogo.opcao_selecionada < len(self.game.caixa_dialogo.opcoes_disponiveis):
                 opcao_atual = self.game.caixa_dialogo.opcoes_disponiveis[self.game.caixa_dialogo.opcao_selecionada]
                 opt_id = opcao_atual.get("id")
-                if opt_id == "analisar_pedras":
-                    self.game.caixa_dialogo.ativo = False
-                    self.game.caixa_dialogo.em_escolha = False
-                    seq_flashback = self.game.caixa_dialogo.manager.obter_sequencia_linear("flashback_magia")
-                    self.game.flashback_sistema.iniciar(seq_flashback, game=self.game)
+                if self.prologo_controller.processar_escolha_dialogo(opt_id):
                     return
-                elif opt_id == "recordar_amigos_monumento":
-                    self.game.caixa_dialogo.ativo = False
-                    self.game.caixa_dialogo.em_escolha = False
-                    seq_sylvan = self.game.caixa_dialogo.manager.obter_sequencia_linear("flashback_memoria_2_sylvan")
-                    self.game.flashback_monumento_ativo = True
-                    self.game.flashback_sistema.iniciar(seq_sylvan, tipo="acampamento", game=self.game)
+                res_oakhaven = self.oakhaven_controller.processar_escolha_dialogo(opcao_atual)
+                if res_oakhaven["interromper"]:
                     return
-                elif opt_id == "sair_monumento":
-                    self.game.caixa_dialogo.ativo = False
-                    self.game.caixa_dialogo.em_escolha = False
-                    return
-                elif opt_id == "escolha_fogo":
-                    self.game.magia_selecionada_temporaria = "FOGO"
-                elif opt_id == "escolha_levitar":
-                    self.game.magia_selecionada_temporaria = "LEVITAR"
-                elif opt_id in ["voltar_magia", "desistir_puzzle"]:
-                    self.game.investigou_pedras = False
-                elif opt_id == "prosseguir":
-                    self.game.aguardando_fim_viagem = True
-                elif opt_id == "seguir_capital":
-                    self.game.partindo_estrada2 = True
-                elif opcao_atual.get("acao") == "abrir_loja" or opcao_atual.get("evento") == "abrir_loja":
-                    abrir_loja_apos = True
-                    loja_id_alvo = opcao_atual.get("loja_id")
-                elif opcao_atual.get("acao") == "ir_patrulha_doran" or opcao_atual.get("evento") == "ir_patrulha_doran":
-                    ir_patrulha_apos = True
         self.game.caixa_dialogo.proximo_texto()
-        evt_atual = getattr(self.game.caixa_dialogo.manager, "evento_pendente", None)
-        if abrir_loja_apos or evt_atual == "abrir_loja":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            if not loja_id_alvo and hasattr(self.game, "npc_interagindo_atual") and self.game.npc_interagindo_atual:
-                loja_id_alvo = getattr(self.game.npc_interagindo_atual, "loja_id", None)
-
-            # Validação estrita de pré-requisitos da loja do NPC
-            npc_atual = getattr(self.game, "npc_interagindo_atual", None)
-            pode_abrir = True
-            qm = getattr(self.game, "missoes", None)
-            if npc_atual and hasattr(npc_atual, "pode_abrir_loja"):
-                pode_abrir = npc_atual.pode_abrir_loja(qm)
-            elif loja_id_alvo and qm and hasattr(qm, "missoes"):
-                norm_l = str(loja_id_alvo).lower()
-                if "forja" in norm_l or "torvald" in norm_l:
-                    pode_abrir = (qm.missoes.get("missao_pedra_forja", {}).get("status") == "CONCLUIDA")
-                elif "botanica" in norm_l or "elara" in norm_l:
-                    pode_abrir = (qm.missoes.get("missao_ervas_medicinais", {}).get("status") == "CONCLUIDA")
-
-            self.game.caixa_dialogo.ativo = False
-            if pode_abrir:
-                if hasattr(self.game, "missoes") and self.game.missoes:
-                    self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
-                    self.game.missoes.atualizar_progresso("visitar_mercado", 1)
-                if hasattr(self.game, "abrir_loja"):
-                    self.game.abrir_loja(loja_id_alvo)
-                else:
-                    self.game.mudar_estado("LOJA")
-        elif ir_patrulha_apos or (not self.game.caixa_dialogo.ativo and evt_atual == "ir_patrulha_doran"):
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            self._ir_para_patrulha_orla_norte()
-        elif evt_atual == "cura_elara_missao":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            if hasattr(self.game, "halia") and self.game.halia:
-                self.game.halia.restaurar_total()
-            if hasattr(self.game, "missoes") and self.game.missoes:
-                if self.game.missoes.missoes.get("missao_ervas_medicinais", {}).get("status") != "CONCLUIDA":
-                    self.game.missoes.concluir_missao("missao_ervas_medicinais")
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_cutscene_dormir_vila":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            if hasattr(self, "cinematica_dragao"):
-                self.cinematica_dragao.iniciar_sono()
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_amanhecer_ataque_dragao":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            if hasattr(self, "cinematica_dragao"):
-                self.cinematica_dragao.iniciar_ataque_aereo()
-            else:
-                self._iniciar_amanhecer_ataque_dragao()
-        elif not self.game.caixa_dialogo.ativo and evt_atual in ("ir_para_ninho_dragao", "iniciar_climax_dragao_oakhaven"):
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            self._iniciar_climax_dragao_oakhaven()
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_combate_dragao_oakhaven":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            self.game.combate_climax_dragao = True
-            self.game.iniciando_combate = True
-            self.game.transicao.iniciar()
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_flashback_sylvan_ninho":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            seq_sylvan = self.game.caixa_dialogo.manager.obter_sequencia_linear("flashback_memoria_2_sylvan")
-            self.game.flashback_sylvan_ativo = True
-            self.game.flashback_sistema.iniciar(seq_sylvan, tipo="acampamento", game=self.game)
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "retornar_oakhaven_vitoria":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            self.game.transicao.iniciar("Retornando vitoriosa a Oakhaven...")
-            cenario_retorno = "OAKHAVEN_DESTRUIDA" if getattr(self.game, "oakhaven_destruida", True) else "OAKHAVEN"
-            self.game.mapa_casa.carregar_cenario(cenario_retorno)
-            self.game.halia.x, self.game.halia.y = 1102, 660
-            self.game.halia.direcao = "cima"
-            self.game.halia.mudar_estado("idle")
-            self.atualizar_camera(instantaneo=True)
-            self.game.aguardando_dialogo_pos_dragao = True
-            if self.game.slot_atual:
-                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-        elif not self.game.caixa_dialogo.ativo and evt_atual == "iniciar_timeskip_final_oakhaven":
-            self.game.caixa_dialogo.manager.consumir_evento()
-            self.game.caixa_dialogo.ativo = False
-            if hasattr(self, "cutscene_reconstrucao"):
-                self.cutscene_reconstrucao.iniciar()
+        self.oakhaven_controller.processar_eventos_pos_avanco_dialogo(
+            abrir_loja_apos=res_oakhaven["abrir_loja"],
+            loja_id_alvo=res_oakhaven["loja_id"],
+            ir_patrulha_apos=res_oakhaven["ir_patrulha"],
+        )
 
     def _processar_clique_escolha(self, pos):
         box = self.game.caixa_dialogo
@@ -988,9 +635,14 @@ class PlayingState(State):
         box.clicar_mouse(pos)
 
     def _processar_interacoes_mundo(self):
-        area_interacao = pygame.Rect(self.game.halia.x - 24, self.game.halia.y - 24, self.game.halia.largura + 48, self.game.halia.altura + 48)
-        
-        for item in self.game.mapa_casa.itens_no_chao[:]: 
+        area_interacao = pygame.Rect(
+            self.game.halia.x - 24,
+            self.game.halia.y - 24,
+            self.game.halia.largura + 48,
+            self.game.halia.altura + 48,
+        )
+
+        for item in self.game.mapa_casa.itens_no_chao[:]:
             if area_interacao.colliderect(item.rect):
                 id_do_item = getattr(item, "id_unico", "desconhecido")
                 if str(id_do_item).startswith("erva_lunar"):
@@ -998,131 +650,19 @@ class PlayingState(State):
                     return
 
                 self.game.mapa_casa.itens_no_chao.remove(item)
-                if hasattr(self.game, 'audio') and self.game.audio:
+                if hasattr(self.game, "audio") and self.game.audio:
                     self.game.audio.tocar_sfx("item_coletar")
-                
-                id_do_item = getattr(item, "id_unico", "desconhecido")
+
                 if id_do_item not in self.game.itens_coletados:
                     self.game.itens_coletados.append(id_do_item)
-                
-                if id_do_item == "item_moedas":
-                    self.game.halia.ganhar_dinheiro(50 * self.game.halia.COBRES_POR_OURO) # 50 Moedas de Ouro = 10.000 Cobres
-                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de ouro."}])
-                elif id_do_item == "item_cajado":
-                    cajado = ItemFactory.criar("cajado_espinheiro")
-                    if cajado:
-                        self.game.halia.inventario.equipados["CAJADO"] = cajado
-                    self.game.halia.recalcular_status_derivados()
-                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você empunhou o Cajado de Espinheiro."}])
-                elif id_do_item == "item_livro":
-                    tomo = ItemFactory.criar("tomo_chama_ancestral")
-                    if tomo:
-                        self.game.halia.inventario.equipados["GRIMORIO_1"] = tomo
-                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": "Você recolheu o Livro Antigo contendo encantamentos arcanos esquecidos."}])
-                else:
-                    self.game.caixa_dialogo.iniciar_dialogo([{"autor": "Sistema", "texto": f"Você guardou: {item.nome}."}])
+
+                self.prologo_controller.processar_interacao_item_inicial(item, id_do_item)
                 return
-        
-        if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
-            if len(self.game.mapa_casa.itens_no_chao) == 0:
-                self.game.mapa_casa.abrir_porta()
-                self.game.caixa_dialogo.iniciar_dialogo("porta_abriu")
-            else:
-                self.game.caixa_dialogo.iniciar_dialogo("porta_trancada")
+
+        if self.prologo_controller.processar_interacao_cenario(area_interacao):
             return
 
-        if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
-            if area_interacao.colliderect(pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)):
-                self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
-                self.game.halia.virado_direita = (self.game.carroceiro.x > self.game.halia.x)
-                if self.game.mapa_casa.cenario_atual == "ESTRADA":
-                    self.game.caixa_dialogo.iniciar_dialogo("hub_carroceiro")
-                elif self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-                    if getattr(self.game, 'combate_estrada_concluido', False):
-                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_pos_combate")
-                    elif self.game.magia_ativa == "CONCLUIDO":
-                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_pos_puzzle")
-                    else:
-                        self.game.caixa_dialogo.iniciar_dialogo("carroceiro_impedimento")
-                return
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
-            if self.game.halia.x >= 950:
-                self.game.investigou_pedras = True
-                if self.game.flashback_magia_concluido:
-                    self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
-                else:
-                    self.game.caixa_dialogo.iniciar_dialogo("investigar_pedras")
-                return
-
-        # Interações com NPCs do cenário ativo (ex: Oakhaven)
-        for npc in getattr(self.game.mapa_casa, "npcs", []):
-            r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
-            if area_interacao.colliderect(r_npc):
-                self.game.npc_interagindo_atual = npc
-                npc.virado_direita = (self.game.halia.x > npc.x)
-                self.game.halia.virado_direita = (npc.x > self.game.halia.x)
-                if hasattr(self.game, "missoes") and self.game.missoes:
-                    if npc.npc_id in ("curandeira_elara", "ferreiro_torvald"):
-                        self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
-                        self.game.missoes.atualizar_progresso("visitar_mercado", 1)
-                npc.interagir(self.game)
-                return
-
-        # Interação com Patusco (Easter Egg 1/7 no tufo de grama - desativado à noite pois ele já dorme)
-        eh_noite = getattr(self.game, "oakhaven_noite", False)
-        if not eh_noite:
-            for animal in getattr(self.game.mapa_casa, "animais", []):
-                if hasattr(animal, "interagir") and getattr(animal, "visivel", True):
-                    r_anim = pygame.Rect(int(animal.x - 24), int(animal.y - 24), 48, 48)
-                    if area_interacao.colliderect(r_anim):
-                        animal.interagir(self.game)
-                        return
-
-        # Interação com pontos de lore e objetos de missão no cenário (Monumento, Quadro, Rocha de Minério)
-        for pt in getattr(self.game.mapa_casa, "pontos_interacao", []):
-            if area_interacao.colliderect(pt["rect"]):
-                if pt.get("id") == "rocha_minerio_torvald":
-                    estado_missao = (
-                        (self.game.missoes.obter_missao("missao_pedra_forja") or {}).get("status", "NAO_INICIADA")
-                        if hasattr(self.game, "missoes") and self.game.missoes
-                        else "NAO_INICIADA"
-                    )
-                    if estado_missao == "ATIVA" and not getattr(self.game, "pedra_torvald_quebrada", False):
-                        self.minigame_ferraria.iniciar()
-                        return
-                    else:
-                        self.game.caixa_dialogo.iniciar_dialogo([
-                            {
-                                "autor": "Narrador",
-                                "texto": "Um grande bloco de minério bruto com veios metálicos azulados repousa no pátio da forja. O Ferreiro Torvald parece precisar de auxílio para parti-lo."
-                            }
-                        ])
-                        return
-                    return
-                if "evento" in pt:
-                    ev = pt["evento"]
-                    if ev == "retornar_oakhaven_vitoria":
-                        self.game.transicao.iniciar("Retornando vitoriosa a Oakhaven...")
-                        cenario_retorno = "OAKHAVEN_DESTRUIDA" if getattr(self.game, "oakhaven_destruida", True) else "OAKHAVEN"
-                        self.game.mapa_casa.carregar_cenario(cenario_retorno)
-                        self.game.halia.x, self.game.halia.y = 1102, 660
-                        self.game.halia.direcao = "cima"
-                        self.game.halia.mudar_estado("idle")
-                        self.atualizar_camera(instantaneo=True)
-                        self.game.aguardando_dialogo_pos_dragao = True
-                        if self.game.slot_atual:
-                            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                        return
-                    elif ev == "iniciar_climax_dragao_oakhaven":
-                        self._iniciar_climax_dragao_oakhaven()
-                        return
-                if pt.get("id") == "estatua_herois":
-                    self.game.caixa_dialogo.iniciar_dialogo("monumento_herois")
-                    return
-                if "dialogo" in pt:
-                    self.game.caixa_dialogo.iniciar_dialogo(pt["dialogo"])
-                    return
+        self.oakhaven_controller.processar_interacao_cenario(area_interacao)
 
     def _update_transitions(self):
         if self.game.transicao.update() if hasattr(self.game.transicao, 'update') else self.game.transicao.atualizar():
@@ -1133,77 +673,23 @@ class PlayingState(State):
 
                 def on_vitoria():
                     if getattr(self.game, "combate_climax_dragao", False):
-                        self.game.combate_climax_dragao = False
-                        self.game.inimigos_em_cena.clear()
-                        self.game.cena_inimigos_andando = False
-                        self.game.oakhaven_noite = False  # A longa noite de batalha terminou: rompe a alvorada!
-                        self.game.dragao_derrotado = True
-                        self.game.desespero_superado = True
-                        
-                        # Halia permanece no NINHO_DRAGAO contemplando exausta o corpo do dragão ao amanhecer
-                        self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
-                        ninho = self.game.mapa_casa.cenario_objeto
-                        ninho.ninho_amanhecer = True
-                        ninho.dragao_derrotado = True
-                        ninho.inicializar_cenario()
-                        
-                        self.game.halia.x, self.game.halia.y = 610, 380
-                        self.game.halia.direcao = "cima"
-                        self.game.halia.mudar_estado("idle")
-                        self.atualizar_camera(instantaneo=True)
-                        
-                        if hasattr(self.game, "audio") and self.game.audio:
-                            self.game.audio.tocar_ambiente("vento_suave", loop=-1, fade_ms=1000)
-                            
-                        self.game.mudar_estado("JOGANDO")
-                        self.game.caixa_dialogo.iniciar_dialogo("cena_pos_combate_ninho_dragao")
+                        self.oakhaven_controller.on_vitoria_combate_dragao()
                         return
 
                     if cenario_combate in ("OAKHAVEN", "ORLA_NORTE"):
-                        self.game.inimigos_em_cena.clear()
-                        self.game.cena_inimigos_andando = False
-                        self.game.oakhaven_noite = True
-                        if hasattr(self.game, "missoes") and self.game.missoes:
-                            self.game.missoes.atualizar_progresso("derrotar_demonios", 2)
-                            self.game.missoes.atualizar_progresso("derrotar_sombras", 2)
-                        self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-                        self.game.halia.x, self.game.halia.y = 1102, 265
-                        self.game.halia.direcao = "cima"
-                        self.game.halia.mudar_estado("idle")
-                        self.atualizar_camera(instantaneo=True)
-                        if self.game.slot_atual:
-                            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                        self.game.mudar_estado("JOGANDO")
-                        self.game.caixa_dialogo.iniciar_dialogo([
-                            {"autor": "Guarda Doran", "texto": "Excelente combate, Halia! Aqueles soldados caídos eram na verdade Mímicos ferozes disfarçados... Que emboscada hedionda! Já caiu a noite sobre Oakhaven quando retornamos — fale comigo aqui no Portão Norte para encerrarmos a ronda!"}
-                        ])
+                        self.oakhaven_controller.on_vitoria_combate_patrulha()
                         return
 
-                    self.game.combate_estrada_concluido = True
-                    self.game.magia_ativa = "CONCLUIDO"
-                    self.game.mapa_casa.desobstruir_estrada(self.game.magia_usada_no_puzzle or "FOGO")
-                    teve_chefe = any(getattr(i, 'eh_chefe', False) or "superior" in getattr(i, 'nome', '').lower() for i in self.game.inimigos_em_cena)
-                    self.game.inimigos_em_cena.clear()
-                    self.game.cena_inimigos_andando = False
-                    if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                        self.game.conquistas.desbloquear("primeiro_sangue")
-                        if teve_chefe:
-                            self.game.conquistas.desbloquear("cacadora_abissal")
-                    self.game.mudar_estado("JOGANDO")
-                    self.game.caixa_dialogo.iniciar_dialogo("pos_combate_vitoria")
-                    
+                    self.prologo_controller.on_vitoria_combate_estrada()
+
                 def on_derrota():
                     self.on_derrota()
-                    
+
                 def on_fuga():
                     if cenario_combate in ("OAKHAVEN", "ORLA_NORTE"):
-                        self.game.inimigos_em_cena.clear()
-                        self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-                        self.game.halia.x, self.game.halia.y = 1102, 280
-                        self.atualizar_camera(instantaneo=True)
+                        self.oakhaven_controller.on_fuga_combate_patrulha()
                     else:
-                        self.game.halia.x = max(60, self.game.halia.x - 120)
-                        self.game.inimigos_em_cena.clear()
+                        self.prologo_controller.on_fuga_combate_estrada()
                     self.game.cena_inimigos_andando = False
                     self.game.mudar_estado("JOGANDO")
 
@@ -1258,141 +744,33 @@ class PlayingState(State):
             self.cutscene_reconstrucao.ativo = False
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
-            self.game.combate_estrada_concluido = False
-            self.game.inimigos_em_cena.clear()
-            self.game.cena_inimigos_andando = False
-            self.game.iniciando_combate = False
-            self.game.halia.restaurar_total()
-            self.game.magia_ativa = None
-            self.game.investigou_pedras = False
-            self.game.bola_fogo_ativa = False
-            self.game.mapa_casa.restaurar_bloqueio_estrada2()
+            self.prologo_controller.resetar_derrota_estrada_2()
 
         self.game.mudar_estado("JOGANDO")
 
     def _entrar_na_estrada_1(self):
-        self.game.mapa_casa.carregar_cenario("ESTRADA")
-        self.game.halia.x, self.game.halia.y = 40, 330
-        self.atualizar_camera(instantaneo=True)
-        if not getattr(self.game, 'conversa_carroceiro_terminou', False):
-            self.game.carroceiro_visivel = False
-            self.game.carroceiro_andando = False
-            self.game.carroceiro.x, self.game.carroceiro.y = 1350, 330
-            self.game.carroceiro.velocidade = 2
-            self.game.carroceiro.mudar_estado("idle")
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-        pygame.event.clear()
-        self.game.caixa_dialogo.iniciar_dialogo("entrada_estrada1")
-        self.game.transicao.estado = "CLAREANDO"
+        return self.prologo_controller.entrar_na_estrada_1()
 
     def _entrar_na_estrada_2(self):
-        if not (self.game.magia_ativa == "CONCLUIDO" or self.game.combate_estrada_concluido):
-            self.game.mapa_casa.restaurar_bloqueio_estrada2()
-        self.game.mapa_casa.carregar_cenario("ESTRADA_2")
-        self.game.conversa_carroceiro_terminou = False; self.game.aguardando_fim_viagem = False
-        self.game.magia_ativa = None; self.game.bola_fogo_ativa = False; self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        
-        self.game.halia.x, self.game.halia.y = 60, 330
-        self.atualizar_camera(instantaneo=True)
-        self.game.carroceiro_visivel, self.game.carroceiro_andando = True, False
-        self.game.carroceiro.velocidade, self.game.carroceiro.x, self.game.carroceiro.y = 0, 200, 330
-        self.game.carroceiro.mudar_estado("idle")
-        self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
-        
-        h_npc = pygame.Rect(int(self.game.carroceiro.x), int(self.game.carroceiro.y), self.game.carroceiro.largura, self.game.carroceiro.altura)
-        if h_npc not in self.game.mapa_casa.hitboxes: self.game.mapa_casa.hitboxes.append(h_npc)
-        
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-            
-        pygame.event.clear()
-        self.game.caixa_dialogo.iniciar_dialogo("entrada_estrada2")
-        self.game.transicao.estado = "CLAREANDO"
+        return self.prologo_controller.entrar_na_estrada_2()
 
     def _entrar_em_oakhaven(self):
         """Transiciona Halia para a entrada sul da Vila de Oakhaven (Fase 1)."""
-        self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-        self.game.carroceiro_visivel = False
-        self.game.carroceiro_andando = False
-        self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        self.game.halia.x, self.game.halia.y = 1102, 1320
-        self.game.halia.direcao = "cima"
-        self.game.halia.mudar_estado("idle")
-        self.atualizar_camera(instantaneo=True)
-
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        pygame.event.clear()
-        self.game.caixa_dialogo.iniciar_dialogo([
-            {
-                "autor": "Narrador",
-                "texto": "As cores suaves do entardecer tocam os telhados de Oakhaven. No centro da praça à frente, ergue-se um monumento de pedra onde o Ancião Aldous aguarda em silêncio."
-            }
-        ])
-        self.game.transicao.estado = "CLAREANDO"
+        return self.oakhaven_controller.entrar_em_oakhaven()
 
     def _ir_para_patrulha_orla_norte(self):
         """
         O Guarda Doran conduz Halia pelo Portão Norte até a clareira da Orla Norte ('ORLA_NORTE'),
         onde os 2 Batedores Demoníacos estão escondidos.
         """
-        self.game.mapa_casa.carregar_cenario("ORLA_NORTE")
-        self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        self.game.halia.x, self.game.halia.y = 610, 520
-        self.game.halia.direcao = "cima"
-        self.game.halia.mudar_estado("idle")
-        self.atualizar_camera(instantaneo=True)
-
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        batedor1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
-        batedor2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
-        for bat in (batedor1, batedor2):
-            bat.velocidade = 0
-            bat.virado_direita = False
-            bat.direcao = "esquerda"
-            bat.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
-            bat.disfarcado = True
-            bat.revelado = False
-            bat.revelando = False
-            bat.mudar_estado("corpo")
-        self.game.inimigos_em_cena.extend([batedor1, batedor2])
-
-        self.game.caixa_dialogo.iniciar_dialogo([
-            {
-                "autor": "Guarda Doran",
-                "texto": "Chegamos à clareira, Halia! Aqueles dois parecem corpos de soldados da patrulha caídos na grama... Mas sinto um miasma maligno no ar. Aproxime-se com cautela para investigar!"
-            }
-        ])
+        return self.oakhaven_controller.ir_para_patrulha_orla_norte()
 
     def _iniciar_amanhecer_ataque_dragao(self):
         """
         Após o repouso noturno em Oakhaven, Halia acorda na calada da noite com
         Ignis'Vahr, o Dragão Vermelho Ancestral, atacando e destruindo a vila ('OAKHAVEN_DESTRUIDA').
         """
-        self.game.oakhaven_noite = True
-        self.game.oakhaven_destruida = True
-        self.game.mapa_casa.carregar_cenario("OAKHAVEN_DESTRUIDA")
-        self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        self.game.halia.x, self.game.halia.y = 1102, 660
-        self.game.halia.direcao = "cima"
-        self.game.halia.mudar_estado("idle")
-        self.atualizar_camera(instantaneo=True)
-
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        if hasattr(self.game, "audio") and self.game.audio:
-            self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=800)
-
-        self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
+        return self.oakhaven_controller.iniciar_amanhecer_ataque_dragao()
 
     def _iniciar_climax_dragao_oakhaven(self):
         """
@@ -1400,37 +778,11 @@ class PlayingState(State):
         Ignis'Vahr, o Dragão Vermelho Ancestral, aguarda nos penhascos vulcânicos, desencadeando
         a Crise de Ansiedade 1 (Trauma do Fogo) + Ancoragem Sensorial antes da Batalha de Chefe.
         """
-        self.game.oakhaven_noite = True
-        self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
-        self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        self.game.halia.x, self.game.halia.y = 610, 520
-        self.game.halia.direcao = "cima"
-        self.game.halia.mudar_estado("idle")
-        self.atualizar_camera(instantaneo=True)
-
-        if self.game.slot_atual:
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-        ninho = self.game.mapa_casa.cenario_objeto
-        ninho.ninho_amanhecer = False
-        ninho.dragao_derrotado = False
-        ninho.inicializar_cenario()
-
-        dragao = EnemyFactory.criar_boss("dragao_vermelho", x=525, y=145, nome_custom="Ignis'Vahr, o Dragão Vermelho")
-        dragao.velocidade = 0
-        dragao.virado_direita = False
-        dragao.direcao = "esquerda"
-        self.game.inimigos_em_cena.append(dragao)
-
-        if hasattr(self.game, "audio") and self.game.audio:
-            self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=800)
-
-        self.game.caixa_dialogo.iniciar_dialogo("crise_ansiedade_dragao_oakhaven")
+        return self.oakhaven_controller.iniciar_climax_dragao_oakhaven()
 
     def _ir_para_ninho_dragao(self):
         """Alias semântico para transportar Halia de Oakhaven destruída até o Ninho do Dragão."""
-        self._iniciar_climax_dragao_oakhaven()
+        return self.oakhaven_controller.ir_para_ninho_dragao()
 
     def _draw_interactable_prompts(self, tela):
         if self._bloqueio_ativo(incluir_dialogo=False, incluir_transicao=False, incluir_cenas=False, incluir_minigames=True, incluir_inimigos_andando=False):
@@ -1439,47 +791,20 @@ class PlayingState(State):
         bloqueado_geral = self._bloqueio_ativo()
         area_interacao = pygame.Rect(self.game.halia.x - 24, self.game.halia.y - 24, self.game.halia.largura + 48, self.game.halia.altura + 48)
         tecla_interacao_str = self.game.nome_tecla_interacao
-        
+
         if not self.game.caixa_dialogo.ativo:
             for item in self.game.mapa_casa.itens_no_chao:
                 if area_interacao.colliderect(item.rect):
                     acao_item = "para Colher" if str(getattr(item, "id_unico", "")).startswith("erva_lunar") else "para Pegar"
                     desenhar_indicador_tecla(tela, item.x + (item.largura // 2), item.y - 34, tecla=tecla_interacao_str, acao=acao_item)
-                    break 
-            if self.game.mapa_casa.cenario_atual == "CASA" and area_interacao.colliderect(self.game.mapa_casa.porta) and not self.game.mapa_casa.porta_aberta:
-                desenhar_indicador_tecla(tela, self.game.mapa_casa.porta.x + (self.game.mapa_casa.porta.width // 2), self.game.mapa_casa.porta.y - 34, tecla=tecla_interacao_str, acao="para Abrir")
+                    break
 
-        if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
-            r_c = pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)
-            if area_interacao.colliderect(r_c) and not bloqueado_geral:
-                desenhar_indicador_tecla(tela, self.game.carroceiro.x + (self.game.carroceiro.largura // 2), self.game.carroceiro.y - 38, tecla=tecla_interacao_str, acao="para Conversar")
-
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
-            if self.game.halia.x >= 950 and not bloqueado_geral:
-                txt_acao = "para Usar Magia" if self.game.flashback_magia_concluido else "para Investigar"
-                desenhar_indicador_tecla(tela, 1070, 200, tecla=tecla_interacao_str, acao=txt_acao)
-
-        if not self.game.caixa_dialogo.ativo and not self.game.flashback_sistema.ativo:
-            for npc in getattr(self.game.mapa_casa, "npcs", []):
-                r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
-                if area_interacao.colliderect(r_npc):
-                    topo_y = npc.obter_topo_cabeca() if hasattr(npc, "obter_topo_cabeca") else int(npc.y - 42)
-                    prompt_y = int(topo_y - 34)
-                    desenhar_indicador_tecla(tela, int(npc.x + npc.largura // 2), prompt_y, tecla=tecla_interacao_str, acao=f"Falar com {npc.nome}")
-                    return
-
-            if not getattr(self.game, "oakhaven_noite", False):
-                for animal in getattr(self.game.mapa_casa, "animais", []):
-                    if hasattr(animal, "interagir") and getattr(animal, "visivel", True):
-                        r_anim = pygame.Rect(int(animal.x - 24), int(animal.y - 24), 48, 48)
-                        if area_interacao.colliderect(r_anim):
-                            desenhar_indicador_tecla(tela, int(animal.x), int(animal.y - 62), tecla=tecla_interacao_str, acao="para Acariciar Patusco")
-                            return
-
-            for pt in getattr(self.game.mapa_casa, "pontos_interacao", []):
-                if area_interacao.colliderect(pt["rect"]):
-                    desenhar_indicador_tecla(tela, pt["prompt_x"], pt["prompt_y"], tecla=tecla_interacao_str, acao=pt["acao_texto"])
-                    return
+        self.prologo_controller.desenhar_prompts(
+            tela, area_interacao, tecla_interacao_str, bloqueado_geral, desenhar_indicador_tecla
+        )
+        self.oakhaven_controller.desenhar_prompts(
+            tela, area_interacao, tecla_interacao_str, desenhar_indicador_tecla
+        )
 
     def _draw_ui_overlays(self, tela):
         self.game.mg_timing.desenhar(tela)
