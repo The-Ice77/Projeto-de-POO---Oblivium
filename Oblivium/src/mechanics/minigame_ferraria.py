@@ -15,6 +15,7 @@ from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_ESCURO, CINZA_LINHO,
     MARFIM_OFFWHITE, DOURADO_ENVELHECIDO, AZUL_HOVER_MENU
 )
+from src.mechanics.minigame_base import MinigameBase
 
 class ParticulaRocha:
     """Partícula leve para faíscas arcanas e estilhaços da rocha partida."""
@@ -103,7 +104,7 @@ class FragmentoRocha:
             tela.blit(surf, (int(min_x) - 2, int(min_y) - 2))
 
 
-class MinigameFerraria:
+class MinigameFerraria(MinigameBase):
     """
     Minigame Interativo da Ferraria de Torvald: Concentração Arcana para Quebrar a Pedra.
     - Mecânica de barra oscilante com zona de ressonância estelar.
@@ -111,6 +112,7 @@ class MinigameFerraria:
     - Efeito visual da pedra rachando e se partindo em estilhaços luminosos ao concluir.
     """
     def __init__(self, game, playing_state=None):
+        super().__init__()
         self.game = game
         self.playing_state = playing_state
         self.largura = 1280
@@ -346,16 +348,21 @@ class MinigameFerraria:
         self.ativo = False
         self.estado = "INATIVO"
 
-    def atualizar(self):
+    def atualizar(self, dt=None):
         """Atualiza a física e os temporizadores do minigame."""
         if not self.ativo:
             return
 
-        dt = 1.0
+        if dt is None or not isinstance(dt, (int, float)) or dt <= 0:
+            dt_quadro = 1.0
+        elif dt < 0.25:
+            dt_quadro = float(dt) * 60.0
+        else:
+            dt_quadro = float(dt)
 
         # Atualiza oscilação senoidal do cursor
         if self.estado == "JOGANDO":
-            self.tempo_oscilacao += 0.035 * self.velocidade_cursor
+            self.tempo_oscilacao += 0.035 * self.velocidade_cursor * dt_quadro
             self.pos_cursor = 0.5 + 0.5 * math.sin(self.tempo_oscilacao)
 
         # Reduz shakers
@@ -369,8 +376,8 @@ class MinigameFerraria:
             self.timer_feedback -= 1
 
         # Atualiza partículas e fragmentos
-        self.particulas = [p for p in self.particulas if p.atualizar(dt)]
-        self.fragmentos = [f for f in self.fragmentos if f.atualizar(dt)]
+        self.particulas = [p for p in self.particulas if p.atualizar(dt_quadro)]
+        self.fragmentos = [f for f in self.fragmentos if f.atualizar(dt_quadro)]
 
         # Estado de conclusão
         if self.estado == "FRATURA_FINAL":
@@ -378,9 +385,9 @@ class MinigameFerraria:
             if self.timer_conclusao <= 0:
                 self._concluir_com_sucesso()
 
-    def update(self):
+    def update(self, dt=None):
         """Compatibilidade State Pattern."""
-        self.atualizar()
+        self.atualizar(dt)
 
     def draw(self, tela):
         """Compatibilidade State Pattern."""

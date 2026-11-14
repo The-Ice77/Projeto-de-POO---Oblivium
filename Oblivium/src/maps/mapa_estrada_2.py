@@ -386,9 +386,9 @@ class MapaEstrada2(CenarioBase):
             if hasattr(self.game, 'estados'):
                 playing = self.game.estados.get("JOGANDO") or self.game.estados.get("playing")
                 if playing and hasattr(playing, 'cutscene'):
-                    playing.cutscene.timer_explosao = 8
+                    playing.cutscene.timer_explosao = 8.0 / 60.0
             elif hasattr(self.game, 'cutscene_manager'):
-                self.game.cutscene_manager.timer_explosao = 8
+                self.game.cutscene_manager.timer_explosao = 8.0 / 60.0
 
     def atualizar(self, dt=0.016):
         """Atualiza a água, poças, levitação contínua e chamas crepitantes."""

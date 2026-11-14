@@ -15,6 +15,8 @@ from src.utils.colors import (
     MARFIM_OFFWHITE, DOURADO_ENVELHECIDO, AZUL_HOVER_MENU,
     TXT_ECO_PASSADO, UI_TEXTO_APAGADO
 )
+from src.ui.ui_utils import quebrar_texto_em_linhas
+from src.mechanics.cena_base import CenaBase
 
 
 class ParticulaReconstrucao:
@@ -53,7 +55,7 @@ class ParticulaReconstrucao:
                 (240, 220, 170),
             ])
 
-    def atualizar(self, dt=1.0):
+    def atualizar(self, dt=1.0 / 60.0):
         self.vida -= dt * 60.0
         self.fase_seno += 0.08 * dt * 60.0
         self.x += (self.vx + math.sin(self.fase_seno) * 0.5) * dt * 60.0
@@ -71,7 +73,7 @@ class ParticulaReconstrucao:
         tela.blit(surf, (int(self.x) - cx, int(self.y) - cx))
 
 
-class CutsceneReconstrucaoVisual:
+class CutsceneReconstrucaoVisual(CenaBase):
     """
     Cutscene Cinemática Visual da Reconstrução de Oakhaven (Encerramento da Fase 1).
     Apresenta a transição visual das áreas destruídas da vila sendo reconstruídas
@@ -82,13 +84,12 @@ class CutsceneReconstrucaoVisual:
     - Caixa de narração com tipografia canônica sem sobreposição indesejada.
     """
     def __init__(self, game, playing_state=None):
-        self.game = game
+        super().__init__(game=game, on_concluido=None)
         self.playing_state = playing_state
-        self.largura = 1280
-        self.altura = 720
+        self.largura = getattr(game, "LARGURA", 1280) if game is not None else 1280
+        self.altura = getattr(game, "ALTURA", 720) if game is not None else 720
 
-        self.ativo = False
-        self.concluido = False
+        self._consequencias_aplicadas = False
         self.indice_cena = 0
         self.tempo_cena = 0.0
         self.progresso_reconstrucao = 0.0
@@ -181,10 +182,13 @@ class CutsceneReconstrucaoVisual:
             self._sprite_cache[chave] = img
         return self._sprite_cache[chave]
 
-    def iniciar(self):
+    def iniciar(self, on_concluido=None):
         """Dispara a cutscene visual de reconstrução."""
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
+        self._consequencias_aplicadas = False
+        self.largura = getattr(self.game, "LARGURA", self.largura) if self.game is not None else self.largura
+        self.altura = getattr(self.game, "ALTURA", self.altura) if self.game is not None else self.altura
         self.ativo = True
-        self.concluido = False
         self.indice_cena = 0
         self.tempo_cena = 0.0
         self.progresso_reconstrucao = 0.0
@@ -197,17 +201,24 @@ class CutsceneReconstrucaoVisual:
     def _spawn_particulas(self):
         if self.indice_cena < len(self.cenas):
             tipo = self.cenas[self.indice_cena]["tipo_particula"]
+            x_min = int(self.largura * 0.15)
+            x_max = max(x_min + 50, int(self.largura * 0.85))
+            y_min = 150
+            y_max = max(y_min + 50, self.altura - 240)
             self.particulas = [
-                ParticulaReconstrucao(200, 1100, 150, 480, tipo=tipo)
+                ParticulaReconstrucao(x_min, x_max, y_min, y_max, tipo=tipo)
                 for _ in range(40)
             ]
 
     def handle_event(self, evento):
-        """Gerencia input do jogador para acelerar ou avançar as cenas da reconstrução."""
+        """Gerencia input do jogador para acelerar, avançar ou pular a reconstrução."""
         if not self.ativo:
             return False
 
         if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                self.pular()
+                return True
             if evento.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_e):
                 self._acao_avanco()
                 return True
@@ -238,30 +249,40 @@ class CutsceneReconstrucaoVisual:
             self._spawn_particulas()
 
     def finalizar(self):
-        """Conclui a cutscene e atualiza o estado do mundo de Oakhaven."""
-        self.ativo = False
-        self.concluido = True
+        """Conclui a cutscene, restaura Oakhaven e dispara o callback uma única vez."""
+        if not self._consequencias_aplicadas:
+            self._consequencias_aplicadas = True
+            # Restaura Oakhaven para sua versão reconstruída plena
+            if hasattr(self.game, "oakhaven_destruida"):
+                self.game.oakhaven_destruida = False
 
-        # Restaura Oakhaven para sua versão reconstruída plena
-        if hasattr(self.game, "oakhaven_destruida"):
-            self.game.oakhaven_destruida = False
+            if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
+                self.game.mapa_casa.carregar_cenario("OAKHAVEN")
+                if hasattr(self.game, "halia") and self.game.halia:
+                    self.game.halia.x, self.game.halia.y = 1102, 600
+                    self.game.halia.direcao = "baixo"
+                    self.game.halia.mudar_estado("idle")
+                if self.playing_state:
+                    self.playing_state.atualizar_camera(instantaneo=True)
 
-        if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
-            self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-            if hasattr(self.game, "halia") and self.game.halia:
-                self.game.halia.x, self.game.halia.y = 1102, 600
-                self.game.halia.direcao = "baixo"
-                self.game.halia.mudar_estado("idle")
-            if self.playing_state:
-                self.playing_state.atualizar_camera(instantaneo=True)
+            if getattr(self.game, "slot_atual", None):
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
-        if getattr(self.game, "slot_atual", None):
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+        return super().finalizar()
 
-    def atualizar(self, dt):
+    def pular(self):
+        """Pula a cutscene de reconstrução deixando Oakhaven restaurada."""
+        return self.finalizar()
+
+    def atualizar(self, dt=None):
         """Atualiza a física das partículas, o avanço suave do crossfade e o typewriter."""
         if not self.ativo or self.indice_cena >= len(self.cenas):
             return
+
+        if dt is None:
+            dt = getattr(self.game, "dt", 1.0 / 60.0) if self.game else (1.0 / 60.0)
+        if not isinstance(dt, (int, float)) or dt <= 0:
+            dt = 1.0 / 60.0
 
         self.tempo_cena += dt
         # Progresso de reconstrução de 0.0 a 1.0
@@ -277,7 +298,10 @@ class CutsceneReconstrucaoVisual:
                 particulas_vivas.append(p)
             else:
                 tipo = self.cenas[self.indice_cena]["tipo_particula"]
-                particulas_vivas.append(ParticulaReconstrucao(200, 1100, 180, 480, tipo=tipo))
+                x_min = int(self.largura * 0.15)
+                x_max = max(x_min + 50, int(self.largura * 0.85))
+                y_max = max(230, self.altura - 240)
+                particulas_vivas.append(ParticulaReconstrucao(x_min, x_max, 180, y_max, tipo=tipo))
         self.particulas = particulas_vivas
 
         # Avanço automático se decorrido o tempo total da cena
@@ -354,7 +378,8 @@ class CutsceneReconstrucaoVisual:
             p.desenhar(tela)
 
         # 6. Caixa narrativa elegante inferior
-        caixa_rect = pygame.Rect(140, 505, 1000, 175)
+        caixa_larg = min(1000, max(400, self.largura - 280))
+        caixa_rect = pygame.Rect((self.largura - caixa_larg) // 2, self.altura - 215, caixa_larg, 175)
         surf_caixa = pygame.Surface((caixa_rect.width, caixa_rect.height), pygame.SRCALPHA)
         surf_caixa.fill((16, 17, 24, 235))
         pygame.draw.rect(surf_caixa, DOURADO_ENVELHECIDO, (0, 0, caixa_rect.width, caixa_rect.height), 2)
@@ -384,7 +409,7 @@ class CutsceneReconstrucaoVisual:
         texto_parcial = texto_limpo[:caracteres_visiveis]
 
         if self.fonte_texto:
-            linhas = self._quebrar_texto(texto_parcial, 940)
+            linhas = quebrar_texto_em_linhas(texto_parcial, self.fonte_texto, caixa_rect.width - 60)
             y_txt = caixa_rect.y + 78
             for linha in linhas:
                 s_txt = self.fonte_texto.render(linha, True, CINZA_LINHO)
@@ -398,20 +423,7 @@ class CutsceneReconstrucaoVisual:
             tela.blit(s_hint, (caixa_rect.right - s_hint.get_width() - 25, caixa_rect.bottom - 26))
 
     def _quebrar_texto(self, texto, largura_max):
-        """Quebra o texto em linhas para caber dentro da largura máxima."""
+        """Quebra o texto em linhas reutilizando o utilitário canônico de ui_utils."""
         if not self.fonte_texto or not texto:
-            return [texto]
-        palavras = texto.split(" ")
-        linhas = []
-        linha_atual = []
-        for palavra in palavras:
-            teste = " ".join(linha_atual + [palavra])
-            if self.fonte_texto.size(teste)[0] <= largura_max:
-                linha_atual.append(palavra)
-            else:
-                if linha_atual:
-                    linhas.append(" ".join(linha_atual))
-                linha_atual = [palavra]
-        if linha_atual:
-            linhas.append(" ".join(linha_atual))
-        return linhas
+            return [texto] if texto else []
+        return quebrar_texto_em_linhas(texto, self.fonte_texto, largura_max)

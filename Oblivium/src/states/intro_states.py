@@ -1,4 +1,5 @@
 # src/states/intro_states.py
+import inspect
 import pygame
 from src.states.states import State
 
@@ -18,7 +19,18 @@ class IntroState(State):
 
     def update(self):
         # Se a introdução terminar de rodar, muda automaticamente para o jogo livre
-        if not self.game.intro.atualizar():
+        dt = getattr(self.game, "dt", 1.0 / 60.0)
+        atualizar_fn = self.game.intro.atualizar
+        aceita_dt = any(
+            p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.VAR_POSITIONAL,
+            )
+            for p in inspect.signature(atualizar_fn).parameters.values()
+        )
+        ativo = atualizar_fn(dt) if aceita_dt else atualizar_fn()
+        if not ativo:
             pygame.event.clear()
             # Inicializa o diálogo inicial da Halia na caixa de diálogo global
             self.game.caixa_dialogo.iniciar_dialogo("despertar_cabana")

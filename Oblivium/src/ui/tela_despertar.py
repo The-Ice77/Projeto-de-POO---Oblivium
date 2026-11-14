@@ -10,8 +10,9 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_flor_botanica
+from src.mechanics.cena_base import CenaBase
 
-class TelaDespertarMemoria:
+class TelaDespertarMemoria(CenaBase):
     """
     Sequência Cinemática de Despertar de Memória da Halia:
     Progressão Solene e Suave em 5 Etapas:
@@ -80,7 +81,9 @@ class TelaDespertarMemoria:
         }
     }
 
-    def __init__(self, largura=1280, altura=720):
+    def __init__(self, largura=1280, altura=720, game=None):
+        self.passo = "INATIVO"
+        super().__init__(game=game, on_concluido=None)
         self.largura = largura
         self.altura = altura
         
@@ -127,6 +130,17 @@ class TelaDespertarMemoria:
         }
 
     @property
+    def ativo(self):
+        return self.passo != "INATIVO"
+
+    @ativo.setter
+    def ativo(self, valor):
+        if not valor:
+            self.passo = "INATIVO"
+        elif self.passo == "INATIVO":
+            self.passo = "TITULO"
+
+    @property
     def estado(self):
         return "INATIVO" if self.passo == "INATIVO" else "ATIVO"
 
@@ -137,6 +151,7 @@ class TelaDespertarMemoria:
         self.alpha_texto = 0
         self.particulas.clear()
         self.on_concluido = None
+        self._reiniciar_estado_execucao(on_concluido=None)
         self.shake_timer = 0
         self.flash_alpha = 0
 
@@ -144,7 +159,8 @@ class TelaDespertarMemoria:
         """Inicia a sequência de despertar a partir do passo 1: TITULO."""
         self.estagio_antigo = max(0, min(7, int(estagio_antigo)))
         self.novo_estagio = max(1, min(7, int(novo_estagio)))
-        self.on_concluido = on_concluido
+        self.on_concluido = None
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
         
         self.passo = "TITULO"
         self.alpha_fundo = 0
@@ -158,6 +174,34 @@ class TelaDespertarMemoria:
         self.escala_amuleto = 2.6
         self.tempo_inicio_passo = pygame.time.get_ticks()
         self.tempo_ultimo_input = pygame.time.get_ticks()
+
+    def handle_event(self, evento):
+        """Processa entradas de teclado ou clique durante o despertar da memória."""
+        if not self.ativo:
+            return False
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                self.pular()
+                return True
+            if evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_e):
+                self.processar_input()
+                return True
+        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            self.processar_input()
+            return True
+        return False
+
+    def finalizar(self):
+        """Encerra a tela de despertar garantindo disparo único de on_concluido."""
+        self.alpha_fundo = 0
+        self.alpha_conteudo = 0
+        self.alpha_texto = 0
+        self.passo = "INATIVO"
+        return super().finalizar()
+
+    def pular(self):
+        """Pula a tela de despertar preservando o fluxo de conclusão."""
+        return self.finalizar()
 
     def processar_input(self):
         """Avança a sequência com transições suaves."""
@@ -206,7 +250,7 @@ class TelaDespertarMemoria:
                 "cor": cor_estagio
             })
 
-    def atualizar(self):
+    def atualizar(self, dt=None):
         if self.passo == "INATIVO":
             return False
 
@@ -276,10 +320,7 @@ class TelaDespertarMemoria:
             self.alpha_fundo = max(0, self.alpha_fundo - 10)
             self.alpha_texto = max(0, self.alpha_texto - 12)
             if self.alpha_fundo <= 0:
-                self.alpha_fundo = 0
-                self.passo = "INATIVO"
-                if self.on_concluido:
-                    self.on_concluido()
+                self.finalizar()
                 return True
 
         return False

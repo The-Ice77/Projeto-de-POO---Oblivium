@@ -6,9 +6,10 @@ from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.utils.colors import DOURADO_ENVELHECIDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_TEXTO_APAGADO
 from src.entities.elemento_cenario import ChamaIndependente
+from src.mechanics.cena_base import CenaBase
 
 
-class CinematicaAtaqueDragao:
+class CinematicaAtaqueDragao(CenaBase):
     """
     Controlador Cinemático do Repouso Noturno de Halia e Ataque Aéreo de Ignis'Vahr em Oakhaven.
     
@@ -25,11 +26,12 @@ class CinematicaAtaqueDragao:
     OFFSETS_FLIGHT = [45, 78, 112, 51, 4, 0]
     OFFSETS_SPECIAL = [155, 112, 47, 16, 7, 0]
 
-    def __init__(self, game, playing):
-        self.game = game
+    def __init__(self, game, playing=None):
+        super().__init__(game=game, on_concluido=None)
         self.playing = playing
-        self.game.cinematica_dragao = self
-        self.ativo = False
+        self._consequencias_aplicadas = False
+        if self.game is not None:
+            self.game.cinematica_dragao = self
         self.fase = "INATIVO"
         self.tempo_fase = 0.0
 
@@ -45,7 +47,9 @@ class CinematicaAtaqueDragao:
         self.flash_clarão = 0.0
 
         # Transição poética ao dormir (pétalas suaves)
-        self.efeito_petalas = EfeitoPetalas(1280, 720, quantidade_petalas=24, alpha=(80, 160))
+        larg_tela = getattr(game, "LARGURA", 1280) if game is not None else 1280
+        alt_tela = getattr(game, "ALTURA", 720) if game is not None else 720
+        self.efeito_petalas = EfeitoPetalas(larg_tela, alt_tela, quantidade_petalas=24, alpha=(80, 160))
 
         # Coordenadas de Halia e da Casa de Hóspedes (Porta oficial de c1_f05 na base frontal sul)
         self.porta_casa_x = 1345
@@ -148,8 +152,16 @@ class CinematicaAtaqueDragao:
             return [surf]
         return [pygame.transform.scale(f, tamanho) for f in frames]
 
-    def iniciar_sono(self):
+    def iniciar(self, modo="sono", on_concluido=None):
+        """Ponto de entrada unificado do contrato CenaBase ('sono' ou 'ataque_aereo')."""
+        if modo == "ataque_aereo":
+            return self.iniciar_ataque_aereo(on_concluido=on_concluido)
+        return self.iniciar_sono(on_concluido=on_concluido)
+
+    def iniciar_sono(self, on_concluido=None):
         """Inicia a cutscene de descanso: Halia caminha pelas ruas da vila até a Casa de Hóspedes e dorme."""
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
+        self._consequencias_aplicadas = False
         self.ativo = True
         self.fase = "CAMINHANDO_CASA"
         self.tempo_fase = 0.0
@@ -178,8 +190,10 @@ class CinematicaAtaqueDragao:
             self.waypoints_caminho = rota
             self.waypoint_idx = 0
 
-    def iniciar_ataque_aereo(self):
+    def iniciar_ataque_aereo(self, on_concluido=None):
         """Dispara o ataque aéreo contínuo e devastador de Ignis'Vahr em Oakhaven."""
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
+        self._consequencias_aplicadas = False
         self.game.cinematica_dragao = self
         self.ativo = True
         self.fase = "VOO_DRAGAO"
@@ -254,41 +268,41 @@ class CinematicaAtaqueDragao:
         return (self.game.halia.x, self.game.halia.y)
 
     def handle_event(self, evento):
-        """Permite avançar cutscene com ENTER ou ESPAÇO."""
+        """Permite avançar ou pular a cutscene com ENTER, ESPAÇO ou ESC."""
         if not self.ativo:
             return False
-        if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_SPACE):
-            if self.fase == "DORMINDO":
-                self.iniciar_ataque_aereo()
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                self.pular()
                 return True
-            elif self.fase == "CAMINHANDO_CASA":
-                self.game.halia.x = self.porta_casa_x
-                self.game.halia.y = self.porta_casa_y
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-                self.fase = "ENTRANDO_CASA"
-                self.tempo_fase = 0.0
-                return True
-            elif self.fase == "VOO_DRAGAO" and self.tempo_fase > 2.0:
-                self._finalizar_ataque_e_despertar()
-                return True
-            elif self.fase == "HALIA_DESPERTANDO":
-                self.game.halia.x = self.praca_x
-                self.game.halia.y = self.praca_y
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-                self.ativo = False
-                self.fase = "INATIVO"
-                self.shake_offset = (0, 0)
-                if getattr(self.game, "slot_atual", None):
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
-                return True
+            if evento.key in (pygame.K_RETURN, pygame.K_SPACE):
+                if self.fase == "DORMINDO":
+                    self.iniciar_ataque_aereo()
+                    return True
+                elif self.fase == "CAMINHANDO_CASA":
+                    self.game.halia.x = self.porta_casa_x
+                    self.game.halia.y = self.porta_casa_y
+                    self.game.halia.direcao = "cima"
+                    self.game.halia.mudar_estado("idle")
+                    self.fase = "ENTRANDO_CASA"
+                    self.tempo_fase = 0.0
+                    return True
+                elif self.fase == "VOO_DRAGAO" and self.tempo_fase > 2.0:
+                    self._finalizar_ataque_e_despertar()
+                    return True
+                elif self.fase == "HALIA_DESPERTANDO":
+                    self.finalizar()
+                    return True
         return False
 
-    def atualizar(self, dt=0.016):
+    def atualizar(self, dt=None):
         if not self.ativo:
             return
+
+        if dt is None:
+            dt = getattr(self.game, "dt", 1.0 / 60.0) if self.game is not None else (1.0 / 60.0)
+        if not isinstance(dt, (int, float)) or dt <= 0:
+            dt = 1.0 / 60.0
 
         self.tempo_fase += dt
 
@@ -593,18 +607,7 @@ class CinematicaAtaqueDragao:
                 if dist < 8:
                     self.waypoint_idx += 1
                     if self.waypoint_idx >= len(self.waypoints_caminho):
-                        self.game.halia.x = self.praca_x
-                        self.game.halia.y = self.praca_y
-                        self.game.halia.direcao = "cima"
-                        self.game.halia.mudar_estado("idle")
-                        self.ativo = False
-                        self.fase = "INATIVO"
-                        self.shake_offset = (0, 0)
-
-                        if getattr(self.game, "slot_atual", None):
-                            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-                        self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
+                        self.finalizar()
                 else:
                     vel = 180.0 * dt  # Corrida rápida e alarmada para socorrer a vila
                     if abs(dx) > abs(dy):
@@ -619,18 +622,7 @@ class CinematicaAtaqueDragao:
                     self.game.halia.mudar_estado("andar")
                     self.game.halia.atualizar_animacao()
             else:
-                self.game.halia.x = self.praca_x
-                self.game.halia.y = self.praca_y
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-                self.ativo = False
-                self.fase = "INATIVO"
-                self.shake_offset = (0, 0)
-
-                if getattr(self.game, "slot_atual", None):
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-
-                self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
+                self.finalizar()
 
     def _finalizar_ataque_e_despertar(self):
         """Transiciona a vila para o estado devastado permanente e posiciona Halia saindo da casa."""
@@ -661,24 +653,52 @@ class CinematicaAtaqueDragao:
         ]
         self.waypoint_idx = 0
 
-    def pular_direto_para_despertar(self):
-        """Atalho para testes e comandos dev."""
-        self.game.oakhaven_noite = True
-        self.game.oakhaven_destruida = True
-        self.game.mapa_casa.carregar_cenario("OAKHAVEN_DESTRUIDA")
-        self.game.cena_inimigos_andando = False
-        self.game.inimigos_em_cena.clear()
-        self.game.halia.x = self.praca_x
-        self.game.halia.y = self.praca_y
-        self.game.halia.direcao = "cima"
-        self.game.halia.mudar_estado("idle")
-        self.ativo = False
+    def finalizar(self):
+        """Conclui a cinemática deixando Oakhaven devastada e dispara on_concluido uma única vez."""
+        if not self._consequencias_aplicadas and self.game is not None:
+            self._consequencias_aplicadas = True
+            self.game.oakhaven_noite = True
+            self.game.oakhaven_destruida = True
+            if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
+                if getattr(self.game.mapa_casa, "cenario_atual", None) != "OAKHAVEN_DESTRUIDA":
+                    self.game.mapa_casa.carregar_cenario("OAKHAVEN_DESTRUIDA")
+            self.game.cena_inimigos_andando = False
+            if hasattr(self.game, "inimigos_em_cena"):
+                self.game.inimigos_em_cena.clear()
+            if hasattr(self.game, "halia") and self.game.halia:
+                self.game.halia.x = self.praca_x
+                self.game.halia.y = self.praca_y
+                self.game.halia.direcao = "cima"
+                self.game.halia.mudar_estado("idle")
+            if self.playing and hasattr(self.playing, "atualizar_camera"):
+                self.playing.atualizar_camera(instantaneo=True)
+            if getattr(self.game, "slot_atual", None) and hasattr(self.game, "salvar_estado"):
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+            if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
+
         self.fase = "INATIVO"
         self.subfase_voo = "CONCLUIDO"
         self.shake_offset = (0, 0)
-        if getattr(self.game, "slot_atual", None):
-            self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-        self.game.caixa_dialogo.iniciar_dialogo("despertar_ataque_dragao_vila")
+        self.flash_clarão = 0.0
+        self.alpha_fade = 0.0
+        self.explosoes.clear()
+        self.particulas_sopro.clear()
+        self.colunas_fumaca.clear()
+        self.focos_fogo_ativos.clear()
+        return super().finalizar()
+
+    def pular(self):
+        """Pula a cinemática garantindo Oakhaven destruída e diálogo pós-ataque."""
+        return self.finalizar()
+
+    def pular_direto_para_despertar(self):
+        """Atalho para testes e comandos dev."""
+        return self.finalizar()
+
+    def desenhar(self, tela):
+        """Implementação do contrato CenaBase delegando para desenhar_tela."""
+        return self.desenhar_tela(tela)
 
     def desenhar_mundo(self, superficie_mundo):
         """Renderiza dragão, sopro, chamas, explosões e fumaça no espaço do mundo."""

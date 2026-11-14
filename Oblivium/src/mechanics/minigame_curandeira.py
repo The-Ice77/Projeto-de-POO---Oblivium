@@ -15,6 +15,7 @@ from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_ESCURO, CINZA_LINHO,
     MARFIM_OFFWHITE, DOURADO_ENVELHECIDO, AZUL_HOVER_MENU
 )
+from src.mechanics.minigame_base import MinigameBase
 
 
 class ParticulaPetala:
@@ -58,7 +59,7 @@ class ParticulaPetala:
         tela.blit(surf, (int(self.x) - cx, int(self.y) - cy))
 
 
-class MinigameCurandeira:
+class MinigameCurandeira(MinigameBase):
     """
     Minigame Interativo da Curandeira Elara: Colheita Sensível da Erva Lunar.
     - Mecânica de anel de precisão dinâmico concêntrico.
@@ -67,6 +68,7 @@ class MinigameCurandeira:
       desencadeando dispersão de orvalho, adição do item ao inventário e avanço da missão.
     """
     def __init__(self, game, playing_state=None):
+        super().__init__()
         self.game = game
         self.playing_state = playing_state
         self.largura = 1280
@@ -298,13 +300,20 @@ class MinigameCurandeira:
         self.ativo = False
         self.estado = "INATIVO"
 
-    def atualizar(self, dt=1.0):
+    def atualizar(self, dt=None):
         """Atualiza animações, contração de anéis e partículas."""
         if not self.ativo:
             return
 
+        if dt is None or not isinstance(dt, (int, float)) or dt <= 0:
+            dt_quadro = 1.0
+        elif dt < 0.25:
+            dt_quadro = float(dt) * 60.0
+        else:
+            dt_quadro = float(dt)
+
         if self.estado == "JOGANDO":
-            self.raio_atual -= self.velocidade_anel
+            self.raio_atual -= self.velocidade_anel * dt_quadro
             if self.raio_atual < self.raio_min:
                 # Reinicia a contração em ciclo contínuo e suave
                 self.raio_atual = self.raio_max
@@ -320,7 +329,7 @@ class MinigameCurandeira:
             self.timer_feedback -= 1
 
         # Atualiza partículas
-        self.particulas = [p for p in self.particulas if p.atualizar(dt)]
+        self.particulas = [p for p in self.particulas if p.atualizar(dt_quadro)]
 
         # Estado de animação de sucesso
         if self.estado == "SUCESSO_ANIMACAO":
@@ -332,9 +341,9 @@ class MinigameCurandeira:
             if self.timer_conclusao <= 0:
                 self._concluir_com_falha()
 
-    def update(self):
+    def update(self, dt=None):
         """Compatibilidade State Pattern."""
-        self.atualizar()
+        self.atualizar(dt)
 
     def draw(self, tela):
         """Compatibilidade State Pattern."""

@@ -9,6 +9,7 @@ from src.utils.colors import (
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
 from src.core.audio_manager import AudioManager
+from src.mechanics.minigame_base import MinigameBase
 
 
 def _tocar_sfx_seguro(alias):
@@ -21,7 +22,7 @@ def _tocar_sfx_seguro(alias):
         pass
 
 
-class MinigameTiming:
+class MinigameTiming(MinigameBase):
     """
     Minigame da Bola de Fogo - Ritual da Tríplice Fagulha (3 Tempos):
     - Etapa 1: Fagulha Inicial (Cursor em velocidade moderada, zona de queima generosa)
@@ -70,6 +71,7 @@ class MinigameTiming:
     ]
 
     def __init__(self, largura_tela, altura_tela):
+        super().__init__()
         self.largura_tela = largura_tela
         self.altura_tela = altura_tela
         self.largura_painel = 480
@@ -108,11 +110,24 @@ class MinigameTiming:
     def config_atual(self):
         return self.ETAPAS_CONFIG[self.etapa_idx]
 
-    def atualizar(self):
+    def handle_events(self, eventos, teclas=None):
+        """Processa entradas de teclado ou clique para disparar no núcleo."""
+        if not self.ativo:
+            return None
+        lista = eventos if isinstance(eventos, (list, tuple)) else [eventos]
+        for evento in lista:
+            if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_SPACE, pygame.K_RETURN, pygame.K_e):
+                return self.checar_sucesso()
+            if evento.type == pygame.MOUSEBUTTONDOWN and getattr(evento, "button", 1) == 1:
+                return self.checar_sucesso()
+        return None
+
+    def atualizar(self, dt=None):
         if not self.ativo: return
-        
+
+        fator = float(dt) * 60.0 if (isinstance(dt, (int, float)) and dt > 0) else 1.0
         cfg = self.config_atual
-        vel = cfg["velocidade"]
+        vel = cfg["velocidade"] * fator
         
         self.cursor_x += vel * self.cursor_dir
         if self.cursor_x >= self.largura_barra:
@@ -267,7 +282,7 @@ class MinigameTiming:
         tela.blit(r_rod, (rect_painel.centerx - r_rod.get_width() // 2, self.py + self.altura_painel - 24))
 
 
-class MinigameMash:
+class MinigameMash(MinigameBase):
     """
     Minigame da Levitação Gravitacional com Quick Time Events (QTE Rítmico):
     - Canalização rítmica de Runas Arcanas gravitacionais (W, A, S, D, ESPAÇO)
@@ -285,6 +300,7 @@ class MinigameMash:
     ]
 
     def __init__(self, largura_tela, altura_tela):
+        super().__init__()
         self.largura_tela = largura_tela
         self.altura_tela = altura_tela
         self.largura_painel = 480
@@ -335,8 +351,22 @@ class MinigameMash:
         candidatas = [t for t in self.TECLAS_QTE if t["id"] != self.tecla_atual["id"]]
         self.tecla_atual = random.choice(candidatas)
 
-    def atualizar(self):
+    def handle_events(self, eventos, teclas=None):
+        """Processa entradas do contrato MinigameBase delegando para processar_evento."""
+        if not self.ativo:
+            return None
+        lista = eventos if isinstance(eventos, (list, tuple)) else [eventos]
+        ultimo_res = None
+        for evento in lista:
+            res = self.processar_evento(evento)
+            if res:
+                ultimo_res = res
+        return ultimo_res
+
+    def atualizar(self, dt=None):
         if not self.ativo: return None
+
+        fator = float(dt) * 60.0 if (isinstance(dt, (int, float)) and dt > 0) else 1.0
         
         if self.feedback_acerto > 0:
             self.feedback_acerto -= 1
@@ -349,10 +379,10 @@ class MinigameMash:
             self.shake_y = 0
 
         # Inércia gravitacional contínua das rochas (puxa de volta com maior peso)
-        self.progresso = max(0.0, self.progresso - 0.14)
+        self.progresso = max(0.0, self.progresso - 0.14 * fator)
         
         # Temporizador de reação do QTE
-        self.tempo_restante -= 1
+        self.tempo_restante -= fator
         if self.tempo_restante <= 0:
             # Tempo expirou! As pedras perdem sustentação severamente
             self.progresso = max(0.0, self.progresso - 20.0)

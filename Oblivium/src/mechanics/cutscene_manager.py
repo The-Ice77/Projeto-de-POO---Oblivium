@@ -3,9 +3,10 @@ import pygame
 import random
 import math
 from src.utils.resource_manager import ResourceManager
+from src.mechanics.cena_base import CenaBase
 
 
-class CutsceneManager:
+class CutsceneManager(CenaBase):
     """
     Gerenciador das Cutscenes Cinemáticas e Efeitos Visuais de Magia no Overworld:
     - Bola de Fogo: projétil ardente com rastro dinâmico de brasas, detonação expansiva,
@@ -13,15 +14,21 @@ class CutsceneManager:
     - Levitação Gravitacional: controle de elevação arcana, auras e poeira mágica.
     """
 
+    VELOCIDADE_PROJETIL_FOGO = 960.0  # 16 px/quadro * 60 FPS
+    VELOCIDADE_RECUO_HALIA = 240.0    # 4 px/quadro * 60 FPS
+    DURACAO_EXPLOSAO = 85.0 / 60.0    # ~1.42 s (equivalente a 85 quadros a 60 FPS)
+    DURACAO_LEVITACAO = 50.0 / 60.0   # ~0.83 s (equivalente a 50 quadros a 60 FPS)
+
     def __init__(self, game):
-        self.game = game
+        # Estado da explosão (inicializado antes de CenaBase.__init__ para @ativo.setter)
+        self.explosao_ativa = False
+        self.timer_explosao = 0.0
+        super().__init__(game=game, on_concluido=None)
         
         # Estado do projétil de fogo
         self.particulas_rastro = []
         
-        # Estado da explosão
-        self.explosao_ativa = False
-        self.timer_explosao = 0
+        # Partículas e efeitos da explosão
         self.particulas_explosao = []
         self.fragmentos_rocha = []
         self.shake_offset = (0, 0)
@@ -30,27 +37,151 @@ class CutsceneManager:
         self.frames_explosao = ResourceManager.carregar_frames_pasta("efeitos/explosao/explosao_1")
         self.frames_fagulhas = ResourceManager.carregar_frames_pasta("efeitos/fogo/chama_fagulhas_brasas")
         self.frames_chama_pequena = ResourceManager.carregar_frames_pasta("efeitos/fogo/chama_fogo_pequeno")
-        
-    def atualizar_magia(self):
+
+    @property
+    def ativo(self):
+        magia = getattr(self.game, "magia_ativa", None) if self.game is not None else None
+        return bool((magia not in (None, "CONCLUIDO")) or self.explosao_ativa)
+
+    @ativo.setter
+    def ativo(self, valor):
+        if not valor:
+            self.explosao_ativa = False
+            if self.game is not None and getattr(self.game, "magia_ativa", None) not in (None, "CONCLUIDO"):
+                self.game.magia_ativa = "CONCLUIDO"
+
+    def iniciar(self, tipo_magia=None, on_concluido=None):
+        """Inicia um ciclo de cutscene mágica ('FOGO' ou 'LEVITAR') e reinicia callbacks."""
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
+        self.explosao_ativa = False
+        self.timer_explosao = 0.0
+        self.particulas_rastro.clear()
+        self.particulas_explosao.clear()
+        self.fragmentos_rocha.clear()
+        self.shake_offset = (0, 0)
+
+        if tipo_magia in ("FOGO", "LEVITAR") and self.game is not None:
+            self.game.magia_ativa = tipo_magia
+            self.game.magia_usada_no_puzzle = tipo_magia
+            self.game.timer_magia = 0.0
+            self.game.bola_fogo_ativa = False
+            self.game.distanciando_halia = (tipo_magia == "FOGO")
+
+    def handle_event(self, evento):
+        """Permite pular a cutscene mágica com ESC."""
+        if not self.ativo:
+            return False
+        if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+            self.pular()
+            return True
+        return False
+
+    def atualizar(self, dt=None):
+        """Implementação do contrato CenaBase delegando para atualizar_magia."""
+        return self.atualizar_magia(dt)
+
+    def desenhar(self, tela):
+        """Implementação do contrato CenaBase delegando para desenhar_efeitos."""
+        return self.desenhar_efeitos(tela)
+
+    def finalizar(self):
+        """Finaliza a cutscene mágica ativa garantindo estado narrativo e callback único."""
+        if self.game is not None:
+            magia = getattr(self.game, "magia_ativa", None)
+            if magia not in ("FOGO", "LEVITAR") and self.explosao_ativa:
+                magia = "FOGO"
+
+            if magia in ("FOGO", "LEVITAR") and self.concluido:
+                self._reiniciar_estado_execucao()
+
+            if magia == "FOGO":
+                if hasattr(self.game, "halia") and self.game.halia:
+                    if self.game.halia.x > 850:
+                        self.game.halia.x = 850
+                    self.game.halia.virado_direita = True
+                    self.game.halia.direcao = "direita"
+                    self.game.halia.mudar_estado("idle")
+                if hasattr(self.game, "mapa_casa") and hasattr(self.game.mapa_casa, "desobstruir_estrada"):
+                    self.game.mapa_casa.desobstruir_estrada("FOGO")
+                self.game.magia_usada_no_puzzle = "FOGO"
+                self.game.magia_ativa = "CONCLUIDO"
+                self.game.distanciando_halia = False
+                self.game.bola_fogo_ativa = False
+                self.game.timer_magia = 0.0
+                self.explosao_ativa = False
+                self.timer_explosao = 0.0
+                self.shake_offset = (0, 0)
+                self.particulas_rastro.clear()
+                self.particulas_explosao.clear()
+                self.fragmentos_rocha.clear()
+                if hasattr(self.game, "conquistas") and self.game.conquistas:
+                    self.game.conquistas.desbloquear("fogo_destrutivo")
+                if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                    self.game.caixa_dialogo.iniciar_dialogo("pos_fogo")
+                self.game.conversa_combate_ativa = True
+            elif magia == "LEVITAR":
+                if hasattr(self.game, "mapa_casa") and hasattr(self.game.mapa_casa, "desobstruir_estrada"):
+                    self.game.mapa_casa.desobstruir_estrada("LEVITAR")
+                self.game.magia_usada_no_puzzle = "LEVITAR"
+                self.game.magia_ativa = "CONCLUIDO"
+                self.game.distanciando_halia = False
+                self.game.bola_fogo_ativa = False
+                self.game.timer_magia = 0.0
+                self.explosao_ativa = False
+                self.timer_explosao = 0.0
+                self.shake_offset = (0, 0)
+                self.particulas_rastro.clear()
+                self.particulas_explosao.clear()
+                self.fragmentos_rocha.clear()
+                if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                    self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
+                self.game.conversa_combate_ativa = True
+
+        return super().finalizar()
+
+    def pular(self):
+        """Pula a cutscene mágica aplicando as mesmas consequências de assistir até o fim."""
+        return self.finalizar()
+
+    def _obter_dt(self, dt=None):
+        """Retorna delta-time em segundos garantindo fallback seguro a 1/60s."""
+        if isinstance(dt, (int, float)) and dt > 0:
+            return float(dt)
+        dt_jogo = getattr(self.game, "dt", 1.0 / 60.0)
+        if isinstance(dt_jogo, (int, float)) and dt_jogo > 0:
+            return float(dt_jogo)
+        return 1.0 / 60.0
+
+    def atualizar_magia(self, dt=None):
         """Atualiza a lógica cinemática das magias e suas fases de execução."""
+        dt = self._obter_dt(dt)
+
         # Atualiza tremor de tela (shake)
         if self.timer_explosao > 0:
-            intensidade = min(7, max(1, int((self.timer_explosao / 85.0) * 8)))
+            # Guarda defensiva para valores legados atribuídos em número de quadros (> 2s)
+            if self.timer_explosao > 2.0:
+                self.timer_explosao /= 60.0
+            intensidade = min(7, max(1, int((self.timer_explosao / self.DURACAO_EXPLOSAO) * 8)))
             self.shake_offset = (random.randint(-intensidade, intensidade), random.randint(-intensidade, intensidade))
+            if not self.explosao_ativa:
+                self.timer_explosao = max(0.0, self.timer_explosao - dt)
         else:
             self.shake_offset = (0, 0)
 
         # Atualiza partículas de explosão ativas
         if self.explosao_ativa:
-            self._atualizar_particulas_explosao()
+            self._atualizar_particulas_explosao(dt)
 
         if self.game.magia_ativa is None or self.game.magia_ativa == "CONCLUIDO":
-            return
+            return False
+
+        if self.concluido and self.game.magia_ativa in ("FOGO", "LEVITAR"):
+            self._reiniciar_estado_execucao()
 
         # 1. Recuo estratégico de Halia para conjuração
         if self.game.distanciando_halia:
             if self.game.halia.x > 850:
-                self.game.halia.x -= 4
+                self.game.halia.x -= self.VELOCIDADE_RECUO_HALIA * dt
                 self.game.halia.virado_direita = False
                 self.game.halia.direcao = "esquerda"
                 self.game.halia.mudar_estado("andar")
@@ -70,17 +201,17 @@ class CutsceneManager:
                     self.explosao_ativa = False
                 elif self.game.magia_ativa == "LEVITAR":
                     self.game.magia_usada_no_puzzle = "LEVITAR"
-                    self.game.timer_magia = 0
+                    self.game.timer_magia = 0.0
         else:
-            self.game.timer_magia += 1
+            self.game.timer_magia += dt
             if self.game.magia_ativa == "FOGO":
-                self._processar_fogo()
+                self._processar_fogo(dt)
             elif self.game.magia_ativa == "LEVITAR":
-                self._processar_levitacao()
+                self._processar_levitacao(dt)
 
-    def _processar_fogo(self):
+    def _processar_fogo(self, dt=None):
         """Gerencia o voo veloz da bola de fogo, o impacto e a subsequente explosão."""
-        dt = 0.016
+        dt = self._obter_dt(dt)
 
         # Atualiza partículas do rastro deixado pela bola de fogo
         vivas_rastro = []
@@ -93,10 +224,11 @@ class CutsceneManager:
         self.particulas_rastro = vivas_rastro
 
         if self.game.bola_fogo_ativa:
-            self.game.bola_fogo_x += 16
+            self.game.bola_fogo_x += self.VELOCIDADE_PROJETIL_FOGO * dt
 
             # Emite fagulhas incandescentes e brasas no rastro do voo
-            for _ in range(2):
+            qtd_fagulhas = max(1, int(round(2 * dt * 60.0)))
+            for _ in range(qtd_fagulhas):
                 self.particulas_rastro.append({
                     "x": self.game.bola_fogo_x - random.uniform(8, 22),
                     "y": self.game.bola_fogo_y + random.uniform(-10, 10),
@@ -114,19 +246,14 @@ class CutsceneManager:
                 self._disparar_explosao(self.game.bola_fogo_x, self.game.bola_fogo_y)
 
         elif self.explosao_ativa:
-            self.timer_explosao -= 1
+            self.timer_explosao = max(0.0, self.timer_explosao - dt)
             if self.timer_explosao <= 0:
-                self.explosao_ativa = False
-                self.game.caixa_dialogo.iniciar_dialogo("pos_fogo")
-                self.game.magia_ativa = "CONCLUIDO"
-                self.game.conversa_combate_ativa = True
-                if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                    self.game.conquistas.desbloquear("fogo_destrutivo")
+                self.finalizar()
 
     def _disparar_explosao(self, centro_x, centro_y):
         """Detona a explosão no obstáculo, gerando onda de choque, fragmentos e fogo no ambiente."""
         self.explosao_ativa = True
-        self.timer_explosao = 85  # Tempo ampliado para permitir a visualização completa e nítida dos 50 frames
+        self.timer_explosao = self.DURACAO_EXPLOSAO  # Tempo em segundos equivalente a 85 quadros a 60 FPS
         self.exp_centro_x = centro_x
         self.exp_centro_y = centro_y
 
@@ -169,16 +296,17 @@ class CutsceneManager:
                 "cor": random.choice([(70, 68, 65), (95, 90, 85), (55, 50, 48), (115, 110, 105)])
             })
 
-    def _atualizar_particulas_explosao(self):
+    def _atualizar_particulas_explosao(self, dt=None):
         """Atualiza a física dos fragmentos e faíscas da explosão."""
-        dt = 0.016
+        dt = self._obter_dt(dt)
+        amortecimento = 0.93 ** (dt * 60.0)
 
         vivas_exp = []
         for p in self.particulas_explosao:
             p["x"] += p["vx"] * dt
             p["y"] += p["vy"] * dt
-            p["vx"] *= 0.93  # Resistência do ar
-            p["vy"] *= 0.93
+            p["vx"] *= amortecimento  # Resistência do ar proporcional ao tempo
+            p["vy"] *= amortecimento
             p["vida"] -= dt
             if p["vida"] > 0:
                 vivas_exp.append(p)
@@ -195,19 +323,17 @@ class CutsceneManager:
                 vivas_rocha.append(r)
         self.fragmentos_rocha = vivas_rocha
 
-    def _processar_levitacao(self):
+    def _processar_levitacao(self, dt=None):
         """Conduz a transição cinematográfica da levitação arcana."""
-        progresso = min(1.0, self.game.timer_magia / 50.0)
+        self._obter_dt(dt)
+        progresso = min(1.0, self.game.timer_magia / self.DURACAO_LEVITACAO)
         
         # Atualiza a posição e aura das pedras através do delegador do mapa
         if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
             self.game.mapa_casa.atualizar_levitacao_minigame(progresso)
 
-        if self.game.timer_magia >= 50:
-            self.game.mapa_casa.desobstruir_estrada("LEVITAR")
-            self.game.caixa_dialogo.iniciar_dialogo("pos_levitar")
-            self.game.magia_ativa = "CONCLUIDO"
-            self.game.conversa_combate_ativa = True
+        if self.game.timer_magia >= self.DURACAO_LEVITACAO:
+            self.finalizar()
 
     def desenhar_efeitos(self, tela):
         """Renderiza a bola de fogo animada, o rastro e o impacto pirotécnico no overworld."""
@@ -267,7 +393,7 @@ class CutsceneManager:
         if self.explosao_ativa:
             cx = int(self.exp_centro_x + ox)
             cy = int(self.exp_centro_y + oy)
-            duracao_exp = 85.0
+            duracao_exp = self.DURACAO_EXPLOSAO
             pct_exp = min(1.0, max(0.0, 1.0 - (self.timer_explosao / duracao_exp)))
 
             # 3.1. Sprites da Nova Explosão Oficial

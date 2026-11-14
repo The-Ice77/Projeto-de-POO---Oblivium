@@ -9,9 +9,10 @@ from src.utils.colors import (
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.maps.mapa_flashback import MapaFlashbackAcampamento
+from src.mechanics.cena_base import CenaBase
 
 
-class Flashback:
+class Flashback(CenaBase):
     """
     Sistema de Memórias e Flashbacks de Halia (Oblivium):
     
@@ -26,9 +27,10 @@ class Flashback:
     """
 
     def __init__(self, largura, altura, game=None):
+        self.estado = "INATIVO"  # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
+        super().__init__(game=game, on_concluido=None)
         self.largura = largura
         self.altura = altura
-        self.game = game
         self.superficie_preta = pygame.Surface((largura, altura))
         self.superficie_preta.fill(PRETO)
         
@@ -41,12 +43,12 @@ class Flashback:
         self.fonte_flashback = ResourceManager.carregar_fonte("just_breathe", 36)
         self.fonte_avanco = ResourceManager.carregar_fonte("contrail", 18)
 
-        self.estado = "INATIVO"  # INATIVO, ESCURECENDO, ESCURIDAO, CLAREANDO
-        self.alpha = 0
+        self.alpha = 0.0
         self.velocidade = 5 
         self.tipo = "texto"  # "texto" ou "acampamento"
         self.tempo_cena = 0.0
         self.dialogo_iniciado = False
+        self._consequencias_aplicadas = False
         
         # Pétalas de memória em segundo plano
         self.efeito_petalas = EfeitoPetalas(
@@ -67,18 +69,31 @@ class Flashback:
         self.indice_texto = 0
         self.tempo_ultimo_input = 0
 
+    @property
+    def ativo(self):
+        return self.estado != "INATIVO"
+
+    @ativo.setter
+    def ativo(self, valor):
+        if not valor:
+            self.estado = "INATIVO"
+        elif self.estado == "INATIVO":
+            self.estado = "ESCURECENDO"
+
     # =========================================================================
     # Ciclo de Vida do Flashback
     # =========================================================================
-    def iniciar(self, textos_memorias, tipo=None, game=None):
+    def iniciar(self, textos_memorias=None, tipo=None, game=None, on_concluido=None):
         if game is not None:
             self.game = game
             self.mapa_acampamento.game = game
 
+        self._reiniciar_estado_execucao(on_concluido=on_concluido)
+        self._consequencias_aplicadas = False
         self.textos = textos_memorias or []
         self.indice_texto = 0
         self.estado = "ESCURECENDO"
-        self.alpha = 0
+        self.alpha = 0.0
         self.tempo_cena = 0.0
         self.dialogo_iniciado = False
 
@@ -100,6 +115,93 @@ class Flashback:
         self.caractere_atual = 0.0
         self.tempo_ultimo_input = pygame.time.get_ticks()
         self.efeito_petalas.reiniciar(inicializar_na_tela=True)
+
+    def handle_event(self, evento):
+        """Processa entradas de teclado ou mouse quando o flashback está ativo."""
+        if not self.ativo:
+            return False
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_ESCAPE:
+                self.pular()
+                return True
+            if evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_e):
+                if self.estado == "ESCURIDAO":
+                    self.processar_input()
+                    return True
+        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            if self.estado == "ESCURIDAO":
+                self.processar_input()
+                return True
+        return False
+
+    def _aplicar_consequencias_narrativas(self):
+        """Aplica os desbloqueios narrativos pós-flashback uma única vez por ciclo."""
+        if self._consequencias_aplicadas or not self.game:
+            return
+        self._consequencias_aplicadas = True
+
+        if getattr(self.game, "flashback_monumento_ativo", False):
+            self.game.flashback_monumento_ativo = False
+            if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                self.game.caixa_dialogo.iniciar_dialogo([
+                    {
+                        "autor": "Narrador",
+                        "texto": "O calor daquela fogueira distante ainda ecoa no peito de Halia. As risadas francas de Sylvan, a vigília calma de Roland e o chá de ervas de Caelen... Ela não está sozinha nesta batalha."
+                    }
+                ])
+        elif getattr(self.game, "flashback_sylvan_ativo", False):
+            self.game.flashback_sylvan_ativo = False
+            if hasattr(self.game, "halia") and self.game.halia and self.game.halia.fragmentos_memoria < 2:
+                self.game.halia.recuperar_memoria(1)
+            if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
+                self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
+                ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
+                if ninho:
+                    ninho.ninho_amanhecer = True
+                    ninho.dragao_derrotado = True
+                    if hasattr(ninho, "inicializar_cenario"):
+                        ninho.inicializar_cenario()
+            if hasattr(self.game, "halia") and self.game.halia:
+                self.game.halia.x, self.game.halia.y = 610, 380
+                self.game.halia.direcao = "cima"
+                self.game.halia.mudar_estado("idle")
+            if getattr(self.game, "slot_atual", None) and hasattr(self.game, "salvar_estado"):
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+            if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                self.game.caixa_dialogo.iniciar_dialogo([
+                    {
+                        "autor": "Narrador",
+                        "texto": "O riso caloroso de Sylvan ainda ecoa como uma brasa acolhedora na memória de Halia. A força daquela amizade antiga dissipa suas dores. O dragão colossal jaz inerte sob a luz límpida da aurora. É hora de descer pela trilha sul e levar as boas notícias ao povo de Oakhaven."
+                    }
+                ])
+        else:
+            if hasattr(self.game, "flashback_magia_concluido"):
+                self.game.flashback_magia_concluido = True
+            if hasattr(self.game, "conquistas") and self.game.conquistas:
+                self.game.conquistas.desbloquear("eco_passado")
+            if getattr(self.game, "slot_atual", None) and hasattr(self.game, "salvar_estado"):
+                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+            if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+                self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
+
+    def finalizar(self):
+        """Encerra o flashback garantindo estado limpo, narrativa e callback único."""
+        if self.tipo == "acampamento" and self.game and hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+            if self.game.caixa_dialogo.ativo:
+                self.game.caixa_dialogo.ativo = False
+                if hasattr(self.game.caixa_dialogo, "em_escolha"):
+                    self.game.caixa_dialogo.em_escolha = False
+
+        self.alpha = 0.0
+        self.estado = "INATIVO"
+        self.dialogo_iniciado = False
+        self.concluido = True
+        self._aplicar_consequencias_narrativas()
+        return self._executar_callback_conclusao()
+
+    def pular(self):
+        """Pula o flashback preservando todas as consequências narrativas de conclusão."""
+        return self.finalizar()
 
     def _obter_texto_formatado_atual(self):
         """Retorna o texto da memória atual para o modo texto introspectivo."""
@@ -146,9 +248,14 @@ class Flashback:
         elif self.texto_estado == "WAIT":
             self.texto_estado = "FADE_OUT"
 
-    def atualizar(self, dt=0.016):
+    def atualizar(self, dt=None):
         if self.estado == "INATIVO":
             return False
+
+        if dt is None:
+            dt = getattr(self.game, "dt", 1.0 / 60.0) if self.game else (1.0 / 60.0)
+        if not isinstance(dt, (int, float)) or dt <= 0:
+            dt = 1.0 / 60.0
 
         self.tempo_cena += dt
 
@@ -161,9 +268,9 @@ class Flashback:
 
         # Transição de entrada (fade in)
         if self.estado == "ESCURECENDO":
-            self.alpha += int(self.velocidade * 35.0 * dt)
+            self.alpha += self.velocidade * 35.0 * dt
             if self.alpha >= 255:
-                self.alpha = 255
+                self.alpha = 255.0
                 self.estado = "ESCURIDAO"
                 
                 # Se for acampamento, aciona a DialogueBox oficial imediatamente com a lista de falas!
@@ -172,7 +279,7 @@ class Flashback:
                         self.dialogo_iniciado = True
                         self.game.caixa_dialogo.iniciar_dialogo(self.textos)
                 else:
-                    self.texto_alpha = 255
+                    self.texto_alpha = 255.0
                     self.texto_estado = "DIGITANDO"
                     self.caractere_atual = 0.0
 
@@ -204,7 +311,7 @@ class Flashback:
                 elif self.texto_estado == "FADE_OUT":
                     self.texto_alpha -= (self.velocidade_texto * 2.2) * (dt * 60.0)
                     if self.texto_alpha <= 0:
-                        self.texto_alpha = 255
+                        self.texto_alpha = 255.0
                         self.caractere_atual = 0.0
                         self.indice_texto += 1
                         
@@ -214,11 +321,9 @@ class Flashback:
                             self.texto_estado = "DIGITANDO"
 
         elif self.estado == "CLAREANDO":
-            self.alpha -= int(self.velocidade * 35.0 * dt)
+            self.alpha -= self.velocidade * 35.0 * dt
             if self.alpha <= 0:
-                self.alpha = 0
-                self.estado = "INATIVO"
-                self.dialogo_iniciado = False
+                self.finalizar()
                 return True  # Flashback 100% concluído!
 
         return False
@@ -257,14 +362,14 @@ class Flashback:
 
             # Transições suaves de entrada e saída
             if self.estado == "ESCURECENDO":
-                fade_alpha = max(0, min(255, 255 - self.alpha))
+                fade_alpha = max(0, min(255, int(255 - self.alpha)))
                 if fade_alpha > 0:
                     overlay = pygame.Surface((self.largura, self.altura))
                     overlay.fill((8, 10, 16))
                     overlay.set_alpha(fade_alpha)
                     tela.blit(overlay, (0, 0))
             elif self.estado == "CLAREANDO":
-                fade_alpha = max(0, min(255, 255 - self.alpha))
+                fade_alpha = max(0, min(255, int(255 - self.alpha)))
                 if fade_alpha > 0:
                     overlay = pygame.Surface((self.largura, self.altura))
                     overlay.fill((8, 10, 16))
@@ -273,7 +378,7 @@ class Flashback:
             return
 
         # 2. Modo Clássico de Texto Puro sobre Escuridão
-        self.superficie_preta.set_alpha(self.alpha)
+        self.superficie_preta.set_alpha(max(0, min(255, int(self.alpha))))
         tela.blit(self.superficie_preta, (0, 0))
 
         areas_excluidas = []

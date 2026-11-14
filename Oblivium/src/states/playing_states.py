@@ -34,6 +34,56 @@ class PlayingState(State):
     def cutscene_timeskip(self, valor):
         self.cutscene_reconstrucao = valor
 
+    @property
+    def cenas(self):
+        """Lista das cenas e cutscenes gerenciadas durante o estado JOGANDO."""
+        return [
+            cena for cena in (
+                getattr(self, "cutscene_reconstrucao", None),
+                getattr(self, "cinematica_dragao", None),
+                getattr(self, "cutscene", None),
+                getattr(self.game, "flashback_sistema", None),
+                getattr(self.game, "tela_despertar", None),
+            )
+            if cena is not None
+        ]
+
+    @property
+    def minigames(self):
+        """Lista dos minigames gerenciados durante o estado JOGANDO."""
+        return [
+            mg for mg in (
+                getattr(self, "minigame_ferraria", None),
+                getattr(self, "minigame_curandeira", None),
+                getattr(self.game, "mg_timing", None),
+                getattr(self.game, "mg_mash", None),
+            )
+            if mg is not None
+        ]
+
+    def _bloqueio_ativo(
+        self,
+        incluir_dialogo=True,
+        incluir_transicao=True,
+        incluir_cenas=True,
+        incluir_minigames=True,
+        incluir_inimigos_andando=True,
+    ):
+        """Verifica de forma unificada se alguma cena, minigame ou painel bloqueia o mundo."""
+        if incluir_dialogo and getattr(getattr(self.game, "caixa_dialogo", None), "ativo", False):
+            return True
+        if incluir_transicao:
+            transicao = getattr(self.game, "transicao", None)
+            if transicao is not None and getattr(transicao, "estado", "INATIVO") != "INATIVO":
+                return True
+        if incluir_inimigos_andando and getattr(self.game, "cena_inimigos_andando", False):
+            return True
+        if incluir_cenas and any(getattr(cena, "ativo", False) for cena in self.cenas):
+            return True
+        if incluir_minigames and any(getattr(mg, "ativo", False) for mg in self.minigames):
+            return True
+        return False
+
     def atualizar_camera(self, instantaneo=False):
         """
         Atualiza suavemente a câmera 2D (Viewport 1280x720) acompanhando Halia
@@ -113,23 +163,24 @@ class PlayingState(State):
 
     def update(self):
         # Atualização prioritária de timeskip e minigames ativos
+        dt = getattr(self.game, "dt", 1.0 / 60.0)
         if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao.ativo:
-            self.cutscene_reconstrucao.atualizar(1 / 60.0)
+            self.cutscene_reconstrucao.atualizar(dt)
             return
 
         if hasattr(self, "minigame_ferraria") and self.minigame_ferraria.ativo:
-            self.minigame_ferraria.atualizar()
+            self.minigame_ferraria.atualizar(dt)
             return
 
         if hasattr(self, "minigame_curandeira") and self.minigame_curandeira.ativo:
-            self.minigame_curandeira.atualizar()
+            self.minigame_curandeira.atualizar(dt)
             return
 
-        # Adiciona o tempo decorrido ao tempo jogado (1/60 de segundo)
-        self.game.tempo_jogado += 1 / 60.0
+        # Adiciona o tempo decorrido ao tempo jogado
+        self.game.tempo_jogado += dt
 
         if hasattr(self, "cinematica_dragao") and self.cinematica_dragao.ativo:
-            self.cinematica_dragao.atualizar(1 / 60.0)
+            self.cinematica_dragao.atualizar(dt)
 
         # Verificação de Morte de Halia no Overworld
         if not getattr(self.game.halia, 'vivo', True) or self.game.halia.vida_atual <= 0:
@@ -207,7 +258,7 @@ class PlayingState(State):
         self.atualizar_camera()
 
         self.game.caixa_dialogo.atualizar()
-        self.cutscene.atualizar_magia()
+        self.cutscene.atualizar_magia(dt)
         self._update_minigames_e_flashbacks()
         self._update_inimigos_e_triggers()
         self._update_transitions()
@@ -341,15 +392,7 @@ class PlayingState(State):
             self.cutscene_reconstrucao.desenhar(tela)
 
     def _processar_movimento(self, teclas):
-        if (hasattr(self, 'cutscene_reconstrucao') and self.cutscene_reconstrucao.ativo) or \
-           (hasattr(self, 'cinematica_dragao') and self.cinematica_dragao.ativo) or \
-           (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
-           (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or \
-           self.game.caixa_dialogo.ativo or self.game.transicao.estado != "INATIVO" or \
-           self.game.flashback_sistema.estado != "INATIVO" or \
-           (hasattr(self.game, 'tela_despertar') and self.game.tela_despertar.estado != "INATIVO") or \
-           (self.game.magia_ativa is not None and self.game.magia_ativa != "CONCLUIDO") or \
-           self.game.mg_timing.ativo or self.game.mg_mash.ativo or self.game.cena_inimigos_andando:
+        if self._bloqueio_ativo():
             if not getattr(self.game, 'distanciando_halia', False):
                 self.game.halia.mudar_estado("idle")
             return
@@ -395,18 +438,13 @@ class PlayingState(State):
 
         # ABRIR O INVENTÁRIO
         if evento.key == self.game.controles.get("Inventário", pygame.K_TAB):
-            if (not self.game.caixa_dialogo.ativo and 
-                self.game.transicao.estado == "INATIVO" and 
-                (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO") and
-                not self.game.cena_inimigos_andando and 
-                not self.game.aguardando_fim_viagem):
+            if not self._bloqueio_ativo() and not self.game.aguardando_fim_viagem:
                 self.game.mudar_estado("INVENTARIO")
                 return
 
         # ABRIR O PAUSE
         if evento.key == self.game.controles["Pause"]:
-            if not self.game.caixa_dialogo.ativo and self.game.transicao.estado == "INATIVO" and \
-               (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO"):
+            if not self._bloqueio_ativo(incluir_inimigos_andando=False):
                 self.game.origem_pause = "JOGANDO"
                 self.game.mudar_estado("PAUSE")
                 return
@@ -496,12 +534,7 @@ class PlayingState(State):
             return
 
         # Clicar na bolsa do HUD abre o inventário
-        if (hasattr(self.game, 'hud') and 
-            not self.game.caixa_dialogo.ativo and 
-            self.game.transicao.estado == "INATIVO" and 
-            (not hasattr(self.game, 'tela_despertar') or self.game.tela_despertar.estado == "INATIVO") and
-            not self.game.cena_inimigos_andando and 
-            not self.game.aguardando_fim_viagem):
+        if hasattr(self.game, 'hud') and not self._bloqueio_ativo() and not self.game.aguardando_fim_viagem:
             
             if self.game.hud.rect_bolsa.collidepoint(pos):
                 self.game.mudar_estado("INVENTARIO")
@@ -550,49 +583,15 @@ class PlayingState(State):
             self.game.caixa_dialogo.iniciar_dialogo("falha_mash")
 
     def _update_minigames_e_flashbacks(self):
-        if self.game.flashback_sistema.atualizar():
-            if getattr(self.game, "flashback_monumento_ativo", False):
-                self.game.flashback_monumento_ativo = False
-                self.game.caixa_dialogo.iniciar_dialogo([
-                    {
-                        "autor": "Narrador",
-                        "texto": "O calor daquela fogueira distante ainda ecoa no peito de Halia. As risadas francas de Sylvan, a vigília calma de Roland e o chá de ervas de Caelen... Ela não está sozinha nesta batalha."
-                    }
-                ])
-            elif getattr(self.game, "flashback_sylvan_ativo", False):
-                self.game.flashback_sylvan_ativo = False
-                if self.game.halia.fragmentos_memoria < 2:
-                    self.game.halia.recuperar_memoria(1)
-                # Halia desperta no NINHO_DRAGAO na luz dourada da manhã ao lado da carcaça do dragão
-                self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
-                ninho = self.game.mapa_casa.cenario_objeto
-                ninho.ninho_amanhecer = True
-                ninho.dragao_derrotado = True
-                ninho.inicializar_cenario()
-                self.game.halia.x, self.game.halia.y = 610, 380
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
+        dt = getattr(self.game, "dt", 1.0 / 60.0)
+        if self.game.flashback_sistema.atualizar(dt):
+            if getattr(self.game.mapa_casa, "cenario_atual", None) == "NINHO_DRAGAO":
                 self.atualizar_camera(instantaneo=True)
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                self.game.caixa_dialogo.iniciar_dialogo([
-                    {
-                        "autor": "Narrador",
-                        "texto": "O riso caloroso de Sylvan ainda ecoa como uma brasa acolhedora na memória de Halia. A força daquela amizade antiga dissipa suas dores. O dragão colossal jaz inerte sob a luz límpida da aurora. É hora de descer pela trilha sul e levar as boas notícias ao povo de Oakhaven."
-                    }
-                ])
-            else:
-                self.game.flashback_magia_concluido = True 
-                if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                    self.game.conquistas.desbloquear("eco_passado")
-                if self.game.slot_atual:
-                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-                self.game.caixa_dialogo.iniciar_dialogo("escolha_magias")
 
         if self.game.mg_timing.ativo:
-            self.game.mg_timing.atualizar()
+            self.game.mg_timing.atualizar(dt)
         elif self.game.mg_mash.ativo:
-            res = self.game.mg_mash.atualizar()
+            res = self.game.mg_mash.atualizar(dt)
 
             pct = self.game.mg_mash.get_progresso_pct()
             if hasattr(self.game.mapa_casa, 'atualizar_levitacao_minigame'):
@@ -601,7 +600,7 @@ class PlayingState(State):
             if res in ["VENCEU", "PERDEU"]:
                 self._finalizar_minigame_levitacao(res)
 
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and not self.game.caixa_dialogo.ativo and self.game.magia_ativa is None and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo:
+        if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.investigou_pedras and self.game.magia_ativa is None and not self._bloqueio_ativo(incluir_transicao=False, incluir_inimigos_andando=False):
             if self.game.magia_selecionada_temporaria == "FOGO":
                 self.game.magia_selecionada_temporaria = None
                 self.game.mg_timing.iniciar()
@@ -1434,10 +1433,10 @@ class PlayingState(State):
         self._iniciar_climax_dragao_oakhaven()
 
     def _draw_interactable_prompts(self, tela):
-        if (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or \
-           (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo):
+        if self._bloqueio_ativo(incluir_dialogo=False, incluir_transicao=False, incluir_cenas=False, incluir_minigames=True, incluir_inimigos_andando=False):
             return
 
+        bloqueado_geral = self._bloqueio_ativo()
         area_interacao = pygame.Rect(self.game.halia.x - 24, self.game.halia.y - 24, self.game.halia.largura + 48, self.game.halia.altura + 48)
         tecla_interacao_str = self.game.nome_tecla_interacao
         
@@ -1452,15 +1451,15 @@ class PlayingState(State):
 
         if self.game.mapa_casa.cenario_atual in ["ESTRADA", "ESTRADA_2"] and self.game.carroceiro_visivel:
             r_c = pygame.Rect(self.game.carroceiro.x, self.game.carroceiro.y, self.game.carroceiro.largura, self.game.carroceiro.altura)
-            if area_interacao.colliderect(r_c) and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
+            if area_interacao.colliderect(r_c) and not bloqueado_geral:
                 desenhar_indicador_tecla(tela, self.game.carroceiro.x + (self.game.carroceiro.largura // 2), self.game.carroceiro.y - 38, tecla=tecla_interacao_str, acao="para Conversar")
 
         if self.game.mapa_casa.cenario_atual == "ESTRADA_2" and self.game.magia_ativa != "CONCLUIDO" and not getattr(self.game, 'combate_estrada_concluido', False):
-            if self.game.halia.x >= 950 and not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO" and not self.game.mg_timing.ativo and not self.game.mg_mash.ativo and not self.game.cena_inimigos_andando:
+            if self.game.halia.x >= 950 and not bloqueado_geral:
                 txt_acao = "para Usar Magia" if self.game.flashback_magia_concluido else "para Investigar"
                 desenhar_indicador_tecla(tela, 1070, 200, tecla=tecla_interacao_str, acao=txt_acao)
 
-        if not self.game.caixa_dialogo.ativo and self.game.flashback_sistema.estado == "INATIVO":
+        if not self.game.caixa_dialogo.ativo and not self.game.flashback_sistema.ativo:
             for npc in getattr(self.game.mapa_casa, "npcs", []):
                 r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
                 if area_interacao.colliderect(r_npc):
@@ -1489,11 +1488,12 @@ class PlayingState(State):
         self.game.flashback_sistema.desenhar(tela)
         self.game.caixa_dialogo.desenhar(tela)
 
-        minigame_ativo = (
-            (hasattr(self, 'minigame_ferraria') and self.minigame_ferraria.ativo) or
-            (hasattr(self, 'minigame_curandeira') and self.minigame_curandeira.ativo) or
-            getattr(self.game.mg_timing, 'ativo', False) or
-            getattr(self.game.mg_mash, 'ativo', False)
+        minigame_ativo = self._bloqueio_ativo(
+            incluir_dialogo=False,
+            incluir_transicao=False,
+            incluir_cenas=False,
+            incluir_minigames=True,
+            incluir_inimigos_andando=False,
         )
 
         # Minigames Interativos da Vila (Ferraria e Curandeira)
