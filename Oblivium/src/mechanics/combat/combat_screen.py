@@ -2,12 +2,6 @@
 import pygame
 import random
 import os
-import sys
-
-# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
 
 from src.mechanics.skills import SkillsRegistry
 from src.entities.Boss import Boss
@@ -22,6 +16,7 @@ from src.mechanics.combat.combat_narrator import CombatNarrator
 from src.mechanics.combat.combat_renderer import CombatRenderer, TextoFlutuante
 from src.mechanics.combat.combat_input import CombatInputHandler
 from src.mechanics.combat.combat_effects import CombatVisualEffects
+from src.mechanics.combat.combat_ai import CombatAIController
 
 
 class CombatScreen:
@@ -41,6 +36,9 @@ class CombatScreen:
         
         # Controlador de entradas e navegacao desacoplado (Input Handler)
         self.input_handler = CombatInputHandler(self)
+
+        # Controlador de turnos, IA inimiga e desfecho de combate
+        self.ai_controller = CombatAIController(self)
         
         # Fontes Consolidadas do Combate
         self.fonte_titulo = ResourceManager.carregar_fonte("sunday", 36)
@@ -289,106 +287,11 @@ class CombatScreen:
 
     def _iniciar_nova_rodada(self):
         """Prepara a rodada mantendo a ordem consistente de turnos entre participantes vivos."""
-        self.ordem_turnos = [p for p in self.ordem_turnos_base if getattr(p, 'vivo', True)]
-        self.indice_turno_atual = 0
-        self._avancar_para_proximo_turno()
+        return self.ai_controller.iniciar_nova_rodada()
 
     def _avancar_para_proximo_turno(self):
         """Avança a vez para a próxima entidade viva da fila."""
-        # 1. Verifica se todos os inimigos foram derrotados
-        inimigos_vivos = self._obter_inimigos_vivos()
-        if not inimigos_vivos:
-            self._finalizar_vitoria()
-            return
-
-        # 2. Verifica se o jogador foi derrotado
-        if not getattr(self.jogador, 'vivo', True) or self.jogador.vida_atual <= 0:
-            self._finalizar_derrota()
-            return
-
-        # 3. Se a rodada acabou, começa nova rodada mantendo a consistência dos turnos
-        if self.indice_turno_atual >= len(self.ordem_turnos):
-            self._iniciar_nova_rodada()
-            return
-
-        entidade_atual = self.ordem_turnos[self.indice_turno_atual]
-        
-        # Pula entidades mortas
-        if not getattr(entidade_atual, 'vivo', True):
-            self.indice_turno_atual += 1
-            self._avancar_para_proximo_turno()
-            return
-
-        # Reseta postura temporária apenas no início do turno da própria entidade
-        if hasattr(entidade_atual, 'resetar_turno_combate'):
-            entidade_atual.resetar_turno_combate()
-
-        # 4. Processa Condições / DoT / CC no início do turno
-        if hasattr(entidade_atual, 'processar_condicoes_inicio_turno'):
-            relatorios, impede_acao = entidade_atual.processar_condicoes_inicio_turno()
-            for r in relatorios:
-                if r.get("mensagem"):
-                    self.adicionar_log(r["mensagem"])
-                if r.get("dano", 0) > 0:
-                    ex, ey = self._obter_posicao_combate(entidade_atual)
-                    self.adicionar_texto_flutuante(f"-{r['dano']}", ex + 20, ey, TEXTO_ALERTA_COMBATE)
-                    self.shake_timers[entidade_atual] = 8
-                    if entidade_atual is self.jogador:
-                        self._disparar_sangue_halia()
-
-            if not getattr(entidade_atual, 'vivo', True):
-                if entidade_atual is not self.jogador and hasattr(entidade_atual, 'animacoes'):
-                    entidade_atual.morrer()
-                    est_m = "dead" if "dead" in entidade_atual.animacoes else ("morte" if "morte" in entidade_atual.animacoes else "morrer")
-                    if est_m in entidade_atual.animacoes:
-                        entidade_atual.definir_estado(est_m)
-                        if hasattr(entidade_atual.animacoes[est_m], 'resetar'):
-                            entidade_atual.animacoes[est_m].resetar()
-                    self.alphas_morte[entidade_atual] = 255
-                msg_morte = self._gerar_mensagem_morte_condicao(entidade_atual, relatorios)
-                self.adicionar_log(msg_morte)
-                self.indice_turno_atual += 1
-                self._avancar_para_proximo_turno()
-                return
-
-            if impede_acao:
-                # Dá tempo para o jogador ler que a entidade perdeu o turno
-                self.timer_acao = self._ajustar_timer(70)
-                self.estado_combate = "EXECUTANDO_ACAO"
-                return
-
-        # 5. Define se é turno do Jogador ou IA do Inimigo
-        if entidade_atual is self.jogador:
-            # Regeneração passiva natural de mana por turno da Grã-Maga
-            if self.jogador.mana_atual < self.jogador.mana_maxima:
-                mana_reg = max(4, 4 + self.jogador.atributos.mod_sab + (self.jogador.atributos.mod_pre // 2))
-                self.jogador.recuperar_mana(mana_reg)
-                hx, hy = self._obter_posicao_combate(self.jogador)
-                self.adicionar_texto_flutuante(f"+{mana_reg} MP", hx + 30, hy + 15, BARRA_MANA, duracao=60)
-
-            self.estado_combate = "MENU_PRINCIPAL"
-            self.indice_menu = 0
-        else:
-            # Regeneração passiva natural de mana por turno do Inimigo conforme os turnos avançam
-            mana_atual = getattr(entidade_atual, 'mana_atual', 0)
-            mana_max = getattr(entidade_atual, 'mana_maxima', 20)
-            if mana_atual < mana_max and hasattr(entidade_atual, 'recuperar_mana'):
-                if hasattr(entidade_atual, 'atributos') and hasattr(entidade_atual.atributos, 'calcular_regeneracao_mana'):
-                    bonus_chefe = 2 if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, 'eh_chefe', False)) else 0
-                    mana_reg = entidade_atual.atributos.calcular_regeneracao_mana(base=3 + bonus_chefe)
-                else:
-                    mod_sab = getattr(entidade_atual.atributos, 'mod_sab', 0) if hasattr(entidade_atual, 'atributos') else 0
-                    mod_pre = getattr(entidade_atual.atributos, 'mod_pre', 0) if hasattr(entidade_atual, 'atributos') else 0
-                    bonus_chefe = 2 if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, 'eh_chefe', False)) else 0
-                    mana_reg = max(3, 3 + mod_sab + (mod_pre // 2) + bonus_chefe)
-
-                mana_efetiva = min(mana_max - mana_atual, mana_reg)
-                entidade_atual.recuperar_mana(mana_reg)
-                ex, ey = self._obter_posicao_combate(entidade_atual)
-                self.adicionar_texto_flutuante(f"+{int(mana_efetiva)} MP", ex + 30, ey + 15, BARRA_MANA, duracao=60)
-
-            self.estado_combate = "TURNO_INIMIGO"
-            self.timer_acao = self._ajustar_timer(55)
+        return self.ai_controller.avancar_para_proximo_turno()
 
     # =========================================================================
     # PROCESSAMENTO DE EVENTOS E NAVEGAÇÃO (DELEGADO PARA CombatInputHandler)
@@ -653,207 +556,11 @@ class CombatScreen:
 
     def _executar_turno_inimigo(self, inimigo):
         """IA do inimigo: seleciona habilidade temática e executa contra Halia."""
-        self.estado_combate = "EXECUTANDO_ACAO"
-        self.timer_acao = self._ajustar_timer(75)
-        
-        # Filtra habilidades que o inimigo tem mana para usar
-        kit = getattr(inimigo, 'habilidades', ["garras_sombrias", "golpe_sombrio"])
-        acoes_disponiveis = []
-        for id_hab in kit:
-            acao_cand = SkillsRegistry.get(id_hab)
-            if acao_cand and acao_cand.pode_usar(inimigo):
-                acoes_disponiveis.append(acao_cand)
-                
-        # IA Tática de Mana: se o monstro/chefe possui magias no kit, mas está sem mana suficiente,
-        # possui uma chance de canalizar energia (Concentrar) para recarregar mana
-        if hasattr(inimigo, 'atributos') and (isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo.atributos, 'intelecto', 0) >= 12):
-            tem_magia_kit = any(getattr(SkillsRegistry.get(h), 'custo_mana', 0) > 0 for h in kit)
-            if tem_magia_kit and getattr(inimigo, 'mana_atual', 0) < 10 and random.random() < 0.25:
-                foco_cand = SkillsRegistry.get("concentrar")
-                if foco_cand:
-                    acoes_disponiveis.append(foco_cand)
-
-        if acoes_disponiveis:
-            magias_com_custo = [a for a in acoes_disponiveis if a.custo_mana > 0]
-            if magias_com_custo and random.random() < 0.65:
-                acao = random.choice(magias_com_custo)
-            else:
-                acao = random.choice(acoes_disponiveis)
-        else:
-            acao = SkillsRegistry.get("garras_sombrias") or SkillsRegistry.get("golpe_sombrio") or SkillsRegistry.get("investida_sombria") or SkillsRegistry.get("ataque_basico")
-
-        # Alvo apropriado conforme o tipo da habilidade
-        alvo_acao = inimigo if getattr(acao, 'tipo_alvo', '') in ["proprio", "aliado"] or getattr(acao, 'alvo_tipo', '') in ["PROPRIO", "ALIADO"] else self.jogador
-
-        # Ativa animação de ataque no inimigo
-        if hasattr(inimigo, 'definir_estado') and hasattr(inimigo, 'animacoes'):
-            if "attack" in inimigo.animacoes or "ataque" in inimigo.animacoes:
-                est_a = "attack" if "attack" in inimigo.animacoes else "ataque"
-                inimigo.definir_estado(est_a)
-                if hasattr(inimigo.animacoes[est_a], 'resetar'):
-                    inimigo.animacoes[est_a].resetar()
-
-        resultado = acao.executar(inimigo, alvo_acao)
-        
-        if resultado.get("mensagem"):
-            self.adicionar_log(resultado["mensagem"])
-
-        # Redundância imediata no Log: garante que 100% das ações e ataques dos inimigos e do Dragão aparecem no histórico
-        for r_entry in resultado.get("resultados", []):
-            r_data = r_entry.get("dados") if ("dados" in r_entry and isinstance(r_entry["dados"], dict)) else r_entry
-            msg_alvo = r_data.get("mensagem")
-            if not msg_alvo:
-                alvo_obj = r_data.get("alvo", alvo_acao)
-                alvo_nome = getattr(alvo_obj, "nome", "Halia")
-                if r_data.get("errou"):
-                    if r_data.get("motivo") == "esquiva":
-                        msg_alvo = f"{inimigo.nome} usou {acao.nome}, mas {alvo_nome} se esquivou agilmente!"
-                    else:
-                        msg_alvo = f"{inimigo.nome} usou {acao.nome}, mas errou o ataque contra {alvo_nome}!"
-                elif r_data.get("dano", 0) > 0:
-                    crit_txt = " (CRÍTICO!)" if r_data.get("critico") else ""
-                    msg_alvo = f"{inimigo.nome} usou {acao.nome} em {alvo_nome} causando {r_data['dano']} de dano{crit_txt}."
-                elif r_data.get("cura", 0) > 0:
-                    msg_alvo = f"{inimigo.nome} usou {acao.nome} restaurando {r_data['cura']} de vida."
-            if msg_alvo:
-                self.adicionar_log(msg_alvo)
-                r_entry["_log_registrado"] = True
-                r_data["_log_registrado"] = True
-            
-        # Feedback de mana recuperada e vulnerabilidade na própria entidade conjuradora
-        mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
-        if mana_rec > 0:
-            mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
-            ix, iy = self._obter_posicao_combate(inimigo)
-            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", ix + 30, iy + 15, BARRA_MANA, duracao=80)
-
-        if resultado.get("vulneravel"):
-            ix, iy = self._obter_posicao_combate(inimigo)
-            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), ix + 30, iy - 10, (240, 130, 130), duracao=80)
-
-        def _aplicar_impacto_inimigo(alvo_r, r):
-            if "dados" in r and isinstance(r["dados"], dict):
-                r = r["dados"]
-            if r.get("mensagem") and not r.get("_log_registrado") and r.get("mensagem") != resultado.get("mensagem"):
-                self.adicionar_log(r["mensagem"])
-                r["_log_registrado"] = True
-            alvo_r = r.get("alvo", self.jogador)
-            dano_r = float(r.get("dano", 0) or 0)
-            cura_r = float(r.get("cura", 0) or 0)
-            hx, hy = self._obter_posicao_combate(alvo_r) if alvo_r else (160, 160)
-
-            if r.get("errou", False):
-                motivo_erro = r.get("motivo", "erro")
-                if motivo_erro == "esquiva":
-                    self._tocar_sfx("esquiva")
-                    texto_erro = CombatNarrator.obter_popup("esquivou")
-                    cor_erro = (100, 210, 255) # Cyan
-                else:
-                    self._tocar_sfx("ataque_erro")
-                    texto_erro = CombatNarrator.obter_popup("errou")
-                    cor_erro = (240, 160, 100) # Âmbar
-                self.adicionar_texto_flutuante(texto_erro, hx + 30, hy - 15, cor_erro, duracao=80)
-                # Efeito visual suave de erro/falha (sem explosão de impacto ou tremor)
-                elem_acao = getattr(acao, 'elemento', 'SOMBRA')
-                self.efeitos_visuais.adicionar_dissipacao_erro(hx + 30, hy, elemento=elem_acao, motivo=motivo_erro)
-            elif dano_r > 0:
-                if alvo_r is self.jogador:
-                    self._tocar_sfx("dano_halia")
-                    self._disparar_sangue_halia()
-                else:
-                    self._tocar_sfx("dano_inimigo")
-                if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
-                    if not getattr(alvo_r, 'vivo', True):
-                        alvo_r.morrer()
-                        est_m = "dead" if "dead" in alvo_r.animacoes else ("morte" if "morte" in alvo_r.animacoes else "morrer")
-                        if est_m in alvo_r.animacoes:
-                            alvo_r.definir_estado(est_m)
-                            if hasattr(alvo_r.animacoes[est_m], 'resetar'):
-                                alvo_r.animacoes[est_m].resetar()
-                        self.alphas_morte[alvo_r] = 255
-                    elif "hurt" in alvo_r.animacoes or "dano" in alvo_r.animacoes:
-                        est_h = "hurt" if "hurt" in alvo_r.animacoes else "dano"
-                        alvo_r.definir_estado(est_h)
-                        if hasattr(alvo_r.animacoes[est_h], 'resetar'):
-                            alvo_r.animacoes[est_h].resetar()
-
-                dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
-                self.adicionar_texto_flutuante(f"-{dano_fmt}", hx + 30, hy, TEXTO_ALERTA_COMBATE)
-                self.shake_timers[alvo_r] = 14
-                # Feedback narrativo se Halia foi derrotada
-                if alvo_r is self.jogador and not getattr(self.jogador, 'vivo', True):
-                    msg_morte = self._gerar_mensagem_morte_acao(self.jogador, acao)
-                    self.adicionar_log(msg_morte)
-            elif cura_r > 0:
-                self._tocar_sfx("magia_cast")
-                cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
-                cor_cura = BARRA_VIDA_JOGADOR if alvo_r is self.jogador else BARRA_VIDA_INIMIGO
-                self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, cor_cura)
-
-        eh_magia_inimigo = (
-            getattr(acao, 'custo_mana', 0) > 0 or 
-            getattr(acao, 'tipo', '').upper() == 'MAGIA' or 
-            getattr(acao, 'tipo_dano', '') == 'MAGICO'
-        )
-        alvos_com_dados_inimigo = [r for r in resultado.get("resultados", []) if r.get("alvo", self.jogador)]
-
-        if eh_magia_inimigo and alvos_com_dados_inimigo:
-            self.timer_acao = self._ajustar_timer(75)
-            self.efeitos_visuais.disparar_magia_aoe(
-                acao, inimigo, alvos_com_dados_inimigo, on_impacto_alvo=_aplicar_impacto_inimigo
-            )
-        else:
-            for r in resultado.get("resultados", []):
-                _aplicar_impacto_inimigo(r.get("alvo", self.jogador), r)
+        return self.ai_controller.executar_turno_inimigo(inimigo)
 
     def _tentar_fuga(self):
         """Calcula a probabilidade de fuga baseada na Destreza, quantidade e força dos inimigos."""
-        inimigos_vivos = self._obter_inimigos_vivos()
-        if not inimigos_vivos:
-            self.estado_combate = "VITORIA"
-            return
-
-        # 1. Chefes e oponentes imponentes não permitem fuga
-        hx, hy = self._obter_posicao_combate(self.jogador)
-        for inimigo in inimigos_vivos:
-            if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or getattr(inimigo, 'atributos', None) and inimigo.atributos.forca >= 28:
-                self._tocar_sfx("ui_erro")
-                self.adicionar_log(CombatNarrator.obter_mensagem("fuga_impossivel"))
-                self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_impossivel"), hx + 20, hy - 15, TEXTO_ALERTA_COMBATE, duracao=75)
-                self.timer_acao = self._ajustar_timer(60)
-                self.estado_combate = "EXECUTANDO_ACAO"
-                return
-
-        # 2. Cálculo de chance baseado em Destreza, fadiga e quantidade de oponentes
-        des_inimigos = sum(getattr(i, 'atributos', None).destreza if hasattr(i, 'atributos') else 10 for i in inimigos_vivos) / max(1, len(inimigos_vivos))
-        des_jogador = self.jogador.atributos.destreza
-        
-        # Chance base: 45% + vantagem de destreza
-        chance_fuga = 45.0 + ((des_jogador - des_inimigos) * 3.5)
-        
-        # Penalidade por múltiplos inimigos (-12% por inimigo adicional bloqueando o caminho)
-        penalidade_cerco = (len(inimigos_vivos) - 1) * 12.0
-        chance_fuga -= penalidade_cerco
-
-        # Penalidade se a Halia estiver com vida baixa (< 30%) devido à exaustão física
-        if self.jogador.vida_atual < (self.jogador.vida_maxima * 0.3):
-            chance_fuga -= 10.0
-
-        # Limites táticos: nunca 100% garantido nem totalmente impossível (12% min, 70% max)
-        chance_fuga = max(12.0, min(70.0, chance_fuga))
-        rolagem = random.uniform(0.0, 100.0)
-
-        if rolagem <= chance_fuga:
-            self._tocar_sfx("fuga")
-            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_sucesso"))
-            self.estado_combate = "FUGIU"
-        else:
-            self._tocar_sfx("ui_erro")
-            self.adicionar_texto_flutuante(CombatNarrator.obter_popup("fuga_falhou"), hx + 30, hy - 15, (245, 150, 80), duracao=75)
-            self.adicionar_log(CombatNarrator.obter_mensagem("fuga_falhou"))
-            # Perde a ação do turno e os inimigos atacam em seguida
-            self.timer_acao = self._ajustar_timer(65)
-            self.estado_combate = "EXECUTANDO_ACAO"
+        return self.ai_controller.tentar_fuga()
 
     # =========================================================================
     # ATUALIZAÇÃO DO MOTOR DE COMBATE
@@ -946,64 +653,15 @@ class CombatScreen:
 
     def _finalizar_vitoria(self):
         """Distribui recompensas acumuladas de todos os inimigos e exibe banner."""
-        self.recompensas_vitoria = {"moedas": 0, "memorias": 0, "xp": 0}
-        
-        for inimigo in self.inimigos:
-            rec = getattr(inimigo, 'recompensas', {})
-            self.recompensas_vitoria["moedas"] += rec.get("moedas", 10)
-            self.recompensas_vitoria["memorias"] += rec.get("memorias", 0)
-            self.recompensas_vitoria["xp"] += rec.get("xp", 15)
-
-        # Entrega recompensas à Halia
-        if hasattr(self.jogador, 'ganhar_dinheiro'):
-            self.jogador.ganhar_dinheiro(self.recompensas_vitoria["moedas"])
-        if hasattr(self.jogador, 'recuperar_memoria') and self.recompensas_vitoria["memorias"] > 0:
-            self.jogador.recuperar_memoria(self.recompensas_vitoria["memorias"])
-        if hasattr(self.jogador, 'ganhar_xp') and self.recompensas_vitoria.get("xp", 0) > 0:
-            self.jogador.ganhar_xp(self.recompensas_vitoria["xp"])
-
-        self.adicionar_log(CombatNarrator.obter_mensagem(
-            "vitoria",
-            moedas=self.recompensas_vitoria['moedas'],
-            memorias=self.recompensas_vitoria['memorias'],
-            xp=self.recompensas_vitoria.get('xp', 0)
-        ))
-        self.estado_combate = "VITORIA"
-        if hasattr(self, 'game') and hasattr(self.game, 'conquistas') and self.game.conquistas:
-            self.game.conquistas.desbloquear("primeiro_sangue")
-            for inimigo in self.inimigos:
-                if isinstance(inimigo, Boss) or getattr(inimigo, 'eh_chefe', False) or "superior" in getattr(inimigo, 'nome', '').lower():
-                    self.game.conquistas.desbloquear("cacadora_abissal")
-                    break
-        audio = AudioManager.get_instance()
-        if audio:
-            audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)
+        return self.ai_controller.finalizar_vitoria()
 
     def _finalizar_derrota(self):
         """Configura estado de derrota."""
-        self.adicionar_log(CombatNarrator.obter_mensagem("derrota"))
-        self.estado_combate = "DERROTA"
-        audio = AudioManager.get_instance()
-        if audio:
-            audio.tocar_musica("derrota", loop=0, fade_ms=400, salvar_anterior=False)
+        return self.ai_controller.finalizar_derrota()
 
     def _concluir_fechamento_combate(self):
         """Dispara os callbacks configurados ao encerrar e restaura a trilha do mapa."""
-        self.efeitos_visuais.limpar()
-        if hasattr(self.jogador, 'sair_combate'):
-            self.jogador.sair_combate()
-
-        # Restaura a música de exploração que tocava antes do combate
-        audio = AudioManager.get_instance()
-        if audio:
-            audio.restaurar_musica_anterior(fade_ms=600)
-
-        if self.estado_combate == "VITORIA" and callable(self.on_vitoria):
-            self.on_vitoria()
-        elif self.estado_combate == "DERROTA" and callable(self.on_derrota):
-            self.on_derrota()
-        elif self.estado_combate == "FUGIU" and callable(self.on_fuga):
-            self.on_fuga()
+        return self.ai_controller.concluir_fechamento_combate()
 
     # =========================================================================
     # MÉTODOS DE LOG & QUEBRA DE LINHA (WORD WRAP)

@@ -10,6 +10,7 @@ _ALIASES_LEGAIS = {
     f"{__name__}.minigame_base": f"{__name__}.minigames.minigame_base",
     f"{__name__}.minigame_ferraria": f"{__name__}.minigames.minigame_ferraria",
     f"{__name__}.minigame_curandeira": f"{__name__}.minigames.minigame_curandeira",
+    f"{__name__}.combat_ai": f"{__name__}.combat.combat_ai",
     f"{__name__}.combat_effects": f"{__name__}.combat.combat_effects",
     f"{__name__}.combat_input": f"{__name__}.combat.combat_input",
     f"{__name__}.combat_narrator": f"{__name__}.combat.combat_narrator",
@@ -18,6 +19,17 @@ _ALIASES_LEGAIS = {
     f"{__name__}.cinematica_dragao": f"{__name__}.cutscenes.cinematica_dragao",
     f"{__name__}.cutscene_manager": f"{__name__}.cutscenes.cutscene_manager",
     f"{__name__}.cutscene_reconstrucao_visual": f"{__name__}.cutscenes.cutscene_reconstrucao_visual",
+    f"{__name__}.item_factory": f"{__name__}.items.item_factory",
+    f"{__name__}.inventory": f"{__name__}.items.inventory",
+    f"{__name__}.crafting": f"{__name__}.items.crafting",
+    f"{__name__}.shop": f"{__name__}.items.shop",
+    f"{__name__}.quest_manager": f"{__name__}.progression.quest_manager",
+    f"{__name__}.dialogue_manager": f"{__name__}.progression.dialogue_manager",
+    f"{__name__}.achievement_manager": f"{__name__}.progression.achievement_manager",
+    f"{__name__}.attributes": f"{__name__}.rpg.attributes",
+    f"{__name__}.conditions": f"{__name__}.rpg.conditions",
+    f"{__name__}.skills": f"{__name__}.rpg.skills",
+    f"{__name__}.grimorio": f"{__name__}.rpg.grimorio",
 }
 
 

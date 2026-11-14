@@ -1,8 +1,6 @@
 # src/maps/map_loader.py
-from src.maps.mapa_casa import MapaCasa
-from src.maps.mapa_estrada import MapaEstrada
-from src.maps.mapa_estrada_2 import MapaEstrada2
-from src.maps.mapa_oakhaven import (
+from src.maps.prologo import MapaCasa, MapaEstrada, MapaEstrada2
+from src.maps.oakhaven import (
     MapaOakhaven,
     MapaOrlaNorte,
     MapaOakhavenDestruida,

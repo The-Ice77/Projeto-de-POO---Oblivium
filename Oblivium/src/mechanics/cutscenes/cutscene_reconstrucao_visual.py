@@ -3,11 +3,6 @@ import pygame
 import math
 import random
 import os
-import sys
-
-_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-if _raiz not in sys.path:
-    sys.path.insert(0, _raiz)
 
 from src.utils.resource_manager import ResourceManager
 from src.utils.colors import (

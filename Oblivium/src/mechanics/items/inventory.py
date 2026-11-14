@@ -1,13 +1,6 @@
-# src/mechanics/inventory.py
-import os
-import sys
-
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
-
-from src.mechanics.items import EquipamentoItem, GrimorioItem
-from src.mechanics.item_factory import ItemFactory
+# src/mechanics/items/inventory.py
+from src.mechanics.items.items import EquipamentoItem, GrimorioItem
+from src.mechanics.items.item_factory import ItemFactory
 
 class ItemSlot:
     """Representa um slot ocupado ou gerenciado dentro do inventário."""

@@ -1,12 +1,7 @@
 # src/ui/notification_manager.py
 import pygame
 import os
-import sys
 import json
-
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
 
 from src.utils.colors import (
     CARVAO_PROFUNDO, MARFIM_OFFWHITE, CINZA_LINHO, CINZA_ARDOSIA, BORDA_DESTAQUE

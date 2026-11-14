@@ -1,16 +1,12 @@
-# src/mechanics/shop.py
+# src/mechanics/items/shop.py
 import copy
 import json
 import logging
 import os
-import sys
 
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
-
-from src.mechanics.items import ItemChave
-from src.mechanics.item_factory import ItemFactory
+from src.mechanics.items.items import ItemChave
+from src.mechanics.items.item_factory import ItemFactory
+from src.utils.constants import PASTA_DATA
 
 logger = logging.getLogger(__name__)
 
@@ -69,10 +65,7 @@ class Loja:
         if cls._CATALOGO_JSON is not None:
             return cls._CATALOGO_JSON
 
-        caminho_json = os.path.join(_raiz_projeto, "Oblivium", "src", "data", "lojas.json")
-        if not os.path.isfile(caminho_json):
-            # Tenta caminho relativo direto sem prefixo 'Oblivium'
-            caminho_json = os.path.join(_raiz_projeto, "src", "data", "lojas.json")
+        caminho_json = os.path.join(PASTA_DATA, "lojas.json")
 
         if os.path.isfile(caminho_json):
             try:

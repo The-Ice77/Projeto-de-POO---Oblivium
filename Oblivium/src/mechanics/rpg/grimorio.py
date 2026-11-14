@@ -1,16 +1,11 @@
-# src/mechanics/grimorio.py
+# src/mechanics/rpg/grimorio.py
 import json
 import os
-import sys
 
-# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
-
-from src.mechanics.skills import (
+from src.mechanics.rpg.skills import (
     AtaqueFisico, MagiaOfensiva, MagiaCura, AcaoDefender, AcaoFoco, SkillsRegistry
 )
+from src.utils.constants import PASTA_DATA
 
 class GrimorioHalia:
     """
@@ -24,8 +19,7 @@ class GrimorioHalia:
     def carregar_catalogo(cls, caminho_json=None):
         """Carrega as definições do grimório da Halia a partir do arquivo JSON."""
         if caminho_json is None:
-            diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-            caminho_json = os.path.join(diretorio_atual, "..", "data", "grimorio_halia.json")
+            caminho_json = os.path.join(PASTA_DATA, "grimorio_halia.json")
 
         if not os.path.exists(caminho_json):
             print(f"[GrimorioHalia] Aviso: Arquivo '{caminho_json}' nao encontrado.")

@@ -1,4 +1,4 @@
-# src/mechanics/items.py
+# src/mechanics/items/items.py
 from abc import ABC
 
 class ItemBase(ABC):

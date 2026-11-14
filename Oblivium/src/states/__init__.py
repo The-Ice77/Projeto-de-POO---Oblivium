@@ -10,6 +10,14 @@ _ALIASES_LEGAIS = {
     f"{__name__}.playing_states": f"{__name__}.playing.playing_states",
     f"{__name__}.prologo_controller": f"{__name__}.playing.prologo_controller",
     f"{__name__}.oakhaven_controller": f"{__name__}.playing.oakhaven_controller",
+    f"{__name__}.menu_states": f"{__name__}.menus.menu_states",
+    f"{__name__}.pause_states": f"{__name__}.menus.pause_states",
+    f"{__name__}.settings_states": f"{__name__}.menus.settings_states",
+    f"{__name__}.controles_state": f"{__name__}.menus.controles_state",
+    f"{__name__}.selecao_controles_state": f"{__name__}.menus.selecao_controles_state",
+    f"{__name__}.slots_states": f"{__name__}.menus.slots_states",
+    f"{__name__}.conquistas_state": f"{__name__}.menus.conquistas_state",
+    f"{__name__}.credits_states": f"{__name__}.menus.credits_states",
 }
 
 

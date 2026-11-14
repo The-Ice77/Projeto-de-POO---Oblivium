@@ -1,16 +1,12 @@
-# src/mechanics/item_factory.py
+# src/mechanics/items/item_factory.py
 import json
 import os
-import sys
 
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
-
-from src.mechanics.items import (
+from src.mechanics.items.items import (
     ConsumivelItem, EquipamentoItem, GrimorioItem, MaterialItem, ItemChave,
     EnsinamentoFeiticoItem
 )
+from src.utils.constants import PASTA_DATA
 
 class ItemFactory:
     """
@@ -18,7 +14,7 @@ class ItemFactory:
     Lê o catálogo de src/data/items.json e instancia os objetos polimórficos correspondentes.
     """
     _catalogo_cache = None
-    _CAMINHO_JSON = os.path.join(os.path.dirname(__file__), "..", "data", "items.json")
+    _CAMINHO_JSON = os.path.join(PASTA_DATA, "items.json")
 
     @classmethod
     def carregar_catalogo(cls, recarregar=False):

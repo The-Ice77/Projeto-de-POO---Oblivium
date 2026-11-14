@@ -2,43 +2,42 @@
 import pygame
 from src.ui.menu import Menu
 from src.ui.dialogue_box import DialogueBox  
-from src.ui.intro import Intro
+from src.ui.scenes import Intro, Flashback, TelaDespertarMemoria
 from src.entities.player import Player
-from src.mechanics.attributes import Atributos
-from src.mechanics.inventory import Inventario
+from src.mechanics.rpg import Atributos
+from src.mechanics.items import Inventario
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
 from src.entities.npc_factory import NPCFactory
-from src.ui.flashback import Flashback  
 from src.mechanics.minigames import MinigameTiming, MinigameMash 
 from src.mechanics.combat import CombatScreen
 from src.core.save_manager import SaveManager
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
-from src.ui.tela_despertar import TelaDespertarMemoria
 from src.ui.notification_manager import NotificationManager
 from src.utils.dev_commands import ComandosDev
 from src.utils.animations import EfeitoFolhas
 from src.utils.clima import EfeitoChuva
 from src.core.audio_manager import AudioManager
-from src.mechanics.achievement_manager import AchievementManager
-from src.mechanics.quest_manager import QuestManager
+from src.mechanics.progression import AchievementManager, QuestManager
 from src.ui.quest_tracker import QuestTracker
 
 # Importação dos Estados Estruturados
-from src.states.menu_states import MenuState
+from src.states.menus import (
+    MenuState,
+    PauseState,
+    CreditsState,
+    SettingsState,
+    ControlesState,
+    SlotsState,
+    SelecaoControlesState,
+    ConquistasState,
+)
 from src.states.playing import PlayingState
 from src.states.intro_states import IntroState
 from src.states.combat_states import CombatState
-from src.states.pause_states import PauseState
-from src.states.credits_states import CreditsState
-from src.states.settings_states import SettingsState
-from src.states.controles_state import ControlesState
-from src.states.slots_states import SlotsState
 from src.states.inventory_states import InventoryState
 from src.states.shop_states import ShopState
-from src.states.selecao_controles_state import SelecaoControlesState
-from src.states.conquistas_state import ConquistasState
 
 
 

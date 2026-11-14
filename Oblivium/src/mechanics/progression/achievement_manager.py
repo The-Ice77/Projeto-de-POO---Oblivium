@@ -1,17 +1,19 @@
-# src/mechanics/achievement_manager.py
+# src/mechanics/progression/achievement_manager.py
 import json
 import os
 import datetime
 import logging
 
+from src.utils.constants import PASTA_DATA, PASTA_OBLIVIUM, PASTA_SRC
+
 logger = logging.getLogger(__name__)
 
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
-DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)
-DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_SRC)
+DIRETORIO_SRC = PASTA_SRC
+DIRETORIO_RAIZ = PASTA_OBLIVIUM
 PASTA_SAVES = os.path.join(DIRETORIO_RAIZ, "saves")
 ARQUIVO_CONQUISTAS_SAVE = os.path.join(PASTA_SAVES, "conquistas.json")
-ARQUIVO_CONQUISTAS_CATALOGO = os.path.join(DIRETORIO_SRC, "data", "conquistas.json")
+ARQUIVO_CONQUISTAS_CATALOGO = os.path.join(PASTA_DATA, "conquistas.json")
 
 
 class AchievementManager:

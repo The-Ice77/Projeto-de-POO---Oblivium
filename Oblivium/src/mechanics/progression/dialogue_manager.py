@@ -1,7 +1,9 @@
-# src/mechanics/dialogue_manager.py
+# src/mechanics/progression/dialogue_manager.py
 import json
 import logging
 import os
+
+from src.utils.constants import PASTA_DATA
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class DialogueManager:
     - Fornecer retrocompatibilidade com sequências manuais de falas (listas de dicionários).
     """
 
-    _DIRETORIO_DATA = os.path.join(os.path.dirname(__file__), "..", "data")
+    _DIRETORIO_DATA = PASTA_DATA
     _PASTA_DIALOGOS_MODULAR = os.path.join(_DIRETORIO_DATA, "dialogos")
     _CAMINHO_PADRAO_JSON = os.path.join(_DIRETORIO_DATA, "dialogos.json")
 

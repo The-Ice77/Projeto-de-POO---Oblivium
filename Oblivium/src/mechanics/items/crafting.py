@@ -1,14 +1,10 @@
-# src/mechanics/crafting.py
+# src/mechanics/items/crafting.py
 import json
 import os
-import sys
 
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
-
-from src.mechanics.items import EquipamentoItem
-from src.mechanics.item_factory import ItemFactory
+from src.mechanics.items.items import EquipamentoItem
+from src.mechanics.items.item_factory import ItemFactory
+from src.utils.constants import PASTA_DATA
 
 class Receita:
     """Representa uma receita de alquimia, forja ou tecelagem."""
@@ -43,7 +39,7 @@ class CraftingManager:
     """
     Gerenciador de Fabricação de Itens e Aprimoramento de Equipamentos.
     """
-    _CAMINHO_JSON = os.path.join(os.path.dirname(__file__), "..", "data", "receitas.json")
+    _CAMINHO_JSON = os.path.join(PASTA_DATA, "receitas.json")
     _receitas_cache = None
     _custos_upgrade_cache = None
 

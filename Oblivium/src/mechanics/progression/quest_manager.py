@@ -1,14 +1,16 @@
-# src/mechanics/quest_manager.py
+# src/mechanics/progression/quest_manager.py
 import json
 import os
 import logging
 import copy
 
+from src.utils.constants import PASTA_DATA, PASTA_SRC
+
 logger = logging.getLogger(__name__)
 
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
-DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)
-ARQUIVO_MISSOES_CATALOGO = os.path.join(DIRETORIO_SRC, "data", "missoes.json")
+DIRETORIO_SRC = PASTA_SRC
+ARQUIVO_MISSOES_CATALOGO = os.path.join(PASTA_DATA, "missoes.json")
 
 
 class QuestManager:

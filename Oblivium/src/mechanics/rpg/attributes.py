@@ -1,4 +1,4 @@
-# src/mechanics/attributes.py
+# src/mechanics/rpg/attributes.py
 import random
 
 class Atributos:

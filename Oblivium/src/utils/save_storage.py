@@ -36,7 +36,12 @@ def definir_pasta_saves(caminho=None):
     global PASTA_SAVES
     PASTA_SAVES = os.fspath(caminho) if caminho is not None else PASTA_SAVES_PADRAO
 
-    for mod_name in ("src.mechanics.achievement_manager", "Oblivium.src.mechanics.achievement_manager"):
+    for mod_name in (
+        "src.mechanics.achievement_manager",
+        "Oblivium.src.mechanics.achievement_manager",
+        "src.mechanics.progression.achievement_manager",
+        "Oblivium.src.mechanics.progression.achievement_manager",
+    ):
         mod_ach = sys.modules.get(mod_name)
         if mod_ach is not None:
             mod_ach.PASTA_SAVES = PASTA_SAVES

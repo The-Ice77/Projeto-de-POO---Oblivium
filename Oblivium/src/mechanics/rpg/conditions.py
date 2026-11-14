@@ -1,6 +1,8 @@
-# src/mechanics/conditions.py
+# src/mechanics/rpg/conditions.py
 import json
 import os
+
+from src.utils.constants import PASTA_DATA
 
 class Condicao:
     """
@@ -71,8 +73,7 @@ class Condicao:
     def carregar_de_json(cls, caminho_json=None):
         """Carrega todas as definições de condições a partir do JSON."""
         if caminho_json is None:
-            diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-            caminho_json = os.path.join(diretorio_atual, "..", "data", "condicoes.json")
+            caminho_json = os.path.join(PASTA_DATA, "condicoes.json")
 
         if not os.path.exists(caminho_json):
             print(f"[Condicao] Aviso: Arquivo '{caminho_json}' nao encontrado. Usando catalogo em memoria.")
