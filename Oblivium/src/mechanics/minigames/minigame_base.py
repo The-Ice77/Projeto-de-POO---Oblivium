@@ -1,4 +1,4 @@
-# src/mechanics/minigame_base.py
+# src/mechanics/minigames/minigame_base.py
 from abc import ABC, abstractmethod
 
 

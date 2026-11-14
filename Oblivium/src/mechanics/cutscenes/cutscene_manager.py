@@ -1,9 +1,9 @@
-# src/mechanics/cutscene_manager.py
+# src/mechanics/cutscenes/cutscene_manager.py
 import pygame
 import random
 import math
 from src.utils.resource_manager import ResourceManager
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes.cena_base import CenaBase
 
 
 class CutsceneManager(CenaBase):

@@ -1,4 +1,4 @@
-# src/mechanics/minigame_ferraria.py
+# src/mechanics/minigames/minigame_ferraria.py
 import pygame
 import math
 import random
@@ -6,7 +6,7 @@ import os
 import sys
 
 # Garante path raiz de Oblivium
-_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if _raiz not in sys.path:
     sys.path.insert(0, _raiz)
 
@@ -15,7 +15,7 @@ from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_ESCURO, CINZA_LINHO,
     MARFIM_OFFWHITE, DOURADO_ENVELHECIDO, AZUL_HOVER_MENU
 )
-from src.mechanics.minigame_base import MinigameBase
+from src.mechanics.minigames.minigame_base import MinigameBase
 
 class ParticulaRocha:
     """Partícula leve para faíscas arcanas e estilhaços da rocha partida."""

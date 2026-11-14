@@ -1,4 +1,4 @@
-# src/mechanics/combat_renderer.py
+# src/mechanics/combat/combat_renderer.py
 import pygame
 import random
 from src.ui.ui_utils import (
@@ -14,7 +14,7 @@ from src.utils.colors import (
     AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
 from src.utils.resource_manager import ResourceManager
-from src.mechanics.combat_narrator import CombatNarrator
+from src.mechanics.combat.combat_narrator import CombatNarrator
 
 class TextoFlutuante:
     """Gerencia textos flutuantes de dano, cura ou status na tela de combate."""

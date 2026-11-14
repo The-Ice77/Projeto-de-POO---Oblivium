@@ -1,4 +1,4 @@
-# src/mechanics/combat_effects.py
+# src/mechanics/combat/combat_effects.py
 import pygame
 import math
 import random

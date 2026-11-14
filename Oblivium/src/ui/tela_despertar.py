@@ -10,7 +10,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_flor_botanica
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes import CenaBase
 
 class TelaDespertarMemoria(CenaBase):
     """

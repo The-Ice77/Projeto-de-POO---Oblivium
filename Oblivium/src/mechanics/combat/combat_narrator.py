@@ -1,4 +1,4 @@
-# src/mechanics/combat_narrator.py
+# src/mechanics/combat/combat_narrator.py
 import os
 import json
 import logging
@@ -23,7 +23,7 @@ class CombatNarrator:
         if cls._dados is not None:
             return
 
-        caminho_json = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "combat_texts.json")
+        caminho_json = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "combat_texts.json"))
         try:
             with open(caminho_json, "r", encoding="utf-8") as f:
                 cls._dados = json.load(f)

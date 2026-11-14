@@ -27,7 +27,7 @@ from src.ui.quest_tracker import QuestTracker
 
 # Importação dos Estados Estruturados
 from src.states.menu_states import MenuState
-from src.states.playing_states import PlayingState
+from src.states.playing import PlayingState
 from src.states.intro_states import IntroState
 from src.states.combat_states import CombatState
 from src.states.pause_states import PauseState

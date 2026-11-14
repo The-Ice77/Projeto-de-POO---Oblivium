@@ -4,7 +4,7 @@ from src.utils.colors import CARVAO_PROFUNDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_T
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_flor_botanica
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes import CenaBase
 
 class Intro(CenaBase):
     """

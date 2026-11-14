@@ -1,13 +1,14 @@
-# src/states/playing_states.py
+# src/states/playing/playing_states.py
 import pygame
 from src.states.states import State
-from src.states.prologo_controller import PrologoController
-from src.states.oakhaven_controller import OakhavenController
-from src.mechanics.cutscene_manager import CutsceneManager
-from src.mechanics.cinematica_dragao import CinematicaAtaqueDragao
-from src.mechanics.minigame_ferraria import MinigameFerraria
-from src.mechanics.minigame_curandeira import MinigameCurandeira
-from src.mechanics.cutscene_reconstrucao_visual import CutsceneReconstrucaoVisual
+from src.states.playing.prologo_controller import PrologoController
+from src.states.playing.oakhaven_controller import OakhavenController
+from src.mechanics.cutscenes import (
+    CutsceneManager,
+    CinematicaAtaqueDragao,
+    CutsceneReconstrucaoVisual,
+)
+from src.mechanics.minigames import MinigameFerraria, MinigameCurandeira
 from src.ui.ui_utils import desenhar_indicador_tecla
 
 class PlayingState(State):

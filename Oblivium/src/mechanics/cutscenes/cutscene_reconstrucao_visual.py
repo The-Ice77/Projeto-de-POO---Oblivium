@@ -1,11 +1,11 @@
-# src/mechanics/cutscene_reconstrucao_visual.py
+# src/mechanics/cutscenes/cutscene_reconstrucao_visual.py
 import pygame
 import math
 import random
 import os
 import sys
 
-_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if _raiz not in sys.path:
     sys.path.insert(0, _raiz)
 
@@ -16,7 +16,7 @@ from src.utils.colors import (
     TXT_ECO_PASSADO, UI_TEXTO_APAGADO
 )
 from src.ui.ui_utils import quebrar_texto_em_linhas
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes.cena_base import CenaBase
 
 
 class ParticulaReconstrucao:

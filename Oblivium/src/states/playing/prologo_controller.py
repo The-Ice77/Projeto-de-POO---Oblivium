@@ -1,4 +1,4 @@
-# src/states/prologo_controller.py
+# src/states/playing/prologo_controller.py
 import pygame
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.item_factory import ItemFactory

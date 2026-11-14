@@ -9,7 +9,7 @@ from src.utils.colors import (
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.maps.mapa_flashback import MapaFlashbackAcampamento
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes import CenaBase
 
 
 class Flashback(CenaBase):

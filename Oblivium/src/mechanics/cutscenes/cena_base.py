@@ -1,4 +1,4 @@
-# src/mechanics/cena_base.py
+# src/mechanics/cutscenes/cena_base.py
 from abc import ABC, abstractmethod
 
 

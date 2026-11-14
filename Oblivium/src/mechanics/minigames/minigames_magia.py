@@ -1,4 +1,4 @@
-# src/mechanics/minigames.py
+# src/mechanics/minigames/minigames_magia.py
 import pygame
 import random
 import math
@@ -9,7 +9,7 @@ from src.utils.colors import (
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao
 from src.core.audio_manager import AudioManager
-from src.mechanics.minigame_base import MinigameBase
+from src.mechanics.minigames.minigame_base import MinigameBase
 
 
 def _tocar_sfx_seguro(alias):

@@ -1,4 +1,4 @@
-# src/mechanics/cinematica_dragao.py
+# src/mechanics/cutscenes/cinematica_dragao.py
 import math
 import random
 import pygame
@@ -6,7 +6,7 @@ from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.utils.colors import DOURADO_ENVELHECIDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_TEXTO_APAGADO
 from src.entities.elemento_cenario import ChamaIndependente
-from src.mechanics.cena_base import CenaBase
+from src.mechanics.cutscenes.cena_base import CenaBase
 
 
 class CinematicaAtaqueDragao(CenaBase):
