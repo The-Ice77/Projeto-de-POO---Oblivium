@@ -238,27 +238,48 @@ class Entidade(ABC):
             cor = (34, 139, 34) if self.vivo else (100, 100, 100)
             pygame.draw.rect(tela, cor, (int(self.x), int(self.y), self.largura, self.altura))
 
+    @staticmethod
+    def normalizar_recurso(valor, casas=1):
+        """Remove ruído binário de ponto flutuante e retorna int quando o valor é exato."""
+        try:
+            num = round(float(valor or 0.0), casas)
+        except (TypeError, ValueError):
+            return 0
+        if abs(num) < (10 ** (-(casas + 1))):
+            return 0
+        return int(round(num)) if float(num).is_integer() else num
+
     def receber_dano(self, dano):
-        if not self.vivo: return
+        if not self.vivo:
+            return 0
+        vida_antes = float(self._vida_atual)
         self.vida_atual = self._vida_atual - float(dano)
-            
+        return self.normalizar_recurso(max(0.0, vida_antes - float(self._vida_atual)))
+
     def esta_vivo(self):
         """Retorna se a entidade está viva e com pontos de vida."""
         return self.vivo and self._vida_atual > 0.0
 
     def curar(self, cura):
-        if not self.vivo: return
+        if not self.vivo:
+            return 0
+        vida_antes = float(self._vida_atual)
         self.vida_atual = self._vida_atual + float(cura)
+        return self.normalizar_recurso(max(0.0, float(self._vida_atual) - vida_antes))
 
     def recuperar_mana(self, quantidade):
-        """Recupera mana sem ultrapassar o limite máximo."""
-        if not self.vivo: return
-        self.mana_atual = min(self.mana_maxima, round(self.mana_atual + quantidade, 1))
+        """Recupera mana sem ultrapassar o limite máximo e retorna o delta efetivo."""
+        if not self.vivo:
+            return 0
+        mana_antes = float(self.mana_atual)
+        nova_mana = min(float(self.mana_maxima), mana_antes + float(quantidade))
+        self.mana_atual = self.normalizar_recurso(nova_mana)
+        return self.normalizar_recurso(max(0.0, float(self.mana_atual) - mana_antes))
 
     def gastar_mana(self, custo):
         """Deduz mana se houver o suficiente. Retorna True se sucesso, False se insuficiente."""
         if self.mana_atual >= custo:
-            self.mana_atual = round(self.mana_atual - custo, 1)
+            self.mana_atual = self.normalizar_recurso(max(0.0, float(self.mana_atual) - float(custo)))
             return True
         return False
 

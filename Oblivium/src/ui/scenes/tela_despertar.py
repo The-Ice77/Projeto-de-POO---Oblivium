@@ -118,6 +118,7 @@ class TelaDespertarMemoria(CenaBase):
         self.shake_timer = 0
         self.flash_alpha = 0
         self.particulas = []
+        self._impacto_disparado = False
         
         self.amuleto_x = float(self.largura // 2)
         self.amuleto_y = float(self.altura // 2)
@@ -144,7 +145,21 @@ class TelaDespertarMemoria(CenaBase):
     def estado(self):
         return "INATIVO" if self.passo == "INATIVO" else "ATIVO"
 
-    def reiniciar(self):
+    def _sincronizar_ambiente(self):
+        sincronizar = getattr(self.game, "sincronizar_ambiente_cenario", None)
+        if callable(sincronizar):
+            sincronizar(fade_ms=300)
+
+    def _limpar_audio(self):
+        audio = getattr(self.game, "audio", None)
+        parar = getattr(audio, "parar_sfx_contexto", None)
+        if callable(parar):
+            parar("despertar", fade_ms=120)
+
+    def reiniciar(self, sincronizar_ambiente=True):
+        estava_ativo = self.ativo
+        if estava_ativo:
+            self._limpar_audio()
         self.passo = "INATIVO"
         self.alpha_fundo = 0
         self.alpha_conteudo = 0
@@ -154,9 +169,14 @@ class TelaDespertarMemoria(CenaBase):
         self._reiniciar_estado_execucao(on_concluido=None)
         self.shake_timer = 0
         self.flash_alpha = 0
+        self._impacto_disparado = False
+        if estava_ativo and sincronizar_ambiente:
+            self._sincronizar_ambiente()
 
     def iniciar(self, estagio_antigo, novo_estagio, on_concluido=None):
         """Inicia a sequência de despertar a partir do passo 1: TITULO."""
+        if self.ativo:
+            self._limpar_audio()
         self.estagio_antigo = max(0, min(7, int(estagio_antigo)))
         self.novo_estagio = max(1, min(7, int(novo_estagio)))
         self.on_concluido = None
@@ -167,6 +187,7 @@ class TelaDespertarMemoria(CenaBase):
         self.alpha_conteudo = 0
         self.alpha_texto = 0
         self.particulas.clear()
+        self._impacto_disparado = False
         
         self.amuleto_x = float(self.largura // 2)
         self.amuleto_y = float(self.altura // 2)
@@ -174,6 +195,7 @@ class TelaDespertarMemoria(CenaBase):
         self.escala_amuleto = 2.6
         self.tempo_inicio_passo = pygame.time.get_ticks()
         self.tempo_ultimo_input = pygame.time.get_ticks()
+        self._sincronizar_ambiente()
         if self.game and getattr(self.game, "audio", None):
             self.game.audio.tocar_musica(
                 "cutscene_magia", loop=-1, fade_ms=800, salvar_anterior=True, contexto="cutscene"
@@ -197,11 +219,16 @@ class TelaDespertarMemoria(CenaBase):
 
     def finalizar(self):
         """Encerra a tela de despertar garantindo disparo único de on_concluido."""
+        if not self.ativo:
+            return False
+        # O callback pode iniciar a onda de cores ou a próxima cena.
+        self._limpar_audio()
         self.alpha_fundo = 0
         self.alpha_conteudo = 0
         self.alpha_texto = 0
         self.passo = "INATIVO"
         resultado = super().finalizar()
+        self._sincronizar_ambiente()
         if self.game and hasattr(self.game, "sincronizar_trilha_cenario"):
             self.game.sincronizar_trilha_cenario(fade_ms=1000)
         return resultado
@@ -235,6 +262,12 @@ class TelaDespertarMemoria(CenaBase):
                 self.tempo_inicio_passo = agora
 
     def _disparar_impacto(self):
+        if not self.ativo or self._impacto_disparado:
+            return
+        self._impacto_disparado = True
+        audio = getattr(self.game, "audio", None)
+        if audio:
+            audio.tocar_sfx("memoria_despertar", volume_extra=0.65, contexto="despertar")
         self.escala_amuleto = 2.5
         self.shake_timer = 15
         self.flash_alpha = 230

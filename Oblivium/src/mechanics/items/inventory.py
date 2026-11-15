@@ -156,6 +156,26 @@ class Inventario:
 
         return True
 
+    def estornar_item(self, item, idx_preferido=None):
+        """Restaura uma unidade de instância de item removida preservando pilha ou posição."""
+        slot_existente = next(
+            (
+                s for s in self.slots
+                if s.item is item or (
+                    getattr(item, "acumulavel", True)
+                    and s.item.id == item.id
+                    and s.quantidade < getattr(s.item, "quantidade_maxima", 99)
+                )
+            ),
+            None,
+        )
+        if slot_existente is not None:
+            slot_existente.quantidade += 1
+            return True
+        pos = len(self.slots) if idx_preferido is None else max(0, min(idx_preferido, len(self.slots)))
+        self.slots.insert(pos, ItemSlot(item, 1))
+        return True
+
     def obter_quantidade(self, item_id):
         """Retorna o total acumulado de um item em todos os slots."""
         total = 0

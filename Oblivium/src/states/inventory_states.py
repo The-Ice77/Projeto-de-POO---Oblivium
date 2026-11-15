@@ -13,7 +13,6 @@ from src.ui.ui_utils import (
     quebrar_texto_em_linhas
 )
 from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem, EnsinamentoFeiticoItem
-from src.mechanics.crafting import CraftingManager
 from src.mechanics.rpg.grimorio import GrimorioHalia
 from src.states.inventory_tabs import (
     TabInventarioRenderer,
@@ -24,25 +23,11 @@ from src.states.inventory_tabs import (
 
 class InventoryState(State):
     """
-
-    Interface de Menu Geral de Oblivium:
-
-    - [1] INVENTÁRIO: Equipamentos no topo (Roupa, Cajado, Acessórios I e II),
-
-      4 Slots de Grimórios abaixo (Grimórios I, II, III e IV),
-
-      Grelha da bolsa à direita e Tooltip Flutuante que acompanha o mouse.
-
-    - [2] PERFIL: Dividido em 2 blocos limpos e arejados:
-
-      - Bloco 1: Vida, Mana, Esquiva, Bloqueio/Defesa, Crítico, Poder Mágico e Carteira (Ouro, Prata e Cobre).
-
-      - Bloco 2: Os 6 Atributos (INT, SAB, PRE, CON, DES, FOR) com valores e modificadores D20.
-
-    - [3] MAGIA: 2 Colunas (Lista com Scroll na esquerda, Detalhes completos na direita).
-
-    - [4] CRAFTING: Bancada de Fabricação de Alquimia, Forja e Refinamento de Equipamentos.
-
+    Menu de inventário, perfil, magia e bancada selada.
+    Inventário reúne equipamentos, quatro grimórios, bolsa e tooltips.
+    Perfil apresenta recursos, atributos, parâmetros de combate e carteira.
+    Magia oferece lista navegável e detalhes do feitiço selecionado.
+    Crafting informa a necessidade de uma bancada apropriada no mundo.
     """
 
     def __init__(self, game):
@@ -106,10 +91,7 @@ class InventoryState(State):
         self.scroll_magias = 0
         self.rects_lista_magias = []
 
-        # Estado de Crafting
-        self.receita_selecionada_idx = 0
-        self.scroll_crafting = 0
-        self.rects_lista_receitas = []
+        # A bancada permanece selada nesta tela.
         self.rect_botao_fabricar = None
 
         # Estado de Navegação e Hover
@@ -145,64 +127,129 @@ class InventoryState(State):
                 )
                 self.slots_gerais.append(r)
 
+    def _consumir_item_da_bolsa(self, inv, halia, item, sfx_sucesso, on_sucesso=None, idx_slot=None):
+        """Remove uma unidade da bolsa antes do uso e estorna se a aplicação falhar."""
+        if not inv or not inv.tem_item(item.id, 1) or not inv.remover_item(item.id, 1):
+            self._tocar_sfx("ui_erro")
+            self.exibir_mensagem("Aviso: Item indisponível na bolsa.")
+            return False
+        res = item.usar(halia, em_combate=False)
+        if res.get("sucesso"):
+            if on_sucesso:
+                on_sucesso()
+            halia.recalcular_status_derivados(manter_porcentagem=False)
+            self._tocar_sfx(sfx_sucesso)
+            self.exibir_mensagem(f"• {res['mensagem']}")
+            return True
+        inv.estornar_item(item, idx_preferido=idx_slot)
+        self._tocar_sfx("ui_erro")
+        self.exibir_mensagem(f"Aviso: {res.get('mensagem', 'Não foi possível usar este item.')}")
+        return False
+
     def exibir_mensagem(self, texto, duracao_ticks=150):
         """Exibe notificação na barra inferior do menu."""
         self.mensagem_feedback = texto
         self.timer_feedback = duracao_ticks
 
+    def ao_entrar(self, estado_anterior=None):
+        """Sonoriza apenas a abertura pelo mundo ou pelo menu de pausa."""
+        if estado_anterior in ("JOGANDO", "PAUSE"):
+            self._tocar_sfx("livro_abrir")
+
+    def ao_sair(self, proximo_estado=None):
+        """Não sonoriza descarte de estado, carregamento ou reinicialização."""
+        if proximo_estado == "JOGANDO":
+            self._tocar_sfx("ui_voltar")
+
+    def _selecionar_aba(self, indice):
+        if indice != self.aba_principal_ativa:
+            self.aba_principal_ativa = indice
+            self.slot_hover = None
+            self.tooltip_info = None
+            self._tocar_sfx("pagina_virar")
+
+    def _obter_magias(self, halia):
+        return getattr(halia, 'magias_desbloqueadas', None) or ["bola_de_fogo", "levitar"]
+
+    def _grimorio_desbloqueado(self, halia):
+        if halia and hasattr(halia, "tem_grimorio_desbloqueado"):
+            return halia.tem_grimorio_desbloqueado()
+        return getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
+
+    def _viewport_magias(self):
+        # Mesma área recortada por TabMagiaRenderer.
+        return pygame.Rect(self.x_menu + 55, self.y_menu + 135, 370, 405)
+
+    def _selecionar_magia(self, indice, halia):
+        ultimo_indice = len(self._obter_magias(halia)) - 1
+        indice = max(0, min(indice, ultimo_indice))
+        if indice != self.magia_selecionada_idx:
+            self.magia_selecionada_idx = indice
+            self._ajustar_scroll_magia()
+            self._tocar_sfx("ui_cursor")
+
+    def _rolar_magias(self, deslocamento, halia):
+        max_scroll = max(0, len(self._obter_magias(halia)) * 84 - self._viewport_magias().height)
+        novo_scroll = max(0, min(self.scroll_magias + deslocamento, max_scroll))
+        if novo_scroll == self.scroll_magias:
+            return
+        self.scroll_magias = novo_scroll
+        audio = getattr(self.game, "audio", None)
+        if audio:
+            if hasattr(audio, "tocar_sfx_com_cooldown"):
+                audio.tocar_sfx_com_cooldown("ui_cursor", cooldown_s=0.10, volume_extra=0.35)
+            else:
+                self._tocar_sfx("ui_cursor")
+
+    def _slot_na_posicao(self, posicao, inv):
+        """Resolve hover e clique sobre os mesmos slots do inventário atual."""
+        if self.aba_principal_ativa != 0:
+            return None
+        slots = [
+            (self.slot_roupa, "ROUPA"), (self.slot_cajado, "CAJADO"),
+            (self.slot_acess1, "ACESSORIO_1"), (self.slot_acess2, "ACESSORIO_2"),
+        ]
+        slots.extend((rect, f"GRIMORIO_{i+1}") for i, rect in enumerate(self.slots_grimorios))
+        for rect, nome in slots:
+            if rect.collidepoint(posicao):
+                return ("equipamento", nome)
+        if inv:
+            itens = inv.obter_itens_por_categoria(self.mapa_sub_categorias[self.sub_aba_bolsa_ativa])
+            for indice, rect in enumerate(self.slots_gerais):
+                if rect.collidepoint(posicao):
+                    if indice < len(itens):
+                        indice_real, item_slot = itens[indice]
+                        return ("bolsa", indice_real, item_slot)
+                    break
+        return None
+
+    def _tooltip_do_slot(self, slot, inv):
+        if not slot:
+            return None
+        if slot[0] == "bolsa":
+            item_slot = slot[2]
+            return self._gerar_tooltip_item(item_slot.item, item_slot.quantidade)
+        nome = slot[1]
+        item = inv.equipados.get(nome) if inv else None
+        if item:
+            return self._gerar_tooltip_item(item)
+        if nome.startswith("GRIMORIO_"):
+            return (f"Grimório {nome.rsplit('_', 1)[1]}", "Espaço para tomos arcanos e livros de feitiços.", "Vazio")
+        padroes = {
+            "ROUPA": ("Slot de Roupa", "Espaço para mantos e túnicas arcanas."),
+            "CAJADO": ("Slot de Cajado", "Espaço para foco arcano e cajados mágicos."),
+            "ACESSORIO_1": ("Acessório I", "Espaço para anéis, medalhões e relíquias."),
+            "ACESSORIO_2": ("Acessório II", "Espaço para anéis, medalhões e relíquias."),
+        }
+        return (*padroes[nome], "Vazio")
+
     def handle_events(self, eventos, teclas):
         self.pos_mouse = pygame.mouse.get_pos()
         self.hover_fechar = self.rect_fechar.collidepoint(self.pos_mouse)
-        self.slot_hover = None
-        self.tooltip_info = None
-
         halia = getattr(self.game, 'halia', None)
         inv = getattr(halia, 'inventario', None) if halia else None
-
-        # 1. Hover e Tooltips na Aba de Inventário
-        if self.aba_principal_ativa == 0:
-            # Slots de Equipamento (Roupa, Cajado, Acessórios)
-            slots_eq = [
-                (self.slot_roupa, "ROUPA", "Slot de Roupa", "Espaço para mantos e túnicas arcanas."),
-                (self.slot_cajado, "CAJADO", "Slot de Cajado", "Espaço para foco arcano e cajados mágicos."),
-                (self.slot_acess1, "ACESSORIO_1", "Acessório I", "Espaço para anéis, medalhões e relíquias."),
-                (self.slot_acess2, "ACESSORIO_2", "Acessório II", "Espaço para anéis, medalhões e relíquias.")
-            ]
-            for r_s, nome_s, tit_padrao, desc_padrao in slots_eq:
-                if r_s.collidepoint(self.pos_mouse):
-                    self.slot_hover = ("equipamento", nome_s)
-                    item = inv.equipados.get(nome_s) if inv else None
-                    if item:
-                        self.tooltip_info = self._gerar_tooltip_item(item)
-                    else:
-                        self.tooltip_info = (tit_padrao, desc_padrao, "Vazio")
-                    break
-
-            # 4 Slots de Grimórios
-            if not self.slot_hover:
-                for i, r_g in enumerate(self.slots_grimorios):
-                    if r_g.collidepoint(self.pos_mouse):
-                        chave_g = f"GRIMORIO_{i+1}"
-                        self.slot_hover = ("equipamento", chave_g)
-                        item_g = inv.equipados.get(chave_g) if inv else None
-                        if item_g:
-                            self.tooltip_info = self._gerar_tooltip_item(item_g)
-                        else:
-                            self.tooltip_info = (f"Grimório {i+1}", "Espaço para tomos arcanos e livros de feitiços.", "Vazio")
-                        break
-
-            # Slots da Bolsa
-            if not self.slot_hover and inv:
-                cat_filtro = self.mapa_sub_categorias[self.sub_aba_bolsa_ativa]
-                itens_filtrados = inv.obter_itens_por_categoria(cat_filtro)
-
-                for idx_slot, rect_s in enumerate(self.slots_gerais):
-                    if rect_s.collidepoint(self.pos_mouse):
-                        if idx_slot < len(itens_filtrados):
-                            idx_real, item_slot = itens_filtrados[idx_slot]
-                            self.slot_hover = ("bolsa", idx_real, item_slot)
-                            self.tooltip_info = self._gerar_tooltip_item(item_slot.item, item_slot.quantidade)
-                        break
+        self.slot_hover = self._slot_na_posicao(self.pos_mouse, inv)
+        self.tooltip_info = self._tooltip_do_slot(self.slot_hover, inv)
 
         # Processamento de Teclado e Mouse
         for evento in eventos:
@@ -212,88 +259,72 @@ class InventoryState(State):
                     self.game.mudar_estado("JOGANDO")
                     return
 
-                flashback_ok = (
-                    halia.tem_grimorio_desbloqueado()
-                    if halia and hasattr(halia, "tem_grimorio_desbloqueado")
-                    else (getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0))
-                )
+                flashback_ok = self._grimorio_desbloqueado(halia)
 
                 # Atalhos de Abas Principais (1: Inventário, 2: Perfil, 3: Magia, 4: Crafting)
                 if evento.key == pygame.K_1:
-                    self.aba_principal_ativa = 0
+                    self._selecionar_aba(0)
+                    return
                 elif evento.key == pygame.K_2:
-                    self.aba_principal_ativa = 1
+                    self._selecionar_aba(1)
+                    return
                 elif evento.key == pygame.K_3:
-                    self.aba_principal_ativa = 2
+                    self._selecionar_aba(2)
+                    return
                 elif evento.key == pygame.K_4:
-                    self.aba_principal_ativa = 3
+                    self._selecionar_aba(3)
+                    return
                 
                 # Alternar abas com Q / E
                 elif evento.key == pygame.K_q:
-                    self.aba_principal_ativa = (self.aba_principal_ativa - 1) % len(self.abas_principais)
+                    self._selecionar_aba((self.aba_principal_ativa - 1) % len(self.abas_principais))
+                    return
                 elif evento.key == pygame.K_e:
-                    self.aba_principal_ativa = (self.aba_principal_ativa + 1) % len(self.abas_principais)
+                    self._selecionar_aba((self.aba_principal_ativa + 1) % len(self.abas_principais))
+                    return
 
                 # Navegação vertical na lista de magias
                 elif self.aba_principal_ativa == 2 and flashback_ok:
-                    magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar"])
                     if evento.key == pygame.K_UP:
-                        self.magia_selecionada_idx = max(0, self.magia_selecionada_idx - 1)
-                        self._ajustar_scroll_magia()
+                        self._selecionar_magia(self.magia_selecionada_idx - 1, halia)
                     elif evento.key == pygame.K_DOWN:
-                        self.magia_selecionada_idx = min(len(magias_ids) - 1, self.magia_selecionada_idx + 1)
-                        self._ajustar_scroll_magia()
+                        self._selecionar_magia(self.magia_selecionada_idx + 1, halia)
 
                 # Navegação e Atalhos na Aba Crafting
                 elif self.aba_principal_ativa == 3:
-                    receitas = CraftingManager.obter_todas_receitas()
-                    if evento.key == pygame.K_UP:
-                        self.receita_selecionada_idx = max(0, self.receita_selecionada_idx - 1)
-                        self._ajustar_scroll_crafting()
-                    elif evento.key == pygame.K_DOWN:
-                        self.receita_selecionada_idx = min(len(receitas) - 1, self.receita_selecionada_idx + 1)
-                        self._ajustar_scroll_crafting()
-                    elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
+                    if evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                         self._executar_crafting_selecionado(halia)
+                        return
 
             elif evento.type == pygame.MOUSEWHEEL:
-                if self.aba_principal_ativa == 2:
-                    self.scroll_magias = max(0, self.scroll_magias - (evento.y * 36))
-                elif self.aba_principal_ativa == 3:
-                    self.scroll_crafting = max(0, self.scroll_crafting - (evento.y * 36))
+                flashback_ok = self._grimorio_desbloqueado(halia)
+                if self.aba_principal_ativa == 2 and flashback_ok:
+                    self._rolar_magias(-(evento.y * 36), halia)
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
+                slot_clicado = self._slot_na_posicao(evento.pos, inv)
                 if evento.button == 1:  # Clique Esquerdo
                     if self.rect_fechar.collidepoint(evento.pos):
                         self.game.mudar_estado("JOGANDO")
                         return
 
-                    flashback_ok = (
-                        halia.tem_grimorio_desbloqueado()
-                        if halia and hasattr(halia, "tem_grimorio_desbloqueado")
-                        else (getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0))
-                    )
+                    flashback_ok = self._grimorio_desbloqueado(halia)
                     
                     # Clique nas Abas Principais
                     for i, r_aba in enumerate(self.rects_abas_principais):
                         if r_aba.collidepoint(evento.pos):
-                            self.aba_principal_ativa = i
+                            self._selecionar_aba(i)
                             return
 
                     # Interações na Aba Magia (Seleção por clique)
                     if self.aba_principal_ativa == 2 and flashback_ok:
                         for idx_m, r_m in enumerate(self.rects_lista_magias):
-                            if r_m.collidepoint(evento.pos):
-                                self.magia_selecionada_idx = idx_m
+                            if r_m.collidepoint(evento.pos) and self._viewport_magias().collidepoint(evento.pos):
+                                self._selecionar_magia(idx_m, halia)
                                 return
 
                     # Interações na Aba Crafting (Seleção e Botão Fabricar)
                     if self.aba_principal_ativa == 3:
-                        for idx_r, r_rec in enumerate(self.rects_lista_receitas):
-                            if r_rec.collidepoint(evento.pos):
-                                self.receita_selecionada_idx = idx_r
-                                return
-
                         if self.rect_botao_fabricar and self.rect_botao_fabricar.collidepoint(evento.pos):
                             self._executar_crafting_selecionado(halia)
                             return
@@ -302,37 +333,26 @@ class InventoryState(State):
                     if self.aba_principal_ativa == 0:
                         for s_idx, r_sub in enumerate(self.rects_sub_abas_bolsa):
                             if r_sub.collidepoint(evento.pos):
-                                self.sub_aba_bolsa_ativa = s_idx
+                                if s_idx != self.sub_aba_bolsa_ativa:
+                                    self.sub_aba_bolsa_ativa = s_idx
+                                    self.slot_hover = None
+                                    self.tooltip_info = None
+                                    self._tocar_sfx("ui_cursor")
                                 return
 
                         # Usar / Equipar Item da Bolsa
-                        if self.slot_hover and self.slot_hover[0] == "bolsa" and inv:
-                            idx_real = self.slot_hover[1]
-                            item_slot = self.slot_hover[2]
+                        if slot_clicado and slot_clicado[0] == "bolsa" and inv:
+                            idx_real = slot_clicado[1]
+                            item_slot = slot_clicado[2]
                             item = item_slot.item
 
                             if isinstance(item, ConsumivelItem):
-                                res = item.usar(halia, em_combate=False)
-                                if res["sucesso"]:
-                                    inv.remover_item(item.id, 1)
-                                    halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self._tocar_sfx("item_pocao")
-                                    self.exibir_mensagem(f"• {res['mensagem']}")
-                                else:
-                                    self._tocar_sfx("ui_erro")
-                                    self.exibir_mensagem(f"Aviso: {res['mensagem']}")
+                                self._consumir_item_da_bolsa(inv, halia, item, "item_pocao", idx_slot=idx_real)
 
                             elif isinstance(item, EnsinamentoFeiticoItem) or getattr(item, 'categoria', '') == "ENSINAMENTO":
-                                res = item.usar(halia, em_combate=False)
-                                if res["sucesso"]:
-                                    inv.remover_item(item.id, 1)
-                                    halia.atualizar_grimorio()
-                                    halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self._tocar_sfx("pagina_virar")
-                                    self.exibir_mensagem(f"• {res['mensagem']}")
-                                else:
-                                    self._tocar_sfx("ui_erro")
-                                    self.exibir_mensagem(f"Aviso: {res['mensagem']}")
+                                self._consumir_item_da_bolsa(
+                                    inv, halia, item, "pagina_virar", on_sucesso=halia.atualizar_grimorio, idx_slot=idx_real
+                                )
 
                             elif isinstance(item, EquipamentoItem):
                                 slot_destino = item.slot
@@ -342,7 +362,7 @@ class InventoryState(State):
                                 sucesso, msg = inv.equipar(slot_destino, idx_real)
                                 if sucesso:
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self._tocar_sfx("desembainhar" if "ARMA" in slot_destino else "equipar_armadura")
+                                    self._tocar_sfx("desembainhar" if slot_destino == "CAJADO" else "equipar_armadura")
                                     self.exibir_mensagem(f"• {msg}")
                                 else:
                                     self._tocar_sfx("ui_erro")
@@ -364,64 +384,47 @@ class InventoryState(State):
                                         halia.recalcular_status_derivados(manter_porcentagem=False)
                                         self._tocar_sfx("livro_abrir")
                                         self.exibir_mensagem(f"• {msg}")
+                                    else:
+                                        self._tocar_sfx("ui_erro")
+                                        self.exibir_mensagem(f"Aviso: {msg}")
+                            self.slot_hover = None
+                            self.tooltip_info = None
+                            return
 
                 elif evento.button == 3:  # Clique Direito (Desequipar)
-                    if self.aba_principal_ativa == 0 and self.slot_hover and self.slot_hover[0] == "equipamento" and inv:
-                        slot_nome = self.slot_hover[1]
+                    if self.aba_principal_ativa == 0 and slot_clicado and slot_clicado[0] == "equipamento" and inv:
+                        slot_nome = slot_clicado[1]
                         if inv.equipados.get(slot_nome):
                             sucesso, msg = inv.desequipar(slot_nome)
                             if sucesso:
                                 halia.recalcular_status_derivados(manter_porcentagem=False)
                                 halia.atualizar_grimorio()
-                                self._tocar_sfx("ui_voltar")
+                                self._tocar_sfx("toggle_off")
                                 self.exibir_mensagem(f"• {msg}")
                             else:
                                 self._tocar_sfx("ui_erro")
                                 self.exibir_mensagem(f"Aviso: {msg}")
+                            self.slot_hover = None
+                            self.tooltip_info = None
+                            return
 
     def _ajustar_scroll_magia(self):
         """Garante que a magia selecionada permaneça visível no viewport com scroll."""
-        h_card = 82
+        h_card = 84
         y_selecionado = self.magia_selecionada_idx * h_card
-        viewport_h = 420
+        viewport_h = self._viewport_magias().height
         if y_selecionado < self.scroll_magias:
             self.scroll_magias = y_selecionado
-        elif y_selecionado + h_card > self.scroll_magias + viewport_h:
-            self.scroll_magias = y_selecionado + h_card - viewport_h
-
-    def _ajustar_scroll_crafting(self):
-        """Garante que a receita selecionada permaneça visível no viewport."""
-        h_card = 82
-        y_selecionado = self.receita_selecionada_idx * h_card
-        viewport_h = 420
-        if y_selecionado < self.scroll_crafting:
-            self.scroll_crafting = y_selecionado
-        elif y_selecionado + h_card > self.scroll_crafting + viewport_h:
-            self.scroll_crafting = y_selecionado + h_card - viewport_h
+        elif y_selecionado + 76 > self.scroll_magias + viewport_h:
+            self.scroll_magias = y_selecionado + 76 - viewport_h
+        halia = getattr(self.game, 'halia', None)
+        max_scroll = max(0, len(self._obter_magias(halia)) * h_card - viewport_h)
+        self.scroll_magias = max(0, min(self.scroll_magias, max_scroll))
 
     def _executar_crafting_selecionado(self, halia):
-        """Executa a fabricação da receita selecionada com feedback na UI."""
-        if not halia:
-            return
-        receitas = CraftingManager.obter_todas_receitas()
-        if not receitas or self.receita_selecionada_idx >= len(receitas):
-            return
-
-        rec = receitas[self.receita_selecionada_idx]
-        sucesso, msg = CraftingManager.fabricar(rec.id, halia)
-        if sucesso:
-            self.exibir_mensagem(msg)
-            if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
-                self.game.notificacoes.notificar(
-                    "notificacao_item_fabricado",
-                    quantidade=rec.resultado_quantidade,
-                    nome=rec.nome
-                )
-            if hasattr(self.game, 'conquistas') and self.game.conquistas:
-                self.game.conquistas.desbloquear("primeira_receita")
-            halia.recalcular_status_derivados(manter_porcentagem=False)
-        else:
-            self.exibir_mensagem(f"Aviso: {msg}")
+        """A aba selada não oferece fabricação fora de uma bancada."""
+        self._tocar_sfx("ui_trancado")
+        self.exibir_mensagem("Aviso: A fabricação exige uma bancada apropriada.")
 
     def _gerar_tooltip_item(self, item, quantidade=None):
         """Gera título, descrição e detalhes ricos e estruturados para o tooltip flutuante."""

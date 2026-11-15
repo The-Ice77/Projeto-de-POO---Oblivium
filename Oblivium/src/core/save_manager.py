@@ -635,12 +635,20 @@ class SaveManager:
                 self.game.caixa_dialogo._sincronizar_com_manager()
         flashback = getattr(self.game, "flashback_sistema", None)
         if flashback is not None:
-            flashback.ativo = False
-            flashback.estado = "INATIVO"
-            flashback.on_concluido = None
+            cancelar = getattr(flashback, "cancelar", None)
+            if callable(cancelar):
+                cancelar(sincronizar_ambiente=False)
+            else:
+                flashback.ativo = False
+                flashback.estado = "INATIVO"
+                flashback.on_concluido = None
         despertar = getattr(self.game, "tela_despertar", None)
         if despertar is not None:
-            despertar.reiniciar()
+            despertar.reiniciar(sincronizar_ambiente=False)
+        audio = getattr(self.game, "audio", None)
+        if audio:
+            audio.parar_sfx_contexto(None)
+            audio.parar_ambiente(fade_ms=0)
         if hasattr(self.game, "tela_combate") and self.game.tela_combate:
             tc = self.game.tela_combate
             tc.estado_combate = "INATIVO"

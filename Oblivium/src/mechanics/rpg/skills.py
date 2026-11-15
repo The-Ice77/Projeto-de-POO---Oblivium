@@ -413,16 +413,16 @@ class MagiaCura(AcaoCombate):
                 cura_base = cura_base * (1.0 + (bonus_cura_pct / 100.0))
             cura_calculada = max(5.0, cura_base)
             cura_bruta = round(cura_calculada, 1)
+            from src.entities.Entity import Entidade
             vida_antes = float(alvo.vida_atual)
-            alvo.curar(cura_bruta)
-            from src.utils.formatting import formatar_numero_curto, limpar_numero
-            cura_efetiva = limpar_numero(max(0.0, float(alvo.vida_atual) - vida_antes))
+            delta = alvo.curar(cura_bruta)
+            cura_efetiva = Entidade.normalizar_recurso(max(0.0, float(alvo.vida_atual) - vida_antes) if delta is None else delta)
             cond_aplicada = self.tentar_aplicar_condicao(alvo)
 
             # Formatação limpa de dígitos (ex: 33 se inteiro, 33.3 se decimal)
-            cura_fmt = formatar_numero_curto(cura_efetiva)
-            vida_atual_fmt = formatar_numero_curto(alvo.vida_atual)
-            vida_max_fmt = formatar_numero_curto(alvo.vida_maxima)
+            cura_fmt = str(cura_efetiva)
+            vida_atual_fmt = str(Entidade.normalizar_recurso(alvo.vida_atual))
+            vida_max_fmt = str(Entidade.normalizar_recurso(alvo.vida_maxima))
 
             texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
             msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_fmt} de vida ({vida_atual_fmt}/{vida_max_fmt}){texto_cond}."
@@ -497,20 +497,23 @@ class AcaoFoco(AcaoCombate):
         
         mana_recuperada = max(12, 12 + (mod_pre * 3) + (mod_sab * 2) + random.randint(2, 5))
         
+        from src.entities.Entity import Entidade
         mana_antes = float(getattr(conjurador, 'mana_atual', 0))
+        delta = None
         if hasattr(conjurador, 'recuperar_mana'):
-            conjurador.recuperar_mana(mana_recuperada)
+            delta = conjurador.recuperar_mana(mana_recuperada)
         elif hasattr(conjurador, 'mana_atual'):
             conjurador.mana_atual = min(conjurador.mana_maxima, conjurador.mana_atual + mana_recuperada)
-        from src.utils.formatting import formatar_numero_curto, limpar_numero
-        mana_efetiva = limpar_numero(max(0.0, float(getattr(conjurador, 'mana_atual', 0)) - mana_antes))
+        mana_efetiva = Entidade.normalizar_recurso(
+            max(0.0, float(getattr(conjurador, 'mana_atual', 0)) - mana_antes) if delta is None else delta
+        )
 
         # Ao concentrar, abre a guarda ficando vulnerável
         conjurador.defendendo = False
         conjurador.vulneravel = True
         conjurador.focado = True
 
-        msg = f"{conjurador.nome} concentrou sua energia recuperando {formatar_numero_curto(mana_efetiva)} MP, mas ficou vulnerável a ataques (+35% dano)!"
+        msg = f"{conjurador.nome} concentrou sua energia recuperando {mana_efetiva} MP, mas ficou vulnerável a ataques (+35% dano)!"
         
         return {
             "sucesso": True,

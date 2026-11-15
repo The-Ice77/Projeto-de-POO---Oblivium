@@ -94,7 +94,6 @@ class PauseState(State):
             self.game.mudar_estado(origem)
             
         elif opcao == "Inventário":
-            self._tocar_sfx("ui_confirmar")
             self.game.mudar_estado("INVENTARIO")
             
         elif opcao == "Salvar Jogo":

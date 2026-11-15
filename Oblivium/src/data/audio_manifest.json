@@ -272,6 +272,8 @@
     "creditos_demo": "tema_encerramento.ogg"
   },
   "aliases_sfx": {
+    "memoria_despertar": "magia_cura_02",
+    "memoria_onda": "concentrar",
     "ui_navegar": "ui_cursor",
     "acerto": "ataque_acerto",
     "critico": "ataque_critico",
@@ -328,6 +330,8 @@
       "arquivos_disponiveis": 105,
       "normalizacao": "44.1 kHz estereo OGG Vorbis, envelope RMS ativo calibrado, pico <= -0.3 dBFS, 0 amostras clipadas",
       "canonicos": [
+        "memoria_despertar",
+        "memoria_onda",
         "ui_cursor",
         "ui_confirmar",
         "ui_voltar",

@@ -132,7 +132,8 @@ class EfeitoChuva:
     MODO_NEVE = MODO_NEVE
     MODO_NEVASCA = MODO_NEVASCA
 
-    def __init__(self, largura_tela=1280, altura_tela=720):
+    def __init__(self, largura_tela=1280, altura_tela=720, game=None):
+        self.game = game
         self.largura = largura_tela
         self.altura = altura_tela
         self.modo_atual = self.MODO_LIMPO
@@ -187,9 +188,22 @@ class EfeitoChuva:
         self.overlay_relampago = pygame.Surface((largura_tela, altura_tela))
         self.overlay_relampago.fill((235, 245, 255))
 
+    def _sincronizar_audio(self):
+        """O jogo decide a prioridade da cena; uso isolado mantém o ambiente climático."""
+        audio = AudioManager.get_instance()
+        game = self.game or getattr(audio, "game", None)
+        sincronizar = getattr(game, "sincronizar_ambiente_cenario", None)
+        if callable(sincronizar):
+            sincronizar(fade_ms=800)
+        elif audio:
+            if self.modo_atual == self.MODO_LIMPO:
+                audio.parar_ambiente(fade_ms=800)
+            else:
+                alias = "vento_noite" if self.modo_atual in (self.MODO_NEVE, self.MODO_NEVASCA) else "chuva"
+                audio.tocar_ambiente(alias, loop=-1, fade_ms=1000)
+
     def definir_clima(self, tipo):
         """Define o modo climático: 'limpo', 'comum' (ou 'chuva'), 'pesada', 'neve', 'nevasca'."""
-        audio = AudioManager.get_instance()
         if not tipo or str(tipo).lower() in [self.MODO_LIMPO, "off", "desativado", "sol"]:
             self.modo_atual = self.MODO_LIMPO
             self.ativo = False
@@ -197,8 +211,7 @@ class EfeitoChuva:
             self.splashes.clear()
             self.flocos_neve.clear()
             self.brilho_relampago = 0.0
-            if audio:
-                audio.parar_ambiente(fade_ms=800)
+            self._sincronizar_audio()
             return
 
         tipo_str = str(tipo).lower()
@@ -211,8 +224,6 @@ class EfeitoChuva:
                 FlocoNeve(self.largura, self.altura, tipo="nevasca", inicializar_espalhado=True)
                 for _ in range(195)
             ]
-            if audio:
-                audio.tocar_ambiente("vento_noite", loop=-1, fade_ms=1000)
         elif "neve" in tipo_str or "snow" in tipo_str or "gelo" in tipo_str:
             self.modo_atual = self.MODO_NEVE
             self.ativo = True
@@ -222,8 +233,6 @@ class EfeitoChuva:
                 FlocoNeve(self.largura, self.altura, tipo="neve", inicializar_espalhado=True)
                 for _ in range(85)
             ]
-            if audio:
-                audio.tocar_ambiente("vento_noite", loop=-1, fade_ms=1000)
         elif "pesad" in tipo_str or "tempestade" in tipo_str or "forte" in tipo_str:
             self.modo_atual = self.MODO_PESADA
             self.ativo = True
@@ -235,8 +244,6 @@ class EfeitoChuva:
             self.splashes.clear()
             self.timer_relampago = random.uniform(10.0, 20.0)
             self.brilho_relampago = 0.0
-            if audio:
-                audio.tocar_ambiente("chuva", loop=-1, fade_ms=1000)
         else:
             self.modo_atual = self.MODO_COMUM
             self.ativo = True
@@ -247,8 +254,7 @@ class EfeitoChuva:
             ]
             self.splashes.clear()
             self.brilho_relampago = 0.0
-            if audio:
-                audio.tocar_ambiente("chuva", loop=-1, fade_ms=1000)
+        self._sincronizar_audio()
 
     def alternar_clima(self):
         """Ciclo completo: Limpo -> Chuva Comum -> Chuva Pesada -> Neve Suave -> Nevasca -> Limpo."""

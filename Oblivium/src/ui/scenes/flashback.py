@@ -105,11 +105,37 @@ class Flashback(CenaBase):
     # =========================================================================
     # Ciclo de Vida do Flashback
     # =========================================================================
+    def _sincronizar_ambiente(self, fade_ms=300):
+        sincronizar = getattr(self.game, "sincronizar_ambiente_cenario", None)
+        if callable(sincronizar):
+            sincronizar(fade_ms=fade_ms)
+
+    def _limpar_audio(self):
+        audio = getattr(self.game, "audio", None)
+        parar = getattr(audio, "parar_sfx_contexto", None)
+        if callable(parar):
+            parar("flashback", fade_ms=120)
+
+    def _fechar_dialogo_acampamento(self):
+        caixa = getattr(self.game, "caixa_dialogo", None)
+        if self.tipo == "acampamento" and self.dialogo_iniciado and caixa:
+            caixa.ativo = False
+            if hasattr(caixa, "em_escolha"):
+                caixa.em_escolha = False
+
+    def _iniciar_saida(self):
+        if self.estado != "CLAREANDO":
+            self.estado = "CLAREANDO"
+            self._sincronizar_ambiente()
+
     def iniciar(self, textos_memorias=None, tipo=None, game=None, on_concluido=None):
+        if self.ativo:
+            self.cancelar(sincronizar_ambiente=False)
         if game is not None:
             self.game = game
             self.mapa_acampamento.game = game
 
+        self.on_concluido = None
         self._reiniciar_estado_execucao(on_concluido=on_concluido)
         self._consequencias_aplicadas = False
         self.textos = textos_memorias or []
@@ -138,6 +164,7 @@ class Flashback(CenaBase):
         self.tempo_ultimo_input = pygame.time.get_ticks()
         self._sincronizar_texto_atual()
         self.efeito_petalas.reiniciar(inicializar_na_tela=True)
+        self._sincronizar_ambiente()
         if self.game and getattr(self.game, "audio", None):
             self.game.audio.tocar_musica(
                 "cutscene_magia", loop=-1, fade_ms=1000, salvar_anterior=True, contexto="cutscene"
@@ -213,11 +240,12 @@ class Flashback(CenaBase):
 
     def finalizar(self):
         """Encerra o flashback garantindo estado limpo, narrativa e callback único."""
-        if self.tipo == "acampamento" and self.game and hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
-            if self.game.caixa_dialogo.ativo:
-                self.game.caixa_dialogo.ativo = False
-                if hasattr(self.game.caixa_dialogo, "em_escolha"):
-                    self.game.caixa_dialogo.em_escolha = False
+        if not self.ativo:
+            return False
+        self._fechar_dialogo_acampamento()
+        # Suspende a fogueira antes que a conclusão possa abrir outra cena.
+        self._iniciar_saida()
+        self._limpar_audio()
 
         self.alpha = 0.0
         self.estado = "INATIVO"
@@ -225,6 +253,7 @@ class Flashback(CenaBase):
         self.concluido = True
         self._aplicar_consequencias_narrativas()
         resultado = self._executar_callback_conclusao()
+        self._sincronizar_ambiente()
 
         despertar_pendente = bool(
             self.game
@@ -236,6 +265,25 @@ class Flashback(CenaBase):
         if not despertar_pendente and self.game and hasattr(self.game, "sincronizar_trilha_cenario"):
             self.game.sincronizar_trilha_cenario(fade_ms=1000)
         return resultado
+
+    def cancelar(self, sincronizar_ambiente=True):
+        """Descarta o ciclo ativo sem desbloqueios, autosave ou callback."""
+        if not self.ativo:
+            return False
+        self._fechar_dialogo_acampamento()
+        if sincronizar_ambiente:
+            self._iniciar_saida()
+        self._limpar_audio()
+        self.alpha = 0.0
+        self.estado = "INATIVO"
+        self.dialogo_iniciado = False
+        self.concluido = True
+        self._consequencias_aplicadas = True
+        self._callback_executado = True
+        self.on_concluido = None
+        if sincronizar_ambiente:
+            self._sincronizar_ambiente()
+        return True
 
     def pular(self):
         """Pula o flashback preservando todas as consequências narrativas de conclusão."""
@@ -316,6 +364,7 @@ class Flashback(CenaBase):
             if self.alpha >= 255:
                 self.alpha = 255.0
                 self.estado = "ESCURIDAO"
+                self._sincronizar_ambiente()
                 
                 # Se for acampamento, aciona a DialogueBox oficial imediatamente com a lista de falas!
                 if self.tipo == "acampamento":
@@ -334,13 +383,13 @@ class Flashback(CenaBase):
                     if self.game and hasattr(self.game, 'caixa_dialogo'):
                         if not self.game.caixa_dialogo.ativo:
                             # A conversa dos amigos foi concluída na caixa oficial! Inicia o fade out!
-                            self.estado = "CLAREANDO"
+                            self._iniciar_saida()
                 else:
                     if self.game and hasattr(self.game, 'caixa_dialogo') and self.textos:
                         self.dialogo_iniciado = True
                         self.game.caixa_dialogo.iniciar_dialogo(self.textos)
                     else:
-                        self.estado = "CLAREANDO"
+                        self._iniciar_saida()
             else:
                 # Máquina de escrever do modo texto puro (compartilhada via ApresentacaoTextoEditorial)
                 if self.texto_estado == "DIGITANDO":
@@ -360,7 +409,7 @@ class Flashback(CenaBase):
                         self.indice_texto += 1
                         
                         if self.indice_texto >= len(self.textos):
-                            self.estado = "CLAREANDO"
+                            self._iniciar_saida()
                         else:
                             self.texto_estado = "DIGITANDO"
                             self._sincronizar_texto_atual()

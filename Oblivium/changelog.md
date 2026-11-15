@@ -1,6 +1,16 @@
 # ◈ Changelog Oblivium ◈
 *Histórico de versões, implementações e refinamentos de Oblivium.*
 
+### 15 de novembro de 2026 — Sons do inventário e das memórias
+
+- Inventário com abertura, fechamento, mudança de abas, filtros, seleção e rolagem sonora apenas quando a ação produz mudança. Corrigidos o som de equipar cajado e o feedback de falha ao equipar grimório.
+- Fogueira contínua nos flashbacks de acampamento, com prioridade sobre o clima e limpeza ao terminar, pular, carregar ou retornar ao menu.
+- Efeitos separados para o impacto da mandala (`memoria_despertar`) e a onda de cores (`memoria_onda`), disparados uma vez e vinculados à apresentação visual.
+- Volumes por canal e cancelamento por contexto de SFX; mute e controles alcançam efeitos em execução, preservando ganhos individuais.
+- Proteções e contratos de inventário e entidades: cliques usam a posição do evento, ações que alteram itens encerram o lote, consumo na bolsa valida e remove estoque antes de aplicar efeito (com estorno em falha), cards recortados não recebem cliques e a bancada selada não fabrica por teclado.
+- Refatoração técnica de recursos e apresentação concluída (`formatting.py` removido): normalização numérica e deltas efetivos centralizados em `Entidade` (`Entity.py`) herdados por `Player`, e formatação textual de combate concentrada em `CombatNarrator`.
+- Suítes `test_audio_inventory.py`, `test_audio_scenes.py`, `test_audio_integration.py` e `test_lote2_recursos_e_narrador.py` registradas no runner oficial (26 suítes). As mudanças narrativas continuam para uma etapa posterior.
+
 ---
 
 ### Atualização v[0.3.0] — Qualidade de Vida

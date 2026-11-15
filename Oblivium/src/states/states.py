@@ -9,6 +9,12 @@ class State(ABC):
     def __init__(self, game):
         self.game = game
 
+    def ao_entrar(self, estado_anterior=None):
+        """Apresentação de uma entrada real, sem repetir no construtor ou a cada quadro."""
+
+    def ao_sair(self, proximo_estado=None):
+        """Libera a apresentação do estado antes de entrar no próximo."""
+
     @abstractmethod
     def handle_events(self, eventos, teclas):
         """Processa eventos de entrada (teclado, mouse) do estado."""

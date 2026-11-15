@@ -266,7 +266,6 @@ class CombatAIController:
             s.adicionar_log(resultado["mensagem"])
 
         # Redundância imediata no Log: garante que 100% das ações e ataques dos inimigos e do Dragão aparecem no histórico
-        from src.utils.formatting import formatar_numero_curto
         for r_entry in resultado.get("resultados", []):
             r_data = r_entry.get("dados") if ("dados" in r_entry and isinstance(r_entry["dados"], dict)) else r_entry
             msg_alvo = r_data.get("mensagem")
@@ -280,10 +279,10 @@ class CombatAIController:
                         msg_alvo = f"{inimigo.nome} usou {acao.nome}, mas errou o ataque contra {alvo_nome}!"
                 elif r_data.get("dano", 0) > 0:
                     crit_txt = " (CRÍTICO!)" if r_data.get("critico") else ""
-                    dano_str = formatar_numero_curto(r_data['dano'])
+                    dano_str = CombatNarrator.formatar_numero(r_data['dano'])
                     msg_alvo = f"{inimigo.nome} usou {acao.nome} em {alvo_nome} causando {dano_str} de dano{crit_txt}."
                 elif r_data.get("cura", 0) > 0:
-                    cura_str = formatar_numero_curto(r_data['cura'])
+                    cura_str = CombatNarrator.formatar_numero(r_data['cura'])
                     msg_alvo = f"{inimigo.nome} usou {acao.nome} restaurando {cura_str} de vida."
             if msg_alvo:
                 s.adicionar_log(msg_alvo)
@@ -293,7 +292,7 @@ class CombatAIController:
         # Feedback de mana recuperada e vulnerabilidade na própria entidade conjuradora
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
-            mana_fmt = formatar_numero_curto(mana_rec)
+            mana_fmt = CombatNarrator.formatar_numero(mana_rec)
             ix, iy = s._obter_posicao_combate(inimigo)
             s.adicionar_texto_flutuante(f"+{mana_fmt} MP", ix + 30, iy + 15, BARRA_MANA, duracao=80)
 

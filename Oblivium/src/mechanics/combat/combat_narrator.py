@@ -17,6 +17,12 @@ class CombatNarrator:
     """
     _dados = None
 
+    @staticmethod
+    def formatar_numero(valor, casas=1):
+        """Formata números de combate e status removendo caudas de ponto flutuante."""
+        from src.entities.Entity import Entidade
+        return str(Entidade.normalizar_recurso(valor, casas=casas))
+
     @classmethod
     def _garantir_carregamento(cls):
         """Carrega e armazena em cache os textos externos de combate."""

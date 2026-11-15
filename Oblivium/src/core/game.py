@@ -61,7 +61,7 @@ class Game:
         self.tela_combate.game = self
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
         self.efeito_folhas = EfeitoFolhas(self.LARGURA, self.ALTURA, quantidade_folhas=28)
-        self.efeito_chuva = EfeitoChuva(self.LARGURA, self.ALTURA)
+        self.efeito_chuva = EfeitoChuva(self.LARGURA, self.ALTURA, game=self)
         self.mg_timing = MinigameTiming(self.LARGURA, self.ALTURA)
         self.mg_mash = MinigameMash(self.LARGURA, self.ALTURA)
         self.notificacoes = NotificationManager(self.LARGURA, self.ALTURA)
@@ -357,8 +357,27 @@ class Game:
     def mudar_estado(self, novo_estado):
         """Altera dinamicamente o comportamento e as telas do jogo"""
         if novo_estado in self.estados:
+            nome_anterior = getattr(self, "nome_estado_atual", None)
+            anterior = getattr(self, "estado_atual", None)
+            destino = self.estados[novo_estado]
+            mudou = anterior is not destino or nome_anterior != novo_estado
+            sair = getattr(anterior, "ao_sair", None)
+            if mudou and callable(sair):
+                sair(proximo_estado=novo_estado)
             self.nome_estado_atual = novo_estado
-            self.estado_atual = self.estados[novo_estado]
+            self.estado_atual = destino
+            if novo_estado in ("MENU", "INTRO"):
+                flashback = getattr(self, "flashback_sistema", None)
+                cancelar = getattr(flashback, "cancelar", None)
+                if callable(cancelar):
+                    cancelar(sincronizar_ambiente=False)
+                despertar = getattr(self, "tela_despertar", None)
+                if despertar and despertar.ativo:
+                    despertar.reiniciar(sincronizar_ambiente=False)
+                audio = getattr(self, "audio", None)
+                if audio:
+                    for contexto in ("flashback", "despertar", "memoria_onda"):
+                        audio.parar_sfx_contexto(contexto)
             if novo_estado == "MENU":
                 self.menu.atualizar_opcoes()
                 if hasattr(self, 'audio') and self.audio:
@@ -378,6 +397,9 @@ class Game:
                     )
             elif novo_estado == "JOGANDO":
                 self.sincronizar_trilha_cenario(fade_ms=1000)
+            entrar = getattr(destino, "ao_entrar", None)
+            if mudou and callable(entrar):
+                entrar(estado_anterior=nome_anterior)
 
     def sincronizar_trilha_cenario(self, fade_ms=1000):
         """Reaplica a música apropriada ao cenário e estado narrativo atual em exploração."""
@@ -393,8 +415,23 @@ class Game:
         self.sincronizar_ambiente_cenario(fade_ms=fade_ms)
 
     def sincronizar_ambiente_cenario(self, fade_ms=900):
-        """Sincroniza o som de ambiente com o clima ativo (prioritário) ou com o cenário atual."""
+        """Resolve ambiente por cena narrativa, clima e mapa, nessa ordem."""
         if not (hasattr(self, 'audio') and self.audio and getattr(self, 'nome_estado_atual', '') == 'JOGANDO'):
+            return
+        flashback = getattr(self, "flashback_sistema", None)
+        estado_flashback = getattr(flashback, "estado", "INATIVO")
+        if estado_flashback != "INATIVO":
+            if estado_flashback == "ESCURIDAO" and getattr(flashback, "tipo", None) == "acampamento":
+                self.audio.tocar_ambiente("fogueira", loop=-1, fade_ms=fade_ms, volume_extra=0.70)
+            else:
+                self.audio.parar_ambiente(fade_ms=min(300, max(0, int(fade_ms))))
+            return
+        if (
+            getattr(getattr(self, "intro", None), "ativo", False)
+            or getattr(getattr(self, "tela_despertar", None), "estado", "INATIVO") != "INATIVO"
+            or getattr(self, "etapa_epilogo", None) == "DESPERTAR_PENDENTE"
+        ):
+            self.audio.parar_ambiente(fade_ms=min(300, max(0, int(fade_ms))))
             return
         clima = getattr(self, 'efeito_chuva', None)
         modo_clima = str(getattr(clima, 'modo_atual', 'limpo') or 'limpo').lower()

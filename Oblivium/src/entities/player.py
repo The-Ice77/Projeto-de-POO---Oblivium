@@ -462,18 +462,6 @@ class Player(Entidade):
             self.vida_atual = min(self.vida_atual, self.vida_maxima)
             self.mana_atual = min(self.mana_atual, self.mana_maxima)
 
-    def recuperar_mana(self, quantidade):
-        """Recupera mana sem ultrapassar o limite máximo."""
-        if not self.vivo: return
-        self.mana_atual = min(self.mana_maxima, self.mana_atual + quantidade)
-
-    def gastar_mana(self, custo):
-        """Deduz mana se houver o suficiente. Retorna True se sucesso, False se insuficiente."""
-        if self.mana_atual >= custo:
-            self.mana_atual -= custo
-            return True
-        return False
-
     def restaurar_total(self):
         """Restaura vida e mana para os valores máximos e limpa estados."""
         super().restaurar_total()

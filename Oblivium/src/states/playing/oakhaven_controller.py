@@ -698,6 +698,9 @@ class OakhavenController:
                 com_transicao_suave=True,
                 pos_origem=(ox, oy),
             )
+            audio = getattr(self.game, "audio", None)
+            if audio:
+                audio.tocar_sfx("memoria_onda", volume_extra=0.50, contexto="memoria_onda")
         if hasattr(self.game, "notificacoes") and self.game.notificacoes:
             self.game.notificacoes.notificar_memoria_desperta(mem_alvo)
         if hasattr(self.game, "conquistas") and self.game.conquistas and mem_alvo >= 1:

@@ -73,6 +73,8 @@ class AudioManager:
         self._cache_sfx_variantes = {}
         self._ultimo_sfx_indice = {}
         self._ultimo_disparo_sfx = {}
+        self._sfx_ativos = {}
+        self._ganho_ambiente = 1.0
         self._passo_timer_s = 0.0
         self._avisos_arquivo_ausente = set()
 
@@ -143,6 +145,7 @@ class AudioManager:
     def definir_volume_sfx(self, valor, escala="auto"):
         """Define o volume dos efeitos sonoros (SFX)."""
         self.volume_sfx = self._normalizar_volume(valor, escala=escala)
+        self._aplicar_volume_sfx()
 
     def definir_volume_ambiente(self, valor, escala="auto"):
         """Define o volume do som de ambiente contínuo (BGS)."""
@@ -168,6 +171,7 @@ class AudioManager:
     def _aplicar_volumes(self):
         self._aplicar_volume_musica()
         self._aplicar_volume_ambiente()
+        self._aplicar_volume_sfx()
 
     def _aplicar_volume_musica(self):
         try:
@@ -178,7 +182,7 @@ class AudioManager:
     def _aplicar_volume_ambiente(self):
         if self.canal_ambiente:
             try:
-                vol_final = 0.0 if self.mutado else (self.volume_ambiente * self.volume_master)
+                vol_final = 0.0 if self.mutado else (self.volume_ambiente * self.volume_master * self._ganho_ambiente)
                 self.canal_ambiente.set_volume(max(0.0, min(1.0, vol_final)))
             except Exception:
                 pass
@@ -473,14 +477,16 @@ class AudioManager:
 
     def update(self, dt=None):
         """Avança a máquina de fade musical (SAINDO -> troca -> ENTRANDO -> OCIOSO) sem bloquear."""
-        if self.musica_pausada:
-            return
         if dt is None:
             dt = getattr(self.game, "dt", 1.0 / 60.0) if self.game else (1.0 / 60.0)
         try:
             dt_seg = max(0.0, float(dt))
         except (TypeError, ValueError):
             dt_seg = 1.0 / 60.0
+
+        self._atualizar_sfx(dt_seg)
+        if self.musica_pausada:
+            return
 
         if self._eh_fanfarra_vitoria(self._musica_stream_carregada) and pygame.mixer.music.get_busy():
             self._fanfarra_tempo_s += dt_seg
@@ -595,10 +601,12 @@ class AudioManager:
     # SOM AMBIENTE (BGS)
     # =========================================================================
 
-    def tocar_ambiente(self, nome_ou_caminho, loop=-1, fade_ms=600):
+    def tocar_ambiente(self, nome_ou_caminho, loop=-1, fade_ms=600, volume_extra=1.0):
         """Toca um efeito de ambiente contínuo (ex: chuva, vento, fogueira, caverna_lava)."""
         if not pygame.mixer.get_init() or not self.canal_ambiente:
             return
+
+        self._ganho_ambiente = max(0.0, float(volume_extra))
 
         chave_logica = os.path.splitext(str(nome_ou_caminho or "").lower().strip())[0]
         chave_logica = self.aliases_ambiente.get(chave_logica, chave_logica)
@@ -617,8 +625,7 @@ class AudioManager:
         som = self._carregar_som(caminho_arquivo)
         if som:
             try:
-                if fade_ms > 0:
-                    self.canal_ambiente.fadeout(fade_ms)
+                # Um único canal: troca direta com entrada suave, sem fadeout pendente.
                 self._aplicar_volume_ambiente()
                 self.canal_ambiente.play(som, loops=loop, fade_ms=fade_ms)
                 self._aplicar_volume_ambiente()
@@ -637,14 +644,64 @@ class AudioManager:
                     self.canal_ambiente.stop()
             except Exception:
                 pass
-            self.ambiente_atual = None
-            self._ambiente_chave_atual = None
+        self.ambiente_atual = None
+        self._ambiente_chave_atual = None
+        self._ganho_ambiente = 1.0
 
     # =========================================================================
     # EFEITOS SONOROS (SFX)
     # =========================================================================
 
-    def tocar_sfx(self, alias_ou_caminho, volume_extra=1.0):
+    def _registro_sfx_valido(self, registro):
+        """Não interfere em um canal já terminado ou reutilizado por outra reprodução."""
+        canal = registro["canal"]
+        return canal.get_busy() and canal.get_sound() is registro["som"]
+
+    def _aplicar_volume_sfx(self):
+        for indice, registro in list(self._sfx_ativos.items()):
+            try:
+                if not self._registro_sfx_valido(registro):
+                    self._sfx_ativos.pop(indice, None)
+                    continue
+                fade = registro.get("fade_restante", 1.0) / registro.get("fade_total", 1.0)
+                registro["canal"].set_volume(self.get_volume_sfx_efetivo(registro["ganho"]) * fade)
+            except pygame.error:
+                self._sfx_ativos.pop(indice, None)
+
+    def _atualizar_sfx(self, dt):
+        for indice, registro in list(self._sfx_ativos.items()):
+            try:
+                if not self._registro_sfx_valido(registro):
+                    self._sfx_ativos.pop(indice, None)
+                    continue
+                if "fade_restante" in registro:
+                    registro["fade_restante"] = max(0.0, registro["fade_restante"] - dt)
+                    if registro["fade_restante"] <= 0:
+                        registro["canal"].stop()
+                        self._sfx_ativos.pop(indice, None)
+            except pygame.error:
+                self._sfx_ativos.pop(indice, None)
+        self._aplicar_volume_sfx()
+
+    def parar_sfx_contexto(self, contexto, fade_ms=0):
+        """Libera apenas os efeitos do dono informado; None libera todos os SFX gerenciados."""
+        for indice, registro in list(self._sfx_ativos.items()):
+            if contexto is not None and registro["contexto"] != contexto:
+                continue
+            try:
+                if self._registro_sfx_valido(registro):
+                    if fade_ms > 0:
+                        # Não reinicia uma atenuação já solicitada.
+                        if "fade_restante" not in registro:
+                            registro["fade_total"] = float(fade_ms) / 1000.0
+                            registro["fade_restante"] = registro["fade_total"]
+                        continue
+                    registro["canal"].stop()
+            except pygame.error:
+                pass
+            self._sfx_ativos.pop(indice, None)
+
+    def tocar_sfx(self, alias_ou_caminho, volume_extra=1.0, contexto=None):
         """
         Dispara um efeito sonoro instantâneo com suporte automático a variações (_01, _02, _03).
         Caso o arquivo de som ainda não exista na pasta assets, retorna None silenciosamente.
@@ -655,10 +712,20 @@ class AudioManager:
         som = self._carregar_sfx(alias_ou_caminho)
         if som:
             try:
-                vol_final = self.get_volume_sfx_efetivo(volume_extra)
-                som.set_volume(vol_final)
-                canal = som.play()
-                return canal
+                # Ganho por canal: duas reproduções do mesmo Sound não alteram uma à outra.
+                som.set_volume(1.0)
+                for indice in range(1, pygame.mixer.get_num_channels()):
+                    canal = pygame.mixer.Channel(indice)
+                    if canal.get_busy():
+                        continue
+                    canal.set_volume(self.get_volume_sfx_efetivo(volume_extra))
+                    canal.play(som)
+                    canal.set_volume(self.get_volume_sfx_efetivo(volume_extra))
+                    self._sfx_ativos[indice] = {
+                        "canal": canal, "som": som,
+                        "contexto": contexto, "ganho": max(0.0, float(volume_extra)),
+                    }
+                    return canal
             except Exception as e:
                 logger.debug("Falha ao reproduzir SFX '%s': %s", alias_ou_caminho, e)
         return None

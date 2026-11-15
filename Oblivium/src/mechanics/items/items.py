@@ -79,40 +79,38 @@ class ConsumivelItem(ItemBase):
         if not pode:
             return {"sucesso": False, "mensagem": msg, "tipo": self.tipo_consumivel, "valor": 0}
 
+        from src.entities.Entity import Entidade
         alvo_final = alvo if alvo is not None else usuario
 
         if self.tipo_consumivel == "CURA_HP":
-            from src.utils.formatting import formatar_numero_curto, limpar_numero
             vida_antes = float(usuario.vida_atual)
-            usuario.curar(self.valor_efeito)
-            curado = limpar_numero(max(0.0, float(usuario.vida_atual) - vida_antes))
+            delta = usuario.curar(self.valor_efeito)
+            curado = Entidade.normalizar_recurso(max(0.0, float(usuario.vida_atual) - vida_antes) if delta is None else delta)
             return {
                 "sucesso": True,
-                "mensagem": f"{usuario.nome} usou {self.nome} e regenerou {formatar_numero_curto(curado)} PV!",
+                "mensagem": f"{usuario.nome} usou {self.nome} e regenerou {curado} PV!",
                 "tipo": "CURA_HP",
                 "valor": curado
             }
 
         elif self.tipo_consumivel == "RESTAURA_MP":
-            from src.utils.formatting import formatar_numero_curto, limpar_numero
             mana_antes = float(usuario.mana_atual)
-            usuario.recuperar_mana(self.valor_efeito)
-            restaurado = limpar_numero(max(0.0, float(usuario.mana_atual) - mana_antes))
+            delta = usuario.recuperar_mana(self.valor_efeito)
+            restaurado = Entidade.normalizar_recurso(max(0.0, float(usuario.mana_atual) - mana_antes) if delta is None else delta)
             return {
                 "sucesso": True,
-                "mensagem": f"{usuario.nome} bebeu {self.nome} e restaurou {formatar_numero_curto(restaurado)} PM!",
+                "mensagem": f"{usuario.nome} bebeu {self.nome} e restaurou {restaurado} PM!",
                 "tipo": "RESTAURA_MP",
                 "valor": restaurado
             }
 
         elif self.tipo_consumivel == "DANO_OFENSIVO":
-            from src.utils.formatting import formatar_numero_curto, limpar_numero
             if alvo_final is None or alvo_final == usuario:
                 return {"sucesso": False, "mensagem": "Selecione um inimigo como alvo!", "tipo": "ERRO", "valor": 0}
             
             dano_bruto = alvo_final.receber_dano(self.valor_efeito)
-            dano_causado = limpar_numero(self.valor_efeito if dano_bruto is None else dano_bruto)
-            msg = f"{usuario.nome} arremessou {self.nome} em {alvo_final.nome}, causando {formatar_numero_curto(dano_causado)} de dano!"
+            dano_causado = Entidade.normalizar_recurso(self.valor_efeito if dano_bruto is None else dano_bruto)
+            msg = f"{usuario.nome} arremessou {self.nome} em {alvo_final.nome}, causando {dano_causado} de dano!"
             
             cond_aplicada = None
             if self.condicao_aplicada and hasattr(alvo_final, 'aplicar_condicao'):

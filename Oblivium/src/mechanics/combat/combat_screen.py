@@ -5,7 +5,6 @@ import random
 from src.mechanics.skills import SkillsRegistry
 from src.entities.Boss import Boss
 from src.ui.ui_utils import quebrar_texto_em_linhas
-from src.utils.formatting import formatar_numero_curto
 from src.utils.colors import (
     TEXTO_ALERTA_COMBATE,
     BARRA_VIDA_JOGADOR, BARRA_MANA, FUNDO_BARRA
@@ -346,7 +345,7 @@ class CombatScreen:
             self.adicionar_log(res["mensagem"])
 
         hx, hy = self._obter_posicao_combate(self.jogador)
-        val_fmt = formatar_numero_curto(res.get("valor", 0))
+        val_fmt = CombatNarrator.formatar_numero(res.get("valor", 0))
         if res.get("tipo") == "CURA_HP" and res.get("valor", 0) > 0:
             self.adicionar_texto_flutuante(f"+{val_fmt}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
@@ -372,7 +371,7 @@ class CombatScreen:
         ax, ay = self._obter_posicao_combate(alvo)
         if dano > 0:
             self.shake_timers[alvo] = self._ajustar_timer(15)
-            self.adicionar_texto_flutuante(f"-{dano}", ax + 20, ay - 10, (255, 100, 80))
+            self.adicionar_texto_flutuante(f"-{CombatNarrator.formatar_numero(dano)}", ax + 20, ay - 10, (255, 100, 80))
 
         if not getattr(alvo, 'vivo', True):
             if hasattr(alvo, 'animacoes'):
@@ -437,9 +436,9 @@ class CombatScreen:
                         msg_alvo = f"{self.jogador.nome} usou {acao.nome}, mas errou o ataque contra {alvo_nome}!"
                 elif r_data.get("dano", 0) > 0:
                     crit_txt = " (CRÍTICO!)" if r_data.get("critico") else ""
-                    msg_alvo = f"{self.jogador.nome} usou {acao.nome} em {alvo_nome} causando {r_data['dano']} de dano{crit_txt}."
+                    msg_alvo = f"{self.jogador.nome} usou {acao.nome} em {alvo_nome} causando {CombatNarrator.formatar_numero(r_data['dano'])} de dano{crit_txt}."
                 elif r_data.get("cura", 0) > 0:
-                    msg_alvo = f"{self.jogador.nome} usou {acao.nome} restaurando {r_data['cura']} de vida."
+                    msg_alvo = f"{self.jogador.nome} usou {acao.nome} restaurando {CombatNarrator.formatar_numero(r_data['cura'])} de vida."
             if msg_alvo:
                 self.adicionar_log(msg_alvo)
                 r_entry["_log_registrado"] = True
@@ -449,12 +448,12 @@ class CombatScreen:
         cura_direta = float(resultado.get("cura", 0) or 0)
         if cura_direta > 0:
             self._tocar_sfx("item_pocao")
-            self.adicionar_texto_flutuante(f"+{formatar_numero_curto(cura_direta)}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
+            self.adicionar_texto_flutuante(f"+{CombatNarrator.formatar_numero(cura_direta)}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
             self._tocar_sfx("concentrar")
-            self.adicionar_texto_flutuante(f"+{formatar_numero_curto(mana_rec)} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
+            self.adicionar_texto_flutuante(f"+{CombatNarrator.formatar_numero(mana_rec)} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
             self._tocar_sfx("defesa_escudo")
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("em_guarda"), hx + 30, hy - 10, (100, 210, 255), duracao=80)
@@ -504,7 +503,7 @@ class CombatScreen:
                     self._tocar_sfx("ataque_acerto")
                 self._tocar_sfx("dano_inimigo")
 
-                self.adicionar_texto_flutuante(f"-{formatar_numero_curto(dano_r)}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
+                self.adicionar_texto_flutuante(f"-{CombatNarrator.formatar_numero(dano_r)}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 14
                 # Ativa animação de dano ou morte no inimigo
                 if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
@@ -533,7 +532,7 @@ class CombatScreen:
                     self.ai_controller.verificar_e_anunciar_mudanca_fase(alvo_r)
             elif cura_r > 0 and alvo_r:
                 self._tocar_sfx("magia_cura")
-                self.adicionar_texto_flutuante(f"+{formatar_numero_curto(cura_r)}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
+                self.adicionar_texto_flutuante(f"+{CombatNarrator.formatar_numero(cura_r)}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
 
         # 2. Executa a apresentação visual: projéteis e explosões direcionadas em magias e AoE
         eh_aoe = (

@@ -46,7 +46,7 @@ Os efeitos sonoros curados dos pacotes oficiais estão normalizados (44,1 kHz es
 
 ## 3. Sons de Ambiente (`assets/audio/ambience/`) — Integrados (11 arquivos)
 
-Loops contínuos normalizados (~ `-23 dBFS RMS`, `0` amostras clipadas) acionados automaticamente por [`Game.sincronizar_ambiente_cenario`](src/core/game.py) (com prioridade para clima) e [`CenarioBase.obter_ambiente_cenario`](src/maps/cenario_base.py):
+Loops contínuos normalizados (~ `-23 dBFS RMS`, `0` amostras clipadas) acionados automaticamente por [`Game.sincronizar_ambiente_cenario`](src/core/game.py) (prioridade da cena narrativa, seguida de clima e mapa) e [`CenarioBase.obter_ambiente_cenario`](src/maps/cenario_base.py):
 - `chuva.ogg`: chuva comum e tempestade em [`EfeitoChuva`](src/utils/clima.py).
 - `vento_noite.ogg`: neve, nevasca e brisa noturna contínua.
 - `vento_suave.ogg`: Oakhaven, amanhecer pós-dragão no Ninho e vila reconstruída.
@@ -66,3 +66,22 @@ Loops contínuos normalizados (~ `-23 dBFS RMS`, `0` amostras clipadas) acionado
 - **Ambient Loops Free Lite 3** por **yetiancai** — Uso permitido em jogos comerciais/não comerciais sem redistribuição isolada do pacote.
 
 **Recomendação de escuta final:** antes da apresentação, validar em dispositivo de áudio real o equilíbrio entre passos (`passo_grama`/`passo_pedra`), ambiências, ataques elementais e trilha musical.
+
+## 4. Inventário e memórias — integração de 15 de novembro de 2026
+
+| Evento | Alias ou recurso | Ganho relativo e regra |
+|---|---|---|
+| Abrir inventário pelo atalho, HUD ou pausa | `livro_abrir` | Uma vez por entrada real; sem confirmação duplicada da pausa. |
+| Fechar por ESC, atalho ou X | `ui_voltar` | Uma vez ao voltar à exploração. |
+| Mudar aba / filtro / seleção | `pagina_virar` / `ui_cursor` | Somente quando a seleção mudar. |
+| Rolar a lista de magias | `ui_cursor` | Ganho `0.35`, intervalo mínimo `0.10 s`, sem som nos limites. |
+| Equipar cajado / desequipar | `desembainhar` / `toggle_off` | Após sucesso; tentativas recusadas recebem erro. |
+| Acampamento visível no flashback | `ambience/fogueira.ogg` | Loop, ganho `0.70` sobre Ambiente; suspenso na entrada, saída e despertar. |
+| Impacto da mandala | `memoria_despertar` → `magia_cura_02` | Ganho `0.65` sobre SFX, uma vez por ciclo visível. |
+| Onda de cores no mundo | `memoria_onda` → `concentrar` | Ganho `0.50` sobre SFX, uma vez após a tela de memória. |
+
+Os dois aliases de memória reutilizam arquivos já integrados; a quantidade de arquivos físicos permanece a mesma. A música de memória continua entre flashback e despertar sem reinício forçado. `FiltroMemoria` permanece visual: load e reset não disparam som de onda.
+
+O `AudioManager` aplica ganhos por canal, acompanha o contexto dos SFX e atualiza os sons em execução quando mute, Master ou SFX mudam. O impacto pertence ao contexto `despertar`; a onda pertence a `memoria_onda`, para que a limpeza da tela não corte o evento seguinte. As atenuações de SFX são atualizadas por `dt`, inclusive com a música pausada.
+
+Menu, introdução e carregamento cancelam a apresentação sem conceder memórias ou executar callbacks pendentes. O clima passa pelo mesmo resolvedor de ambiente e não substitui a fogueira durante o acampamento. Os testes automatizados usam mixer SDL simulado; o equilíbrio percebido em alto-falantes ou fones ainda precisa de escuta em dispositivo real.
