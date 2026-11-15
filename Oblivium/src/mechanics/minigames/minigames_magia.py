@@ -460,7 +460,7 @@ class MinigameMash(MinigameBase):
         self.progresso = min(100.0, self.progresso + 13.5)
         self.feedback_acerto = 15
         self.seq_acertos += 1
-        _tocar_sfx_seguro("magia_cast")
+        _tocar_sfx_seguro("magia_fogo")
         
         if self.progresso >= 99.5:
             self.ativo = False

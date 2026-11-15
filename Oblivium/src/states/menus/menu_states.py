@@ -70,6 +70,9 @@ class MenuState(State):
             
         elif opcao == "Créditos":
             self.game.origem_creditos = "MENU"
+            cred = self.game.estados.get("CREDITOS") if hasattr(self.game, "estados") else None
+            if cred and hasattr(cred, "iniciar_modo_menu"):
+                cred.iniciar_modo_menu()
             self.game.mudar_estado("CREDITOS")
             
         elif opcao == "Sair":

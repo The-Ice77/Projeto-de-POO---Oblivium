@@ -46,6 +46,7 @@ class Transition:
         self.texto_estado = "DIGITANDO" # DIGITANDO, HOLD, FADE_OUT
         self.tempo_hold_texto = 0
         self.tempo_inicio_hold = 0
+        self._tempo_hold_decorrido_ms = 0.0
         
         # Sistema de máquina de escrever para a transição
         self.caractere_atual = 0.0
@@ -73,6 +74,7 @@ class Transition:
             self.texto_alpha = 255
             self.caractere_atual = 0.0
             self.texto_estado = "DIGITANDO"
+            self._tempo_hold_decorrido_ms = 0.0
             self.estado = "ESCURECENDO"
             # Reinicia e distribui as pétalas para uma brisa renovada na transição
             self.efeito_petalas.reiniciar(inicializar_na_tela=True)
@@ -84,6 +86,7 @@ class Transition:
                 self.caractere_atual = float(len(self.texto_atual))
                 self.texto_estado = "HOLD"
                 self.tempo_inicio_hold = pygame.time.get_ticks()
+                self._tempo_hold_decorrido_ms = 0.0
             elif self.texto_estado == "HOLD":
                 self.texto_estado = "FADE_OUT"
 
@@ -121,10 +124,15 @@ class Transition:
                     self.caractere_atual = float(total_chars)
                     self.texto_estado = "HOLD"
                     self.tempo_inicio_hold = pygame.time.get_ticks()
+                    self._tempo_hold_decorrido_ms = 0.0
                     
             elif self.texto_estado == "HOLD":
+                self._tempo_hold_decorrido_ms += max(0.0, float(dt) * 1000.0)
                 tempo_atual = pygame.time.get_ticks()
-                if tempo_atual - self.tempo_inicio_hold > self.tempo_hold_texto:
+                if (
+                    self._tempo_hold_decorrido_ms > self.tempo_hold_texto
+                    or tempo_atual - self.tempo_inicio_hold > self.tempo_hold_texto
+                ):
                     self.texto_estado = "FADE_OUT"
                     
             elif self.texto_estado == "FADE_OUT":

@@ -3,7 +3,7 @@ import pygame
 from src.states.states import State
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
-    MARFIM_OFFWHITE, BORDA_DESTAQUE, BOTAO_FECHAR_HOVER,
+    MARFIM_OFFWHITE, BOTAO_FECHAR_HOVER,
     AZUL_HOVER_MENU, BRANCO, DOURADO_ENVELHECIDO
 )
 from src.utils.resource_manager import ResourceManager
@@ -13,8 +13,8 @@ from src.ui.ui_utils import (
     quebrar_texto_em_linhas
 )
 from src.mechanics.items import ConsumivelItem, EquipamentoItem, GrimorioItem, EnsinamentoFeiticoItem
-from src.mechanics.skills import ActionCatalog
 from src.mechanics.crafting import CraftingManager
+from src.mechanics.rpg.grimorio import GrimorioHalia
 from src.states.inventory_tabs import (
     TabInventarioRenderer,
     TabPerfilRenderer,
@@ -212,7 +212,11 @@ class InventoryState(State):
                     self.game.mudar_estado("JOGANDO")
                     return
 
-                flashback_ok = getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
+                flashback_ok = (
+                    halia.tem_grimorio_desbloqueado()
+                    if halia and hasattr(halia, "tem_grimorio_desbloqueado")
+                    else (getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0))
+                )
 
                 # Atalhos de Abas Principais (1: Inventário, 2: Perfil, 3: Magia, 4: Crafting)
                 if evento.key == pygame.K_1:
@@ -232,7 +236,7 @@ class InventoryState(State):
 
                 # Navegação vertical na lista de magias
                 elif self.aba_principal_ativa == 2 and flashback_ok:
-                    magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar", "brisa_curativa"])
+                    magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar"])
                     if evento.key == pygame.K_UP:
                         self.magia_selecionada_idx = max(0, self.magia_selecionada_idx - 1)
                         self._ajustar_scroll_magia()
@@ -264,7 +268,11 @@ class InventoryState(State):
                         self.game.mudar_estado("JOGANDO")
                         return
 
-                    flashback_ok = getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
+                    flashback_ok = (
+                        halia.tem_grimorio_desbloqueado()
+                        if halia and hasattr(halia, "tem_grimorio_desbloqueado")
+                        else (getattr(self.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0))
+                    )
                     
                     # Clique nas Abas Principais
                     for i, r_aba in enumerate(self.rects_abas_principais):
@@ -308,8 +316,10 @@ class InventoryState(State):
                                 if res["sucesso"]:
                                     inv.remover_item(item.id, 1)
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
+                                    self._tocar_sfx("item_pocao")
                                     self.exibir_mensagem(f"• {res['mensagem']}")
                                 else:
+                                    self._tocar_sfx("ui_erro")
                                     self.exibir_mensagem(f"Aviso: {res['mensagem']}")
 
                             elif isinstance(item, EnsinamentoFeiticoItem) or getattr(item, 'categoria', '') == "ENSINAMENTO":
@@ -318,8 +328,10 @@ class InventoryState(State):
                                     inv.remover_item(item.id, 1)
                                     halia.atualizar_grimorio()
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
+                                    self._tocar_sfx("pagina_virar")
                                     self.exibir_mensagem(f"• {res['mensagem']}")
                                 else:
+                                    self._tocar_sfx("ui_erro")
                                     self.exibir_mensagem(f"Aviso: {res['mensagem']}")
 
                             elif isinstance(item, EquipamentoItem):
@@ -330,22 +342,28 @@ class InventoryState(State):
                                 sucesso, msg = inv.equipar(slot_destino, idx_real)
                                 if sucesso:
                                     halia.recalcular_status_derivados(manter_porcentagem=False)
+                                    self._tocar_sfx("desembainhar" if "ARMA" in slot_destino else "equipar_armadura")
                                     self.exibir_mensagem(f"• {msg}")
                                 else:
+                                    self._tocar_sfx("ui_erro")
                                     self.exibir_mensagem(f"Aviso: {msg}")
 
                             elif isinstance(item, GrimorioItem) or getattr(item, 'categoria', '') == "GRIMORIO":
-                                slot_g = None
-                                for g_key in ["GRIMORIO_1", "GRIMORIO_2", "GRIMORIO_3", "GRIMORIO_4"]:
-                                    if inv.equipados[g_key] is None:
-                                        slot_g = g_key
-                                        break
-                                slot_g = slot_g or "GRIMORIO_1"
-                                sucesso, msg = inv.equipar(slot_g, idx_real)
-                                if sucesso:
-                                    halia.atualizar_grimorio()
-                                    halia.recalcular_status_derivados(manter_porcentagem=False)
-                                    self.exibir_mensagem(f"• {msg}")
+                                pode_tomo, motivo_tomo = item.pode_usar(halia, em_combate=False)
+                                if not pode_tomo:
+                                    self._tocar_sfx("ui_trancado")
+                                    self.exibir_mensagem(f"Aviso: {motivo_tomo}")
+                                else:
+                                    slot_g = next(
+                                        (g_k for g_k in ["GRIMORIO_1", "GRIMORIO_2", "GRIMORIO_3", "GRIMORIO_4"] if inv.equipados[g_k] is None),
+                                        "GRIMORIO_1",
+                                    )
+                                    sucesso, msg = inv.equipar(slot_g, idx_real)
+                                    if sucesso:
+                                        halia.atualizar_grimorio()
+                                        halia.recalcular_status_derivados(manter_porcentagem=False)
+                                        self._tocar_sfx("livro_abrir")
+                                        self.exibir_mensagem(f"• {msg}")
 
                 elif evento.button == 3:  # Clique Direito (Desequipar)
                     if self.aba_principal_ativa == 0 and self.slot_hover and self.slot_hover[0] == "equipamento" and inv:
@@ -355,8 +373,10 @@ class InventoryState(State):
                             if sucesso:
                                 halia.recalcular_status_derivados(manter_porcentagem=False)
                                 halia.atualizar_grimorio()
+                                self._tocar_sfx("ui_voltar")
                                 self.exibir_mensagem(f"• {msg}")
                             else:
+                                self._tocar_sfx("ui_erro")
                                 self.exibir_mensagem(f"Aviso: {msg}")
 
     def _ajustar_scroll_magia(self):
@@ -411,7 +431,7 @@ class InventoryState(State):
         linhas_detalhes = []
         cat = "Grimório" if item.categoria == "GRIMORIO" else item.categoria.capitalize()
         linhas_detalhes.append(f"Tipo: {cat}  |  Raridade: {item.raridade}")
-        halia = getattr(self.game, 'jogador', None)
+        halia = getattr(self.game, 'halia', None) or getattr(self.game, 'jogador', None)
         inv = getattr(halia, 'inventario', None) if halia else None
         if isinstance(item, ConsumivelItem):
             if item.tipo_consumivel == "CURA_HP":
@@ -450,70 +470,64 @@ class InventoryState(State):
                         sufixo = "%" if "bonus" in stat and "maxima" not in stat else " pts"
                         linhas_detalhes.append(f"  + {label}: +{val}{sufixo}")
             linhas_detalhes.append("• [Clique] Equipar no slot correspondente")
-        elif isinstance(item, EnsinamentoFeiticoItem) or getattr(item, 'categoria', '') == "ENSINAMENTO":
-            magia_id = getattr(item, 'magia_id', 'arcano')
-            magia_nome = magia_id.replace('_', ' ').title()
-            magias_conhecidas = getattr(halia, 'magias_desbloqueadas', []) if halia else []
-            conhece = magia_id in magias_conhecidas
-            if not conhece:
-                linhas_detalhes.append(f"• Feitiço: ✦ {magia_nome} [NOVO]")
-                linhas_detalhes.append("• Desperta permanentemente este feitiço no Grimório de Halia.")
+        elif isinstance(item, (EnsinamentoFeiticoItem, GrimorioItem)) or getattr(item, 'categoria', '') in ("ENSINAMENTO", "GRIMORIO"):
+            eh_grimorio = isinstance(item, GrimorioItem) or getattr(item, 'categoria', '') == "GRIMORIO"
+            st = GrimorioHalia.obter_status_aquisicao_item(item, halia) or {}
+            magia_id = st.get("magia_id") or getattr(item, 'magia_id', 'arcano')
+            magia_nome = st.get("nome_magia") or magia_id.replace('_', ' ').title()
+            conhece = st.get("ja_conhece", False)
+            pode_usar = st.get("pode_usar", True)
+            req_txt = st.get("requisito_texto", "")
+            bonus_p, red_c = getattr(item, 'bonus_poder', 0), getattr(item, 'reducao_custo', 0)
+
+            if not eh_grimorio:
+                if not conhece:
+                    linhas_detalhes.append(f"• Feitiço: ✦ {magia_nome} [NOVO]")
+                else:
+                    lvl = getattr(halia, 'maestria_feiticos', {}).get(magia_id, {}).get('nivel_maestria', 1)
+                    linhas_detalhes.append(f"• Feitiço: ✦ {magia_nome} [APRIMORAR: Nv.{lvl} → Nv.{lvl+1}]")
+                if req_txt:
+                    linhas_detalhes.append(f"• {req_txt}")
+                if bonus_p > 0:
+                    linhas_detalhes.append(f"  + Potência Arcana: +{bonus_p} pts")
+                if red_c > 0:
+                    linhas_detalhes.append(f"  + Eficiência de Mana: -{red_c} MP")
+                linhas_detalhes.append(f"  + Experiência de Estudo: +{getattr(item, 'xp_concedida', 35)} XP")
+                linhas_detalhes.append(f"• Bloqueado: {st.get('motivo_bloqueio')}" if not pode_usar else "• [Clique Esquerdo] Estudar e assimilar ensinamento")
             else:
-                m_info = getattr(halia, 'maestria_feiticos', {}).get(magia_id, {})
-                lvl_atual = m_info.get('nivel_maestria', 1)
-                linhas_detalhes.append(f"• Feitiço: ✦ {magia_nome} [APRIMORAR: Nv.{lvl_atual} → Nv.{lvl_atual+1}]")
-                linhas_detalhes.append("• Eleva o nível de maestria arcana e potencializa a magia.")
-            bonus_p = getattr(item, 'bonus_poder', 0)
-            red_c = getattr(item, 'reducao_custo', 0)
-            xp_c = getattr(item, 'xp_concedida', 35)
-            if bonus_p > 0:
-                linhas_detalhes.append(f"  + Potência Arcana: +{bonus_p} pts")
-            if red_c > 0:
-                linhas_detalhes.append(f"  + Eficiência de Mana: -{red_c} MP")
-            linhas_detalhes.append(f"  + Experiência de Estudo: +{xp_c} XP")
-            linhas_detalhes.append("• [Clique Esquerdo] Estudar e assimilar ensinamento")
-        elif isinstance(item, GrimorioItem) or getattr(item, 'categoria', '') == "GRIMORIO":
-            magia_id = getattr(item, 'magia_id', 'arcano')
-            magia_nome = magia_id.replace('_', ' ').title()
-            linhas_detalhes.append(f"• Feitiço Vinculado: ✦ {magia_nome}")
-            # Verifica se está equipado em um dos 4 slots
-            slot_equipado = None
-            if inv:
-                for g_slot in ['GRIMORIO_1', 'GRIMORIO_2', 'GRIMORIO_3', 'GRIMORIO_4']:
-                    g_item = inv.equipados.get(g_slot)
-                    if g_item == item or (g_item and getattr(g_item, 'id', None) == item.id):
-                        slot_equipado = g_slot
-                        break
-            if slot_equipado:
-                num_slot = slot_equipado.replace('GRIMORIO_', '')
-                linhas_detalhes.append(f"• Estado: [EQUIPADO no Slot {num_slot} - BÔNUS ATIVOS]")
-            else:
-                linhas_detalhes.append("• Estado: [Na Bolsa - Não Equipado]")
-            bonus_p = getattr(item, 'bonus_poder', 0)
-            red_c = getattr(item, 'reducao_custo', 0)
-            if bonus_p > 0:
-                linhas_detalhes.append(f"  + Potência Mágica: +{bonus_p} pts")
-            if red_c > 0:
-                linhas_detalhes.append(f"  + Redução de Custo: -{red_c} MP")
-            if hasattr(item, 'bonus_stats') and item.bonus_stats:
-                for stat_k, val_k in item.bonus_stats.items():
-                    if stat_k == 'dano_fogo_bonus':
-                        linhas_detalhes.append(f"  + Ressonância de Fogo: +{val_k}%")
-                    elif stat_k == 'dano_gelo_bonus':
-                        linhas_detalhes.append(f"  + Ressonância Glacial: +{val_k}%")
-                    elif stat_k == 'cura_bonus':
-                        linhas_detalhes.append(f"  + Ressonância Vital: +{val_k}%")
-                    else:
-                        linhas_detalhes.append(f"  + {stat_k.replace('_', ' ').title()}: +{val_k}")
-            if halia and hasattr(halia, 'maestria_feiticos') and magia_id in halia.maestria_feiticos:
-                m_h = halia.maestria_feiticos[magia_id]
-                linhas_detalhes.append(f"• Maestria de Halia: Nv. {m_h.get('nivel_maestria', 1)} (+{m_h.get('bonus_poder', 0)} Pod, -{m_h.get('reducao_custo', 0)} MP)")
-            if slot_equipado:
-                linhas_detalhes.append("• [Clique Direito no Slot] Desequipar para a bolsa")
-            else:
-                linhas_detalhes.append("• [Clique Esquerdo] Equipar nos 4 Slots de Grimório")
+                linhas_detalhes.append(f"• Feitiço Vinculado: ✦ {magia_nome}")
+                slot_eq = next(
+                    (g for g in ['GRIMORIO_1', 'GRIMORIO_2', 'GRIMORIO_3', 'GRIMORIO_4']
+                     if inv and (inv.equipados.get(g) == item or (inv.equipados.get(g) and inv.equipados.get(g).id == item.id))),
+                    None,
+                )
+                linhas_detalhes.append(f"• Estado: [EQUIPADO no Slot {slot_eq.replace('GRIMORIO_', '')} - BÔNUS ATIVOS]" if slot_eq else "• Estado: [Na Bolsa - Não Equipado]")
+                if req_txt and not slot_eq:
+                    linhas_detalhes.append(f"• {req_txt}")
+                if bonus_p > 0:
+                    linhas_detalhes.append(f"  + Potência Mágica: +{bonus_p} pts")
+                if red_c > 0:
+                    linhas_detalhes.append(f"  + Redução de Custo: -{red_c} MP")
+                rot_stat = {'dano_fogo_bonus': 'Ressonância de Fogo', 'dano_gelo_bonus': 'Ressonância Glacial', 'cura_bonus': 'Ressonância Vital'}
+                for stat_k, val_k in (getattr(item, 'bonus_stats', None) or {}).items():
+                    suf_k = "%" if stat_k in rot_stat else ""
+                    linhas_detalhes.append(f"  + {rot_stat.get(stat_k, stat_k.replace('_', ' ').title())}: +{val_k}{suf_k}")
+                if halia and magia_id in getattr(halia, 'maestria_feiticos', {}):
+                    m_h = halia.maestria_feiticos[magia_id]
+                    linhas_detalhes.append(f"• Maestria de Halia: Nv. {m_h.get('nivel_maestria', 1)} (+{m_h.get('bonus_poder', 0)} Pod, -{m_h.get('reducao_custo', 0)} MP)")
+                if slot_eq:
+                    linhas_detalhes.append("• [Clique Direito no Slot] Desequipar para a bolsa")
+                elif not pode_usar:
+                    linhas_detalhes.append(f"• Bloqueado: {st.get('motivo_bloqueio')}")
+                else:
+                    linhas_detalhes.append("• [Clique Esquerdo] Equipar nos 4 Slots de Grimório")
         detalhes_str = "\n".join(linhas_detalhes)
         return (nome, item.descricao, detalhes_str)
+
+    def _tocar_sfx(self, alias):
+        if getattr(self.game, "audio", None):
+            self.game.audio.tocar_sfx(alias)
+
     def update(self):
         if self.timer_feedback > 0:
             self.timer_feedback -= 1
@@ -662,7 +676,8 @@ class InventoryState(State):
         # Linhas de Texto
         y_txt = r_tool.y + 40
         for l in linhas_desc:
-            cor_l = (150, 220, 170) if "+" in l else ((140, 190, 240) if "•" in l else MARFIM_OFFWHITE)
+            eh_alerta = ("Bloqueado" in l or "Requer " in l or "Aviso:" in l)
+            cor_l = (245, 165, 130) if eh_alerta else ((150, 220, 170) if "+" in l else ((140, 190, 240) if "•" in l else MARFIM_OFFWHITE))
             txt_l = self.fonte_mini.render(l, True, cor_l)
             tela.blit(txt_l, (r_tool.x + 14, y_txt))
             y_txt += 18
@@ -673,7 +688,8 @@ class InventoryState(State):
     def _desenhar_rodape(self, tela):
         y_rodape = self.y_menu + self.altura_menu - 36
         if self.mensagem_feedback:
-            txt_f = self.fonte_destaque.render(self.mensagem_feedback, True, (150, 240, 180))
+            cor_fb = (245, 185, 120) if self.mensagem_feedback.startswith("Aviso:") else (150, 240, 180)
+            txt_f = self.fonte_destaque.render(self.mensagem_feedback, True, cor_fb)
             tela.blit(txt_f, (self.x_menu + 45, y_rodape))
         else:
             txt_guia = self.fonte_mini.render("[1/2/3/4/Q/E] Trocar Abas   |   [Clique Esq] Usar / Equipar / Criar   |   [Clique Dir] Desequipar   |   [ESC/TAB] Fechar", True, CINZA_LINHO)

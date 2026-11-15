@@ -23,20 +23,34 @@ class SettingsState(State):
       * Volume do Ambiente (BGS / Clima)
     - Opção de Redefinir Dados com modal de confirmação defensivo (Reset Global de saves e conquistas)
     """
+    _MAPA_SLIDERS_VOLUME = {
+        2: ("config_audio", "definir_volume_master", 100),
+        3: ("config_audio_musica", "definir_volume_musica", 55),
+        4: ("config_audio_sfx", "definir_volume_sfx", 95),
+        5: ("config_audio_ambiente", "definir_volume_ambiente", 70),
+    }
+
     def __init__(self, game):
         super().__init__(game)
         self.opcoes = [
-            "Velocidade do Texto", 
-            "Velocidade do Combate", 
-            "Volume Geral (Master)", 
+            "Velocidade do Texto",
+            "Velocidade do Combate",
+            "Volume Geral (Master)",
             "Volume da Música",
             "Volume dos Efeitos",
             "Volume do Ambiente",
-            "Configurar Teclas...", 
+            "Silenciar Tudo (Mute)",
+            "Restaurar Padrões",
+            "Configurar Teclas...",
             "Redefinir Dados...",
-            "Voltar"
+            "Voltar",
         ]
         self.selecionada = 0
+
+        # Estado de interação fina dos sliders de volume
+        self.slider_arrastando_idx = None
+        self.slider_widgets = {}
+        self._preview_ambiente_ativo = False
         
         # Modal de Confirmação de Reset Global
         self.modal_reset_aberto = False
@@ -58,9 +72,90 @@ class SettingsState(State):
         self.overlay.set_alpha(190)
         self.hover_anterior = -1
 
-    def _tocar_sfx(self, alias):
-        if hasattr(self.game, 'audio') and self.game.audio:
-            self.game.audio.tocar_sfx(alias)
+    def _tocar_sfx(self, alias, cooldown_s=0.0):
+        audio = getattr(self.game, "audio", None)
+        if not audio:
+            return
+        if cooldown_s > 0.0 and hasattr(audio, "tocar_sfx_com_cooldown"):
+            audio.tocar_sfx_com_cooldown(alias, cooldown_s=cooldown_s)
+        else:
+            audio.tocar_sfx(alias)
+
+    def _obter_passo_volume(self):
+        """Retorna passo padrão de 5% ou ajuste fino de 1% enquanto Shift estiver pressionado."""
+        try:
+            mods = pygame.key.get_mods() if pygame.get_init() else 0
+        except pygame.error:
+            mods = 0
+        return 1 if (mods & pygame.KMOD_SHIFT) else 5
+
+    def _garantir_preview_ambiente(self):
+        """Inicia prévia leve de ambiente ao ajustar BGS no Menu, sem interromper BGS real de cenários."""
+        audio = getattr(self.game, "audio", None)
+        if not audio:
+            return
+        canal = getattr(audio, "canal_ambiente", None)
+        ja_tocando_algo = bool(getattr(audio, "ambiente_atual", None)) or bool(canal and canal.get_busy())
+        if not ja_tocando_algo and hasattr(audio, "tocar_ambiente"):
+            audio.tocar_ambiente("vento_suave", loop=-1, fade_ms=250)
+            self._preview_ambiente_ativo = True
+
+    def _encerrar_preview_ambiente(self):
+        """Encerra apenas a prévia temporária iniciada pelo menu Configurações."""
+        if self._preview_ambiente_ativo:
+            audio = getattr(self.game, "audio", None)
+            if audio and hasattr(audio, "parar_ambiente"):
+                audio.parar_ambiente(fade_ms=200)
+            self._preview_ambiente_ativo = False
+
+    def _salvar_preferencias(self):
+        if hasattr(self.game, "salvar_preferencias_usuario"):
+            self.game.salvar_preferencias_usuario()
+
+    def _definir_volume_por_idx(self, idx, novo_valor, salvar=True, tocar_feedback=True):
+        """Atualiza atributo do jogo e AudioManager para o canal de índice 2..5."""
+        if idx not in self._MAPA_SLIDERS_VOLUME:
+            return
+        attr, metodo, _padrao = self._MAPA_SLIDERS_VOLUME[idx]
+        valor = max(0, min(100, int(round(novo_valor))))
+        setattr(self.game, attr, valor)
+
+        audio = getattr(self.game, "audio", None)
+        if audio and hasattr(audio, metodo):
+            getattr(audio, metodo)(valor)
+            if idx == 5:
+                self._garantir_preview_ambiente()
+            if tocar_feedback:
+                self._tocar_sfx("ui_slider", cooldown_s=0.06)
+
+        if salvar:
+            self._salvar_preferencias()
+
+    @staticmethod
+    def _valor_slider_por_x(rect_track, pos_x):
+        largura = max(1, rect_track.width)
+        fracao = max(0.0, min(1.0, (pos_x - rect_track.x) / float(largura)))
+        return int(round(fracao * 100))
+
+    def _alternar_mute(self):
+        novo_mutado = not bool(getattr(self.game, "config_audio_mutado", False))
+        self.game.config_audio_mutado = novo_mutado
+        audio = getattr(self.game, "audio", None)
+        if audio and hasattr(audio, "definir_mute"):
+            audio.definir_mute(novo_mutado)
+            if not novo_mutado:
+                self._tocar_sfx("toggle_on")
+        self._salvar_preferencias()
+
+    def _restaurar_padroes(self):
+        if hasattr(self.game, "restaurar_padroes_audio"):
+            self.game.restaurar_padroes_audio(salvar=True)
+        else:
+            for attr, _metodo, padrao in self._MAPA_SLIDERS_VOLUME.values():
+                setattr(self.game, attr, padrao)
+            self.game.config_audio_mutado = False
+            self._salvar_preferencias()
+        self._tocar_sfx("ui_confirmar")
 
     def handle_events(self, eventos, teclas):
         # 1. Intercepta eventos se o modal de confirmação de reset estiver aberto
@@ -106,33 +201,62 @@ class SettingsState(State):
                     self.alterar_valor(-1)
                 elif evento.key in [pygame.K_RIGHT, pygame.K_d]:
                     self.alterar_valor(1)
+                elif evento.key == pygame.K_m:
+                    self._alternar_mute()
+                elif evento.key == pygame.K_r:
+                    self._restaurar_padroes()
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE, pygame.K_e]:
                     self.executar_acao()
                 elif evento.key == pygame.K_ESCAPE:
+                    self._encerrar_preview_ambiente()
                     self._tocar_sfx("ui_voltar")
                     self.voltar_origem()
-                    
+
+            elif evento.type == pygame.MOUSEWHEEL:
+                if self.selecionada in self._MAPA_SLIDERS_VOLUME and evento.y != 0:
+                    self.alterar_valor(1 if evento.y > 0 else -1)
+
             elif evento.type == pygame.MOUSEMOTION:
-                for i, rect in enumerate(self.rects_opcoes):
-                    if rect.collidepoint(evento.pos):
-                        if self.hover_anterior != i:
-                            self.hover_anterior = i
-                            self.selecionada = i
-                            self._tocar_sfx("ui_cursor")
-                        break
-                            
+                if self.slider_arrastando_idx is not None:
+                    widget = self.slider_widgets.get(self.slider_arrastando_idx)
+                    if widget:
+                        val = self._valor_slider_por_x(widget["track"], evento.pos[0])
+                        self._definir_volume_por_idx(self.slider_arrastando_idx, val, salvar=False)
+                else:
+                    for i, rect in enumerate(self.rects_opcoes):
+                        if rect.collidepoint(evento.pos):
+                            if self.hover_anterior != i:
+                                self.hover_anterior = i
+                                self.selecionada = i
+                                self._tocar_sfx("ui_cursor")
+                            break
+
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 for i, rect in enumerate(self.rects_opcoes):
                     if rect.collidepoint(evento.pos):
                         self.selecionada = i
-                        if i in [0, 1, 2, 3, 4, 5]:
-                            # Clique no lado esquerdo do retângulo diminui; lado direito aumenta
-                            if evento.pos[0] < rect.centerx:
+                        if i in self._MAPA_SLIDERS_VOLUME:
+                            widget = self.slider_widgets.get(i)
+                            if widget and widget["btn_menos"].collidepoint(evento.pos):
                                 self.alterar_valor(-1)
-                            else:
+                            elif widget and widget["btn_mais"].collidepoint(evento.pos):
                                 self.alterar_valor(1)
+                            elif widget and widget["track_hit"].collidepoint(evento.pos):
+                                self.slider_arrastando_idx = i
+                                val = self._valor_slider_por_x(widget["track"], evento.pos[0])
+                                self._definir_volume_por_idx(i, val, salvar=True)
+                            else:
+                                self.alterar_valor(-1 if evento.pos[0] < rect.centerx else 1)
+                        elif i in (0, 1):
+                            self.alterar_valor(-1 if evento.pos[0] < rect.centerx else 1)
                         else:
                             self.executar_acao()
+                        break
+
+            elif evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
+                if self.slider_arrastando_idx is not None:
+                    self.slider_arrastando_idx = None
+                    self._salvar_preferencias()
 
     def alterar_valor(self, direcao):
         # 0: Velocidade do Texto
@@ -140,46 +264,36 @@ class SettingsState(State):
             self.game.config_velocidade_indice = (self.game.config_velocidade_indice + direcao) % len(self.game.opcoes_velocidade)
             novo_valor = self.game.valores_velocidade[self.game.config_velocidade_indice]
             self.game.caixa_dialogo.velocidade_texto = novo_valor
-            self._tocar_sfx("ui_cursor")
+            self._tocar_sfx("ui_slider")
+            self._salvar_preferencias()
 
         # 1: Velocidade do Combate
         elif self.selecionada == 1:
             self.game.config_velocidade_combate_indice = (self.game.config_velocidade_combate_indice + direcao) % len(self.game.opcoes_velocidade_combate)
             novo_fator = self.game.valores_velocidade_combate[self.game.config_velocidade_combate_indice]
             self.game.tela_combate.definir_velocidade(novo_fator)
-            self._tocar_sfx("ui_cursor")
+            self._tocar_sfx("ui_slider")
+            self._salvar_preferencias()
 
-        # 2: Volume Geral (Master)
-        elif self.selecionada == 2:
-            self.game.config_audio = max(0, min(100, getattr(self.game, 'config_audio', 100) + (direcao * 10)))
-            if hasattr(self.game, 'audio') and self.game.audio:
-                self.game.audio.definir_volume_master(self.game.config_audio)
-                self.game.audio.tocar_sfx("ui_confirmar")
+        # 2..5: Volumes por canal (passo de 5%, ou 1% com Shift)
+        elif self.selecionada in self._MAPA_SLIDERS_VOLUME:
+            attr, _metodo, padrao = self._MAPA_SLIDERS_VOLUME[self.selecionada]
+            atual = getattr(self.game, attr, padrao)
+            passo = self._obter_passo_volume()
+            self._definir_volume_por_idx(self.selecionada, atual + (direcao * passo), salvar=True)
 
-        # 3: Volume da Música (BGM)
-        elif self.selecionada == 3:
-            self.game.config_audio_musica = max(0, min(100, getattr(self.game, 'config_audio_musica', 80) + (direcao * 10)))
-            if hasattr(self.game, 'audio') and self.game.audio:
-                self.game.audio.definir_volume_musica(self.game.config_audio_musica)
-                self.game.audio.tocar_sfx("ui_confirmar")
-
-        # 4: Volume dos Efeitos Sonoros (SFX)
-        elif self.selecionada == 4:
-            self.game.config_audio_sfx = max(0, min(100, getattr(self.game, 'config_audio_sfx', 90) + (direcao * 10)))
-            if hasattr(self.game, 'audio') and self.game.audio:
-                self.game.audio.definir_volume_sfx(self.game.config_audio_sfx)
-                self.game.audio.tocar_sfx("ui_confirmar")
-
-        # 5: Volume dos Sons de Ambiente (BGS)
-        elif self.selecionada == 5:
-            self.game.config_audio_ambiente = max(0, min(100, getattr(self.game, 'config_audio_ambiente', 75) + (direcao * 10)))
-            if hasattr(self.game, 'audio') and self.game.audio:
-                self.game.audio.definir_volume_ambiente(self.game.config_audio_ambiente)
-                self.game.audio.tocar_sfx("ui_confirmar")
+        # 6: Mute global
+        elif self.selecionada == 6:
+            self._alternar_mute()
 
     def executar_acao(self):
         opcao = self.opcoes[self.selecionada]
-        if opcao == "Configurar Teclas...":
+        if opcao == "Silenciar Tudo (Mute)":
+            self._alternar_mute()
+        elif opcao == "Restaurar Padrões":
+            self._restaurar_padroes()
+        elif opcao == "Configurar Teclas...":
+            self._encerrar_preview_ambiente()
             self._tocar_sfx("ui_confirmar")
             self.game.mudar_estado("CONTROLES")
         elif opcao == "Redefinir Dados...":
@@ -187,6 +301,7 @@ class SettingsState(State):
             self.modal_reset_aberto = True
             self.modal_opcao_idx = 1  # Inicia no Cancelar por segurança
         elif opcao in ["Voltar", "Voltar ao Menu", "Voltar ao Jogo"]:
+            self._encerrar_preview_ambiente()
             self._tocar_sfx("ui_voltar")
             self.voltar_origem()
         else:
@@ -224,6 +339,8 @@ class SettingsState(State):
             self.modal_reset_aberto = False
 
     def voltar_origem(self):
+        self.slider_arrastando_idx = None
+        self._encerrar_preview_ambiente()
         if getattr(self.game, 'origem_configuracoes', 'MENU') == "PAUSE":
             self.game.mudar_estado("PAUSE")
         else:
@@ -235,6 +352,65 @@ class SettingsState(State):
                 dt = self.game.clock.get_time() / 1000.0 if hasattr(self.game, 'clock') else 0.016
                 dt = min(dt, 0.05) if dt > 0 else 0.016
                 self.game.menu.efeito_petalas.atualizar(dt)
+
+    def _desenhar_slider_volume(self, tela, indice, rect_opt, pct_volume, esta_sel, mutado):
+        """Desenha botões [-]/[+], trilha clicável, knob arrastável e percentual de volume."""
+        slot_pct_w = 54
+        btn_w, btn_h = 24, 24
+        track_w, track_h = 186, 8
+        gap = 8
+
+        slot_pct_x = rect_opt.right - 16 - slot_pct_w
+        btn_mais_x = slot_pct_x - gap - btn_w
+        track_x = btn_mais_x - gap - track_w
+        btn_menos_x = track_x - gap - btn_w
+
+        cy = rect_opt.centery
+        rect_menos = pygame.Rect(btn_menos_x, cy - btn_h // 2, btn_w, btn_h)
+        rect_track = pygame.Rect(track_x, cy - track_h // 2, track_w, track_h)
+        rect_mais = pygame.Rect(btn_mais_x, cy - btn_h // 2, btn_w, btn_h)
+
+        self.slider_widgets[indice] = {
+            "track": rect_track,
+            "track_hit": rect_track.inflate(8, 20),
+            "btn_menos": rect_menos,
+            "btn_mais": rect_mais,
+        }
+
+        cor_btn_bg = (30, 34, 44) if esta_sel else (22, 24, 30)
+        cor_btn_borda = AZUL_HOVER_MENU if esta_sel else (58, 62, 74)
+        cor_btn_txt = MARFIM_OFFWHITE if esta_sel else CINZA_LINHO
+
+        for rect_b, simbolo in ((rect_menos, "-"), (rect_mais, "+")):
+            pygame.draw.rect(tela, cor_btn_bg, rect_b, border_radius=3)
+            pygame.draw.rect(tela, cor_btn_borda, rect_b, 1, border_radius=3)
+            rend_s = self.fonte_sub.render(simbolo, True, cor_btn_txt)
+            tela.blit(rend_s, (rect_b.centerx - rend_s.get_width() // 2, rect_b.centery - rend_s.get_height() // 2))
+
+        pygame.draw.rect(tela, (18, 20, 26), rect_track, border_radius=4)
+        pygame.draw.rect(tela, (55, 60, 72), rect_track, 1, border_radius=4)
+
+        fracao = max(0.0, min(1.0, pct_volume / 100.0))
+        largura_preenchida = int((track_w - 2) * fracao)
+        if mutado:
+            cor_barra = (95, 98, 108)
+        elif esta_sel or self.slider_arrastando_idx == indice:
+            cor_barra = AZUL_HOVER_MENU
+        else:
+            cor_barra = (85, 120, 155)
+
+        if largura_preenchida > 0:
+            rect_preenchido = pygame.Rect(rect_track.x + 1, rect_track.y + 1, largura_preenchida, track_h - 2)
+            pygame.draw.rect(tela, cor_barra, rect_preenchido, border_radius=3)
+
+        knob_x = rect_track.x + int((track_w - 2) * fracao)
+        knob_r = 7 if (esta_sel or self.slider_arrastando_idx == indice) else 5
+        pygame.draw.circle(tela, cor_barra, (knob_x, cy), knob_r)
+        pygame.draw.circle(tela, MARFIM_OFFWHITE if not mutado else CINZA_LINHO, (knob_x, cy), knob_r, 1)
+
+        cor_pct = (135, 138, 148) if mutado else (MARFIM_OFFWHITE if esta_sel else CINZA_LINHO)
+        rend_pct = self.fonte_opcao.render(f"{pct_volume}%", True, cor_pct)
+        tela.blit(rend_pct, (slot_pct_x + slot_pct_w - rend_pct.get_width(), cy - rend_pct.get_height() // 2))
 
     def draw(self, tela):
         if getattr(self.game, 'origem_configuracoes', 'MENU') == "PAUSE":
@@ -249,8 +425,8 @@ class SettingsState(State):
             if hasattr(self.game, 'menu') and hasattr(self.game.menu, 'efeito_petalas'):
                 self.game.menu.efeito_petalas.desenhar(tela)
         
-        largura_bloco = 760
-        altura_bloco = 585
+        largura_bloco = 780
+        altura_bloco = 604
         x = (self.game.LARGURA - largura_bloco) // 2
         y = (self.game.ALTURA - altura_bloco) // 2
 
@@ -263,40 +439,47 @@ class SettingsState(State):
 
         # Título
         titulo = self.fonte_titulo.render("Configurações", True, MARFIM_OFFWHITE)
-        tela.blit(titulo, (x + 45, y + 20))
+        tela.blit(titulo, (x + 45, y + 18))
 
         # Divisória elegante
-        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 62), (x + largura_bloco - 40, y + 62), 1)
+        pygame.draw.line(tela, CINZA_ARDOSIA, (x + 40, y + 60), (x + largura_bloco - 40, y + 60), 1)
 
         vel_texto = self.game.opcoes_velocidade[self.game.config_velocidade_indice]
         vel_combate = self.game.opcoes_velocidade_combate[self.game.config_velocidade_combate_indice]
         audio_master = getattr(self.game, 'config_audio', 100)
-        audio_musica = getattr(self.game, 'config_audio_musica', 80)
-        audio_sfx = getattr(self.game, 'config_audio_sfx', 90)
-        audio_ambiente = getattr(self.game, 'config_audio_ambiente', 75)
-        
+        audio_musica = getattr(self.game, 'config_audio_musica', 55)
+        audio_sfx = getattr(self.game, 'config_audio_sfx', 95)
+        audio_ambiente = getattr(self.game, 'config_audio_ambiente', 70)
+        mutado = bool(getattr(self.game, 'config_audio_mutado', False)) or bool(
+            getattr(getattr(self.game, 'audio', None), 'mutado', False)
+        )
+
         texto_voltar = "Voltar ao Jogo" if getattr(self.game, 'origem_configuracoes', 'MENU') == "PAUSE" else "Voltar ao Menu"
+        texto_mute = "< Ativado [M] >" if mutado else "< Desativado [M] >"
 
         dados_opcoes = [
             ("Velocidade do Texto", f"< {vel_texto} >", None),
             ("Velocidade do Combate", f"< {vel_combate} >", None),
-            ("Volume Geral (Master)", f"< {audio_master}% >", audio_master),
-            ("Volume da Música", f"< {audio_musica}% >", audio_musica),
-            ("Volume dos Efeitos", f"< {audio_sfx}% >", audio_sfx),
-            ("Volume do Ambiente", f"< {audio_ambiente}% >", audio_ambiente),
+            ("Volume Geral (Master)", f"{audio_master}%", audio_master),
+            ("Volume da Música", f"{audio_musica}%", audio_musica),
+            ("Volume dos Efeitos", f"{audio_sfx}%", audio_sfx),
+            ("Volume do Ambiente", f"{audio_ambiente}%", audio_ambiente),
+            ("Silenciar Tudo (Mute)", texto_mute, None),
+            ("Restaurar Padrões", "[R] Mix Padrão", None),
             ("Configurar Teclas...", "", None),
             ("Redefinir Dados...", "", None),
-            (texto_voltar, "", None)
+            (texto_voltar, "", None),
         ]
 
         self.rects_opcoes.clear()
-        espacamento_opt = 48
+        self.slider_widgets.clear()
+        espacamento_opt = 44
         for i, (nome_opcao, valor_texto, pct_volume) in enumerate(dados_opcoes):
             esta_sel = (i == self.selecionada)
-            pos_x = x + 40
-            pos_y = y + 72 + (i * espacamento_opt)
+            pos_x = x + 36
+            pos_y = y + 70 + (i * espacamento_opt)
             
-            rect_opt = pygame.Rect(pos_x, pos_y, largura_bloco - 80, 38)
+            rect_opt = pygame.Rect(pos_x, pos_y, largura_bloco - 72, 36)
             self.rects_opcoes.append(rect_opt)
             
             if esta_sel:
@@ -309,41 +492,28 @@ class SettingsState(State):
                 texto_prefixo = "   "
                 
             render_nome = self.fonte_opcao.render(f"{texto_prefixo}{nome_opcao}", True, cor_texto)
-            tela.blit(render_nome, (pos_x + 16, rect_opt.centery - render_nome.get_height() // 2))
+            tela.blit(render_nome, (pos_x + 14, rect_opt.centery - render_nome.get_height() // 2))
 
-            # Exibe o valor à direita
-            if valor_texto:
-                cor_val = MARFIM_OFFWHITE if esta_sel else CINZA_LINHO
-                render_val = self.fonte_opcao.render(valor_texto, True, cor_val)
-                
-                # Para opções com barra medidora de volume (Master, BGM, SFX, BGS)
-                if pct_volume is not None:
-                    largura_slot_val = 80
-                    gauge_w = 96
-                    gauge_h = 8
-                    
-                    gauge_x = rect_opt.right - 18 - largura_slot_val - 16 - gauge_w
-                    gauge_y = rect_opt.centery - gauge_h // 2
-                    
-                    slot_val_x = rect_opt.right - 18 - largura_slot_val
-                    val_x = slot_val_x + (largura_slot_val - render_val.get_width()) // 2
-                    tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
-                    
-                    rect_gauge_bg = pygame.Rect(gauge_x, gauge_y, gauge_w, gauge_h)
-                    pygame.draw.rect(tela, (20, 22, 28), rect_gauge_bg, border_radius=2)
-                    pygame.draw.rect(tela, (50, 54, 66), rect_gauge_bg, 1, border_radius=2)
-                    
-                    if pct_volume > 0:
-                        largura_preenchida = int((gauge_w - 2) * (pct_volume / 100.0))
-                        cor_barra = AZUL_HOVER_MENU if esta_sel else (85, 120, 155)
-                        rect_preenchido = pygame.Rect(gauge_x + 1, gauge_y + 1, largura_preenchida, gauge_h - 2)
-                        pygame.draw.rect(tela, cor_barra, rect_preenchido, border_radius=1)
+            # Exibe controle à direita
+            if pct_volume is not None:
+                self._desenhar_slider_volume(tela, i, rect_opt, pct_volume, esta_sel, mutado)
+            elif valor_texto:
+                if nome_opcao == "Silenciar Tudo (Mute)" and mutado:
+                    cor_val = (235, 165, 95)
+                elif nome_opcao == "Restaurar Padrões" and not esta_sel:
+                    cor_val = UI_TEXTO_APAGADO
                 else:
-                    val_x = rect_opt.right - 18 - render_val.get_width()
-                    tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
+                    cor_val = MARFIM_OFFWHITE if esta_sel else CINZA_LINHO
+                render_val = self.fonte_opcao.render(valor_texto, True, cor_val)
+                val_x = rect_opt.right - 16 - render_val.get_width()
+                tela.blit(render_val, (val_x, rect_opt.centery - render_val.get_height() // 2))
 
         # Rodapé elegante com atalhos
-        txt_rodape = self.fonte_sub.render("[← / → / Clique] Ajustar   •   [ENTER] Confirmar   •   [ESC] Retornar", True, UI_TEXTO_APAGADO)
+        txt_rodape = self.fonte_sub.render(
+            "[← / → / Arraste / Roda] Ajustar   •   [M] Mute   •   [R] Padrões   •   [ESC] Voltar",
+            True,
+            UI_TEXTO_APAGADO,
+        )
         tela.blit(txt_rodape, (x + (largura_bloco - txt_rodape.get_width()) // 2, y + altura_bloco - 24))
 
         # 2. Desenha o Modal de Confirmação Defensivo se estiver ativo

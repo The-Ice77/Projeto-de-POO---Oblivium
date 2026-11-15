@@ -19,14 +19,14 @@
             "id": "aldous_opcao_dormir",
             "texto": "As tarefas na vila foram concluídas. Onde posso me recolher por esta noite?",
             "proximo": "fala_descanso_1",
-            "condicao_missao_concluida": "missao_boas_vindas",
+            "condicao_missao_concluida": ["missao_boas_vindas", "missao_ronda_fronteiras"],
             "repetivel": true
           },
           {
             "id": "aldous_perguntar_descanso_bloqueado",
             "texto": "Onde posso me recolher para passar a noite?",
             "proximo": "fala_descanso_bloqueado",
-            "condicao_missao_nao_concluida": "missao_boas_vindas",
+            "condicao_missao_nao_concluida": ["missao_boas_vindas", "missao_ronda_fronteiras"],
             "repetivel": true
           },
           {
@@ -84,7 +84,7 @@
       },
       "fala_descanso_bloqueado": {
         "autor": "Ancião Aldous",
-        "texto": "Ainda há tarefas importantes antes do anoitecer, Halia. Nossa gente ainda se recupera das feridas da guerra. Converse com a Curandeira Elara na botânica e ajude o Ferreiro Torvald na forja. Quando a vila estiver em ordem, você terá todo o repouso que merece na Casa de Hóspedes.",
+        "texto": "Ainda há tarefas importantes antes do anoitecer, Halia. Ajude Elara na botânica e Torvald na forja; depois, conclua a patrulha e volte a falar com o Guarda Doran no Portão Norte. Quando a vila estiver segura, você terá todo o repouso que merece na Casa de Hóspedes.",
         "proximo": "menu_aldous"
       },
       "fala_descanso_1": {
@@ -861,6 +861,73 @@
       "fala_1": {
         "autor": "Guarda Doran",
         "texto": "Saudações, salvadora de Oakhaven! É a maior glória da minha vida testemunhar a derrota do Dragão Ancestral pelas suas mãos. A guarda e o povo estarão sempre em dívida com você!",
+        "proximo": null
+      }
+    }
+  },
+  "despedida_demo_oakhaven": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Você já havia salvado nossas vidas naquela montanha, Halia... mas ainda escolheu ficar conosco para erguer cada viga e limpar as cinzas da nossa praça. Oakhaven renasceu pelas suas mãos.",
+        "proximo": "fala_2"
+      },
+      "fala_2": {
+        "autor": "Ferreiro Torvald",
+        "texto": "Trabalhar ao seu lado na forja me fez lembrar das madrugadas com o velho Sylvan... O mesmo respeito pelo aço e por quem está por perto. Quando precisar de abrigo, minha bigorna sempre terá brasa pra você.",
+        "proximo": "fala_3"
+      },
+      "fala_3": {
+        "autor": "Curandeira Elara",
+        "texto": "Que a brisa calma dos nossos canteiros acompanhe seus passos pela estrada, minha amiga. Leve sempre o calor de nossa gratidão consigo.",
+        "proximo": "fala_4"
+      },
+      "fala_4": {
+        "autor": "Halia",
+        "texto": "Obrigada por me acolherem quando eu mal me lembrava do meu próprio nome. Há um lugar além destas colinas... Não sei explicar. Mas sinto que é para lá que devo ir.",
+        "proximo": "fala_5"
+      },
+      "fala_5": {
+        "autor": "Narrador",
+        "texto": "Na memória recém-desperta de Sylvan ecoa o murmúrio distante das águas antigas: o caminho para além da fronteira aponta rumo ao Vale dos Moinhos.",
+        "evento": "iniciar_partida_demo_oakhaven",
+        "proximo": null
+      }
+    }
+  },
+  "partida_demo_oakhaven": {
+    "no_inicial": "fala_1",
+    "nos": {
+      "fala_1": {
+        "autor": "Halia",
+        "texto": "Até breve, Oakhaven. O caminho além destas colinas me espera.",
+        "evento": "iniciar_partida_demo_oakhaven",
+        "proximo": null
+      }
+    }
+  },
+  "reconstrucao_oakhaven": {
+    "no_inicial": "chegada",
+    "nos": {
+      "chegada": {
+        "autor": "O Alvorecer — Silêncio Após a Tempestade",
+        "texto": "Com a queda de Ignis'Vahr, a primeira luz da manhã acaricia as ruínas de Oakhaven. Juntos, os moradores começam a erguer o que o fogo tentou apagar.",
+        "proximo": "forja"
+      },
+      "forja": {
+        "autor": "Bairro Leste — A Forja Renascida",
+        "texto": "Halia canaliza fagulhas arcanas para reacender o fole enquanto Torvald ergue as novas vigas da forja. O bater firme do martelo volta a pulsar vida.",
+        "proximo": "botanica"
+      },
+      "botanica": {
+        "autor": "Alameda Oeste — O Herbário e a Terra",
+        "texto": "Gotas de orvalho lunar suavizam o solo crestado pelo dragão. Ao lado de Elara, a botânica e as barracas do jardim voltam a florescer em segurança.",
+        "proximo": "praca"
+      },
+      "praca": {
+        "autor": "O Dia da Renovação — Praça Central",
+        "texto": "Sob o céu límpido, a fonte e o Monumento dos Heróis voltam a brilhar no coração da vila. Oakhaven respira em paz outra vez.",
         "proximo": null
       }
     }

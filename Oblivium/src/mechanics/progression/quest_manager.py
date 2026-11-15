@@ -231,12 +231,13 @@ class QuestManager:
             tipo_lbl = "Principal" if categoria == "PRINCIPAL" else "Secundária"
             self.game.notificacoes.notificar(
                 "notificacao_missao",
-                missao=f"Missão {tipo_lbl}: {missao['titulo']}"
+                missao=f"Aceita ({tipo_lbl}): {missao['titulo']}",
+                chave_agrupamento=f"missao:{id_missao}",
             )
 
         # Efeito Sonoro
         if self.game and hasattr(self.game, 'audio') and self.game.audio:
-            self.game.audio.tocar_sfx("ui_confirmar")
+            self.game.audio.tocar_sfx("quest_nova")
 
         # Checkpoint de Autosave ao aceitar nova missão
         if self.game and getattr(self.game, 'slot_atual', None) and hasattr(self.game, 'salvar_estado'):
@@ -280,7 +281,8 @@ class QuestManager:
             if self.game and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
                 self.game.notificacoes.notificar(
                     "notificacao_missao",
-                    missao=f"Objetivo: {objetivo_alvo['descricao']} (Concluído)"
+                    missao=f"Objetivo concluído: {missao['titulo']}",
+                    chave_agrupamento=f"missao:{id_missao}",
                 )
 
         # Verifica se todos os objetivos (incluindo entrega presencial) foram completados
@@ -308,16 +310,12 @@ class QuestManager:
 
         mid = missao["id"]
         if self.pronta_para_entregar(mid):
-            for obj in missao.get("objetivos", []):
-                if self._eh_objetivo_entrega_npc(obj) and not obj.get("concluido", False):
-                    self.progredir_objetivo(mid, obj["id"], obj.get("alvo", 1), via_interacao_npc=True)
-            if missao.get("status") != "CONCLUIDA":
-                self.concluir_missao(mid)
-            return {
-                "estado": "CONCLUIDA",
-                "dialogo_id": missao.get("dialogo_conclusao"),
-                "missao": missao
-            }
+            if self.concluir_missao(mid):
+                return {
+                    "estado": "CONCLUIDA",
+                    "dialogo_id": missao.get("dialogo_conclusao"),
+                    "missao": missao
+                }
 
         return {
             "estado": "ANDAMENTO",
@@ -352,17 +350,32 @@ class QuestManager:
                 if not item_id or inventario.obter_quantidade(item_id) < qtd_req:
                     return False
 
-        # 2. Remover itens de entrega
-        if requisitos_entrega and inventario:
+        # Prepara entrega e recompensa numa cópia; bolsa cheia não pode consumir a missão.
+        inventario_preparado = None
+        itens_recompensa = missao.get("recompensas", {}).get("itens", [])
+        if inventario is not None and (requisitos_entrega or itens_recompensa):
+            inventario_preparado = type(inventario).from_dict(inventario.to_dict())
             for req in requisitos_entrega:
                 item_id = req.get("item_id")
                 qtd_req = int(req.get("quantidade", 1))
                 if item_id and qtd_req > 0:
-                    qtd_disp = inventario.obter_quantidade(item_id)
+                    qtd_disp = inventario_preparado.obter_quantidade(item_id)
                     qtd_remover = min(qtd_req, qtd_disp) if forcar else qtd_req
-                    if qtd_remover > 0 and not inventario.remover_item(item_id, qtd_remover):
-                        if not forcar:
-                            return False
+                    if qtd_remover > 0 and not inventario_preparado.remover_item(item_id, qtd_remover):
+                        return False
+            for item_id in itens_recompensa:
+                sucesso, mensagem = inventario_preparado.adicionar_item(item_id, 1)
+                if not sucesso:
+                    if self.game and getattr(self.game, "notificacoes", None):
+                        self.game.notificacoes.notificar(
+                            "notificacao_alerta", titulo="Recompensa pendente",
+                            mensagem=f"{mensagem} Libere espaço e fale novamente com {missao.get('doador', 'o responsável')}.",
+                            tipo="ALERTA",
+                        )
+                    return False
+
+        if inventario_preparado is not None:
+            inventario.slots = inventario_preparado.slots
 
         # 3. Marcar objetivos e missão como concluídos
         for obj in missao.get("objetivos", []):
@@ -382,11 +395,6 @@ class QuestManager:
             if xp > 0 and hasattr(halia, 'ganhar_xp'):
                 halia.ganhar_xp(xp)
 
-            itens_rec = recompensas.get("itens", [])
-            if itens_rec and inventario:
-                for item_id in itens_rec:
-                    inventario.adicionar_item(item_id, 1)
-
             if recompensas.get("restaurar_total") and hasattr(halia, "restaurar_total"):
                 halia.restaurar_total()
 
@@ -405,11 +413,12 @@ class QuestManager:
         if self.game and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
             self.game.notificacoes.notificar(
                 "notificacao_missao",
-                missao=f"Missão Concluída: {missao['titulo']}"
+                missao=f"Concluída: {missao['titulo']}",
+                chave_agrupamento=f"missao:{id_missao}",
             )
 
         if self.game and hasattr(self.game, 'audio') and self.game.audio:
-            self.game.audio.tocar_sfx("ui_confirmar")
+            self.game.audio.tocar_sfx("quest_concluida")
 
         if self.missao_rastreada_id == id_missao:
             ativas = self.obter_missoes_ativas()

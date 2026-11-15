@@ -220,7 +220,7 @@ class MinigameFerraria(MinigameBase):
                 )
 
             if hasattr(self.game, "audio") and self.game.audio:
-                self.game.audio.tocar_sfx("item_pocao")
+                self.game.audio.tocar_sfx("forja_bigorna")
 
             if self.acertos_atuais >= self.acertos_necessarios:
                 self._desencadear_fratura_final()
@@ -263,6 +263,8 @@ class MinigameFerraria(MinigameBase):
         self.cor_feedback = (255, 230, 110)
         self.shake_rocha = 24
         self.flash_rocha = 28
+        if hasattr(self.game, "audio") and self.game.audio:
+            self.game.audio.tocar_sfx("explosao")
 
         # Cria múltiplos fragmentos poligonais voando
         rx, ry = 640, 310

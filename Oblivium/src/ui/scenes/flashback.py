@@ -1,6 +1,4 @@
 # src/ui/flashback.py
-import math
-import random
 import pygame
 from src.utils.colors import (
     PRETO, TXT_ECO_PASSADO, TXT_PENSAMENTO_FANTASMA, 
@@ -10,6 +8,7 @@ from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.maps.mapa_flashback import MapaFlashbackAcampamento
 from src.mechanics.cutscenes import CenaBase
+from src.ui.scenes.texto_editorial import ApresentacaoTextoEditorial
 
 
 class Flashback(CenaBase):
@@ -68,6 +67,29 @@ class Flashback(CenaBase):
         self.textos = []
         self.indice_texto = 0
         self.tempo_ultimo_input = 0
+        self.apresentacao_texto = ApresentacaoTextoEditorial(
+            game=game,
+            largura=largura,
+            altura=altura,
+            cor_fundo=PRETO,
+            fonte_texto=self.fonte_flashback,
+            fonte_dica=self.fonte_avanco,
+            margem_horizontal=240,
+            altura_linha=40,
+            velocidade_base=self.velocidade_digitacao,
+            pos_y_dica_offset=50,
+            dicas=(
+                "Clique ou pressione [ENTER / ESPAÇO] para acelerar",
+                "Clique ou pressione [ENTER / ESPAÇO] para recordar",
+            ),
+        )
+
+    def _sincronizar_texto_atual(self):
+        texto_final, cor_texto = self._obter_texto_formatado_atual()
+        self.apresentacao_texto.game = self.game
+        self.apresentacao_texto.velocidade_base = self.velocidade_digitacao
+        self.apresentacao_texto.definir_conteudo([(texto_final, cor_texto)] if texto_final else [])
+        self.caractere_atual = 0.0
 
     @property
     def ativo(self):
@@ -114,7 +136,12 @@ class Flashback(CenaBase):
         self.texto_estado = "DIGITANDO"
         self.caractere_atual = 0.0
         self.tempo_ultimo_input = pygame.time.get_ticks()
+        self._sincronizar_texto_atual()
         self.efeito_petalas.reiniciar(inicializar_na_tela=True)
+        if self.game and getattr(self.game, "audio", None):
+            self.game.audio.tocar_musica(
+                "cutscene_magia", loop=-1, fade_ms=1000, salvar_anterior=True, contexto="cutscene"
+            )
 
     def handle_event(self, evento):
         """Processa entradas de teclado ou mouse quando o flashback está ativo."""
@@ -151,29 +178,29 @@ class Flashback(CenaBase):
                 ])
         elif getattr(self.game, "flashback_sylvan_ativo", False):
             self.game.flashback_sylvan_ativo = False
-            if hasattr(self.game, "halia") and self.game.halia and self.game.halia.fragmentos_memoria < 2:
-                self.game.halia.recuperar_memoria(1)
-            if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
-                self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
-                ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
-                if ninho:
-                    ninho.ninho_amanhecer = True
-                    ninho.dragao_derrotado = True
-                    if hasattr(ninho, "inicializar_cenario"):
-                        ninho.inicializar_cenario()
-            if hasattr(self.game, "halia") and self.game.halia:
-                self.game.halia.x, self.game.halia.y = 610, 380
-                self.game.halia.direcao = "cima"
-                self.game.halia.mudar_estado("idle")
-            if getattr(self.game, "slot_atual", None) and hasattr(self.game, "salvar_estado"):
-                self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
-            if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
-                self.game.caixa_dialogo.iniciar_dialogo([
-                    {
-                        "autor": "Narrador",
-                        "texto": "O riso caloroso de Sylvan ainda ecoa como uma brasa acolhedora na memória de Halia. A força daquela amizade antiga dissipa suas dores. O dragão colossal jaz inerte sob a luz límpida da aurora. É hora de descer pela trilha sul e levar as boas notícias ao povo de Oakhaven."
-                    }
-                ])
+            ctrl = None
+            if hasattr(self.game, "estados") and "JOGANDO" in self.game.estados:
+                ctrl = getattr(self.game.estados["JOGANDO"], "oakhaven_controller", None)
+            if ctrl and hasattr(ctrl, "concluir_flashback_sylvan_pos_dragao"):
+                ctrl.concluir_flashback_sylvan_pos_dragao()
+            else:
+                if hasattr(self.game, "halia") and self.game.halia and self.game.halia.fragmentos_memoria < 2:
+                    self.game.halia.recuperar_memoria(1, adiar_autosave=True)
+                if hasattr(self.game, "mapa_casa") and self.game.mapa_casa:
+                    self.game.mapa_casa.carregar_cenario("NINHO_DRAGAO")
+                    ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
+                    if ninho:
+                        ninho.ninho_amanhecer = True
+                        ninho.dragao_derrotado = True
+                        if hasattr(ninho, "inicializar_cenario"):
+                            ninho.inicializar_cenario()
+                if hasattr(self.game, "halia") and self.game.halia:
+                    self.game.halia.x, self.game.halia.y = 610, 380
+                    self.game.halia.direcao = "cima"
+                    self.game.halia.mudar_estado("idle")
+                self.game.etapa_epilogo = "DESPERTAR_PENDENTE"
+                if getattr(self.game, "slot_atual", None) and hasattr(self.game, "salvar_estado"):
+                    self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
         else:
             if hasattr(self.game, "flashback_magia_concluido"):
                 self.game.flashback_magia_concluido = True
@@ -197,7 +224,18 @@ class Flashback(CenaBase):
         self.dialogo_iniciado = False
         self.concluido = True
         self._aplicar_consequencias_narrativas()
-        return self._executar_callback_conclusao()
+        resultado = self._executar_callback_conclusao()
+
+        despertar_pendente = bool(
+            self.game
+            and (
+                getattr(self.game, "etapa_epilogo", None) == "DESPERTAR_PENDENTE"
+                or getattr(getattr(self.game, "tela_despertar", None), "estado", "INATIVO") != "INATIVO"
+            )
+        )
+        if not despertar_pendente and self.game and hasattr(self.game, "sincronizar_trilha_cenario"):
+            self.game.sincronizar_trilha_cenario(fade_ms=1000)
+        return resultado
 
     def pular(self):
         """Pula o flashback preservando todas as consequências narrativas de conclusão."""
@@ -240,10 +278,9 @@ class Flashback(CenaBase):
             return
         self.tempo_ultimo_input = tempo_atual
 
-        texto_final, _ = self._obter_texto_formatado_atual()
-        
         if self.texto_estado == "DIGITANDO":
-            self.caractere_atual = float(len(texto_final))
+            self.apresentacao_texto.completar_digitacao()
+            self.caractere_atual = float(self.apresentacao_texto.total_caracteres)
             self.texto_estado = "WAIT"
         elif self.texto_estado == "WAIT":
             self.texto_estado = "FADE_OUT"
@@ -259,8 +296,15 @@ class Flashback(CenaBase):
 
         self.tempo_cena += dt
 
-        # Atualiza a chuva sutil de pétalas
-        self.efeito_petalas.atualizar(dt)
+        # Atualiza a chuva sutil de pétalas com opacidade suavizada durante leitura
+        dialogo_ativo = bool(self.game and getattr(getattr(self.game, "caixa_dialogo", None), "ativo", False))
+        if self.tipo == "acampamento":
+            alpha_alvo = 0.35 if dialogo_ativo else 0.70
+        elif self.estado == "ESCURIDAO":
+            alpha_alvo = 0.78
+        else:
+            alpha_alvo = min(1.0, max(0.08, self.alpha / 220.0))
+        self.efeito_petalas.atualizar(dt, alpha_alvo=alpha_alvo)
 
         # Atualiza animações físicas e visuais do acampamento
         if self.tipo == "acampamento":
@@ -281,7 +325,7 @@ class Flashback(CenaBase):
                 else:
                     self.texto_alpha = 255.0
                     self.texto_estado = "DIGITANDO"
-                    self.caractere_atual = 0.0
+                    self._sincronizar_texto_atual()
 
         elif self.estado == "ESCURIDAO":
             if self.tipo == "acampamento":
@@ -298,14 +342,14 @@ class Flashback(CenaBase):
                     else:
                         self.estado = "CLAREANDO"
             else:
-                # Máquina de escrever do modo texto puro
-                texto_final, _ = self._obter_texto_formatado_atual()
-                total_chars = len(texto_final)
-                
+                # Máquina de escrever do modo texto puro (compartilhada via ApresentacaoTextoEditorial)
                 if self.texto_estado == "DIGITANDO":
-                    self.caractere_atual += self.velocidade_digitacao * (dt * 60.0)
-                    if self.caractere_atual >= total_chars:
-                        self.caractere_atual = float(total_chars)
+                    self.apresentacao_texto.game = self.game
+                    self.apresentacao_texto.velocidade_base = self.velocidade_digitacao
+                    terminou = self.apresentacao_texto.atualizar(dt)
+                    self.caractere_atual = self.apresentacao_texto.caractere_atual
+                    if terminou or self.apresentacao_texto.esta_completa():
+                        self.caractere_atual = float(self.apresentacao_texto.total_caracteres)
                         self.texto_estado = "WAIT"
                 
                 elif self.texto_estado == "FADE_OUT":
@@ -319,6 +363,7 @@ class Flashback(CenaBase):
                             self.estado = "CLAREANDO"
                         else:
                             self.texto_estado = "DIGITANDO"
+                            self._sincronizar_texto_atual()
 
         elif self.estado == "CLAREANDO":
             self.alpha -= self.velocidade * 35.0 * dt
@@ -345,6 +390,20 @@ class Flashback(CenaBase):
             linhas.append(linha_atual.rstrip())
         return linhas
 
+    def obter_areas_protegidas(self, largura=None, altura=None, margem=28):
+        """Retorna áreas reais de texto do flashback ou caixa de diálogo ativa com margem."""
+        w = largura or self.largura
+        h = altura or self.altura
+        margem_px = max(0, int(margem))
+        areas = []
+
+        if self.game and getattr(getattr(self.game, "caixa_dialogo", None), "ativo", False):
+            areas.extend(self.game.caixa_dialogo.obter_areas_protegidas(w, h, margem=margem_px))
+
+        if self.tipo != "acampamento" and self.indice_texto < len(self.textos):
+            areas.extend(self.apresentacao_texto.obter_areas_protegidas(w, h, margem=margem_px))
+        return areas
+
     # =========================================================================
     # Desenho Principal (Acampamento vs Modo Texto)
     # =========================================================================
@@ -352,13 +411,15 @@ class Flashback(CenaBase):
         if self.estado == "INATIVO": 
             return
 
+        areas_excluidas = self.obter_areas_protegidas(tela.get_width(), tela.get_height())
+
         # 1. Modo Visual de Acampamento no Mapa Real
         if self.tipo == "acampamento":
             # Desenha o mapa real com todos os seus elementos autênticos
             self.mapa_acampamento.desenhar(tela)
 
-            # Pétalas sutis de recordação
-            self.efeito_petalas.desenhar(tela, alpha_multiplicador=0.7)
+            # Pétalas sutis de recordação respeitando caixa de diálogo ativa
+            self.efeito_petalas.desenhar(tela, areas_excluidas=areas_excluidas)
 
             # Transições suaves de entrada e saída
             if self.estado == "ESCURECENDO":
@@ -377,77 +438,16 @@ class Flashback(CenaBase):
                     tela.blit(overlay, (0, 0))
             return
 
-        # 2. Modo Clássico de Texto Puro sobre Escuridão
-        self.superficie_preta.set_alpha(max(0, min(255, int(self.alpha))))
-        tela.blit(self.superficie_preta, (0, 0))
-
-        areas_excluidas = []
-        if self.indice_texto < len(self.textos):
-            texto_final, _ = self._obter_texto_formatado_atual()
-            linhas = self._quebrar_texto(texto_final, self.largura - 240)
-            altura_linha = 40
-            altura_bloco = len(linhas) * altura_linha
-            y_inicial = (self.altura // 2) - (altura_bloco // 2)
-            larguras = [self.fonte_flashback.size(l)[0] for l in linhas] if linhas else [300]
-            max_w = max(larguras, default=300)
-            rect_txt = pygame.Rect(
-                (self.largura // 2) - (max_w // 2) - 35,
-                y_inicial - 25,
-                max_w + 70,
-                altura_bloco + 50
-            )
-            areas_excluidas.append(rect_txt)
-
-        if self.estado in ("ESCURECENDO", "ESCURIDAO", "CLAREANDO"):
-            alpha_petalas = min(1.0, max(0.08, self.alpha / 220.0))
-            self.efeito_petalas.desenhar(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_petalas)
-
-        if self.estado == "ESCURIDAO" and self.indice_texto < len(self.textos):
-            texto_final, cor_texto = self._obter_texto_formatado_atual()
-            linhas = self._quebrar_texto(texto_final, self.largura - 240)
-            altura_linha = 40
-            altura_bloco = len(linhas) * altura_linha
-            y_inicial = (self.altura // 2) - (altura_bloco // 2)
-
-            total_visivel = int(self.caractere_atual)
-            caracteres_acumulados = 0
-            piscar_cursor = (pygame.time.get_ticks() // 420) % 2 == 0
-
-            for i, linha in enumerate(linhas):
-                len_linha = len(linha)
-                largura_linha_completa = self.fonte_flashback.size(linha)[0]
-                x_inicio_linha = (self.largura // 2) - (largura_linha_completa // 2)
-                
-                if total_visivel <= caracteres_acumulados:
-                    break
-                elif total_visivel >= caracteres_acumulados + len_linha:
-                    texto_render = linha
-                    caracteres_acumulados += len_linha
-                    desenhar_cursor = (i == len(linhas) - 1 and self.texto_estado == "DIGITANDO" and piscar_cursor)
-                else:
-                    chars_nesta = total_visivel - caracteres_acumulados
-                    texto_render = linha[:chars_nesta]
-                    caracteres_acumulados += len_linha
-                    desenhar_cursor = (self.texto_estado == "DIGITANDO" and piscar_cursor)
-
-                if texto_render:
-                    render = self.fonte_flashback.render(texto_render, True, cor_texto)
-                    if self.texto_alpha < 255:
-                        render.set_alpha(int(max(0, min(255, self.texto_alpha))))
-                    tela.blit(render, (x_inicio_linha, y_inicial + (i * altura_linha)))
-
-                    if desenhar_cursor:
-                        x_cursor = x_inicio_linha + render.get_width() + 2
-                        y_cursor = y_inicial + (i * altura_linha) + 8
-                        cursor_surf = pygame.Surface((2, 24), pygame.SRCALPHA)
-                        alpha_c = int(max(0, min(255, self.texto_alpha))) if self.texto_alpha < 255 else 200
-                        cursor_surf.fill((*cor_texto[:3], alpha_c))
-                        tela.blit(cursor_surf, (x_cursor, y_cursor))
-
-            if self.texto_estado == "DIGITANDO":
-                aviso_txt = "Clique ou pressione [ENTER / ESPAÇO] para acelerar"
-            else:
-                aviso_txt = "Clique ou pressione [ENTER / ESPAÇO] para recordar"
-                
-            avancar = self.fonte_avanco.render(aviso_txt, True, UI_TEXTO_APAGADO)
-            tela.blit(avancar, ((self.largura // 2) - (avancar.get_width() // 2), self.altura - 50))
+        # 2. Modo Clássico de Texto Puro sobre Escuridão (compartilhado via ApresentacaoTextoEditorial)
+        alpha_fade_tela = None if self.estado == "ESCURIDAO" else min(1.0, max(0.08, self.alpha / 220.0))
+        em_texto = self.estado == "ESCURIDAO" and self.indice_texto < len(self.textos)
+        self.apresentacao_texto.desenhar(
+            tela,
+            efeito_petalas=self.efeito_petalas if self.estado in ("ESCURECENDO", "ESCURIDAO", "CLAREANDO") else None,
+            alpha=self.texto_alpha if em_texto else self.alpha,
+            alpha_petalas=alpha_fade_tela,
+            apenas_fundo=not em_texto,
+        )
+        if self.estado != "ESCURIDAO" and self.alpha < 255:
+            self.superficie_preta.set_alpha(max(0, min(255, int(255 - self.alpha))))
+            tela.blit(self.superficie_preta, (0, 0))

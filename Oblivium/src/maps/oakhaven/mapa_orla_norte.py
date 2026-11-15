@@ -2,7 +2,11 @@
 import random
 import pygame
 from src.maps.cenario_base import CenarioBase
-from src.maps.oakhaven.terreno_utils import _carregar_tiles_terreno, _renderizar_grade_autotile
+from src.maps.oakhaven.terreno_utils import (
+    _carregar_tiles_terreno,
+    _renderizar_grade_autotile,
+    criar_sombra_contato_estrutura,
+)
 from src.utils.resource_manager import ResourceManager
 from src.entities.npc_factory import NPCFactory
 from src.entities.animal import Passaro
@@ -100,7 +104,8 @@ class MapaOrlaNorte(CenarioBase):
         surf = pygame.Surface((w, h))
         surf.blit(surf_grade, (0, 0), pygame.Rect(0, 0, w, h))
 
-        # Paliçada ao sul (vista pelo lado externo do Portão Norte de Oakhaven)
+        # Paliçada defensiva ao sul (vista pelo lado externo do Portão Norte de Oakhaven)
+        # Auditoria R05: peças de 08_Cercas (~36px) cobrem cercados internos; mantemos a paliçada de carvalho robusta na muralha externa.
         for tx in range(0, w, 28):
             if 530 <= tx <= 740:
                 continue
@@ -148,12 +153,20 @@ class MapaOrlaNorte(CenarioBase):
                 hb = pygame.Rect(int(x + rx), int(y + ry), int(rw), int(rh))
             if hb.width > 0 and hb.height > 0:
                 self.hitboxes.append(hb)
+            sombra_surf = None
+            sombra_offset = (0, 0)
+            if sombra:
+                sombra_surf, sombra_offset = criar_sombra_contato_estrutura(sprite, cor=(14, 18, 16, 75))
             self.estruturas_ysort.append({
                 "sprite": sprite,
                 "x": int(x),
                 "y": int(y),
                 "y_sort": int(hb.bottom if hb.height > 0 else y + sh),
-                "sombra": sombra
+                "sombra": sombra,
+                "sombra_surf": sombra_surf,
+                "sombra_offset": sombra_offset,
+                "sw": sw,
+                "sh": sh,
             })
 
         # Cinturão de árvores cercando a clareira da Orla Norte
@@ -241,7 +254,11 @@ class MapaOrlaNorte(CenarioBase):
             if tipo == "estrutura":
                 sp = obj["sprite"]
                 ox, oy = obj["x"], obj["y"]
-                if obj.get("sombra"):
+                s_surf = obj.get("sombra_surf")
+                if s_surf:
+                    dx_s, dy_s = obj.get("sombra_offset", (0, 0))
+                    tela.blit(s_surf, (ox + dx_s, oy + dy_s))
+                elif obj.get("sombra"):
                     sw, sh = sp.get_size()
                     sombra = pygame.Surface((int(sw * 0.86), 18), pygame.SRCALPHA)
                     pygame.draw.ellipse(sombra, (14, 18, 16, 75), (0, 0, int(sw * 0.86), 18))

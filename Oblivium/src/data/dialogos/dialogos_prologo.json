@@ -482,7 +482,7 @@
         "opcoes": [
           {
             "id": "seguir_capital",
-            "texto": "Subir na carroça e seguir viagem para a Capital",
+            "texto": "Subir na carroça e seguir viagem para Oakhaven",
             "proximo": "fala_seguir_1",
             "repetivel": true
           },
@@ -499,7 +499,7 @@
       },
       "fala_seguir_1": {
         "autor": "Carroceiro",
-        "texto": "Excelente! Suba na carroça, a capital nos espera do outro lado deste vale.",
+        "texto": "Excelente! Suba na carroça, o Refúgio de Oakhaven nos espera do outro lado deste vale.",
         "proximo": "fala_seguir_2"
       },
       "fala_seguir_2": {
@@ -550,7 +550,7 @@
     "nos": {
       "fala_1": {
         "autor": "Carroceiro",
-        "texto": "A passagem está livre. Pronta para seguir viagem até a capital?",
+        "texto": "A passagem está livre. Pronta para seguir viagem até Oakhaven?",
         "proximo": "menu_redirecionar"
       },
       "menu_redirecionar": {

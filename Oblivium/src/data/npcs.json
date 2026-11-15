@@ -49,7 +49,7 @@
         "arquetipo": "ferreiro",
         "sprite_pasta": "torvald_ferreiro",
         "dimensoes": {
-            "alvo_h": 82,
+            "alvo_h": 66,
             "largura": 40,
             "altura": 36
         },

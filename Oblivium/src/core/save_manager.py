@@ -42,6 +42,23 @@ class SaveManager:
         "NINHO_DRAGAO": (610, 520),
     }
 
+    ETAPAS_EPILOGO_VALIDAS = (
+        "NAO_INICIADO",
+        "POS_DRAGAO",
+        "FLASHBACK_SYLVAN_PENDENTE",
+        "DESPERTAR_PENDENTE",
+        "RETORNO_VILA",
+        "RECONSTRUCAO_PENDENTE",
+        "DESPEDIDA_PENDENTE",
+        "DEMO_CONCLUIDA",
+    )
+
+    ATAQUES_LEGADO_AUTO = (
+        "golpe_concentrado",
+        "varredura_de_cajado",
+        "estocada_perfurante",
+    )
+
     # (atributo em self.game, chave no bloco 'flags' do JSON, valor padrão)
     FLAGS_PERSISTENTES = (
         ("investigou_pedras", "investigou_pedras", False),
@@ -55,6 +72,9 @@ class SaveManager:
         ("dragao_derrotado", "dragao_derrotado", False),
         ("desespero_superado", "desespero_superado", False),
         ("patusco_pos_oakhaven", "patusco_pos_oakhaven", None),
+        ("estagio_memoria_apresentado", "estagio_memoria_apresentado", 0),
+        ("etapa_epilogo", "etapa_epilogo", "NAO_INICIADO"),
+        ("versao_progressao", "versao_progressao", 2),
     )
 
     # (atributo transitório em self.game, valor padrão no reset/load)
@@ -69,7 +89,14 @@ class SaveManager:
         ("aguardando_dialogo_pos_dragao", False),
         ("flashback_monumento_ativo", False),
         ("flashback_sylvan_ativo", False),
+        ("despedida_demo_exibida", False),
         ("partindo_estrada2", False),
+        ("pronto_viajar_oakhaven", False),
+        ("timer_magia", 0),
+        ("distanciando_halia", False),
+        ("bola_fogo_x", 0),
+        ("bola_fogo_y", 0),
+        ("bola_fogo_ativa", False),
     )
 
     def __init__(self, game):
@@ -108,7 +135,7 @@ class SaveManager:
         if hasattr(halia, 'atualizar_grimorio'):
             halia.atualizar_grimorio()
 
-        ataques_padrao = ["ataque_basico", "golpe_concentrado", "varredura_de_cajado", "estocada_perfurante"]
+        ataques_padrao = ["ataque_basico"]
         ataques_salvar = getattr(halia, 'ataques_fisicos', ataques_padrao)
 
         flags_dict = {
@@ -329,7 +356,6 @@ class SaveManager:
             if raw_mana is not None:
                 raw_mana = float(raw_mana)
 
-            padrao_ataques = ["ataque_basico", "golpe_concentrado", "varredura_de_cajado", "estocada_perfurante"]
             raw_ataques = halia_dados.get("ataques_fisicos", [])
             if raw_ataques is None:
                 salvos_ataques = []
@@ -337,7 +363,6 @@ class SaveManager:
                 salvos_ataques = raw_ataques
             else:
                 raise TypeError("ataques_fisicos inválido.")
-            ataques_fisicos_novos = list(dict.fromkeys(salvos_ataques + padrao_ataques))
 
             flags_persistentes_novas = {}
             for attr_game, chave_save, padrao in self.FLAGS_PERSISTENTES:
@@ -356,11 +381,24 @@ class SaveManager:
                     flags_persistentes_novas[attr_game] = bool(flags.get(chave_save, padrao))
                 else:
                     flags_persistentes_novas[attr_game] = flags.get(chave_save, padrao)
+
+            ataques_fisicos_novos = self._migrar_progressao_e_grimorio(
+                dados=dados,
+                flags=flags,
+                halia_dados=halia_dados,
+                cenario_salvo=cenario_salvo,
+                fragmentos_memoria_novos=fragmentos_memoria_novos,
+                flags_persistentes_novas=flags_persistentes_novas,
+                feiticos_aprendidos_novos=feiticos_aprendidos_novos,
+                inventario_novo=inventario_novo,
+                salvos_ataques=salvos_ataques,
+            )
         except (TypeError, ValueError, KeyError, AttributeError) as e:
             _notificar_falha_load(str(e))
             return False
 
         # --- FASE 2: APLICAR ESTADO VALIDADO NA SESSÃO ---
+        self.limpar_estado_execucao_ativo()
         self.game.slot_atual = slot
         self.game.tempo_jogado = tempo_jogado_novo
         self.game.origem_pause = "JOGANDO"
@@ -381,11 +419,25 @@ class SaveManager:
             else:
                 self.game.missoes.resetar()
 
-        # Reseta flags temporárias de transição, cutscenes e batalha em andamento
-        for attr_game, padrao in self.FLAGS_TRANSITORIAS:
-            setattr(self.game, attr_game, padrao)
-        self.game.inimigos_em_cena = []
-        self.game.transicao.estado = "INATIVO"
+        etapa_epilogo_atual = getattr(self.game, "etapa_epilogo", "NAO_INICIADO")
+        if etapa_epilogo_atual in ("POS_DRAGAO", "FLASHBACK_SYLVAN_PENDENTE") and self.game.dragao_derrotado:
+            cenario_salvo = "NINHO_DRAGAO"
+            raw_x, raw_y = 610, 380
+        elif etapa_epilogo_atual == "DEMO_CONCLUIDA":
+            self.game.oakhaven_destruida = False
+            self.game.oakhaven_noite = False
+            self.game.dragao_derrotado = True
+            self.game.desespero_superado = True
+            cenario_salvo = "OAKHAVEN"
+            raw_x, raw_y = 1102, 650
+            direcao_nova = "baixo"
+        elif etapa_epilogo_atual == "DESPEDIDA_PENDENTE":
+            self.game.oakhaven_destruida = False
+            self.game.oakhaven_noite = False
+            if cenario_salvo == "OAKHAVEN_DESTRUIDA":
+                cenario_salvo = "OAKHAVEN"
+        elif etapa_epilogo_atual == "RECONSTRUCAO_PENDENTE" and getattr(self.game, "oakhaven_destruida", False):
+            self.game.aguardando_dialogo_pos_dragao = True
 
         # 2. Carrega o cenário com validação e desobstrui caminhos se já resolvidos
         self.game.mapa_casa.restaurar_bloqueio_estrada2()
@@ -485,6 +537,9 @@ class SaveManager:
             self.game.carroceiro_andando = False
             self.game.carroceiro.velocidade = 0
 
+        if hasattr(self.game.carroceiro, "sincronizar_teleporte"):
+            self.game.carroceiro.sincronizar_teleporte()
+
         # 4. Respawn Inteligente de Inimigos em Cenários de Missão/Combate Ativos
         if cenario_salvo == "ORLA_NORTE":
             missao_ronda = (self.game.missoes.obter_missao("missao_ronda_fronteiras") if hasattr(self.game, "missoes") else None)
@@ -518,16 +573,19 @@ class SaveManager:
                 dragao.virado_direita = False
                 dragao.direcao = "esquerda"
                 self.game.inimigos_em_cena = [dragao]
-                if hasattr(self.game, "audio") and self.game.audio:
-                    self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=800)
+                if (
+                    getattr(self.game, "nome_estado_atual", "") == "JOGANDO"
+                    and hasattr(self.game, "sincronizar_trilha_cenario")
+                ):
+                    self.game.sincronizar_trilha_cenario(fade_ms=800)
 
         # 5. Sincroniza Câmera 2D, Filtro de Memória, HUD e telas visuais
         if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
             self.game.estados["JOGANDO"].atualizar_camera(instantaneo=True)
-            self.game.estados["JOGANDO"].memoria_anterior_registrada = halia.fragmentos_memoria
+            self.game.estados["JOGANDO"].memoria_anterior_registrada = self.game.estagio_memoria_apresentado
 
         if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
-            self.game.filtro_memoria.definir_estagio(halia.fragmentos_memoria, com_transicao_suave=False)
+            self.game.filtro_memoria.definir_estagio(self.game.estagio_memoria_apresentado, com_transicao_suave=False)
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar:
             self.game.tela_despertar.reiniciar()
         if hasattr(self.game, 'hud') and self.game.hud:
@@ -557,6 +615,52 @@ class SaveManager:
 
         return True
 
+    def limpar_estado_execucao_ativo(self):
+        """Limpa combate, minigames, diálogos e cutscenes transitórias ao sair ou reiniciar partida."""
+        for attr_game, padrao in self.FLAGS_TRANSITORIAS:
+            setattr(self.game, attr_game, padrao)
+        if hasattr(self.game, "inimigos_em_cena"):
+            self.game.inimigos_em_cena = []
+        if hasattr(self.game, "npc_interagindo_atual"):
+            self.game.npc_interagindo_atual = None
+        if hasattr(self.game, "transicao") and self.game.transicao:
+            self.game.transicao.estado = "INATIVO"
+        if hasattr(self.game, "mg_timing") and self.game.mg_timing:
+            self.game.mg_timing.ativo = False
+        if hasattr(self.game, "mg_mash") and self.game.mg_mash:
+            self.game.mg_mash.ativo = False
+        if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+            if getattr(self.game.caixa_dialogo, "manager", None):
+                self.game.caixa_dialogo.manager.finalizar(limpar_eventos=True)
+                self.game.caixa_dialogo._sincronizar_com_manager()
+        flashback = getattr(self.game, "flashback_sistema", None)
+        if flashback is not None:
+            flashback.ativo = False
+            flashback.estado = "INATIVO"
+            flashback.on_concluido = None
+        despertar = getattr(self.game, "tela_despertar", None)
+        if despertar is not None:
+            despertar.reiniciar()
+        if hasattr(self.game, "tela_combate") and self.game.tela_combate:
+            tc = self.game.tela_combate
+            tc.estado_combate = "INATIVO"
+            tc.inimigos = []
+            tc.on_vitoria = None
+            tc.on_derrota = None
+            tc.on_fuga = None
+        if hasattr(self.game, "halia") and self.game.halia:
+            if hasattr(self.game.halia, "sair_combate"):
+                self.game.halia.sair_combate()
+        estados = getattr(self.game, "estados", {}) or {}
+        ps = estados.get("JOGANDO")
+        if ps:
+            ps.camera_cinematica_alvo = None
+            ps.cutscene.ativo = False
+            for attr_sub in ("cutscene_reconstrucao", "cinematica_dragao", "minigame_ferraria", "minigame_curandeira"):
+                sub = getattr(ps, attr_sub, None)
+                if sub is not None:
+                    sub.ativo = False
+
     def resetar_progresso(self, slot_novo):
         """Limpa as variáveis globais para iniciar um Novo Jogo limpo no slot."""
         slot_novo = save_io.normalizar_slot(slot_novo)
@@ -567,9 +671,16 @@ class SaveManager:
         save_io.apagar_dados(slot_novo, tipo="autosave")
         Loja.resetar_lojas()
 
-        # Reset da Halia
+        # Reset completo da Halia (inclui nível, XP, feitiços aprendidos, condições e poses)
         halia = self.game.halia
         halia.x, halia.y = 210, 280
+        halia.direcao = "baixo"
+        halia.virado_direita = True
+        halia.nivel = 1
+        halia.xp = 0
+        halia.xp_proximo_nivel = halia.calcular_xp_proximo(1)
+        halia.feiticos_aprendidos = set()
+        halia.maestria_feiticos = {}
         halia.fragmentos_memoria = 0
         halia.nivel_sincronia = 1
         halia.dinheiro = 0
@@ -578,47 +689,160 @@ class SaveManager:
         halia.inicializar_inventario_padrao()
         halia.recalcular_status_derivados(manter_porcentagem=False)
         halia.atualizar_grimorio()
-        halia.ataques_fisicos = ["ataque_basico", "golpe_concentrado", "varredura_de_cajado", "estocada_perfurante"]
-        halia.vida_atual = halia.vida_maxima
-        halia.mana_atual = halia.mana_maxima
-        halia.vivo = True
-        halia.mudar_estado("idle")
+        halia.ataques_fisicos = ["ataque_basico"]
+        halia.restaurar_total()
+        halia.sair_combate()
+        halia.mudar_estado("idle_baixo")
+        if hasattr(halia, "atualizar_animacao"):
+            halia.atualizar_animacao()
 
         # Reset do Carroceiro
         carroceiro = self.game.carroceiro
         carroceiro.x, carroceiro.y = 1350, 330
         carroceiro.velocidade = 2
+        carroceiro.sincronizar_teleporte()
         self.game.carroceiro_visivel = False
         self.game.carroceiro_andando = False
         self.game.conversa_carroceiro_terminou = False
         self.game.progresso_npcs = {"carroceiro": 0}
 
-        # Reset de Flags do Mapa e Progresso
+        # Reset de Flags Permanentes e Estado Transitório em Execução
         self.game.mapa_casa.porta_aberta = False
         for attr_game, _chave_save, padrao in self.FLAGS_PERSISTENTES:
             setattr(self.game, attr_game, padrao)
-        for attr_game, padrao in self.FLAGS_TRANSITORIAS:
-            setattr(self.game, attr_game, padrao)
-        self.game.inimigos_em_cena = []
-        self.game.transicao.estado = "INATIVO"
+        self.limpar_estado_execucao_ativo()
         self.game.mapa_casa.restaurar_bloqueio_estrada2()
-        self.game.mapa_casa.carregar_cenario("CASA")
 
         if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
             self.game.filtro_memoria.reiniciar(0)
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar:
             self.game.tela_despertar.reiniciar()
-        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
-            self.game.estados["JOGANDO"].memoria_anterior_registrada = 0
-            self.game.estados["JOGANDO"].atualizar_camera(instantaneo=True)
         if hasattr(self.game, 'hud') and self.game.hud:
             self.game.hud.memorias_coletadas = 0
-
-        # Reinicia o progresso das missões
         if hasattr(self.game, 'missoes'):
             self.game.missoes.resetar()
 
         self.game.mapa_casa.carregar_cenario("CASA")
+        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
+            self.game.estados["JOGANDO"].memoria_anterior_registrada = 0
+            self.game.estados["JOGANDO"].atualizar_camera(instantaneo=True)
+
+    @classmethod
+    def _migrar_progressao_e_grimorio(
+        cls,
+        *,
+        dados,
+        flags,
+        halia_dados,
+        cenario_salvo,
+        fragmentos_memoria_novos,
+        flags_persistentes_novas,
+        feiticos_aprendidos_novos,
+        inventario_novo,
+        salvos_ataques,
+    ):
+        """Migra saves legados para esquema v2 de progresso/grimório de forma idempotente."""
+        try:
+            from src.mechanics.rpg.grimorio import GrimorioHalia
+            from src.mechanics.items import ItemFactory
+        except ImportError:
+            from mechanics.rpg.grimorio import GrimorioHalia
+            from mechanics.items import ItemFactory
+
+        raw_versao = flags.get("versao_progressao", dados.get("versao_progressao", 1))
+        versao_salva = int(raw_versao) if cls._eh_inteiro(raw_versao) else 1
+
+        estagio_salvo = flags.get("estagio_memoria_apresentado", dados.get("estagio_memoria_apresentado"))
+        etapa_salva = flags.get("etapa_epilogo", dados.get("etapa_epilogo"))
+        v2_valido = (
+            versao_salva >= 2
+            and cls._eh_inteiro(estagio_salvo)
+            and 0 <= int(estagio_salvo) <= 7
+            and isinstance(etapa_salva, str)
+            and etapa_salva in cls.ETAPAS_EPILOGO_VALIDAS
+        )
+
+        if v2_valido:
+            flags_persistentes_novas["estagio_memoria_apresentado"] = int(estagio_salvo)
+            flags_persistentes_novas["etapa_epilogo"] = etapa_salva
+            flags_persistentes_novas["versao_progressao"] = max(2, versao_salva)
+        else:
+            destruida = bool(flags_persistentes_novas.get("oakhaven_destruida", False))
+            dragao_derrotado = bool(flags_persistentes_novas.get("dragao_derrotado", False))
+            if fragmentos_memoria_novos >= 2 and cenario_salvo == "OAKHAVEN" and not destruida:
+                etapa_inferida = "DESPEDIDA_PENDENTE"
+            elif fragmentos_memoria_novos >= 2 and (
+                cenario_salvo == "OAKHAVEN_DESTRUIDA" or (cenario_salvo == "OAKHAVEN" and destruida)
+            ):
+                etapa_inferida = "RECONSTRUCAO_PENDENTE"
+            elif fragmentos_memoria_novos >= 2:
+                etapa_inferida = "RETORNO_VILA"
+            elif dragao_derrotado and fragmentos_memoria_novos < 2:
+                etapa_inferida = "POS_DRAGAO"
+            else:
+                etapa_inferida = "NAO_INICIADO"
+
+            flags_persistentes_novas["estagio_memoria_apresentado"] = fragmentos_memoria_novos
+            flags_persistentes_novas["etapa_epilogo"] = etapa_inferida
+            flags_persistentes_novas["versao_progressao"] = 2
+
+        if versao_salva < 2:
+            # Preserva tomos comprados (equipados ou guardados na bolsa) em saves legados sem restaurar a lista antiga derivada
+            magias_auto = set(GrimorioHalia.obter_magias_desbloqueadas(fragmentos_memoria_novos))
+            candidatos_tomos = list(getattr(inventario_novo, "equipados", {}).values())
+            for slot_obj in getattr(inventario_novo, "slots", []) or []:
+                item_slot = getattr(slot_obj, "item", slot_obj)
+                if item_slot is not None and getattr(item_slot, "categoria", None) == "GRIMORIO":
+                    candidatos_tomos.append(item_slot)
+
+            inv_raw = halia_dados.get("inventario") or {}
+            equip_raw = inv_raw.get("equipados") or {}
+            for slot_nome, item_info in equip_raw.items():
+                if isinstance(item_info, dict):
+                    candidatos_tomos.append(item_info)
+                    if not isinstance(getattr(inventario_novo, "equipados", {}).get(slot_nome), object) or getattr(inventario_novo, "equipados", {}).get(slot_nome) is None:
+                        item_id = item_info.get("item_id") or item_info.get("id")
+                        if item_id:
+                            item_criado = ItemFactory.criar(item_id, nivel_upgrade=item_info.get("nivel_upgrade", 0))
+                            if item_criado and slot_nome in inventario_novo.equipados:
+                                inventario_novo.equipados[slot_nome] = item_criado
+
+            for slot_info in inv_raw.get("slots") or []:
+                if not isinstance(slot_info, dict):
+                    continue
+                item_info = slot_info.get("item", slot_info)
+                if not isinstance(item_info, dict):
+                    continue
+                cat_info = item_info.get("categoria")
+                if not cat_info:
+                    item_id = item_info.get("item_id") or item_info.get("id")
+                    criado = ItemFactory.criar(item_id) if item_id else None
+                    cat_info = getattr(criado, "categoria", None)
+                if cat_info == "GRIMORIO":
+                    candidatos_tomos.append(item_info)
+
+            for item in candidatos_tomos:
+                if item is None:
+                    continue
+                if isinstance(item, dict):
+                    magia_id = item.get("magia_id")
+                    if not magia_id:
+                        item_id = item.get("item_id") or item.get("id")
+                        criado = ItemFactory.criar(item_id) if item_id else None
+                        magia_id = getattr(criado, "magia_id", None) if criado else None
+                    item_id_ref = item.get("item_id") or item.get("id")
+                else:
+                    magia_id = getattr(item, "magia_id", None)
+                    item_id_ref = getattr(item, "id", None)
+
+                if magia_id and item_id_ref != "tomo_chama_ancestral" and magia_id != "bola_de_fogo" and magia_id not in magias_auto:
+                    feiticos_aprendidos_novos.add(magia_id)
+
+            filtrados = [atk for atk in salvos_ataques if isinstance(atk, str) and atk not in cls.ATAQUES_LEGADO_AUTO]
+            return list(dict.fromkeys(["ataque_basico"] + filtrados))
+
+        ataques_limpos = [atk for atk in salvos_ataques if isinstance(atk, str) and atk]
+        return list(dict.fromkeys(["ataque_basico"] + ataques_limpos))
 
     @staticmethod
     def _eh_numero(valor):
@@ -649,8 +873,23 @@ class SaveManager:
         if not isinstance(cenario, str) or (verificar_limites_estritos and cenario not in self.CENARIOS_VALIDOS):
             return False, f"Cenário '{cenario}' não reconhecido no {rotulo_slot}."
 
-        if not isinstance(dados.get("flags"), dict):
+        flags = dados.get("flags", {})
+        if not isinstance(flags, dict):
             return False, f"Bloco 'flags' inválido no {rotulo_slot}."
+
+        if "versao_progressao" in flags and flags["versao_progressao"] is not None:
+            if not self._eh_inteiro(flags["versao_progressao"]) or int(flags["versao_progressao"]) < 1:
+                return False, f"Campo 'versao_progressao' inválido no {rotulo_slot}."
+
+        if "estagio_memoria_apresentado" in flags and flags["estagio_memoria_apresentado"] is not None:
+            estagio_m = flags["estagio_memoria_apresentado"]
+            if not self._eh_inteiro(estagio_m) or (verificar_limites_estritos and (estagio_m < 0 or estagio_m > 7)):
+                return False, f"Campo 'estagio_memoria_apresentado' inválido no {rotulo_slot}."
+
+        if "etapa_epilogo" in flags and flags["etapa_epilogo"] is not None:
+            etapa_m = flags["etapa_epilogo"]
+            if not isinstance(etapa_m, str) or (verificar_limites_estritos and etapa_m not in self.ETAPAS_EPILOGO_VALIDAS):
+                return False, f"Campo 'etapa_epilogo' inválido no {rotulo_slot}."
 
         if "tempo_jogado" in dados and dados["tempo_jogado"] is not None:
             if not self._eh_numero(dados["tempo_jogado"]):

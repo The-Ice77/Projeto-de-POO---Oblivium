@@ -490,7 +490,6 @@ class SlotsState(State):
                 
                 render_l1 = self.fonte_status.render(linha1, True, MARFIM_OFFWHITE)
                 render_l2 = self.fonte_status.render(linha2, True, CINZA_LINHO)
-                render_l2 = self.fonte_status.render(linha2, True, CINZA_LINHO)
                 
                 tela.blit(render_l1, (card_rect.x + 35, card_rect.y + 42))
                 tela.blit(render_l2, (card_rect.x + 35, card_rect.y + 66))
@@ -499,9 +498,18 @@ class SlotsState(State):
                 rect_avatar_m = pygame.Rect(card_rect.right - 58, card_rect.y + 14, 44, 68)
                 pygame.draw.rect(tela, (14, 14, 18), rect_avatar_m, border_radius=2)
                 pygame.draw.rect(tela, DOURADO_ENVELHECIDO if selecionado else CINZA_ARDOSIA, rect_avatar_m, 1, border_radius=2)
-                img_halia = ResourceManager.carregar_imagem("halia/frente/Halia_frente_parado.png", (32, 54))
+                img_halia = ResourceManager.carregar_imagem("halia/novas_sprites/idle_baixo/halia_idle_baixo_01.png")
                 if img_halia:
-                    tela.blit(img_halia, (rect_avatar_m.x + 6, rect_avatar_m.y + 7))
+                    br = img_halia.get_bounding_rect()
+                    if br.width > 0 and br.height > 0:
+                        img_crop = img_halia.subsurface(br)
+                        fator_av = min(38.0 / br.width, 58.0 / br.height)
+                        av_w = max(1, int(round(br.width * fator_av)))
+                        av_h = max(1, int(round(br.height * fator_av)))
+                        img_av = pygame.transform.scale(img_crop, (av_w, av_h))
+                        ax = rect_avatar_m.x + (rect_avatar_m.width - av_w) // 2
+                        ay = rect_avatar_m.y + (rect_avatar_m.height - av_h) // 2
+                        tela.blit(img_av, (ax, ay))
                 if mems > 0:
                     txt_mems = self.fonte_badge.render(f"◈{mems}", True, (140, 230, 245))
                     tela.blit(txt_mems, (rect_avatar_m.right - txt_mems.get_width() - 2, rect_avatar_m.bottom - txt_mems.get_height() - 2))

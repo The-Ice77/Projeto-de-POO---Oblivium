@@ -3,46 +3,231 @@
     "nome": "Halia",
     "tipo": "jogador",
     "pasta": "Oblivium/assets/halia/novas_sprites",
+    "manifesto": "Oblivium/assets/halia/halia_sprites_manifest.json",
     "animacoes": {
       "idle": {
-        "num_frames": 6,
+        "num_frames": 7,
         "canvas": [
-          52,
-          125
+          162,
+          162
         ],
-        "pasta": "Oblivium/assets/halia/novas_sprites\\idle"
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 5.0,
+        "loop": true,
+        "direction": "direita",
+        "pasta": "Oblivium/assets/halia/novas_sprites/idle"
+      },
+      "idle_esquerda": {
+        "num_frames": 7,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 5.0,
+        "loop": true,
+        "direction": "esquerda",
+        "pasta": "Oblivium/assets/halia/novas_sprites/idle_esquerda"
       },
       "dialogue": {
-        "num_frames": 7,
+        "num_frames": 8,
         "canvas": [
-          52,
-          125
+          162,
+          162
         ],
-        "pasta": "Oblivium/assets/halia/novas_sprites\\dialogue"
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 6.0,
+        "loop": true,
+        "direction": "direita",
+        "pasta": "Oblivium/assets/halia/novas_sprites/dialogue"
+      },
+      "dialogue_esquerda": {
+        "num_frames": 8,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 6.0,
+        "loop": true,
+        "direction": "esquerda",
+        "pasta": "Oblivium/assets/halia/novas_sprites/dialogue_esquerda"
       },
       "special": {
-        "num_frames": 6,
-        "canvas": [
-          57,
-          124
-        ],
-        "pasta": "Oblivium/assets/halia/novas_sprites\\special"
-      },
-      "walk": {
         "num_frames": 7,
         "canvas": [
-          65,
-          130
+          162,
+          162
         ],
-        "pasta": "Oblivium/assets/halia/novas_sprites\\walk"
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": false,
+        "direction": "direita",
+        "pasta": "Oblivium/assets/halia/novas_sprites/special"
+      },
+      "special_esquerda": {
+        "num_frames": 7,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": false,
+        "direction": "esquerda",
+        "pasta": "Oblivium/assets/halia/novas_sprites/special_esquerda"
+      },
+      "walk": {
+        "num_frames": 8,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": true,
+        "direction": "direita",
+        "pasta": "Oblivium/assets/halia/novas_sprites/walk"
+      },
+      "walk_esquerda": {
+        "num_frames": 8,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": true,
+        "direction": "esquerda",
+        "pasta": "Oblivium/assets/halia/novas_sprites/walk_esquerda"
       },
       "idle_2": {
-        "num_frames": 6,
+        "num_frames": 7,
         "canvas": [
-          64,
-          96
+          162,
+          162
         ],
-        "pasta": "Oblivium/assets/halia/novas_sprites\\idle_2"
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 5.0,
+        "loop": false,
+        "direction": "direita",
+        "pasta": "Oblivium/assets/halia/novas_sprites/idle_2"
+      },
+      "idle_baixo": {
+        "num_frames": 7,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 5.0,
+        "loop": true,
+        "direction": "baixo",
+        "pasta": "Oblivium/assets/halia/novas_sprites/idle_baixo"
+      },
+      "walk_baixo": {
+        "num_frames": 8,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": true,
+        "direction": "baixo",
+        "pasta": "Oblivium/assets/halia/novas_sprites/walk_baixo"
+      },
+      "idle_cima": {
+        "num_frames": 7,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 5.0,
+        "loop": true,
+        "direction": "cima",
+        "pasta": "Oblivium/assets/halia/novas_sprites/idle_cima"
+      },
+      "walk_cima": {
+        "num_frames": 8,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": true,
+        "direction": "cima",
+        "pasta": "Oblivium/assets/halia/novas_sprites/walk_cima"
+      },
+      "special_baixo": {
+        "num_frames": 7,
+        "canvas": [
+          162,
+          162
+        ],
+        "anchor": [
+          81,
+          162
+        ],
+        "standing_height_px": 120,
+        "fps": 9.0,
+        "loop": false,
+        "direction": "baixo",
+        "pasta": "Oblivium/assets/halia/novas_sprites/special_baixo"
       }
     }
   },

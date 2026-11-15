@@ -217,7 +217,7 @@ class PrologoController:
             self.game.conversa_carroceiro_terminou = True
             self.game.transicao.iniciar("Algumas horas depois...")
 
-        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e Cores (Padrão original do Prólogo)
+        # Partida com o carroceiro em Estrada 2 -> Desperta a Memória e libera viagem a Oakhaven
         if (
             self.game.mapa_casa.cenario_atual == "ESTRADA_2"
             and getattr(self.game, "partindo_estrada2", False)
@@ -225,12 +225,41 @@ class PrologoController:
         ):
             self.game.partindo_estrada2 = False
             self.game.conversa_carroceiro_terminou = True
+            self.game.pronto_viajar_oakhaven = True
             if hasattr(self.game, "conquistas") and self.game.conquistas:
                 self.game.conquistas.desbloquear("rumo_a_vila")
             if self.game.halia.fragmentos_memoria < 1:
                 self.game.halia.recuperar_memoria(1)
             if self.game.slot_atual:
                 self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
+
+        # Após concluir o despertar da Memória 1 (ou caminhar até a saída leste pós-combate), segue para Oakhaven
+        despertar_inativo = (
+            getattr(getattr(self.game, "tela_despertar", None), "estado", "INATIVO") == "INATIVO"
+        )
+        if (
+            self.game.mapa_casa.cenario_atual == "ESTRADA_2"
+            and despertar_inativo
+            and not self.game.caixa_dialogo.ativo
+            and getattr(getattr(self.game, "transicao", None), "estado", "INATIVO") == "INATIVO"
+        ):
+            caminhou_saida_leste = (
+                getattr(self.game, "combate_estrada_concluido", False)
+                and self.game.halia.x > 1210
+            )
+            if caminhou_saida_leste and (
+                self.game.halia.fragmentos_memoria < 1
+                or getattr(self.game, "estagio_memoria_apresentado", 0) < 1
+            ):
+                self.game.pronto_viajar_oakhaven = True
+                if self.game.halia.fragmentos_memoria < 1:
+                    self.game.halia.recuperar_memoria(1)
+            elif (
+                getattr(self.game, "estagio_memoria_apresentado", 0) >= 1
+                and (getattr(self.game, "pronto_viajar_oakhaven", False) or caminhou_saida_leste)
+            ):
+                self.game.pronto_viajar_oakhaven = False
+                self.game.transicao.iniciar("Seguindo rumo ao Refúgio de Oakhaven...")
 
     def processar_escolha_dialogo(self, opt_id):
         """Trata opções de diálogo específicas do Prólogo; retorna True se interromper avanço."""
@@ -343,6 +372,7 @@ class PrologoController:
             self.game.carroceiro_andando = False
             self.game.carroceiro.x, self.game.carroceiro.y = 1350, 330
             self.game.carroceiro.velocidade = 2
+            self.game.carroceiro.sincronizar_teleporte()
             self.game.carroceiro.mudar_estado("idle")
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
@@ -366,6 +396,7 @@ class PrologoController:
         self.playing_state.atualizar_camera(instantaneo=True)
         self.game.carroceiro_visivel, self.game.carroceiro_andando = True, False
         self.game.carroceiro.velocidade, self.game.carroceiro.x, self.game.carroceiro.y = 0, 200, 330
+        self.game.carroceiro.sincronizar_teleporte()
         self.game.carroceiro.mudar_estado("idle")
         self.game.carroceiro.virado_direita = (self.game.halia.x > self.game.carroceiro.x)
 

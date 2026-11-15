@@ -185,7 +185,6 @@ class CutsceneManager(CenaBase):
                 self.game.halia.virado_direita = False
                 self.game.halia.direcao = "esquerda"
                 self.game.halia.mudar_estado("andar")
-                self.game.halia.atualizar_animacao()
             else:
                 self.game.distanciando_halia = False
                 self.game.halia.virado_direita = True
@@ -199,6 +198,8 @@ class CutsceneManager(CenaBase):
                     self.game.bola_fogo_y = self.game.halia.y + (self.game.halia.altura // 2) - 6
                     self.particulas_rastro.clear()
                     self.explosao_ativa = False
+                    if getattr(self.game, "audio", None):
+                        self.game.audio.tocar_sfx("magia_fogo")
                 elif self.game.magia_ativa == "LEVITAR":
                     self.game.magia_usada_no_puzzle = "LEVITAR"
                     self.game.timer_magia = 0.0
@@ -256,6 +257,8 @@ class CutsceneManager(CenaBase):
         self.timer_explosao = self.DURACAO_EXPLOSAO  # Tempo em segundos equivalente a 85 quadros a 60 FPS
         self.exp_centro_x = centro_x
         self.exp_centro_y = centro_y
+        if getattr(self.game, "audio", None):
+            self.game.audio.tocar_sfx("explosao", volume_extra=1.0)
 
         # Desobstrui e acende as chamas no ambiente de imediato
         self.game.mapa_casa.desobstruir_estrada("FOGO")

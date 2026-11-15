@@ -4,8 +4,6 @@ from src.ui.menu import Menu
 from src.ui.dialogue_box import DialogueBox  
 from src.ui.scenes import Intro, Flashback, TelaDespertarMemoria
 from src.entities.player import Player
-from src.mechanics.rpg import Atributos
-from src.mechanics.items import Inventario
 from src.maps.map_loader import Mapa
 from src.ui.transition import Transition
 from src.entities.npc_factory import NPCFactory
@@ -58,7 +56,7 @@ class Game:
         self.mapa_casa = Mapa(self, self.LARGURA, self.ALTURA)
         self.transicao = Transition(self.LARGURA, self.ALTURA)
         self.flashback_sistema = Flashback(self.LARGURA, self.ALTURA, game=self) 
-        self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA)
+        self.tela_despertar = TelaDespertarMemoria(self.LARGURA, self.ALTURA, game=self)
         self.tela_combate = CombatScreen(self.LARGURA, self.ALTURA)
         self.tela_combate.game = self
         self.filtro_memoria = FiltroMemoria(self.LARGURA, self.ALTURA)
@@ -85,16 +83,21 @@ class Game:
         self.valores_velocidade_combate = [1.0, 1.5, 2.0]
         
         # --- Configurações de Áudio por Área (0 a 100%) ---
-        self.config_audio = 100            # Volume Geral (Master)
-        self.config_audio_musica = 80      # Volume da Música de Fundo (BGM)
-        self.config_audio_sfx = 90         # Volume dos Efeitos Sonoros (SFX)
-        self.config_audio_ambiente = 75    # Volume dos Sons de Ambiente (BGS / Clima)
-        
+        self.PADROES_AUDIO = {
+            "master": 100,
+            "musica": 55,
+            "sfx": 95,
+            "ambiente": 70,
+            "mutado": False,
+        }
+        self.config_audio = self.PADROES_AUDIO["master"]            # Volume Geral (Master)
+        self.config_audio_musica = self.PADROES_AUDIO["musica"]     # Volume da Música de Fundo (BGM)
+        self.config_audio_sfx = self.PADROES_AUDIO["sfx"]           # Volume dos Efeitos Sonoros (SFX)
+        self.config_audio_ambiente = self.PADROES_AUDIO["ambiente"] # Volume dos Sons de Ambiente (BGS / Clima)
+        self.config_audio_mutado = self.PADROES_AUDIO["mutado"]     # Silenciar Tudo (Mute)
+
         self.audio = AudioManager(self)
-        self.audio.definir_volume_master(self.config_audio)
-        self.audio.definir_volume_musica(self.config_audio_musica)
-        self.audio.definir_volume_sfx(self.config_audio_sfx)
-        self.audio.definir_volume_ambiente(self.config_audio_ambiente)
+        self.carregar_preferencias_usuario()
         self.save_manager = SaveManager(self)
         self.redefinindo_tecla = False     # Mantido por compatibilidade (REGRAS §3); tecla_interacao usa self.controles["Interagir"]
        # --- CONTROLE DE SAVES / SLOTS ---
@@ -125,6 +128,9 @@ class Game:
         self.dragao_derrotado = False
         self.desespero_superado = False
         self.patusco_pos_oakhaven = None
+        self.estagio_memoria_apresentado = 0
+        self.etapa_epilogo = "NAO_INICIADO"
+        self.versao_progressao = 2
         # Rastreia em que ponto da conversa cada NPC está
         self.progresso_npcs = {
             "carroceiro": 0  # 0: Início, 1: Falou com ele, 2: Viagem liberada, etc.
@@ -149,7 +155,9 @@ class Game:
         self.aguardando_dialogo_pos_dragao = False
         self.flashback_monumento_ativo = False
         self.flashback_sylvan_ativo = False
+        self.despedida_demo_exibida = False
         self.partindo_estrada2 = False
+        self.pronto_viajar_oakhaven = False
         self.inimigos_em_cena = []
         # --- CONTROLOS DO JOGO (REMAPEÁVEIS) ---
         self.preset_controles = "WASD"
@@ -253,6 +261,99 @@ class Game:
         """Retorna o rótulo em maiúsculas da tecla de interação ativa (ex.: 'E', 'ESPAÇO')."""
         return self.obter_nome_tecla(self.tecla_interacao)
 
+    def aplicar_config_audio(self):
+        """Sincroniza todas as faixas de volume e estado de mute com o AudioManager."""
+        self.config_audio = max(0, min(100, int(getattr(self, "config_audio", 100))))
+        self.config_audio_musica = max(0, min(100, int(getattr(self, "config_audio_musica", 55))))
+        self.config_audio_sfx = max(0, min(100, int(getattr(self, "config_audio_sfx", 95))))
+        self.config_audio_ambiente = max(0, min(100, int(getattr(self, "config_audio_ambiente", 70))))
+        self.config_audio_mutado = bool(getattr(self, "config_audio_mutado", False))
+
+        if getattr(self, "audio", None):
+            self.audio.definir_volume_master(self.config_audio)
+            self.audio.definir_volume_musica(self.config_audio_musica)
+            self.audio.definir_volume_sfx(self.config_audio_sfx)
+            self.audio.definir_volume_ambiente(self.config_audio_ambiente)
+            self.audio.definir_mute(self.config_audio_mutado)
+
+    def aplicar_config_velocidades(self):
+        """Aplica as velocidades salvas de diálogo e combate aos respectivos controladores."""
+        if getattr(self, "valores_velocidade", None):
+            self.config_velocidade_indice = max(
+                0, min(len(self.valores_velocidade) - 1, int(getattr(self, "config_velocidade_indice", 1)))
+            )
+            if getattr(self, "caixa_dialogo", None):
+                self.caixa_dialogo.velocidade_texto = self.valores_velocidade[self.config_velocidade_indice]
+
+        if getattr(self, "valores_velocidade_combate", None):
+            self.config_velocidade_combate_indice = max(
+                0, min(len(self.valores_velocidade_combate) - 1, int(getattr(self, "config_velocidade_combate_indice", 0)))
+            )
+            if getattr(self, "tela_combate", None) and hasattr(self.tela_combate, "definir_velocidade"):
+                self.tela_combate.definir_velocidade(
+                    self.valores_velocidade_combate[self.config_velocidade_combate_indice]
+                )
+
+    def carregar_preferencias_usuario(self):
+        """Carrega preferências persistidas sem gravar em disco caso o arquivo não exista."""
+        from src.utils import save_storage as save_io
+
+        dados = save_io.carregar_preferencias_usuario()
+        if isinstance(dados, dict):
+            audio = dados.get("audio")
+            if isinstance(audio, dict):
+                mapa_audio = (
+                    ("master", "config_audio"),
+                    ("musica", "config_audio_musica"),
+                    ("sfx", "config_audio_sfx"),
+                    ("ambiente", "config_audio_ambiente"),
+                )
+                for chave, attr in mapa_audio:
+                    val = audio.get(chave)
+                    if isinstance(val, (int, float)) and not isinstance(val, bool):
+                        setattr(self, attr, max(0, min(100, int(round(val)))))
+                if "mutado" in audio:
+                    self.config_audio_mutado = bool(audio.get("mutado"))
+
+            vel_txt = dados.get("velocidade_texto_indice")
+            if isinstance(vel_txt, int) and not isinstance(vel_txt, bool):
+                self.config_velocidade_indice = vel_txt
+
+            vel_cbt = dados.get("velocidade_combate_indice")
+            if isinstance(vel_cbt, int) and not isinstance(vel_cbt, bool):
+                self.config_velocidade_combate_indice = vel_cbt
+
+        self.aplicar_config_audio()
+        self.aplicar_config_velocidades()
+
+    def salvar_preferencias_usuario(self):
+        """Persiste as preferências atuais de áudio e interface em config_usuario.json."""
+        from src.utils import save_storage as save_io
+
+        dados = {
+            "audio": {
+                "master": int(getattr(self, "config_audio", self.PADROES_AUDIO["master"])),
+                "musica": int(getattr(self, "config_audio_musica", self.PADROES_AUDIO["musica"])),
+                "sfx": int(getattr(self, "config_audio_sfx", self.PADROES_AUDIO["sfx"])),
+                "ambiente": int(getattr(self, "config_audio_ambiente", self.PADROES_AUDIO["ambiente"])),
+                "mutado": bool(getattr(self, "config_audio_mutado", False)),
+            },
+            "velocidade_texto_indice": int(getattr(self, "config_velocidade_indice", 1)),
+            "velocidade_combate_indice": int(getattr(self, "config_velocidade_combate_indice", 0)),
+        }
+        return save_io.salvar_preferencias_usuario(dados)
+
+    def restaurar_padroes_audio(self, salvar=True):
+        """Restaura a mixagem equilibrada padrão de áudio e opcionalmente salva no disco."""
+        self.config_audio = self.PADROES_AUDIO["master"]
+        self.config_audio_musica = self.PADROES_AUDIO["musica"]
+        self.config_audio_sfx = self.PADROES_AUDIO["sfx"]
+        self.config_audio_ambiente = self.PADROES_AUDIO["ambiente"]
+        self.config_audio_mutado = self.PADROES_AUDIO["mutado"]
+        self.aplicar_config_audio()
+        if salvar:
+            self.salvar_preferencias_usuario()
+
     def mudar_estado(self, novo_estado):
         """Altera dinamicamente o comportamento e as telas do jogo"""
         if novo_estado in self.estados:
@@ -261,7 +362,53 @@ class Game:
             if novo_estado == "MENU":
                 self.menu.atualizar_opcoes()
                 if hasattr(self, 'audio') and self.audio:
-                    self.audio.tocar_musica("menu_tema")
+                    self.audio.parar_ambiente(fade_ms=400)
+                    if hasattr(self.audio, 'limpar_contexto_combate'):
+                        self.audio.limpar_contexto_combate()
+                    self.audio.tocar_musica(
+                        "menu_tema", loop=-1, fade_ms=800, salvar_anterior=False, contexto="menu"
+                    )
+            elif novo_estado == "INTRO":
+                if hasattr(self, 'audio') and self.audio:
+                    self.audio.parar_ambiente(fade_ms=400)
+                    if hasattr(self.audio, 'limpar_contexto_combate'):
+                        self.audio.limpar_contexto_combate()
+                    self.audio.tocar_musica(
+                        "cutscene_intro", loop=-1, fade_ms=900, salvar_anterior=False, contexto="intro"
+                    )
+            elif novo_estado == "JOGANDO":
+                self.sincronizar_trilha_cenario(fade_ms=1000)
+
+    def sincronizar_trilha_cenario(self, fade_ms=1000):
+        """Reaplica a música apropriada ao cenário e estado narrativo atual em exploração."""
+        if not (hasattr(self, 'audio') and self.audio and getattr(self, 'nome_estado_atual', '') == 'JOGANDO'):
+            return
+        if not (hasattr(self, 'mapa_casa') and self.mapa_casa):
+            return
+        if hasattr(self.mapa_casa, '_deve_sincronizar_trilha_cenario') and not self.mapa_casa._deve_sincronizar_trilha_cenario():
+            return
+        trilha = self.mapa_casa.obter_trilha_cenario() if hasattr(self.mapa_casa, 'obter_trilha_cenario') else None
+        if trilha:
+            self.audio.tocar_musica(trilha, loop=-1, fade_ms=fade_ms, contexto="mundo")
+        self.sincronizar_ambiente_cenario(fade_ms=fade_ms)
+
+    def sincronizar_ambiente_cenario(self, fade_ms=900):
+        """Sincroniza o som de ambiente com o clima ativo (prioritário) ou com o cenário atual."""
+        if not (hasattr(self, 'audio') and self.audio and getattr(self, 'nome_estado_atual', '') == 'JOGANDO'):
+            return
+        clima = getattr(self, 'efeito_chuva', None)
+        modo_clima = str(getattr(clima, 'modo_atual', 'limpo') or 'limpo').lower()
+        if modo_clima in ('comum', 'pesada', 'chuva', 'tempestade'):
+            self.audio.tocar_ambiente("chuva", loop=-1, fade_ms=fade_ms)
+            return
+        if modo_clima in ('neve', 'nevasca'):
+            self.audio.tocar_ambiente("vento_noite", loop=-1, fade_ms=fade_ms)
+            return
+        amb = self.mapa_casa.obter_ambiente_cenario() if (hasattr(self, 'mapa_casa') and hasattr(self.mapa_casa, 'obter_ambiente_cenario')) else None
+        if amb:
+            self.audio.tocar_ambiente(amb, loop=-1, fade_ms=fade_ms)
+        else:
+            self.audio.parar_ambiente(fade_ms=max(300, int(fade_ms)))
 
     def abrir_loja(self, loja_id=None):
         """Abre a interface da loja configurando o catálogo específico do mercador."""
@@ -276,10 +423,6 @@ class Game:
         else:
             self.inimigos_em_cena = [inimigos]
 
-        for inimigo in self.inimigos_em_cena:
-            if getattr(inimigo, "eh_mimico", False):
-                inimigo.finalizar_revelacao()
-            
         self.mudar_estado("COMBATE")
         self.tela_combate.iniciar_combate(
             jogador=self.halia,
@@ -324,6 +467,8 @@ class Game:
             self.estado_atual.handle_events(eventos, teclas_ativas)
             self.estado_atual.update()
             self.notificacoes.update()
+            if hasattr(self, 'audio') and self.audio:
+                self.audio.update(self.dt)
             
             self.tela.fill((0, 0, 0))
             self.estado_atual.draw(self.tela)
@@ -390,9 +535,14 @@ class Game:
         """Define o clima ativo: 'limpo', 'comum' (ou 'chuva'), 'pesada' (ou 'tempestade')."""
         if hasattr(self, 'efeito_chuva'):
             self.efeito_chuva.definir_clima(tipo)
+            if str(getattr(self.efeito_chuva, 'modo_atual', 'limpo')).lower() == 'limpo':
+                self.sincronizar_ambiente_cenario(fade_ms=800)
 
     def alternar_clima(self):
         """Alterna ciclicamente entre: Limpo -> Chuva Comum -> Chuva Pesada -> Limpo."""
         if hasattr(self, 'efeito_chuva'):
-            return self.efeito_chuva.alternar_clima()
+            res = self.efeito_chuva.alternar_clima()
+            if str(getattr(self.efeito_chuva, 'modo_atual', 'limpo')).lower() == 'limpo':
+                self.sincronizar_ambiente_cenario(fade_ms=800)
+            return res
         return "limpo"

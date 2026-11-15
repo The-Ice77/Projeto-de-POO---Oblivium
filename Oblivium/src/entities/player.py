@@ -67,7 +67,7 @@ class Player(Entidade):
         self.inicializar_inventario_padrao()
 
         # Ações Físicas Disponíveis (Submenu de Ataque Físico)
-        self.ataques_fisicos = ["ataque_basico", "golpe_concentrado", "varredura_de_cajado", "estocada_perfurante"]
+        self.ataques_fisicos = ["ataque_basico"]
 
         # Grimório Exclusivo da Halia (Desbloqueado dinamicamente por memórias)
         self.magias_desbloqueadas = []
@@ -87,92 +87,96 @@ class Player(Entidade):
 
     def carregar_animacoes(self):
         """
-
-        Carrega as animações quadridirecionais de Halia (Frente, Costas, Direita, Esquerda)
-
-        para os estados Idle e Andar, redimensionadas com proporção estética refinada (46x74).
-
+        Carrega as animações oficiais de Halia a partir de `assets/halia/novas_sprites/`
+        e do manifesto `halia_sprites_manifest.json`.
+        Escala quadros de overworld preservando altura corporal visível (~74px) em
+        canvas uniforme ancorado na base dos pés (sem alterar hitbox 36x36) e preserva
+        resolução completa (162x162, corpo 120px) para poses de combate.
         """
+        import json
 
-        w_halia, h_halia = 46, 74
+        manifesto_path = os.path.join(PASTA_ASSETS, "halia", "halia_sprites_manifest.json")
+        manifesto = {}
+        if os.path.exists(manifesto_path):
+            try:
+                with open(manifesto_path, "r", encoding="utf-8") as f:
+                    manifesto = json.load(f)
+            except Exception:
+                manifesto = {}
 
-        def carregar(caminho_rel):
-            return ResourceManager.carregar_imagem(caminho_rel, (w_halia, h_halia))
+        altura_corpo_base = float(manifesto.get("standing_height_px", 120) or 120)
+        canvas_base = manifesto.get("canvas", [162, 162])
+        cw_base, ch_base = int(canvas_base[0]), int(canvas_base[1])
+        self.altura_corpo_combate = int(altura_corpo_base)
+        self.altura_canvas_combate = ch_base
 
-        # 1. Frente / Baixo (Sul)
-        f_idle_baixo = [carregar("halia/frente/Halia_frente_parado.png")]
-        f_andar_baixo = [
-            carregar("halia/frente/frame_2_direita.png"),
-            carregar("halia/frente/Halia_frente_parado.png"),
-            carregar("halia/frente/frame_3_passagem.png"),
-            carregar("halia/frente/Halia_frente_parado.png"),
+        alvo_corpo_overworld = 74.0
+        fator_overworld = alvo_corpo_overworld / max(1.0, altura_corpo_base)
+        w_ov = max(1, int(round(cw_base * fator_overworld)))
+        h_ov = max(1, int(round(ch_base * fator_overworld)))
+        tamanho_ov = (w_ov, h_ov)
+
+        sequencias_manifest = manifesto.get("sequences", {})
+
+        def _carregar_seq(pasta_seq, tamanho=None, vel_padrao=0.12, loop_padrao=True):
+            meta_seq = sequencias_manifest.get(pasta_seq, {})
+            vel = float(meta_seq.get("speed_at_60fps", vel_padrao))
+            loop = bool(meta_seq.get("loop", loop_padrao))
+            p_sub = os.path.join(PASTA_ASSETS, "halia", "novas_sprites", pasta_seq)
+            if not os.path.exists(p_sub):
+                return None
+            arqs = sorted([f for f in os.listdir(p_sub) if f.lower().endswith(".png")])
+            frames = []
+            for arq in arqs:
+                c_rel = os.path.join("halia", "novas_sprites", pasta_seq, arq).replace("\\", "/")
+                surf = ResourceManager.carregar_imagem(c_rel, tamanho)
+                if surf:
+                    frames.append(surf)
+            if not frames:
+                return None
+            return Animacao(frames, velocidade=vel, loop=loop)
+
+        mapeamento_overworld = [
+            ("idle_baixo", "idle_baixo", 0.0833, True),
+            ("andar_baixo", "walk_baixo", 0.15, True),
+            ("idle_cima", "idle_cima", 0.0833, True),
+            ("andar_cima", "walk_cima", 0.15, True),
+            ("idle_direita", "idle", 0.0833, True),
+            ("andar_direita", "walk", 0.15, True),
+            ("idle_esquerda", "idle_esquerda", 0.0833, True),
+            ("andar_esquerda", "walk_esquerda", 0.15, True),
+            ("special_baixo", "special_baixo", 0.15, False),
+            ("special_direita", "special", 0.15, False),
+            ("special_esquerda", "special_esquerda", 0.15, False),
+            ("dialogue", "dialogue", 0.10, True),
+            ("dialogue_esquerda", "dialogue_esquerda", 0.10, True),
         ]
 
-        # 2. Costas / Cima (Norte)
-        f_idle_cima = [carregar("halia/costas/Halia_costas_parado.png")]
-        f_andar_cima = [
-            carregar("halia/costas/Halia_costas_andando.png"),
-            carregar("halia/costas/Halia_costas_parado.png"),
-            carregar("halia/costas/Halia_151x240.png"),
-            carregar("halia/costas/Halia_costas_parado.png"),
-        ]
+        for anim_id, pasta_seq, vel_def, loop_def in mapeamento_overworld:
+            anim = _carregar_seq(pasta_seq, tamanho=tamanho_ov, vel_padrao=vel_def, loop_padrao=loop_def)
+            if anim:
+                self.definir_animacao(anim_id, anim)
 
-        # 3. Direita (Leste)
-        f_idle_direita = [
-            carregar("halia/andando_direita/Halia_parado_direita.png"),
-            carregar("halia/andando_direita/Halia_parado_direita_02.png"),
-        ]
-        f_andar_direita = [
-            carregar(f"halia/andando_direita/Halia_andando_direita_0{i}.png")
-            for i in range(1, 5)
-        ]
+        # Compatibilidade genérica overworld
+        if "idle_baixo" in self.animacoes:
+            self.animacoes["idle"] = self.animacoes["idle_baixo"]
+        if "andar_baixo" in self.animacoes:
+            self.animacoes["andar"] = self.animacoes["andar_baixo"]
+            self.animacoes["walk"] = self.animacoes["andar_baixo"]
 
-        # 4. Esquerda (Oeste)
-        f_idle_esquerda = [
-            carregar("halia/andando_esquerda/Halia_parado_esquerda.png"),
-            carregar("halia/andando_esquerda/Halia_parado_esquerda_02.png"),
+        # Sprites em alta resolução (162x162) para arena de combate e destaque visual
+        mapeamento_combate = [
+            ("combate_idle", "idle", 0.0833, True),
+            ("combate_special", "special", 0.15, False),
+            ("combate_walk", "walk", 0.15, True),
+            ("combate_dialogue", "dialogue", 0.10, True),
+            ("idle_2", "idle_2", 0.0833, False),
         ]
-        f_andar_esquerda = [
-            carregar(f"halia/andando_esquerda/Halia_andando_esquerda_0{i}.png")
-            for i in range(1, 5)
-        ]
+        for anim_id, pasta_seq, vel_def, loop_def in mapeamento_combate:
+            anim = _carregar_seq(pasta_seq, tamanho=None, vel_padrao=vel_def, loop_padrao=loop_def)
+            if anim:
+                self.definir_animacao(anim_id, anim)
 
-        # Injeta o pacote completo
-        self.definir_animacao("idle_baixo", Animacao(f_idle_baixo, velocidade=0.15))
-        self.definir_animacao("andar_baixo", Animacao(f_andar_baixo, velocidade=0.15))
-        self.definir_animacao("idle_cima", Animacao(f_idle_cima, velocidade=0.15))
-        self.definir_animacao("andar_cima", Animacao(f_andar_cima, velocidade=0.15))
-        self.definir_animacao("idle_direita", Animacao(f_idle_direita, velocidade=0.04))
-        self.definir_animacao("andar_direita", Animacao(f_andar_direita, velocidade=0.15))
-        self.definir_animacao("idle_esquerda", Animacao(f_idle_esquerda, velocidade=0.04))
-        self.definir_animacao("andar_esquerda", Animacao(f_andar_esquerda, velocidade=0.15))
-
-        # Aliases de compatibilidade total para saves legados e transições
-        self.animacoes["idle"] = self.animacoes["idle_baixo"]
-        self.animacoes["andar"] = self.animacoes["andar_baixo"]
-        self.animacoes["walk"] = self.animacoes["andar_baixo"]
-        # --- Novas Sprites Oficiais de Halia (Combate e Ações Especiais) ---
-        pasta_novas = os.path.join(PASTA_ASSETS, "halia", "novas_sprites")
-        if os.path.exists(pasta_novas):
-            for anim_id, sub_dir, vel_a in [
-                ("combate_idle", "idle", 0.08),
-                ("combate_special", "special", 0.08),
-                ("combate_walk", "walk", 0.12),
-                ("combate_dialogue", "dialogue", 0.08),
-            ]:
-                p_sub = os.path.join(pasta_novas, sub_dir)
-                if os.path.exists(p_sub):
-                    arqs_n = sorted([f for f in os.listdir(p_sub) if f.lower().endswith(".png")])
-                    f_novos = []
-                    for arq_n in arqs_n:
-                        c_rel = os.path.join("halia", "novas_sprites", sub_dir, arq_n).replace("\\", "/")
-                        s_img = ResourceManager.carregar_imagem(c_rel)
-                        if s_img:
-                            f_novos.append(s_img)
-                    if f_novos:
-                        self.definir_animacao(anim_id, Animacao(f_novos, velocidade=vel_a, loop=True))
-
-        # Define estado inicial voltada para a frente
         self.direcao = "baixo"
         self.virado_direita = True
         self.mudar_estado("idle_baixo")
@@ -217,13 +221,15 @@ class Player(Entidade):
 
     def tem_grimorio_desbloqueado(self):
         """
-
-        Retorna se a aba de magias está desbloqueada.
-
-        Neste momento inicial, o acesso direto à aba de magias permanece selado.
-
+        Retorna se a aba de magias está narrativamente desbloqueada.
+        Alinha a consulta do grimório com a liberação de magia no prólogo ou evolução por memórias/tomos.
         """
-
+        if getattr(self, "fragmentos_memoria", 0) > 0 or bool(getattr(self, "feiticos_aprendidos", None)):
+            return True
+        game = getattr(self, "game", None)
+        if game is not None:
+            if getattr(game, "flashback_magia_concluido", False) or getattr(game, "magia_ativa", None) is not None:
+                return True
         return False
 
 
@@ -302,6 +308,9 @@ class Player(Entidade):
         print(f"[LEVEL UP] {self.nome} alcançou o Nível {self.nivel}!")
         print(f"Status Atualizados: HP {self.vida_maxima} | MP {self.mana_maxima} | Atributos: {self.atributos}")
 
+        if hasattr(self, 'game') and getattr(self.game, 'audio', None):
+            self.game.audio.tocar_sfx("level_up")
+
         if hasattr(self, 'game') and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
             if hasattr(self.game.notificacoes, 'notificar_level'):
                 self.game.notificacoes.notificar_level(self.nivel)
@@ -337,6 +346,9 @@ class Player(Entidade):
         ja_conhecia = (id_magia in self.magias_desbloqueadas or id_magia in self.feiticos_aprendidos)
 
         if not ja_conhecia:
+            pode, motivo = GrimorioHalia.pode_adquirir_por_fonte(id_magia, getattr(self, "fragmentos_memoria", 0))
+            if not pode:
+                return False, motivo
             self.feiticos_aprendidos.add(id_magia)
             self.maestria_feiticos[id_magia] = {
                 "nivel_maestria": 1,
@@ -387,9 +399,23 @@ class Player(Entidade):
             for g_slot in ["GRIMORIO_1", "GRIMORIO_2", "GRIMORIO_3", "GRIMORIO_4"]:
                 tomo = self.inventario.equipados.get(g_slot)
                 if tomo and getattr(tomo, 'magia_id', None):
-                    magias.add(tomo.magia_id)
+                    mid = tomo.magia_id
+                    if mid in getattr(self, 'feiticos_aprendidos', set()) or GrimorioHalia.pode_adquirir_por_fonte(mid, self.fragmentos_memoria)[0]:
+                        magias.add(mid)
 
         self.magias_desbloqueadas = sorted(list(magias))
+
+    def obter_atributos_efetivos(self):
+        """Atributos efetivos de combate/defesa somando base e equipamentos uma única vez."""
+        return self.obter_atributos_totais()
+
+    def obter_defesa_equipamento(self, tipo="fisico"):
+        """Retorna bônus fixo de defesa proveniente de vestimentas e acessórios equipados."""
+        if not hasattr(self, "inventario") or not self.inventario:
+            return 0
+        stats = self.inventario.obter_bonus_totais_equipamentos().get("stats", {})
+        chave = "defesa_fisica" if tipo == "fisico" else "defesa_magica"
+        return stats.get(chave, 0)
 
     def obter_atributos_totais(self):
         """
@@ -465,12 +491,14 @@ class Player(Entidade):
     # ==========================================
     # SISTEMA DE MEMÓRIA & EVOLUÇÃO
     # ==========================================
-    def recuperar_memoria(self, quantidade):
+    def recuperar_memoria(self, quantidade, adiar_autosave=False):
         """
 
         Ao recuperar fragmentos de memória, Halia reconecta-se com seu passado,
 
         aumentando seus atributos essenciais e despertando feitiços esquecidos.
+
+        Quando adiar_autosave=True, o chamador assume a gravação conjunta do estado narrativo.
 
         """
 
@@ -504,8 +532,8 @@ class Player(Entidade):
             nomes_novos = [GrimorioHalia.obter_todas_magias().get(m, {}).get("nome", m) for m in novas_magias]
             print(f"[Grimorio] Novos feiticos despertados: {', '.join(nomes_novos)}")
 
-        # Checkpoint de Autosave silencioso ao recuperar memória
-        if hasattr(self, 'game') and self.game and getattr(self.game, 'slot_atual', None) and hasattr(self.game, 'salvar_estado'):
+        # Checkpoint de Autosave silencioso ao recuperar memória (adiável por controladores narrativos)
+        if not adiar_autosave and hasattr(self, 'game') and self.game and getattr(self.game, 'slot_atual', None) and hasattr(self.game, 'salvar_estado'):
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave", silenciar_notificacao=True)
 
         return novas_magias

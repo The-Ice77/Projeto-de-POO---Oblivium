@@ -9,6 +9,7 @@ from src.ui.icon_registry import (
     desenhar_icone_slot_inventario,
     desenhar_estrela_quatro_pontas
 )
+from src.mechanics.rpg.grimorio import GrimorioHalia
 
 
 class TabInventarioRenderer:
@@ -217,29 +218,29 @@ class TabInventarioRenderer:
                 up = getattr(item, 'nivel_upgrade', 0)
                 if up > 0:
                     badge_info = (f"+{up}", (255, 230, 140), (46, 36, 16), (215, 185, 95))
-                elif item.categoria == "GRIMORIO":
-                    esta_equipado = False
-                    if inv:
-                        for g_slot in ["GRIMORIO_1", "GRIMORIO_2", "GRIMORIO_3", "GRIMORIO_4"]:
-                            g_eq = inv.equipados.get(g_slot)
-                            if g_eq == item or (g_eq and getattr(g_eq, 'id', None) == item.id):
-                                esta_equipado = True
-                                break
-                    if esta_equipado:
-                        badge_info = ("EQUIP", (140, 240, 170), (18, 44, 26), (80, 195, 115))
-                    else:
-                        bp = getattr(item, 'bonus_poder', 0)
-                        if bp > 0:
-                            badge_info = (f"+{bp}P", (245, 220, 140), (40, 32, 20), (185, 155, 80))
-                elif item.categoria == "ENSINAMENTO" and magia_id:
-                    magias_conhecidas = getattr(halia, 'magias_desbloqueadas', [])
-                    conhece = magia_id in magias_conhecidas
-                    if not conhece:
-                        badge_info = ("NOVO", (130, 220, 255), (16, 36, 50), (70, 160, 220))
-                    else:
-                        m_info = getattr(halia, 'maestria_feiticos', {}).get(magia_id, {})
-                        lvl_atual = m_info.get("nivel_maestria", 1)
-                        badge_info = (f"Nv.{lvl_atual}→{lvl_atual+1}", (255, 215, 120), (44, 34, 18), (215, 175, 80))
+                elif item.categoria in ("GRIMORIO", "ENSINAMENTO"):
+                    status_arc = GrimorioHalia.obter_status_aquisicao_item(item, halia)
+                    if item.categoria == "GRIMORIO":
+                        esta_equipado = any(
+                            (inv.equipados.get(g) == item or (inv.equipados.get(g) and inv.equipados.get(g).id == item.id))
+                            for g in ["GRIMORIO_1", "GRIMORIO_2", "GRIMORIO_3", "GRIMORIO_4"]
+                        ) if inv else False
+                        if esta_equipado:
+                            badge_info = ("EQUIP", (140, 240, 170), (18, 44, 26), (80, 195, 115))
+                        elif status_arc and not status_arc["pode_usar"] and status_arc["memorias_minimas"]:
+                            badge_info = (f"MEM {status_arc['memorias_minimas']}", (255, 155, 145), (52, 22, 24), (195, 85, 85))
+                        elif getattr(item, 'bonus_poder', 0) > 0:
+                            badge_info = (f"+{item.bonus_poder}P", (245, 220, 140), (40, 32, 20), (185, 155, 80))
+                    elif magia_id:
+                        conhece = status_arc["ja_conhece"] if status_arc else (magia_id in getattr(halia, 'magias_desbloqueadas', []))
+                        if not conhece:
+                            if status_arc and not status_arc["pode_usar"] and status_arc["memorias_minimas"]:
+                                badge_info = (f"MEM {status_arc['memorias_minimas']}", (255, 155, 145), (52, 22, 24), (195, 85, 85))
+                            else:
+                                badge_info = ("NOVO", (130, 220, 255), (16, 36, 50), (70, 160, 220))
+                        else:
+                            lvl_atual = getattr(halia, 'maestria_feiticos', {}).get(magia_id, {}).get("nivel_maestria", 1)
+                            badge_info = (f"Nv.{lvl_atual}→{lvl_atual+1}", (255, 215, 120), (44, 34, 18), (215, 175, 80))
 
                 w_badge_reservada = 0
                 if badge_info:

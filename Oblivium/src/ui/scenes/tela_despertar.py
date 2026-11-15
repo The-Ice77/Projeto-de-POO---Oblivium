@@ -34,13 +34,13 @@ class TelaDespertarMemoria(CenaBase):
     }
 
     FEITICOS_ESTAGIO = {
-        1: "Raio Arcano",
+        1: "Raio Arcano e Brisa Curativa",
         2: "Impacto Anômalo",
         3: "Escudo Etéreo",
         4: "Vórtice Abissal",
         5: "Claridade Ancestral",
-        6: "Ressonância dos Três Ecos",
-        7: "Totalidade Arcana"
+        6: "Singularidade de Oblivium",
+        7: "Chamas da Ressonância"
     }
 
     DADOS_ESTAGIOS = {
@@ -174,6 +174,10 @@ class TelaDespertarMemoria(CenaBase):
         self.escala_amuleto = 2.6
         self.tempo_inicio_passo = pygame.time.get_ticks()
         self.tempo_ultimo_input = pygame.time.get_ticks()
+        if self.game and getattr(self.game, "audio", None):
+            self.game.audio.tocar_musica(
+                "cutscene_magia", loop=-1, fade_ms=800, salvar_anterior=True, contexto="cutscene"
+            )
 
     def handle_event(self, evento):
         """Processa entradas de teclado ou clique durante o despertar da memória."""
@@ -197,7 +201,10 @@ class TelaDespertarMemoria(CenaBase):
         self.alpha_conteudo = 0
         self.alpha_texto = 0
         self.passo = "INATIVO"
-        return super().finalizar()
+        resultado = super().finalizar()
+        if self.game and hasattr(self.game, "sincronizar_trilha_cenario"):
+            self.game.sincronizar_trilha_cenario(fade_ms=1000)
+        return resultado
 
     def pular(self):
         """Pula a tela de despertar preservando o fluxo de conclusão."""
@@ -254,17 +261,23 @@ class TelaDespertarMemoria(CenaBase):
         if self.passo == "INATIVO":
             return False
 
+        dt_seg = (
+            float(dt)
+            if isinstance(dt, (int, float)) and dt > 0
+            else (getattr(self.game, "dt", 1.0 / 60.0) if self.game else 1.0 / 60.0)
+        )
+        fator = max(0.1, min(3.0, dt_seg * 60.0))
         agora = pygame.time.get_ticks()
         tempo_passo = agora - self.tempo_inicio_passo
 
         # 1. Passo: TITULO (Entrada suave)
         if self.passo == "TITULO":
-            self.alpha_fundo = min(255, self.alpha_fundo + 8)
-            self.alpha_conteudo = min(255, self.alpha_conteudo + 10)
+            self.alpha_fundo = min(255.0, self.alpha_fundo + 8.0 * fator)
+            self.alpha_conteudo = min(255.0, self.alpha_conteudo + 10.0 * fator)
 
         # Transição Suave: Fade out do Título para o Estágio
         elif self.passo == "FADE_TITULO_SAIDA":
-            self.alpha_conteudo = max(0, self.alpha_conteudo - 14)
+            self.alpha_conteudo = max(0.0, self.alpha_conteudo - 14.0 * fator)
             if self.alpha_conteudo <= 0:
                 self.passo = "ESTAGIO"
                 self.tempo_inicio_passo = agora
@@ -272,11 +285,11 @@ class TelaDespertarMemoria(CenaBase):
         # 2. Passo: ESTAGIO (Entrada suave)
         elif self.passo == "ESTAGIO":
             self.alpha_fundo = 255
-            self.alpha_conteudo = min(255, self.alpha_conteudo + 12)
+            self.alpha_conteudo = min(255.0, self.alpha_conteudo + 12.0 * fator)
 
         # Transição Suave: Fade out do Estágio para o Impacto do Amuleto
         elif self.passo == "FADE_ESTAGIO_SAIDA":
-            self.alpha_conteudo = max(0, self.alpha_conteudo - 16)
+            self.alpha_conteudo = max(0.0, self.alpha_conteudo - 16.0 * fator)
             if self.alpha_conteudo <= 0:
                 self.passo = "IMPACTO_AMULETO"
                 self.tempo_inicio_passo = agora
@@ -285,11 +298,11 @@ class TelaDespertarMemoria(CenaBase):
         # 3. Passo: IMPACTO_AMULETO
         elif self.passo == "IMPACTO_AMULETO":
             self.alpha_fundo = 255
-            self.escala_amuleto += (1.0 - self.escala_amuleto) * 0.16
+            self.escala_amuleto += (1.0 - self.escala_amuleto) * (1.0 - (0.84 ** fator))
             if self.flash_alpha > 0:
-                self.flash_alpha = max(0, self.flash_alpha - 12)
+                self.flash_alpha = max(0.0, self.flash_alpha - 12.0 * fator)
             if self.shake_timer > 0:
-                self.shake_timer -= 1
+                self.shake_timer = max(0.0, self.shake_timer - fator)
                 
             # Transição automática para os detalhes após a animação do impacto
             if tempo_passo > 1300:
@@ -299,9 +312,9 @@ class TelaDespertarMemoria(CenaBase):
 
         # 4. Passo: DETALHES_LATERAL
         elif self.passo == "DETALHES_LATERAL":
-            self.amuleto_x += (self.amuleto_x_alvo - self.amuleto_x) * 0.10
+            self.amuleto_x += (self.amuleto_x_alvo - self.amuleto_x) * (1.0 - (0.90 ** fator))
             if self.alpha_texto < 255:
-                self.alpha_texto = min(255, self.alpha_texto + 10)
+                self.alpha_texto = min(255.0, self.alpha_texto + 10.0 * fator)
 
         # Atualiza partículas ativas
         vivas = []

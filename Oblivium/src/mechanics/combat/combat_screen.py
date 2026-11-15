@@ -1,19 +1,19 @@
 # src/mechanics/combat/combat_screen.py
 import pygame
 import random
-import os
 
 from src.mechanics.skills import SkillsRegistry
 from src.entities.Boss import Boss
 from src.ui.ui_utils import quebrar_texto_em_linhas
+from src.utils.formatting import formatar_numero_curto
 from src.utils.colors import (
     TEXTO_ALERTA_COMBATE,
-    BARRA_VIDA_JOGADOR, BARRA_VIDA_INIMIGO, BARRA_MANA, FUNDO_BARRA
+    BARRA_VIDA_JOGADOR, BARRA_MANA, FUNDO_BARRA
 )
 from src.utils.resource_manager import ResourceManager
 from src.core.audio_manager import AudioManager
 from src.mechanics.combat.combat_narrator import CombatNarrator
-from src.mechanics.combat.combat_renderer import CombatRenderer, TextoFlutuante
+from src.mechanics.combat.combat_renderer import CombatRenderer
 from src.mechanics.combat.combat_input import CombatInputHandler
 from src.mechanics.combat.combat_effects import CombatVisualEffects
 from src.mechanics.combat.combat_ai import CombatAIController
@@ -94,6 +94,7 @@ class CombatScreen:
         # "INATIVO", "MENU_PRINCIPAL", "SUBMENU_ATAQUE", "SUBMENU_MAGIA", 
         # "SUBMENU_CONCENTRAR", "SUBMENU_ITENS", "SELECIONANDO_ALVO", "EXECUTANDO_ACAO", "TURNO_INIMIGO", "VITORIA", "DERROTA", "FUGIU"
         self.estado_combate = "INATIVO"
+        self.animando_magia_halia = False
         
         # Log e Mensagens de Batalha
         self.historico_log = []
@@ -123,6 +124,8 @@ class CombatScreen:
         self.rects_concentrar = []
         self.rects_itens_combate = []
         self.rects_inimigos = []
+        self.rects_hud_status = {}
+        self.rects_sprites_combate = {}
         self.rect_botao_voltar = pygame.Rect(0, 0, 0, 0)
         self.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
         self.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
@@ -142,6 +145,11 @@ class CombatScreen:
         audio = AudioManager.get_instance()
         if audio:
             audio.tocar_sfx(alias, volume_extra=volume_extra)
+
+    def _tocar_sfx_elemento(self, elemento, eh_dragao=False):
+        audio = AudioManager.get_instance()
+        if audio:
+            audio.tocar_sfx_elemento(elemento, eh_dragao=eh_dragao)
 
     def definir_velocidade(self, fator_velocidade):
         """Define o multiplicador de velocidade de combate (1.0, 1.5, 2.0)."""
@@ -182,10 +190,11 @@ class CombatScreen:
     def iniciar_combate(self, jogador, inimigos, on_vitoria=None, on_derrota=None, on_fuga=None):
         """Prepara e inicia uma nova sessão de combate."""
         self.jogador = jogador
+        self.animando_magia_halia = False
         self.inimigos = [i for i in inimigos if getattr(i, 'vivo', True)]
         for inim in self.inimigos:
-            if getattr(inim, 'eh_mimico', False):
-                inim.finalizar_revelacao()
+            if getattr(inim, 'eh_mimico', False) and not getattr(inim, 'revelado', False) and not getattr(inim, 'revelando', False):
+                inim.iniciar_revelacao()
         self.on_vitoria = on_vitoria
         self.on_derrota = on_derrota
         self.on_fuga = on_fuga
@@ -211,11 +220,11 @@ class CombatScreen:
         if audio:
             nomes_inimigos = " ".join([getattr(i, 'nome', '').lower() for i in self.inimigos])
             if "drag" in nomes_inimigos:
-                audio.tocar_musica("combate_dragao")
+                audio.tocar_musica("combate_dragao", contexto="combate")
             elif any(isinstance(i, Boss) or getattr(i, 'eh_chefe', False) or "superior" in getattr(i, 'nome', '').lower() for i in self.inimigos):
-                audio.tocar_musica("combate_chefe")
+                audio.tocar_musica("combate_chefe", contexto="combate")
             else:
-                audio.tocar_musica("combate_comum")
+                audio.tocar_musica("combate_comum", contexto="combate")
         
         # Inicializa valores visuais de HP e MP
         self.vidas_visuais[self.jogador] = float(self.jogador.vida_atual)
@@ -248,7 +257,7 @@ class CombatScreen:
     def _carregar_ataques_fisicos_jogador(self):
         """Carrega a lista de ataques físicos disponíveis para a Halia."""
         self.ataques_fisicos_disponiveis.clear()
-        ids_fisicos = getattr(self.jogador, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
+        ids_fisicos = getattr(self.jogador, 'ataques_fisicos', ["ataque_basico"])
         for id_f in ids_fisicos:
             acao = SkillsRegistry.get(id_f)
             if acao:
@@ -259,7 +268,7 @@ class CombatScreen:
         self.magias_disponiveis.clear()
         if hasattr(self.jogador, 'atualizar_grimorio'):
             self.jogador.atualizar_grimorio()
-        ids_magias = getattr(self.jogador, 'magias_desbloqueadas', ["bola_de_fogo", "levitar", "brisa_curativa"])
+        ids_magias = getattr(self.jogador, 'magias_desbloqueadas', ["bola_de_fogo", "levitar"])
         for id_magia in ids_magias:
             acao = SkillsRegistry.get(id_magia)
             if acao:
@@ -337,10 +346,11 @@ class CombatScreen:
             self.adicionar_log(res["mensagem"])
 
         hx, hy = self._obter_posicao_combate(self.jogador)
+        val_fmt = formatar_numero_curto(res.get("valor", 0))
         if res.get("tipo") == "CURA_HP" and res.get("valor", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{res['valor']}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
+            self.adicionar_texto_flutuante(f"+{val_fmt}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         elif res.get("tipo") == "RESTAURA_MP" and res.get("valor", 0) > 0:
-            self.adicionar_texto_flutuante(f"+{res['valor']} MP", hx + 30, hy - 10, BARRA_MANA)
+            self.adicionar_texto_flutuante(f"+{val_fmt} MP", hx + 30, hy - 10, BARRA_MANA)
         elif res.get("tipo") == "CURA_CONDICAO":
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("purificado"), hx + 10, hy - 10, (160, 230, 200))
 
@@ -376,6 +386,8 @@ class CombatScreen:
             msg_morte = f"{alvo.nome} foi destruído pelo impacto de {item.nome}!"
             self.adicionar_log(msg_morte)
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("derrotado"), ax + 10, ay - 30, (255, 60, 60))
+        elif dano > 0 and alvo is not self.jogador and hasattr(self.ai_controller, "verificar_e_anunciar_mudanca_fase"):
+            self.ai_controller.verificar_e_anunciar_mudanca_fase(alvo)
 
     def _selecionar_ataque_fisico(self):
         """Encaminha seleção de ataque físico para CombatInputHandler."""
@@ -437,16 +449,14 @@ class CombatScreen:
         cura_direta = float(resultado.get("cura", 0) or 0)
         if cura_direta > 0:
             self._tocar_sfx("item_pocao")
-            cura_fmt = int(cura_direta) if cura_direta.is_integer() else f"{cura_direta:.1f}"
-            self.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
+            self.adicionar_texto_flutuante(f"+{formatar_numero_curto(cura_direta)}", hx + 30, hy - 10, BARRA_VIDA_JOGADOR)
         
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
             self._tocar_sfx("concentrar")
-            mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
-            self.adicionar_texto_flutuante(f"+{mana_fmt} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
+            self.adicionar_texto_flutuante(f"+{formatar_numero_curto(mana_rec)} MP", hx + 30, hy + 15, BARRA_MANA, duracao=80)
         if resultado.get("defendendo"):
-            self._tocar_sfx("concentrar")
+            self._tocar_sfx("defesa_escudo")
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("em_guarda"), hx + 30, hy - 10, (100, 210, 255), duracao=80)
         if resultado.get("vulneravel"):
             self.adicionar_texto_flutuante(CombatNarrator.obter_popup("vulneravel"), hx + 30, hy - 10, (240, 130, 130), duracao=80)
@@ -459,7 +469,7 @@ class CombatScreen:
 
         # Se for magia de ataque ou suporte
         if getattr(acao, 'custo_mana', 0) > 0 or getattr(acao, 'tipo', '').upper() == 'MAGIA':
-            self._tocar_sfx("magia_cast")
+            self._tocar_sfx_elemento(getattr(acao, 'elemento', 'ARCANO'))
 
         # Função de resolução de impacto individual nos alvos (chamada ao atingir ou imediata)
         def _aplicar_impacto_alvo(alvo_r, r):
@@ -494,8 +504,7 @@ class CombatScreen:
                     self._tocar_sfx("ataque_acerto")
                 self._tocar_sfx("dano_inimigo")
 
-                dano_fmt = int(dano_r) if dano_r.is_integer() else f"{dano_r:.1f}"
-                self.adicionar_texto_flutuante(f"-{dano_fmt}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
+                self.adicionar_texto_flutuante(f"-{formatar_numero_curto(dano_r)}", ax + 20, ay, TEXTO_ALERTA_COMBATE)
                 self.shake_timers[alvo_r] = 14
                 # Ativa animação de dano ou morte no inimigo
                 if hasattr(alvo_r, 'definir_estado') and hasattr(alvo_r, 'animacoes'):
@@ -516,14 +525,15 @@ class CombatScreen:
                 if alvo_r is self.jogador:
                     self._disparar_sangue_halia()
 
-                # Feedback narrativo se o alvo foi derrotado
+                # Feedback narrativo se o alvo foi derrotado ou entrou na Fase 2
                 if not getattr(alvo_r, 'vivo', True):
                     msg_morte = self._gerar_mensagem_morte_acao(alvo_r, acao)
                     self.adicionar_log(msg_morte)
+                elif alvo_r is not self.jogador and hasattr(self.ai_controller, "verificar_e_anunciar_mudanca_fase"):
+                    self.ai_controller.verificar_e_anunciar_mudanca_fase(alvo_r)
             elif cura_r > 0 and alvo_r:
-                self._tocar_sfx("magia_cast")
-                cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
-                self.adicionar_texto_flutuante(f"+{cura_fmt}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
+                self._tocar_sfx("magia_cura")
+                self.adicionar_texto_flutuante(f"+{formatar_numero_curto(cura_r)}", ax + 20, ay - 10, BARRA_VIDA_JOGADOR)
 
         # 2. Executa a apresentação visual: projéteis e explosões direcionadas em magias e AoE
         eh_aoe = (
@@ -536,6 +546,9 @@ class CombatScreen:
             getattr(acao, 'tipo', '').upper() == 'MAGIA' or 
             getattr(acao, 'tipo_dano', '') == 'MAGICO'
         )
+
+        if eh_magia:
+            self.iniciar_conjuro_halia()
 
         alvos_com_dados = [r for r in resultado.get("resultados", []) if r.get("alvo")]
 
@@ -566,9 +579,31 @@ class CombatScreen:
     # ATUALIZAÇÃO DO MOTOR DE COMBATE
     # =========================================================================
 
-    def atualizar(self):
-        """Loop de atualização de timers, interpolação suave e turnos."""
+    def iniciar_conjuro_halia(self):
+        """Dispara a animação de conjuração arcana da Halia a partir do primeiro quadro."""
+        self.animando_magia_halia = True
+        if self.jogador and hasattr(self.jogador, "animacoes"):
+            anim = self.jogador.animacoes.get("combate_special")
+            if anim:
+                anim.resetar()
+
+    def obter_estado_animacao_halia(self):
+        """Retorna a chave da animação ativa da Halia na arena."""
+        if not self.jogador or not hasattr(self.jogador, "animacoes"):
+            return "combate_idle"
+        if getattr(self, "animando_magia_halia", False) and "combate_special" in self.jogador.animacoes:
+            return "combate_special"
+        if "combate_idle" in self.jogador.animacoes:
+            return "combate_idle"
+        if "idle_direita" in self.jogador.animacoes:
+            return "idle_direita"
+        return "idle"
+
+    def atualizar(self, dt=None):
+        """Loop de atualização de timers, interpolação suave, animações e turnos."""
+        dt_efetivo = 1.0 / 60.0 if dt is None else max(0.0, float(dt))
         self.tick_arena += 1
+        self.renderer.atualizar_animacoes(dt_efetivo)
 
         # Atualiza interpolação suave de HP e MP
         if self.jogador:
@@ -706,7 +741,7 @@ class CombatScreen:
 
     def adicionar_texto_flutuante(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60):
         duracao_ajustada = self._ajustar_timer(duracao)
-        self.textos_flutuantes.append(TextoFlutuante(texto, x, y, cor=cor, duracao=duracao_ajustada))
+        self.textos_flutuantes.append(self.renderer.criar_texto_flutuante(texto, x, y, cor=cor, duracao=duracao_ajustada))
 
     def _obter_inimigos_vivos(self):
         return [i for i in self.inimigos if getattr(i, 'vivo', True)]
@@ -714,24 +749,22 @@ class CombatScreen:
     def _obter_posicao_combate(self, entidade):
         """Retorna as coordenadas (x, y) de base na arena de combate para uma entidade."""
         if entidade is self.jogador:
-            return 160, 160
+            return 160, 175
 
         if entidade in self.inimigos:
-            idx = self.inimigos.index(entidade)
-            total = len(self.inimigos)
-            if total == 1:
-                return self.largura - 350, 150
-            elif total == 2:
-                return self.largura - 350, 65 if idx == 0 else 235
-            else:
-                if idx == 0:
-                    return self.largura - 260, 48
-                elif idx == 1:
-                    return self.largura - 430, 155
-                else:
-                    return self.largura - 260, 262
+            idx, total = self.inimigos.index(entidade), len(self.inimigos)
+            w = self.largura
+            layouts = {
+                1: ((w - 360, 215),),
+                2: ((w - 610, 114), (w - 275, 224)),
+                3: ((w - 680, 112), (w - 240, 112), (w - 460, 232)),
+            }
+            posicoes = layouts.get(total) or (
+                (w - 740, 110), (w - 370, 110), (w - 520, 232), (w - 220, 232),
+            )
+            return posicoes[idx % len(posicoes)]
 
-        return getattr(entidade, 'x', 160), getattr(entidade, 'y', 160)
+        return getattr(entidade, 'x', 160), getattr(entidade, 'y', 175)
 
     # =========================================================================
     # RENDERIZAÇÃO GRÁFICA (DELEGADA PARA CombatRenderer)

@@ -84,8 +84,8 @@ class NPC(Entidade):
         else:
             # Calibração de Proporções e Hitboxes 2.5D por Arquétipo (Itens 2.1 e 2.2)
             dimensoes_arquetipos = {
-                "ferreiro": (82, 40, 36),     # Torvald: forjador robusto e alto
-                "torvald": (82, 40, 36),
+                "ferreiro": (66, 40, 36),     # Torvald: forjador robusto e inclinado sobre a bigorna
+                "torvald": (66, 40, 36),
                 "roland": (84, 42, 38),       # Roland: paladino em placa pesada
                 "sylvan": (65, 42, 32),       # Sylvan: guerreiro anão largo e baixo
                 "doran": (78, 38, 36),        # Doran: sentinela de cota de malha
@@ -109,6 +109,10 @@ class NPC(Entidade):
                 chave_arq = "caelen"
 
             self.alvo_h, self.largura, self.altura = dimensoes_arquetipos.get(chave_arq, (74, 36, 36))
+        self._ultimo_x = float(self.x)
+        self._ultimo_y = float(self.y)
+        self._movendo_via_mover = False
+        self._em_movimento = False
         self._configurar_sprites_padrao()
 
     def _inferir_arquetipo(self):
@@ -276,63 +280,272 @@ class NPC(Entidade):
             return "taberneiro"
         return None
 
+    @staticmethod
+    def _calcular_escala_uniforme_npc(brutos_por_estado, alvo_h):
+        """
+        Calcula fator de escala corporal único para todos os estados do NPC,
+        evitando que quadros com ferramentas/armas erguidas (ex: martelo de Torvald)
+        encolham o corpo do personagem frente aos demais estados.
+        """
+        estimativas = []
+        pads_base = []
+        prioridade_repouso = ("dialogue", "walk", "andar_baixo", "idle")
+        estados_candidatos = [e for e in prioridade_repouso if e in brutos_por_estado]
+        if not estados_candidatos:
+            estados_candidatos = list(brutos_por_estado.keys())
+
+        for est in estados_candidatos:
+            vis_hs = []
+            for surf in brutos_por_estado[est]:
+                br = surf.get_bounding_rect()
+                if br.height > 0:
+                    vis_hs.append(br.height)
+                    pads_base.append(surf.get_height() - br.bottom)
+            if not vis_hs:
+                continue
+            vis_ord = sorted(vis_hs)
+            # Se houver grande variação (ex: martelo erguido acima da cabeça), usa quartil inferior de repouso
+            if vis_ord[-1] - vis_ord[0] > max(10, int(vis_ord[0] * 0.20)):
+                h_vis_rep = vis_ord[min(len(vis_ord) - 1, len(vis_ord) // 4)]
+            else:
+                h_vis_rep = vis_ord[len(vis_ord) // 2]
+            pad_est = pads_base[-1] if pads_base else 0
+            estimativas.append((est, h_vis_rep + (2 * pad_est)))
+
+        # Prioriza 'dialogue' / 'idle' como referência canônica de altura em repouso
+        for pref in ("dialogue", "idle", "walk", "andar_baixo"):
+            for est, h_est in estimativas:
+                if est == pref and h_est > 0:
+                    ref_h = h_est
+                    break
+            else:
+                continue
+            break
+        else:
+            ref_h = min((h for _, h in estimativas if h > 0), default=alvo_h)
+
+        escala = float(alvo_h) / max(1.0, float(ref_h))
+        pad_med = sorted(pads_base)[len(pads_base) // 2] if pads_base else 0
+        pad_inf_alvo = max(0, int(round(pad_med * escala)))
+        return escala, pad_inf_alvo
+
+    @staticmethod
+    def _normalizar_frame_npc_ancorado(surf, escala, alvo_h, pad_inf_alvo):
+        """Redimensiona frame com escala corporal uniforme preservando apoio inferior constante."""
+        ow, oh = surf.get_size()
+        nw = max(1, int(round(ow * escala)))
+        nh = max(1, int(round(oh * escala)))
+        fr_sc = pygame.transform.scale(surf, (nw, nh))
+        br = fr_sc.get_bounding_rect()
+        if br.height <= 0:
+            return pygame.transform.scale(surf, (max(1, int(ow * (alvo_h / max(1, oh)))), alvo_h))
+
+        h_final = max(alvo_h, br.bottom + pad_inf_alvo)
+        # Mantém margem inferior exatamente igual a pad_inf_alvo
+        y_dest = h_final - pad_inf_alvo - br.bottom
+        if y_dest == 0 and nh == h_final:
+            return fr_sc
+        canvas = pygame.Surface((nw, h_final), pygame.SRCALPHA)
+        canvas.blit(fr_sc, (0, y_dest))
+        return canvas
+
+    def _aplicar_espec_sprites_npc(self, especificacoes):
+        self.animacoes = {}
+        for estado, espec in especificacoes.items():
+            self.animacoes[estado] = Animacao(
+                list(espec["frames"]),
+                velocidade=espec["vel"],
+                loop=espec["loop"],
+            )
+
+        # Aliases direcionais para caminhada de NPCs que usam walk / walk_esquerda
+        if "walk" in self.animacoes:
+            self.animacoes.setdefault("andar", self.animacoes["walk"])
+            self.animacoes.setdefault("andar_direita", self.animacoes["walk"])
+        if "walk_esquerda" in self.animacoes:
+            self.animacoes.setdefault("andar_esquerda", self.animacoes["walk_esquerda"])
+
+        if "idle" in self.animacoes and self.animacoes["idle"].frames:
+            self.imagem_atual = self.animacoes["idle"].get_imagem()
+        elif "andar_baixo" in self.animacoes and self.animacoes["andar_baixo"].frames:
+            self.animacoes["idle"] = self.animacoes["andar_baixo"]
+            self.imagem_atual = self.animacoes["idle"].get_imagem()
+
+        # Calcula altura visual em repouso da cabeça até a base para manter marcadores (!) estáveis
+        self._altura_cabeca_visivel = None
+        for est_ref in ("dialogue", "walk", "andar_baixo", "idle"):
+            anim_ref = self.animacoes.get(est_ref)
+            if anim_ref and anim_ref.frames:
+                alturas_est = [
+                    fr.get_height() - fr.get_bounding_rect().top
+                    for fr in anim_ref.frames
+                    if fr.get_bounding_rect().height > 0
+                ]
+                if alturas_est:
+                    alturas_ord = sorted(alturas_est)
+                    if est_ref == "idle" and alturas_ord[-1] - alturas_ord[0] > max(6, int(alturas_ord[0] * 0.15)):
+                        self._altura_cabeca_visivel = alturas_ord[min(len(alturas_ord) - 1, len(alturas_ord) // 4)]
+                    else:
+                        self._altura_cabeca_visivel = alturas_ord[len(alturas_ord) // 2]
+                    break
+
     def _configurar_sprites_padrao(self):
         pasta_nome = self._resolver_pasta_sprites()
+        alvo_h = int(getattr(self, "alvo_h", 74))
         if pasta_nome:
-            chave_cache = f"npc_real_{pasta_nome}"
+            chave_cache = ("npc_real", pasta_nome, alvo_h)
             if chave_cache in self._CACHE_SPRITES_NPC:
-                frames_idle = self._CACHE_SPRITES_NPC[chave_cache]
-                self.animacoes["idle"] = Animacao(frames_idle, velocidade=0.06, loop=True)
-                self.imagem_atual = frames_idle[0] if frames_idle else None
+                self._aplicar_espec_sprites_npc(self._CACHE_SPRITES_NPC[chave_cache])
                 return
 
-            caminho_idle = os.path.join(PASTA_ASSETS, "npc", pasta_nome, "idle")
-            if not os.path.exists(caminho_idle):
-                caminho_idle = os.path.join(PASTA_ASSETS, "npc", pasta_nome, "andar_baixo")
+            pasta_npc_abs = os.path.join(PASTA_ASSETS, "npc", pasta_nome)
+            config_estados_npc = {
+                "idle": (0.06, True),
+                "dialogue": (0.08, True),
+                "special": (0.10, False),
+                "walk": (0.10, True),
+                "walk_esquerda": (0.10, True),
+                "sell": (0.08, True),
+                "idle_2": (0.06, False),
+                "andar_baixo": (0.10, True),
+                "andar_cima": (0.10, True),
+                "andar_direita": (0.10, True),
+                "andar_esquerda": (0.10, True),
+            }
 
-            if os.path.exists(caminho_idle):
-                arquivos = sorted([f for f in os.listdir(caminho_idle) if f.lower().endswith(".png")])
-                frames = []
-                for arq in arquivos:
-                    img_path = os.path.join("npc", pasta_nome, os.path.basename(caminho_idle), arq).replace("\\", "/")
+            especificacoes = {}
+            brutos_por_estado = {}
+            for estado_dir in config_estados_npc.keys():
+                pasta_sub = os.path.join(pasta_npc_abs, estado_dir)
+                if not os.path.exists(pasta_sub) or not os.path.isdir(pasta_sub):
+                    continue
+                arqs = sorted([f for f in os.listdir(pasta_sub) if f.lower().endswith(".png")])
+                surfs_brutas = []
+                for arq in arqs:
+                    img_path = os.path.join("npc", pasta_nome, estado_dir, arq).replace("\\", "/")
                     surf = ResourceManager.carregar_imagem(img_path)
                     if surf:
-                        orig_w, orig_h = surf.get_size()
-                        alvo_h = getattr(self, "alvo_h", 74)
-                        alvo_w = max(1, int(orig_w * (alvo_h / orig_h)))
-                        # Preservação estrita de nitidez pixel art por vizinho mais próximo (sem desfoque)
-                        surf_scaled = pygame.transform.scale(surf, (alvo_w, alvo_h))
-                        frames.append(surf_scaled)
+                        surfs_brutas.append(surf)
+                if surfs_brutas:
+                    brutos_por_estado[estado_dir] = surfs_brutas
 
-                if frames:
-                    self._CACHE_SPRITES_NPC[chave_cache] = frames
-                    self.animacoes["idle"] = Animacao(frames, velocidade=0.06, loop=True)
-                    self.imagem_atual = frames[0]
+            if brutos_por_estado:
+                escala_npc, pad_inf_alvo = self._calcular_escala_uniforme_npc(brutos_por_estado, alvo_h)
+            else:
+                escala_npc, pad_inf_alvo = 1.0, 0
 
-                    # Carrega animações adicionais se existirem na pasta do NPC
-                    pasta_npc_abs = os.path.join(PASTA_ASSETS, "npc", pasta_nome)
-                    for anim_sec in ["dialogue", "special", "walk", "sell"]:
-                        pasta_sec = os.path.join(pasta_npc_abs, anim_sec)
-                        if os.path.exists(pasta_sec):
-                            arqs_sec = sorted([f for f in os.listdir(pasta_sec) if f.lower().endswith(".png")])
-                            f_sec = []
-                            for arq_s in arqs_sec:
-                                rel_p = os.path.join("npc", pasta_nome, anim_sec, arq_s).replace("\\", "/")
-                                s_sec = ResourceManager.carregar_imagem(rel_p)
-                                if s_sec:
-                                    ow, oh = s_sec.get_size()
-                                    alvo_h = getattr(self, "alvo_h", 74)
-                                    nw = max(1, int(ow * (alvo_h / oh)))
-                                    sc = pygame.transform.scale(s_sec, (nw, alvo_h))
-                                    f_sec.append(sc)
-                            if f_sec:
-                                self.animacoes[anim_sec] = Animacao(f_sec, velocidade=0.08, loop=True)
-                    return
+            for estado_dir, (vel_padrao, loop_padrao) in config_estados_npc.items():
+                surfs_brutas = brutos_por_estado.get(estado_dir)
+                if not surfs_brutas:
+                    continue
+                frames_sc = [
+                    self._normalizar_frame_npc_ancorado(surf, escala_npc, alvo_h, pad_inf_alvo)
+                    for surf in surfs_brutas
+                ]
+                if frames_sc:
+                    especificacoes[estado_dir] = {
+                        "frames": tuple(frames_sc),
+                        "vel": vel_padrao,
+                        "loop": loop_padrao,
+                    }
+
+            if "idle" not in especificacoes and "andar_baixo" in especificacoes:
+                especificacoes["idle"] = {
+                    "frames": especificacoes["andar_baixo"]["frames"],
+                    "vel": 0.06,
+                    "loop": True,
+                }
+
+            if "idle" in especificacoes:
+                self._CACHE_SPRITES_NPC[chave_cache] = especificacoes
+                self._aplicar_espec_sprites_npc(especificacoes)
+                return
 
         # Fallback procedural
         frames = self._gerar_frames_arquetipo(self.arquetipo)
         self.animacoes["idle"] = Animacao(frames, velocidade=0.04, loop=True)
         self.imagem_atual = frames[0] if frames else None
+
+    def sincronizar_teleporte(self):
+        """Sincroniza coordenadas anteriores após reposicionamento ou load de save."""
+        self._ultimo_x = float(self.x)
+        self._ultimo_y = float(self.y)
+        self._movendo_via_mover = False
+        self._em_movimento = False
+
+    def _dialogo_corresponde_a_mim(self):
+        caixa = getattr(self, "caixa_dialogo", None)
+        if not caixa and hasattr(self, "game") and getattr(self.game, "caixa_dialogo", None):
+            caixa = self.game.caixa_dialogo
+        if caixa and getattr(caixa, "ativo", False):
+            autor_atual = getattr(caixa, "dados_atuais", {}).get("autor", "")
+            if autor_atual and (self.nome.lower() in autor_atual.lower() or autor_atual.lower() in self.nome.lower()):
+                return True
+        return False
+
+    def mover(self, dx, dy, hitboxes_mapa=None):
+        if not getattr(self, "vivo", True) or (dx == 0 and dy == 0) or getattr(self, "velocidade", 0) <= 0:
+            self._em_movimento = False
+            self._movendo_via_mover = False
+            self._ultimo_x = float(self.x)
+            self._ultimo_y = float(self.y)
+            if self._dialogo_corresponde_a_mim() and self._tem_animacao_valida("dialogue"):
+                self.mudar_estado("dialogue")
+            elif self._tem_animacao_valida(f"idle_{self.direcao}"):
+                self.mudar_estado(f"idle_{self.direcao}")
+            else:
+                self.mudar_estado("idle")
+            return
+
+        super().mover(dx, dy, hitboxes_mapa)
+        self._movendo_via_mover = True
+        self._em_movimento = True
+        self._ultimo_x = float(self.x)
+        self._ultimo_y = float(self.y)
+
+    def atualizar_animacao(self, dt=None):
+        dx_script = float(self.x) - getattr(self, "_ultimo_x", float(self.x))
+        dy_script = float(self.y) - getattr(self, "_ultimo_y", float(self.y))
+        moveu_script = (abs(dx_script) > 0.05 or abs(dy_script) > 0.05)
+
+        if moveu_script:
+            if abs(dx_script) >= abs(dy_script):
+                self.direcao = "direita" if dx_script > 0 else "esquerda"
+                self.virado_direita = (dx_script > 0)
+            else:
+                self.direcao = "baixo" if dy_script > 0 else "cima"
+
+            if self._tem_animacao_valida(f"andar_{self.direcao}"):
+                self.mudar_estado(f"andar_{self.direcao}")
+            elif self._tem_animacao_valida("andar"):
+                self.mudar_estado("andar")
+            elif self._tem_animacao_valida("walk"):
+                self.mudar_estado("walk")
+            self._em_movimento = True
+            self._movendo_via_mover = False
+        elif getattr(self, "_movendo_via_mover", False):
+            self._em_movimento = True
+            self._movendo_via_mover = False
+        else:
+            self._em_movimento = False
+
+        self._ultimo_x = float(self.x)
+        self._ultimo_y = float(self.y)
+
+        if not self._em_movimento:
+            fala_ativa = self._dialogo_corresponde_a_mim()
+            if fala_ativa and self._tem_animacao_valida("dialogue"):
+                if self.estado_atual != "dialogue":
+                    self.mudar_estado("dialogue")
+            else:
+                estados_parados_validos = (
+                    "idle", "idle_2", "idle_baixo", "idle_cima",
+                    "idle_direita", "idle_esquerda", "special", "attack", "sell",
+                )
+                if self.estado_atual == "dialogue" or self.estado_atual not in estados_parados_validos:
+                    self.mudar_estado("idle")
+
+        super().atualizar_animacao(dt)
 
     def definir_dialogos(self, lista_ou_id):
         """Define o que o NPC vai falar ao interagir (aceita ID em string ou lista)."""
@@ -462,6 +675,7 @@ class NPC(Entidade):
         # (APENAS na vila intacta antes do ataque aéreo do dragão)
         if (
             getattr(game, "oakhaven_noite", False)
+            and qm and qm.missoes.get("missao_ronda_fronteiras", {}).get("status") == "CONCLUIDA"
             and not getattr(game, "oakhaven_destruida", False)
             and not getattr(game, "dragao_derrotado", False)
             and (self.arquetipo == "anciao" or "aldous" in self.npc_id.lower() or "aldous" in self.nome.lower())
@@ -475,8 +689,13 @@ class NPC(Entidade):
 
     def obter_topo_cabeca(self):
         """Retorna a coordenada Y do topo real da cabeça/elmo do NPC no mundo."""
+        altura_ref = getattr(self, "_altura_cabeca_visivel", None)
+        if altura_ref:
+            return (self.y + self.altura) - altura_ref
         if self.imagem_atual:
-            return self.y - (self.imagem_atual.get_height() - self.altura)
+            br = self.imagem_atual.get_bounding_rect()
+            topo_rel = br.top if br.height > 0 else 0
+            return self.y - (self.imagem_atual.get_height() - self.altura) + topo_rel
         return self.y - (getattr(self, "alvo_h", 74) - self.altura)
 
     def obter_posicao_marcador(self):
@@ -506,19 +725,13 @@ class NPC(Entidade):
         pygame.draw.ellipse(sombra, (16, 18, 22, 105), (0, 0, 32, 12))
         tela.blit(sombra, (int(self.x + self.largura // 2 - 16), int(self.y + self.altura - 7)))
 
-        # Alterna entre animação de fala (dialogue) e ociosa (idle) conforme o diálogo ativo
-        caixa = getattr(self, "caixa_dialogo", None)
-        if not caixa and hasattr(self, "game") and getattr(self.game, "caixa_dialogo", None):
-            caixa = self.game.caixa_dialogo
-        if caixa and getattr(caixa, "ativo", False):
-            autor_atual = getattr(caixa, "dados_atuais", {}).get("autor", "")
-            if autor_atual and (self.nome.lower() in autor_atual.lower() or autor_atual.lower() in self.nome.lower()):
-                if "dialogue" in self.animacoes and self.estado_atual != "dialogue":
+        # Alterna entre animação de fala (dialogue) e ociosa (idle) apenas quando parado
+        if not getattr(self, "_em_movimento", False):
+            if self._dialogo_corresponde_a_mim():
+                if self._tem_animacao_valida("dialogue") and self.estado_atual != "dialogue":
                     self.mudar_estado("dialogue")
-            elif self.estado_atual == "dialogue" and "idle" in self.animacoes:
+            elif self.estado_atual == "dialogue" and self._tem_animacao_valida("idle"):
                 self.mudar_estado("idle")
-        elif self.estado_atual == "dialogue" and "idle" in self.animacoes:
-            self.mudar_estado("idle")
 
         # Utiliza o método desenhar herdado da Entidade se houver sprites
         anim = self.animacoes.get(self.estado_atual)

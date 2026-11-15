@@ -106,6 +106,9 @@ class MinigameCurandeira(MinigameBase):
 
     def iniciar(self, item=None):
         """Abre o minigame de colheita mística ao interagir com a erva no mapa."""
+        if self.ativo:
+            return
+        self._colheita_aplicada = False
         self.estado = "JOGANDO"
         self.ativo = True
         self.item_alvo = item
@@ -231,17 +234,30 @@ class MinigameCurandeira(MinigameBase):
 
     def _concluir_com_sucesso(self):
         """Aplica os efeitos da colheita bem-sucedida e encerra o minigame."""
+        if not self.ativo or getattr(self, "_colheita_aplicada", False):
+            return
+        inventario = getattr(getattr(self.game, "halia", None), "inventario", None)
+        sucesso, mensagem = inventario.adicionar_item("erva_lunar", 1) if inventario is not None else (False, "Inventário indisponível.")
+        if not sucesso:
+            self.ativo = False
+            self.estado = "INATIVO"
+            self.game.caixa_dialogo.iniciar_dialogo([
+                {"autor": "Sistema", "texto": f"{mensagem} A erva permanece no canteiro; libere espaço para colhê-la."}
+            ])
+            return
+        self._colheita_aplicada = True
         self.ativo = False
         self.estado = "CONCLUIDO"
-
-        # 1. Adiciona a erva lunar ao inventário da Halia
-        if hasattr(self.game, "halia") and hasattr(self.game.halia, "inventario") and self.game.halia.inventario:
-            self.game.halia.inventario.adicionar_item("erva_lunar", 1)
+        if hasattr(self.game, "audio") and self.game.audio:
+            self.game.audio.tocar_sfx("magia_cura")
 
         # 2. Remove o item físico do chão e registra coleta
         if self.item_alvo and hasattr(self.game, "mapa_casa") and hasattr(self.game.mapa_casa, "itens_no_chao"):
             if self.item_alvo in self.game.mapa_casa.itens_no_chao:
                 self.game.mapa_casa.itens_no_chao.remove(self.item_alvo)
+            ervas = getattr(self.game.mapa_casa, "ervas_coletaveis", [])
+            if self.item_alvo in ervas:
+                ervas.remove(self.item_alvo)
             id_item = getattr(self.item_alvo, "id_unico", None)
             if id_item and hasattr(self.game, "itens_coletados") and id_item not in self.game.itens_coletados:
                 self.game.itens_coletados.append(id_item)

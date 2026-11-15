@@ -497,8 +497,15 @@ class CombatInputHandler:
         """Executa a ação tática de Concentração ou Defesa selecionada no submenu."""
         if not self.cs.opcoes_concentrar:
             return
-        self.cs._tocar_sfx("ui_confirmar")
         acao = self.cs.opcoes_concentrar[self.cs.indice_concentrar]
+        custo = acao.obter_custo_mana(self.cs.jogador) if hasattr(acao, 'obter_custo_mana') else getattr(acao, 'custo_mana', 0)
+        if custo > 0 and self.cs.jogador.mana_atual < custo:
+            self.cs._tocar_sfx("ui_erro")
+            self.cs.adicionar_log(
+                CombatNarrator.obter_mensagem("mana_insuficiente", mana_atual=self.cs.jogador.mana_atual, custo_mana=custo)
+            )
+            return
+        self.cs._tocar_sfx("ui_confirmar")
         self.cs._executar_acao_jogador(acao, self.cs.jogador)
 
     def selecionar_magia_grimorio(self):

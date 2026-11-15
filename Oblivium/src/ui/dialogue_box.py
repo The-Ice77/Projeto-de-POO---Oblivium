@@ -3,8 +3,7 @@ import pygame
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_painel_padrao
 from src.utils.colors import (
     BRANCO, CINZA_LINHO, CINZA_ARDOSIA,
-    UI_TEXTO_APAGADO, TXT_SISTEMA_NARRADOR, TXT_PENSAMENTO_INTERNO, 
-    NOME_HALIA, NOME_MALDICAO,
+    UI_TEXTO_APAGADO,
     BOTAO_FECHAR_HOVER,
     CARVAO_PROFUNDO, MARFIM_OFFWHITE,
     AZUL_HOVER_MENU, AZUL_HOVER_BG
@@ -12,61 +11,12 @@ from src.utils.colors import (
 from src.utils.resource_manager import ResourceManager
 from src.mechanics.dialogue_manager import DialogueManager
 from src.core.audio_manager import AudioManager
-from src.ui.dialogue_portraits import DialoguePortraitCatalog
-
-
-NOMES_TECLAS_PT = {
-    pygame.K_SPACE: "ESPAÇO",
-    pygame.K_RETURN: "ENTER",
-    pygame.K_KP_ENTER: "ENTER",
-    pygame.K_ESCAPE: "ESC",
-    pygame.K_TAB: "TAB",
-    pygame.K_UP: "SETA CIMA",
-    pygame.K_DOWN: "SETA BAIXO",
-    pygame.K_LEFT: "SETA ESQUERDA",
-    pygame.K_RIGHT: "SETA DIREITA",
-}
-
-
-def obter_nome_tecla_legivel(codigo_tecla, game=None):
-    """Converte um keycode Pygame em rótulo legível em português."""
-    if game is not None and hasattr(game, "obter_nome_tecla"):
-        return game.obter_nome_tecla(codigo_tecla)
-    if codigo_tecla in NOMES_TECLAS_PT:
-        return NOMES_TECLAS_PT[codigo_tecla]
-    return pygame.key.name(codigo_tecla).upper()
-
-
-def formatar_marcadores_controles(texto, controles=None, game=None):
-    """Substitui {TECLAS_MOVER} e {TECLA_INTERAGIR} pelas teclas configuradas no momento da exibição."""
-    if not isinstance(texto, str) or (
-        "{TECLAS_MOVER}" not in texto and "{TECLA_INTERAGIR}" not in texto
-    ):
-        return texto
-
-    mapa = controles if isinstance(controles, dict) else getattr(game, "controles", None)
-    if not isinstance(mapa, dict):
-        mapa = {}
-
-    if "{TECLAS_MOVER}" in texto:
-        teclas_mov = (
-            mapa.get("Cima", pygame.K_w),
-            mapa.get("Esquerda", pygame.K_a),
-            mapa.get("Baixo", pygame.K_s),
-            mapa.get("Direita", pygame.K_d),
-        )
-        if set(teclas_mov) == {pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT}:
-            rotulo_mover = "as setas do teclado"
-        else:
-            rotulo_mover = ", ".join(obter_nome_tecla_legivel(k, game=game) for k in teclas_mov)
-        texto = texto.replace("{TECLAS_MOVER}", rotulo_mover)
-
-    if "{TECLA_INTERAGIR}" in texto:
-        tecla_interagir = mapa.get("Interagir", pygame.K_e)
-        rotulo_interagir = obter_nome_tecla_legivel(tecla_interagir, game=game)
-        texto = texto.replace("{TECLA_INTERAGIR}", rotulo_interagir)
-
-    return texto
+from src.ui.dialogue_portraits import (
+    DialoguePortraitCatalog,
+    NOMES_TECLAS_PT,
+    formatar_marcadores_controles,
+    obter_nome_tecla_legivel,
+)
 
 
 class DialogueBox:
@@ -74,7 +24,7 @@ class DialogueBox:
     Caixa de Diálogo e Sistema de Escolhas de Oblivium (Visual + POO):
     - Conectada ao DialogueManager (leitura de JSON estruturado em nós)
     - Fundo escuro em Carvão Profundo com contorno sutil de 1px
-    - Suporte universal a Retrato (Portrait) para NPCs e Halia
+    - Layout tipográfico uniforme sem retratos laterais, preservando nome e cor do autor
     - Sistema de Escolhas lado a lado (grade 2 colunas) com cabeçalho dinâmico
     - Destaques visuais e hover no padrão azul clarinho do menu inicial
     - Totalmente retrocompatível com chamadas legadas de listas de falas
@@ -96,8 +46,11 @@ class DialogueBox:
         self.dados_atuais = None
         
         # --- MÁQUINA DE ESCREVER ---
+        self.MAX_LINHAS_POR_PAGINA = 6
         self.texto_completo = ""
         self.linhas_completas = []
+        self.paginas_texto = [[]]
+        self.indice_pagina_texto = 0
         self.tamanho_total = 0
         self.caractere_atual = 0
         self.velocidade_texto = 1.0 
@@ -139,17 +92,12 @@ class DialogueBox:
         self.hover_popup_cancelar = False
         self.hover_popup_fechar = False
 
-        # -- RETRATOS EM CACHE --
-        self.retratos = {
-            "Halia": None,  # Temporariamente desativado a pedido do usuário (aguardando novas artes)
-            "Torvin": ResourceManager.carregar_imagem("elementos/torvin_portrait.png", (96, 124)),
-            "Carroceiro": ResourceManager.carregar_imagem("elementos/carroceiro_portrait.png", (96, 124))
-        }
-        self._inicializar_retratos_companheiros()
+        # Retratos removidos por R02: diálogos exibem apenas nome/cor do autor e texto uniforme
+        self.retratos = {}
 
     def _inicializar_retratos_companheiros(self):
-        """Inicializa retratos pixel-art canônicos dos heróis da companhia e NPCs."""
-        DialoguePortraitCatalog.inicializar_retratos_companheiros(self.retratos)
+        """Mantido por compatibilidade; retratos foram desativados em R02."""
+        return
 
     @property
     def historico_escolhas(self):
@@ -177,7 +125,8 @@ class DialogueBox:
             sucesso = False
 
         if not sucesso:
-            self.ativo = False
+            self.manager.finalizar(limpar_eventos=True)
+            self._sincronizar_com_manager()
             return
 
         self.ativo = True
@@ -253,13 +202,33 @@ class DialogueBox:
             self.dados_atuais["texto"] = self.texto_completo
 
             autor = no.get("autor", "Narrador")
-            tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])
-            largura_caixa = min(960, self.largura_tela - 80)
-            largura_util = largura_caixa - (180 if tem_retrato else 70)
-
-            self.linhas_completas = quebrar_texto_em_linhas(self.texto_completo, self.fonte_texto, largura_util)
-            self.tamanho_total = sum(len(l) for l in self.linhas_completas)
+            layout = self._calcular_layout_texto(self.largura_tela, autor=autor, num_linhas=1)
+            self.linhas_completas = quebrar_texto_em_linhas(
+                self.texto_completo, self.fonte_texto, layout["largura_util"]
+            )
+            max_linhas = max(1, int(getattr(self, "MAX_LINHAS_POR_PAGINA", 6)))
+            if self.linhas_completas:
+                self.paginas_texto = [
+                    self.linhas_completas[i : i + max_linhas]
+                    for i in range(0, len(self.linhas_completas), max_linhas)
+                ]
+            else:
+                self.paginas_texto = [[]]
+            self.indice_pagina_texto = 0
+            self.tamanho_total = sum(len(l) for l in self.linhas_pagina_atual)
             self.caractere_atual = 0
+
+    @property
+    def total_paginas_texto(self):
+        return max(1, len(getattr(self, "paginas_texto", [[]])))
+
+    @property
+    def linhas_pagina_atual(self):
+        paginas = getattr(self, "paginas_texto", [[]])
+        if not paginas:
+            return []
+        idx = max(0, min(getattr(self, "indice_pagina_texto", 0), len(paginas) - 1))
+        return paginas[idx]
 
     def _tocar_sfx(self, alias, volume_extra=1.0):
         audio = AudioManager.get_instance()
@@ -286,6 +255,11 @@ class DialogueBox:
 
         if self.caractere_atual < self.tamanho_total:
             self.caractere_atual = self.tamanho_total
+        elif self.indice_pagina_texto + 1 < self.total_paginas_texto:
+            self._tocar_sfx("ui_cursor")
+            self.indice_pagina_texto += 1
+            self.tamanho_total = sum(len(l) for l in self.linhas_pagina_atual)
+            self.caractere_atual = 0
         else:
             self._tocar_sfx("ui_cursor")
             continua = self.manager.avancar()
@@ -318,17 +292,22 @@ class DialogueBox:
             self.ativo = False
             self.em_escolha = False
 
+    def _largura_disponivel_opcao(self, largura_tela=None, com_icone=False):
+        w_tela = largura_tela or getattr(self, "largura_tela", 1280)
+        w_coluna = (min(960, w_tela - 80) - 56) // 2
+        return max(120, w_coluna - (42 if com_icone else 20))
+
     def opcao_eh_longa(self, opcao, idx_global=0):
-        """Verifica se uma opção de escolha é longa demais para a coluna padrão de 2 colunas."""
+        """Verifica se uma opção excede a largura real útil da coluna de escolhas."""
         if not opcao or not isinstance(opcao, dict):
             return False
         texto = opcao.get("texto", "")
         if not texto:
             return False
-        largura_max_coluna = (min(960, getattr(self, "largura_tela", 1280) - 80) - 56) // 2 - 28
-        prefixo = f"►  {idx_global + 1}. "
-        largura_texto = self.fonte_opcao.size(f"{prefixo}{texto}")[0]
-        return largura_texto > largura_max_coluna or len(texto) >= 44
+        largura_disponivel = self._largura_disponivel_opcao(com_icone=False)
+        largura_sel = self.fonte_opcao.size(f"> {idx_global + 1}. {texto}")[0]
+        largura_nor = self.fonte_opcao.size(f"  {idx_global + 1}. {texto}")[0]
+        return max(largura_sel, largura_nor) > largura_disponivel
 
     def abrir_pop_up(self, opcao, indice=0):
         """Abre o pop-up modal para leitura completa e confirmação de uma resposta extensa."""
@@ -560,17 +539,23 @@ class DialogueBox:
         else:
             self.proximo_texto()
 
-    def atualizar(self):
-        if not self.ativo or self.em_escolha: return
+    def atualizar(self, dt=None):
+        if not self.ativo or self.em_escolha:
+            return
+        if dt is None:
+            dt = getattr(self.game, "dt", 1.0 / 60.0) if self.game is not None else (1.0 / 60.0)
+        if not isinstance(dt, (int, float)) or dt <= 0:
+            dt = 1.0 / 60.0
+        fator_quadro = float(dt) * 60.0
         if self.caractere_atual < self.tamanho_total:
             caractere_ant = int(self.caractere_atual)
-            self.caractere_atual += self.velocidade_texto
+            self.caractere_atual += self.velocidade_texto * fator_quadro
             if self.caractere_atual > self.tamanho_total:
                 self.caractere_atual = self.tamanho_total
             
             # Feedback sonoro rítmico suave de máquina de escrever a cada 3 caracteres
             if int(self.caractere_atual) // 3 > caractere_ant // 3:
-                self._tocar_sfx("ui_dialogo", volume_extra=0.3)
+                self._tocar_sfx("ui_dialogo", volume_extra=0.45)
 
     def desenhar(self, tela):
         if not self.ativo or not self.dados_atuais:
@@ -590,74 +575,114 @@ class DialogueBox:
         return DialoguePortraitCatalog.obter_cor_autor(autor)
 
     def _obter_retrato_autor(self, autor):
-        """Retorna o retrato canônico do interlocutor ou None."""
-        return DialoguePortraitCatalog.obter_retrato_autor(self.retratos, autor)
+        """Retratos desativados em R02; sempre retorna None."""
+        return None
+
+    def _calcular_layout_texto(self, largura_tela=None, altura_tela=None, autor=None, num_linhas=None):
+        """Calcula dimensões únicas para quebra de texto, renderização e proteção de partículas."""
+        w_tela = largura_tela or getattr(self, "largura_tela", 1280)
+        h_tela = altura_tela or getattr(getattr(self, "game", None), "ALTURA", 720)
+        largura_caixa = min(960, w_tela - 80)
+        margem_x = 28
+        largura_util = max(200, largura_caixa - (margem_x * 2))
+
+        tem_nome_autor = bool(autor and autor not in ["Narrador", "Sistema"])
+        y_inicio_rel = 50 if tem_nome_autor else 24
+        altura_linha = 24
+        qtd_linhas = max(1, len(self.linhas_pagina_atual) if num_linhas is None else int(num_linhas))
+        altura_min = 165 if qtd_linhas <= 3 else 185
+        altura_necessaria = y_inicio_rel + (qtd_linhas * altura_linha) + 42
+        altura_caixa = min(max(altura_min, altura_necessaria), max(altura_min, h_tela - 80))
+
+        x_caixa = (w_tela - largura_caixa) // 2
+        y_caixa = h_tela - altura_caixa - 22
+        return {
+            "rect_caixa": pygame.Rect(x_caixa, y_caixa, largura_caixa, altura_caixa),
+            "largura_caixa": largura_caixa,
+            "altura_caixa": altura_caixa,
+            "largura_util": largura_util,
+            "x_caixa": x_caixa,
+            "y_caixa": y_caixa,
+            "pos_x_texto": x_caixa + margem_x,
+            "y_inicio_texto": y_caixa + y_inicio_rel,
+            "altura_linha": altura_linha,
+        }
+
+    def _calcular_layout_escolhas(self, largura_tela=None, altura_tela=None):
+        """Calcula o card de escolhas e linhas do cabeçalho em fonte única."""
+        w_tela = largura_tela or getattr(self, "largura_tela", 1280)
+        h_tela = altura_tela or getattr(getattr(self, "game", None), "ALTURA", 720)
+        largura_card = min(960, w_tela - 80)
+        x_card = (w_tela - largura_card) // 2
+        texto_cabecalho = getattr(self, "cabecalho_escolha", "Sobre o que deseja conversar?")
+        largura_disp_cab = largura_card - (80 if self.pode_fechar else 48)
+        linhas_cabecalho = quebrar_texto_em_linhas(texto_cabecalho, self.fonte_titulo_escolha, largura_disp_cab) or [texto_cabecalho]
+        altura_card = 215 + max(0, (len(linhas_cabecalho) - 1) * 22)
+        return pygame.Rect(x_card, h_tela - altura_card - 25, largura_card, altura_card), linhas_cabecalho
+
+    def _obter_linhas_popup(self, largura_popup):
+        texto_c = self.pop_up_opcao.get("texto", "") if self.pop_up_opcao else ""
+        return quebrar_texto_em_linhas(texto_c, self.fonte_texto, max(120, largura_popup - 48))
+
+    def _calcular_layout_popup(self, largura_tela=None, altura_tela=None):
+        """Calcula o retângulo do modal de leitura completa expandindo para comportar todas as linhas."""
+        w_tela = largura_tela or getattr(self, "largura_tela", 1280)
+        h_tela = altura_tela or getattr(getattr(self, "game", None), "ALTURA", 720)
+        largura_popup = min(840, w_tela - 80)
+        linhas = self._obter_linhas_popup(largura_popup)
+        altura_popup = min(h_tela - 60, max(225, 112 + len(linhas) * 26))
+        return pygame.Rect((w_tela - largura_popup) // 2, max(30, h_tela - altura_popup - 30), largura_popup, altura_popup)
+
+    def obter_areas_protegidas(self, largura_tela=None, altura_tela=None, margem=24):
+        """Retorna os retângulos reais ocupados pela caixa, escolhas e popup com margem de segurança."""
+        if not self.ativo:
+            return []
+        margem_px = max(0, int(margem))
+        areas = []
+        if self.em_escolha:
+            rect_card, _ = self._calcular_layout_escolhas(largura_tela, altura_tela)
+            areas.append(rect_card.inflate(margem_px * 2, margem_px * 2))
+            if self.pop_up_aberto:
+                rect_popup = self._calcular_layout_popup(largura_tela, altura_tela)
+                areas.append(rect_popup.inflate(margem_px * 2, margem_px * 2))
+        else:
+            autor = (self.dados_atuais or {}).get("autor", "Narrador")
+            layout = self._calcular_layout_texto(largura_tela, altura_tela, autor=autor)
+            areas.append(layout["rect_caixa"].inflate(margem_px * 2, margem_px * 2))
+        return areas
 
     def _desenhar_texto_corrido(self, tela):
         dados = self.dados_atuais or {}
         autor = dados.get("autor", "Narrador")
-        tem_retrato = bool(autor and autor not in ["Sistema", "Narrador"])
+        linhas_visiveis = self.linhas_pagina_atual
+        layout = self._calcular_layout_texto(
+            tela.get_width(), tela.get_height(), autor=autor, num_linhas=len(linhas_visiveis)
+        )
+        rect_caixa = layout["rect_caixa"]
+        x_caixa = layout["x_caixa"]
+        y_caixa = layout["y_caixa"]
+        largura_caixa = layout["largura_caixa"]
+        altura_caixa = layout["altura_caixa"]
+        pos_x_texto = layout["pos_x_texto"]
+        y_linha = layout["y_inicio_texto"]
+        altura_linha = layout["altura_linha"]
 
-        largura_tela = tela.get_width()
-        altura_tela = tela.get_height()
-
-        largura_caixa = min(960, largura_tela - 80)
-        
-        num_linhas = max(1, len(self.linhas_completas))
-        if num_linhas <= 3:
-            altura_caixa = 175
-        elif num_linhas == 4:
-            altura_caixa = 195
-        else:
-            altura_caixa = min(225, 195 + (num_linhas - 4) * 24)
-
-        x_caixa = (largura_tela - largura_caixa) // 2
-        y_caixa = altura_tela - altura_caixa - 22
-
-        rect_caixa = pygame.Rect(x_caixa, y_caixa, largura_caixa, altura_caixa)
-        
         # 1. Caixa Principal em Carvão Profundo
         desenhar_painel_padrao(tela, rect_caixa, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=245)
-        
+
         # Moldura interna decorativa
         rect_interno = rect_caixa.inflate(-8, -8)
         pygame.draw.rect(tela, (24, 24, 30), rect_interno, 1, border_radius=2)
 
-        # 2. Retrato do Interlocutor (NPC / Halia)
-        pos_x_texto = x_caixa + 24
-        if tem_retrato:
-            w_ret = 96
-            h_ret = 124
-            x_ret = x_caixa + 18
-            y_ret = y_caixa + (altura_caixa - h_ret) // 2
-            rect_ret = pygame.Rect(x_ret, y_ret, w_ret, h_ret)
-            
-            pygame.draw.rect(tela, (14, 14, 18), rect_ret, border_radius=2)
-            pygame.draw.rect(tela, CINZA_ARDOSIA, rect_ret, 1, border_radius=2)
-            
-            sprite_retrato = self._obter_retrato_autor(autor)
-            if sprite_retrato:
-                sprite_redim = pygame.transform.smoothscale(sprite_retrato, (w_ret - 2, h_ret - 2))
-                tela.blit(sprite_redim, (x_ret + 1, y_ret + 1))
-            else:
-                f_ini = ResourceManager.carregar_fonte("sunday", 36)
-                txt_ini = f_ini.render(autor[0].upper() if autor else "?", True, MARFIM_OFFWHITE)
-                tela.blit(txt_ini, txt_ini.get_rect(center=rect_ret.center))
-                
-            pos_x_texto = x_ret + w_ret + 24
-
-        # 3. Nome do Autor
+        # 2. Nome do Autor (sem retratos ou iniciais laterais)
         cor_autor = self._obter_cor_autor(autor)
         if autor and autor not in ["Narrador", "Sistema"]:
             r_nome = self.fonte_nome.render(autor, True, cor_autor)
             tela.blit(r_nome, (pos_x_texto, y_caixa + 16))
-            y_linha = y_caixa + 50
-        else:
-            y_linha = y_caixa + 24
 
-        # 4. Texto corrido com Máquina de Escrever
+        # 3. Texto corrido com Máquina de Escrever
         caracteres_permitidos = int(self.caractere_atual)
-        for linha in self.linhas_completas:
+        for linha in linhas_visiveis:
             if caracteres_permitidos <= 0: break
             tamanho_linha = len(linha)
             if caracteres_permitidos >= tamanho_linha:
@@ -670,34 +695,24 @@ class DialogueBox:
             if texto_render:
                 render_texto = self.fonte_texto.render(texto_render, True, MARFIM_OFFWHITE)
                 tela.blit(render_texto, (pos_x_texto, y_linha))
-            y_linha += 24
+            y_linha += altura_linha
 
-        # 5. Indicador de Avanço Estático e Limpo (com margem de respiro garantida)
+        # 4. Indicador de Avanço Estático e Limpo (com margem de respiro garantida)
         if self.caractere_atual >= self.tamanho_total:
-            txt_avanco = self.fonte_rodape.render("[ ENTER ou Clique para avançar ]", True, UI_TEXTO_APAGADO)
-            pos_x_av = x_caixa + largura_caixa - txt_avanco.get_width() - 24
-            pos_y_av = y_caixa + altura_caixa - 22
+            if self.total_paginas_texto > 1:
+                av_str = f"Página {self.indice_pagina_texto + 1}/{self.total_paginas_texto}  •  [ ENTER ou Clique para avançar ]"
+            else:
+                av_str = "[ ENTER ou Clique para avançar ]"
+            txt_avanco = self.fonte_rodape.render(av_str, True, UI_TEXTO_APAGADO)
+            pos_x_av = x_caixa + largura_caixa - txt_avanco.get_width() - 28
+            pos_y_av = y_caixa + altura_caixa - 24
             tela.blit(txt_avanco, (pos_x_av, pos_y_av))
 
     def _desenhar_escolhas(self, tela):
         largura_tela = tela.get_width()
         altura_tela = tela.get_height()
-
-        largura_card = min(960, largura_tela - 80)
-        x_card = (largura_tela - largura_card) // 2
-
-        # 1. Cabeçalho Superior da Escolha Dinâmico com quebra de linha anti-overflow
-        texto_cabecalho = getattr(self, "cabecalho_escolha", "Sobre o que deseja conversar?")
-        largura_disp_cab = largura_card - (80 if self.pode_fechar else 48)
-        linhas_cabecalho = quebrar_texto_em_linhas(texto_cabecalho, self.fonte_titulo_escolha, largura_disp_cab)
-        if not linhas_cabecalho:
-            linhas_cabecalho = [texto_cabecalho]
-
-        extra_h_cab = max(0, (len(linhas_cabecalho) - 1) * 22)
-        altura_card = 215 + extra_h_cab
-        y_card = altura_tela - altura_card - 25
-
-        rect_card = pygame.Rect(x_card, y_card, largura_card, altura_card)
+        rect_card, linhas_cabecalho = self._calcular_layout_escolhas(largura_tela, altura_tela)
+        x_card, y_card, largura_card, altura_card = rect_card.x, rect_card.y, rect_card.width, rect_card.height
         desenhar_painel_padrao(tela, rect_card, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=250)
 
         # Moldura interna decorativa
@@ -766,7 +781,7 @@ class DialogueBox:
             eh_longa = self.opcao_eh_longa(opcao, idx_global)
             
             # Garante que o texto caiba na coluna sem overflow
-            largura_disponivel = w_coluna - (42 if eh_longa else 20)
+            largura_disponivel = self._largura_disponivel_opcao(largura_tela, com_icone=eh_longa)
             if self.fonte_opcao.size(texto_opcao)[0] > largura_disponivel:
                 while len(texto_bruto) > 3 and self.fonte_opcao.size(f"{prefixo}{texto_bruto}...")[0] > largura_disponivel:
                     texto_bruto = texto_bruto[:-1]
@@ -836,12 +851,13 @@ class DialogueBox:
         overlay.fill((8, 8, 12, 175))
         tela.blit(overlay, (0, 0))
 
-        largura_popup = min(840, largura_tela - 80)
-        altura_popup = 225
-        x_popup = (largura_tela - largura_popup) // 2
-        y_popup = altura_tela - altura_popup - 30
-
-        rect_popup = pygame.Rect(x_popup, y_popup, largura_popup, altura_popup)
+        rect_popup = self._calcular_layout_popup(largura_tela, altura_tela)
+        x_popup, y_popup, largura_popup, altura_popup = (
+            rect_popup.x,
+            rect_popup.y,
+            rect_popup.width,
+            rect_popup.height,
+        )
         self.rect_popup = rect_popup
 
         # Moldura estética dark fantasy editorial
@@ -866,13 +882,12 @@ class DialogueBox:
         txt_x = self.fonte_rodape.render("X", True, BRANCO)
         tela.blit(txt_x, txt_x.get_rect(center=self.rect_popup_fechar.center))
 
-        # Texto integral quebrado em linhas legíveis
-        texto_completo = self.pop_up_opcao.get("texto", "") if self.pop_up_opcao else ""
-        largura_texto_disponivel = largura_popup - 48
-        linhas_texto = quebrar_texto_em_linhas(texto_completo, self.fonte_texto, largura_texto_disponivel)
-
-        y_texto = y_popup + 52
-        for linha in linhas_texto[:4]:
+        # Texto integral quebrado em linhas legíveis sem corte artificial
+        linhas_texto = self._obter_linhas_popup(largura_popup)
+        y_texto, y_limite = y_popup + 52, y_popup + altura_popup - 54
+        for linha in linhas_texto:
+            if y_texto + 24 > y_limite:
+                break
             r_linha = self.fonte_texto.render(linha, True, MARFIM_OFFWHITE)
             tela.blit(r_linha, (x_popup + 24, y_texto))
             y_texto += 26

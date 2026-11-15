@@ -1,7 +1,7 @@
 # src/states/inventory_tabs/tab_magia.py
 import pygame
 from src.utils.colors import (
-    CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE, BORDA_DESTAQUE, DOURADO_ENVELHECIDO
+    CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE, BORDA_DESTAQUE
 )
 from src.ui.ui_utils import (
     desenhar_painel_padrao,
@@ -29,7 +29,11 @@ class TabMagiaRenderer:
 
     def desenhar(self, tela, halia):
         s = self.state
-        flashback_concluido = getattr(s.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0)
+        flashback_concluido = (
+            halia.tem_grimorio_desbloqueado()
+            if halia and hasattr(halia, "tem_grimorio_desbloqueado")
+            else (getattr(s.game, 'flashback_magia_concluido', False) or (halia and halia.fragmentos_memoria > 0))
+        )
 
         if not flashback_concluido:
             r_selo = pygame.Rect(s.x_menu + 180, s.y_menu + 110, s.largura_menu - 360, 420)
@@ -58,9 +62,9 @@ class TabMagiaRenderer:
             return
 
         # CATÁLOGO DE MAGIAS DESBLOQUEADAS EM 2 COLUNAS
-        magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar", "brisa_curativa"])
+        magias_ids = getattr(halia, 'magias_desbloqueadas', ["bola_de_fogo", "levitar"])
         if not magias_ids:
-            magias_ids = ["bola_de_fogo", "levitar", "brisa_curativa"]
+            magias_ids = ["bola_de_fogo", "levitar"]
 
         if s.magia_selecionada_idx >= len(magias_ids):
             s.magia_selecionada_idx = 0
@@ -326,7 +330,10 @@ class TabMagiaRenderer:
             reflexoes = {
                 "bola_de_fogo": "A chama incinera obstáculos e abre caminhos obstruídos por galhos secos e vinhas do esquecimento.",
                 "levitar": "A gravidade dobra-se à mente, permitindo erguer rochas colossais e afastar perigos sem confronto direto.",
-                "brisa_curativa": "Um sopro vital restaurador que dissipa a fadiga física e acalma as feridas sofridas em combate."
+                "raio_arcano": "Um feixe preciso de éter puro que concentra a vontade de Halia em um único ponto decisivo.",
+                "brisa_curativa": "Um sopro vital restaurador que dissipa a fadiga física e acalma as feridas sofridas em combate.",
+                "vendaval_cortante": "Lâminas de vento varrem múltiplos adversários simultaneamente no campo de batalha.",
+                "impacto_anomalo": "Uma distorção espacial pesada que abala até as criaturas mais formidáveis, podendo atordoá-las."
             }
             nota_texto = reflexoes.get(id_selecionada, "Feitiço gravado nas memórias ancestrais da ordem dos guardiões arcanos.")
             linhas_ref = quebrar_texto_em_linhas(nota_texto, s.fonte_texto, w_detalhes - 85)

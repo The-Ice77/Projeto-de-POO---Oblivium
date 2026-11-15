@@ -26,25 +26,35 @@ class Animacao:
     Classe utilitária para gerenciar o estado e os frames de uma animação.
     Garante compatibilidade total com superfícies 32-bit com canal alfa.
     """
+    FPS_REFERENCIA = 60.0
+
     def __init__(self, frames, velocidade=0.15, loop=True):
-        self.frames = frames if frames else []
-        self.velocidade = velocidade
-        self.loop = loop
+        self.frames = list(frames) if frames else []
+        self.velocidade = float(velocidade)
+        self.loop = bool(loop)
         self.frame_atual = 0.0
         self.concluida = False
 
-    def atualizar(self):
+    def atualizar(self, dt=None):
         if not self.frames:
             return
 
         if not self.concluida:
-            self.frame_atual += self.velocidade
+            if dt is None:
+                passo = self.velocidade
+            else:
+                dt_seg = max(0.0, min(float(dt), 0.5))
+                passo = self.velocidade * (dt_seg * self.FPS_REFERENCIA)
+            self.frame_atual = round(self.frame_atual + passo, 9)
             if self.frame_atual >= len(self.frames):
                 if self.loop:
-                    self.frame_atual = 0.0
+                    self.frame_atual = round(self.frame_atual % len(self.frames), 9)
                 else:
                     self.frame_atual = len(self.frames) - 1
                     self.concluida = True
+
+    def clonar(self):
+        return Animacao(list(self.frames), velocidade=self.velocidade, loop=self.loop)
 
     def get_imagem(self):
         if not self.frames:
@@ -507,7 +517,7 @@ class ResourceManager:
 
         chave = f"anim_inimigo_{pasta_inimigo}_{escala_fator}_{tamanho}"
         if chave in cls._cache_animacoes:
-            return cls._cache_animacoes[chave]
+            return cls._instanciar_animacoes_de_espec(cls._cache_animacoes[chave], pasta_inimigo)
 
         pasta_absoluta = cls._obter_caminho_absoluto(os.path.join("inimigos", pasta_inimigo))
         if not os.path.exists(pasta_absoluta) or not os.path.isdir(pasta_absoluta):
@@ -518,19 +528,34 @@ class ResourceManager:
                 return {}
 
         arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png") and not f.lower().endswith("_sheet.png")])
-        grupos = {}
+        grupos_brutos = {}
         prefixo = f"{pasta_inimigo.lower()}_"
         for nome_arq in arquivos:
             nome_sem_ext = os.path.splitext(nome_arq)[0]
             if nome_sem_ext.lower().startswith(prefixo):
                 resto = nome_sem_ext[len(prefixo):]
                 estado = resto.split("_")[0].lower()
-                grupos.setdefault(estado, []).append(nome_arq)
+                grupos_brutos.setdefault(estado, []).append(nome_arq)
             else:
                 partes = nome_sem_ext.split("_")
                 if len(partes) >= 2:
                     estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
-                    grupos.setdefault(estado, []).append(nome_arq)
+                    grupos_brutos.setdefault(estado, []).append(nome_arq)
+
+        mapa_canonico_pt_para_en = {
+            "andar": "walk",
+            "ataque": "attack",
+            "dano": "hurt",
+            "morte": "dead",
+            "morrer": "dead",
+        }
+        grupos = {}
+        for estado_bruto, lista_arqs in grupos_brutos.items():
+            canon = mapa_canonico_pt_para_en.get(estado_bruto, estado_bruto)
+            # Se já existir o grupo em inglês, evita duplicar com arquivos sinônimos em português
+            if estado_bruto in mapa_canonico_pt_para_en and canon in grupos_brutos:
+                continue
+            grupos.setdefault(canon, []).extend(lista_arqs)
 
         # Configurações de velocidade e repetição por estado
         config_estados = {
@@ -541,30 +566,78 @@ class ResourceManager:
             "dead": {"vel": 0.15, "loop": False},
             "projectile": {"vel": 0.20, "loop": True},
             "reveal": {"vel": 0.15, "loop": False},
-            "corpo": {"vel": 0.05, "loop": True}
+            "special": {"vel": 0.18, "loop": False},
+            "takeoff": {"vel": 0.16, "loop": False},
+            "landing": {"vel": 0.16, "loop": False},
+            "flight": {"vel": 0.16, "loop": True},
+            "corpo": {"vel": 0.05, "loop": True},
+            "soldado": {"vel": 0.05, "loop": True},
         }
 
-        dicionario_animacoes = {}
+        brutos_img = {}
+        frames_escalados = {}
         for estado, lista_arqs in grupos.items():
-            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
-            frames = []
-            for nome_arq in lista_arqs:
+            raw_list = []
+            sc_list = []
+            for nome_arq in sorted(lista_arqs):
                 caminho_rel = os.path.join("inimigos", pasta_inimigo, nome_arq).replace("\\", "/")
                 img = cls.carregar_imagem(caminho_rel)
                 if img:
+                    raw_list.append(img)
+                    img_sc = img
                     if escala_fator and escala_fator != 1.0:
                         nw = max(1, int(img.get_width() * escala_fator))
                         nh = max(1, int(img.get_height() * escala_fator))
-                        img = pygame.transform.scale(img, (nw, nh))
+                        img_sc = pygame.transform.scale(img, (nw, nh))
                     elif tamanho:
-                        img = pygame.transform.scale(img, tamanho)
-                    frames.append(img)
-            
-            if frames:
-                anim = Animacao(frames, velocidade=cfg["vel"], loop=cfg["loop"])
-                dicionario_animacoes[estado] = anim
+                        img_sc = pygame.transform.scale(img, tamanho)
+                    sc_list.append(img_sc)
+            if sc_list:
+                brutos_img[estado] = raw_list
+                frames_escalados[estado] = sc_list
 
-        # Aliases de compatibilidade em português
+        # Normaliza os estados corporais sobre canvas uniforme ancorado no centro inferior (pés no chão)
+        estados_livres = {"projectile", "projetil"}
+        estados_corpo = [
+            est for est, flist in frames_escalados.items()
+            if est not in estados_livres and flist
+        ]
+        if estados_corpo:
+            max_w = max(fr.get_width() for est in estados_corpo for fr in frames_escalados[est])
+            max_h = max(fr.get_height() for est in estados_corpo for fr in frames_escalados[est])
+            for est in estados_corpo:
+                normalizados = []
+                for fr in frames_escalados[est]:
+                    canvas = pygame.Surface((max_w, max_h), pygame.SRCALPHA)
+                    ox = (max_w - fr.get_width()) // 2
+                    oy = max_h - fr.get_height()
+                    canvas.blit(fr, (ox, oy))
+                    normalizados.append(canvas)
+                frames_escalados[est] = normalizados
+
+        especificacoes = {}
+        for estado, lista_frames in frames_escalados.items():
+            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
+            especificacoes[estado] = {
+                "frames": tuple(lista_frames),
+                "vel": cfg["vel"],
+                "loop": cfg["loop"],
+            }
+
+        cls._cache_animacoes[chave] = especificacoes
+        return cls._instanciar_animacoes_de_espec(especificacoes, pasta_inimigo)
+
+    @classmethod
+    def _instanciar_animacoes_de_espec(cls, especificacoes, pasta_inimigo=""):
+        dicionario_animacoes = {}
+        for estado, espec in especificacoes.items():
+            dicionario_animacoes[estado] = Animacao(
+                list(espec["frames"]),
+                velocidade=espec["vel"],
+                loop=espec["loop"],
+            )
+
+        # Aliases locais à instância (nunca compartilhados entre dois inimigos distintos)
         if "walk" in dicionario_animacoes and "andar" not in dicionario_animacoes:
             dicionario_animacoes["andar"] = dicionario_animacoes["walk"]
         if "attack" in dicionario_animacoes and "ataque" not in dicionario_animacoes:
@@ -574,9 +647,67 @@ class ResourceManager:
         if "dead" in dicionario_animacoes:
             dicionario_animacoes.setdefault("morte", dicionario_animacoes["dead"])
             dicionario_animacoes.setdefault("morrer", dicionario_animacoes["dead"])
+        if pasta_inimigo.lower() == "mimico" and "corpo" in dicionario_animacoes:
+            dicionario_animacoes.setdefault("soldado", dicionario_animacoes["corpo"])
 
-        cls._cache_animacoes[chave] = dicionario_animacoes
         return dicionario_animacoes
+
+    @classmethod
+    def obter_frame_combate_inimigo(cls, pasta_inimigo, estado, frame_idx, altura_combate_alvo):
+        """
+        Retorna quadro de combate em resolução nativa escalonado diretamente pela
+        altura opaca canônica de 'idle', evitando perda de nitidez por dupla escala.
+        """
+        alias_pastas = {
+            "gulosao": "demonio_superior",
+            "gulosinho": "demonio_inferior",
+        }
+        pasta_norm = alias_pastas.get(str(pasta_inimigo).lower(), str(pasta_inimigo))
+        chave_comb = ("combate_inimigo_nativo", pasta_norm, int(altura_combate_alvo))
+
+        if chave_comb not in cls._cache_animacoes:
+            anims_nativas = cls.carregar_animacoes_inimigo(pasta_norm, escala_fator=1.0)
+            if not anims_nativas:
+                cls._cache_animacoes[chave_comb] = None
+                return None
+
+            h_ref = 0
+            for cand in ("idle", "walk", "corpo"):
+                anim_r = anims_nativas.get(cand)
+                if anim_r and getattr(anim_r, "frames", None):
+                    hs = [
+                        fr.get_bounding_rect().height
+                        for fr in anim_r.frames
+                        if fr.get_bounding_rect().height > 0
+                    ]
+                    if hs:
+                        h_ref = sorted(hs)[len(hs) // 2]
+                        break
+            if h_ref <= 0:
+                cls._cache_animacoes[chave_comb] = None
+                return None
+
+            escala_comb = float(altura_combate_alvo) / float(h_ref)
+            cache_estados = {}
+            for est_nome, anim_nat in anims_nativas.items():
+                frames_nat = getattr(anim_nat, "frames", None) or []
+                frames_sc = []
+                for fr in frames_nat:
+                    ow, oh = fr.get_size()
+                    nw = max(1, int(round(ow * escala_comb)))
+                    nh = max(1, int(round(oh * escala_comb)))
+                    frames_sc.append(fr if (nw, nh) == (ow, oh) else pygame.transform.scale(fr, (nw, nh)))
+                if frames_sc:
+                    cache_estados[est_nome] = frames_sc
+            cls._cache_animacoes[chave_comb] = cache_estados
+
+        mapa_estados = cls._cache_animacoes.get(chave_comb)
+        if not mapa_estados:
+            return None
+        lista_frames = mapa_estados.get(estado) or mapa_estados.get("idle")
+        if not lista_frames:
+            return None
+        return lista_frames[int(frame_idx) % len(lista_frames)]
 
     @classmethod
     def carregar_imagem_com_transparencia(cls, caminho, tamanho=None, escala_fator=None, manter_proporcao=False, auto_crop=True, threshold_corte=4):

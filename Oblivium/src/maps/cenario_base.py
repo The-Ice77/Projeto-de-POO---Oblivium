@@ -72,3 +72,43 @@ class CenarioBase(ABC):
     def obter_itens(self):
         """Retorna a lista de itens coletáveis atualmente no chão."""
         return self.itens_no_chao
+
+    def obter_superficie_passo(self, x, y):
+        """Identifica a superfície sob o personagem ('grama' ou 'pedra') para passos."""
+        grade = getattr(self, "grade", None)
+        if grade:
+            col = int(x // 32)
+            lin = int(y // 32)
+            if 0 <= lin < len(grade) and 0 <= col < len(grade[0]):
+                if grade[lin][col] in (2, 3):
+                    return "pedra"
+        area_casa = getattr(self, "area_chao_casa", None)
+        if area_casa and area_casa.collidepoint(int(x), int(y)):
+            return "pedra"
+        if str(getattr(self, "nome", "") or "").upper() == "NINHO_DRAGAO":
+            return "pedra"
+        return "grama"
+
+    def obter_ambiente_cenario(self):
+        """Retorna o alias do loop de ambiente contínuo apropriado ao cenário ativo."""
+        nome_cen = str(getattr(self, "nome", "") or "").upper()
+        if nome_cen in ("ESTRADA", "ESTRADA_2", "ORLA_NORTE"):
+            return "floresta_dia"
+        if nome_cen == "OAKHAVEN":
+            return "vento_suave"
+        if nome_cen == "OAKHAVEN_DESTRUIDA":
+            if self.game and getattr(self.game, "oakhaven_reconstruida", False):
+                return "vento_suave"
+            return "fogueira"
+        if nome_cen == "NINHO_DRAGAO":
+            vencido = bool(
+                getattr(self, "dragao_derrotado", False)
+                or getattr(self, "ninho_amanhecer", False)
+                or (self.game and getattr(self.game, "dragao_derrotado", False))
+            )
+            return "vento_suave" if vencido else "caverna_lava"
+        if nome_cen == "FLASHBACK_ACAMPAMENTO":
+            return "fogueira"
+        if nome_cen == "CASA" and getattr(self, "noite_ativa", False):
+            return "fogueira"
+        return None

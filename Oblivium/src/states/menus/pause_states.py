@@ -129,6 +129,12 @@ class PauseState(State):
             
         elif opcao == "Sair para o Menu":
             self.game.origem_pause = "JOGANDO"
+            if hasattr(self.game, 'save_manager') and self.game.save_manager:
+                self.game.save_manager.limpar_estado_execucao_ativo()
+            if hasattr(self.game, 'audio') and self.game.audio:
+                self.game.audio.parar_ambiente(fade_ms=400)
+                if hasattr(self.game.audio, 'limpar_contexto_combate'):
+                    self.game.audio.limpar_contexto_combate()
             if hasattr(self.game, 'menu'):
                 self.game.menu.atualizar_opcoes()
             self.game.mudar_estado("MENU")

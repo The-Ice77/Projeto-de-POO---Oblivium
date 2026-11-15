@@ -3,10 +3,10 @@
         "nome": "Mímico Soldado Abissal",
         "classe": "Enemy",
         "pasta_sprites": "mimico",
-        "vida_base": 42,
+        "vida_base": 46,
         "mana_base": 25,
         "velocidade": 2.5,
-        "dano_base": 11,
+        "dano_base": 12,
         "atributos": {
             "forca": 12,
             "destreza": 14,
@@ -290,22 +290,21 @@
         "nome": "Demônio Superior",
         "classe": "Boss",
         "pasta_sprites": "demonio_superior",
-        "vida_base": 78,
-        "mana_base": 55,
+        "vida_base": 72,
+        "mana_base": 50,
         "velocidade": 2.0,
-        "dano_base": 15,
+        "dano_base": 13,
         "atributos": {
-            "forca": 14,
-            "destreza": 12,
-            "constituicao": 14,
-            "intelecto": 13,
+            "forca": 12,
+            "destreza": 11,
+            "constituicao": 12,
+            "intelecto": 12,
             "sabedoria": 11,
-            "presenca": 14
+            "presenca": 12
         },
         "habilidades": [
             "golpe_sombrio",
             "investida_sombria",
-            "impacto_anomalo",
             "onda_corrosiva"
         ],
         "recompensas": {
@@ -437,23 +436,23 @@
         "nome": "Ignis'Vahr, o Dragão Vermelho Ancestral",
         "classe": "Boss",
         "pasta_sprites": "dragao_vermelho",
-        "vida_base": 160,
-        "mana_base": 90,
+        "vida_base": 325,
+        "mana_base": 140,
         "velocidade": 2.0,
-        "dano_base": 16,
+        "dano_base": 23,
         "atributos": {
-            "forca": 18,
-            "destreza": 12,
-            "constituicao": 18,
-            "intelecto": 16,
-            "sabedoria": 14,
+            "forca": 19,
+            "destreza": 13,
+            "constituicao": 19,
+            "intelecto": 19,
+            "sabedoria": 16,
             "presenca": 18
         },
         "habilidades": [
-            "sopro_de_brasas",
+            "garra_draconica",
             "batida_de_asas",
-            "escamas_incandescentes",
-            "investida_sombria"
+            "sopro_de_brasas",
+            "escamas_incandescentes"
         ],
         "recompensas": {
             "moedas": 120,

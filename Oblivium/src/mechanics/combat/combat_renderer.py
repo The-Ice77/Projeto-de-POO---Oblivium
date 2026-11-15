@@ -13,12 +13,12 @@ from src.utils.colors import (
     BRANCO, PRETO,
     AZUL_HOVER_MENU, AZUL_HOVER_BG
 )
-from src.utils.resource_manager import ResourceManager
 from src.mechanics.combat.combat_narrator import CombatNarrator
+from src.utils.resource_manager import ResourceManager
 
 class TextoFlutuante:
     """Gerencia textos flutuantes de dano, cura ou status na tela de combate."""
-    def __init__(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60, velocidade_y=-1.3):
+    def __init__(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60, velocidade_y=-1.3, y_min=114):
         self.texto = str(texto)
         self.x = float(x)
         self.y = float(y)
@@ -26,22 +26,38 @@ class TextoFlutuante:
         self.duracao = duracao
         self.vida = duracao
         self.velocidade_y = velocidade_y
+        self.y_min = float(y_min)
 
     def atualizar(self):
-        self.y += self.velocidade_y
+        self.y = max(self.y_min, self.y + self.velocidade_y)
         self.vida -= 1
         return self.vida > 0
+
+    @staticmethod
+    def _cor_legivel(cor):
+        r, g, b = cor[:3]
+        luma = 0.299 * r + 0.587 * g + 0.114 * b
+        if luma >= 185:
+            return (r, g, b)
+        fator = min(0.65, (185.0 - luma) / max(1.0, 255.0 - luma))
+        return (
+            int(r + (255 - r) * fator),
+            int(g + (255 - g) * fator),
+            int(b + (255 - b) * fator),
+        )
 
     def desenhar(self, tela, fonte):
         if self.vida <= 0: return
         alpha = max(0, min(255, int((self.vida / self.duracao) * 255)))
-        superficie = fonte.render(self.texto, True, self.cor)
+        cor_final = self._cor_legivel(self.cor)
+        superficie = fonte.render(self.texto, True, cor_final)
         superficie.set_alpha(alpha)
-        # Sombra suave para contraste
         sombra = fonte.render(self.texto, True, PRETO)
-        sombra.set_alpha(int(alpha * 0.7))
-        tela.blit(sombra, (int(self.x) + 2, int(self.y) + 2))
-        tela.blit(superficie, (int(self.x), int(self.y)))
+        sombra.set_alpha(int(alpha * 0.85))
+        ix, iy = int(self.x), int(self.y)
+        for ox, oy in ((-1, 0), (1, 0), (0, -1), (0, 1), (2, 2)):
+            tela.blit(sombra, (ix + ox, iy + oy))
+        tela.blit(superficie, (ix, iy))
 
 
 class CombatRenderer:
@@ -66,6 +82,277 @@ class CombatRenderer:
     @property
     def altura(self):
         return self.cs.altura
+
+    def criar_texto_flutuante(self, texto, x, y, cor=TEXTO_ALERTA_COMBATE, duracao=60):
+        """Posiciona texto flutuante abaixo do HUD da coluna correspondente e sem empilhamento."""
+        hud_rects = getattr(self.cs, "rects_hud_status", {})
+        largura_txt = self.cs.fonte_dano.size(str(texto))[0] if hasattr(self.cs, "fonte_dano") else 120
+        nx = max(28.0, min(float(self.largura - max(180, largura_txt + 30)), float(x)))
+        faixa_x = pygame.Rect(int(nx) - 24, 0, max(120, largura_txt + 48), self.altura)
+        hud_relevante = [
+            r for r in hud_rects.values()
+            if r.colliderect(faixa_x)
+            or (len(hud_rects) <= 2 and ((nx > 500 and r.centerx > 500) or (nx <= 500 and r.centerx <= 500)))
+        ]
+        hud_bottom = max((r.bottom for r in hud_relevante), default=0)
+        safe_top = float(max(118, hud_bottom + 8))
+        ny = max(safe_top, min(410.0, float(y)))
+
+        for _ in range(12):
+            colide = any(
+                abs(tf.x - nx) < 150 and abs(tf.y - ny) < 26
+                for tf in self.cs.textos_flutuantes
+            )
+            if not colide:
+                break
+            ny += 26.0
+            if ny > 410.0:
+                ny = safe_top
+                nx = max(28.0, min(float(self.largura - 220), nx - 120.0 if nx > 600 else nx + 120.0))
+
+        return TextoFlutuante(texto, nx, ny, cor=cor, duracao=duracao, y_min=safe_top - 4.0)
+
+    def _medir_pilula(self, texto, fonte):
+        tw, th = fonte.size(texto)
+        return tw + 14, max(20, th + 4)
+
+    def _desenhar_pilula(self, tela, rect, texto, fonte, bg, borda, cor_texto):
+        pygame.draw.rect(tela, bg, rect, border_radius=3)
+        pygame.draw.rect(tela, borda, rect, 1, border_radius=3)
+        txt = fonte.render(texto, True, cor_texto)
+        tela.blit(txt, (rect.x + (rect.width - txt.get_width()) // 2, rect.y + (rect.height - txt.get_height()) // 2))
+
+    def _montar_badges_entidade(self, entidade, eh_jogador=False):
+        badges = []
+        if not eh_jogador and getattr(entidade, "enfurecido", False):
+            badges.append(("[FÚRIA]", (76, 22, 18), (255, 225, 165), (255, 242, 205)))
+        if not eh_jogador and getattr(entidade, "preparando_sopro", False):
+            badges.append(("[!] PREPARANDO SOPRO!", (92, 34, 12), (255, 238, 168), (255, 248, 210)))
+        if eh_jogador and getattr(entidade, "defendendo", False):
+            badges.append(("[EM GUARDA]", (24, 48, 72), (195, 230, 255), (240, 248, 255)))
+        if getattr(entidade, "vulneravel", False):
+            badges.append(("[VULNERÁVEL]", (72, 26, 26), (255, 210, 200), (255, 235, 228)))
+        for cond in getattr(entidade, "condicoes", []):
+            badges.append((f"{cond.icone}:{cond.duracao}", (26, 30, 40), (205, 205, 215), (246, 243, 236)))
+        return badges
+
+    def _desenhar_card_status(
+        self,
+        tela,
+        titulo,
+        badges,
+        x,
+        y,
+        max_largura,
+        cor_titulo,
+        direita=False,
+        compacto=False,
+        centralizado=False,
+        obstaculos=None,
+        destaque=False,
+    ):
+        fonte_tit = self.cs.fonte_log if compacto else self.cs.fonte_nomes
+        fonte_badge = self.cs.fonte_status
+        pad_x = 12 if not compacto else 10
+        pad_y = 7 if not compacto else 4
+        if compacto:
+            surf_t = fonte_tit.render(titulo, True, cor_titulo)
+            pilulas = [(texto_b, bg_b, borda_b, cor_b, *self._medir_pilula(texto_b, fonte_badge)) for texto_b, bg_b, borda_b, cor_b in badges]
+            larg_pilulas = (sum(p[4] for p in pilulas) + 6 * len(pilulas)) if pilulas else 0
+            min_w = 116 if centralizado else 220
+            larg_card = min(max_largura, max(min_w, surf_t.get_width() + larg_pilulas + pad_x * 2 + 6))
+            alt_card = max(29, surf_t.get_height() + pad_y * 2)
+            base_x = (x - larg_card // 2) if centralizado else ((x - larg_card) if direita else x)
+            min_x = 420 if centralizado else 16
+            max_x = max(min_x, self.largura - larg_card - 16)
+            base_x = max(min_x, min(max_x, base_x))
+            limite_inf_y = 352 if centralizado else 415
+            base_y = max(12, min(limite_inf_y, y))
+            card_rect = pygame.Rect(base_x, base_y, larg_card, alt_card)
+            if obstaculos:
+                deslocamentos = []
+                for dy in (0, -8, -16, -24, -34, -44, 8):
+                    for dx in (0, 24, -24, 48, -48, 72, -72, 92, -92):
+                        deslocamentos.append((abs(dx) + abs(dy) * 1.4, dx, dy))
+                deslocamentos.sort(key=lambda item: item[0])
+                for _, dx, dy in deslocamentos:
+                    cx_cand = max(min_x, min(max_x, base_x + dx))
+                    cy_cand = max(12, min(limite_inf_y, base_y + dy))
+                    cand = pygame.Rect(cx_cand, cy_cand, larg_card, alt_card)
+                    if not any(cand.colliderect(obs) for obs in obstaculos):
+                        card_rect = cand
+                        break
+            surf_bg = pygame.Surface((card_rect.width, card_rect.height), pygame.SRCALPHA)
+            surf_bg.fill((14, 15, 20, 238))
+            tela.blit(surf_bg, card_rect.topleft)
+            tem_alerta = any(b[0].startswith("[!]") or b[0] == "[FÚRIA]" for b in badges)
+            cor_borda = (255, 220, 110) if destaque else ((255, 230, 175) if tem_alerta else (215, 210, 202))
+            pygame.draw.rect(tela, cor_borda, card_rect, 2 if destaque else 1, border_radius=3)
+            if centralizado and not pilulas:
+                tx = card_rect.x + max(pad_x, (card_rect.width - surf_t.get_width()) // 2)
+                tela.blit(surf_t, (tx, card_rect.y + (card_rect.height - surf_t.get_height()) // 2))
+            elif centralizado:
+                tx = card_rect.x + pad_x
+                tela.blit(surf_t, (tx, card_rect.y + (card_rect.height - surf_t.get_height()) // 2))
+                bx = tx + surf_t.get_width() + 8
+                for texto_b, bg_b, borda_b, cor_b, bw, bh in pilulas:
+                    if bx + bw <= card_rect.right - pad_x + 2:
+                        self._desenhar_pilula(tela, pygame.Rect(bx, card_rect.y + (card_rect.height - bh) // 2, bw, bh), texto_b, fonte_badge, bg_b, borda_b, cor_b)
+                        bx += bw + 6
+            else:
+                tx = card_rect.right - pad_x - surf_t.get_width()
+                tela.blit(surf_t, (tx, card_rect.y + (card_rect.height - surf_t.get_height()) // 2))
+                bx = tx - 8
+                for texto_b, bg_b, borda_b, cor_b, bw, bh in reversed(pilulas):
+                    bx -= bw
+                    if bx >= card_rect.x + pad_x:
+                        self._desenhar_pilula(tela, pygame.Rect(bx, card_rect.y + (card_rect.height - bh) // 2, bw, bh), texto_b, fonte_badge, bg_b, borda_b, cor_b)
+                        bx -= 6
+            return card_rect
+
+        inner_max = max(180, max_largura - pad_x * 2)
+
+        linhas_tit = quebrar_texto_em_linhas(titulo, fonte_tit, inner_max) or [titulo]
+        alt_linha_tit = fonte_tit.get_height() + 2
+        larg_tit = max(fonte_tit.size(l)[0] for l in linhas_tit)
+
+        linhas_badges = []
+        linha_atual = []
+        larg_atual = 0
+        max_linha_badge = 0
+        for texto_b, bg_b, borda_b, cor_b in badges:
+            bw, bh = self._medir_pilula(texto_b, fonte_badge)
+            gap = 6 if linha_atual else 0
+            if linha_atual and larg_atual + gap + bw > inner_max:
+                linhas_badges.append((linha_atual, larg_atual))
+                max_linha_badge = max(max_linha_badge, larg_atual)
+                linha_atual = [(texto_b, bg_b, borda_b, cor_b, bw, bh)]
+                larg_atual = bw
+            else:
+                linha_atual.append((texto_b, bg_b, borda_b, cor_b, bw, bh))
+                larg_atual += gap + bw
+        if linha_atual:
+            linhas_badges.append((linha_atual, larg_atual))
+            max_linha_badge = max(max_linha_badge, larg_atual)
+
+        larg_card = min(max_largura, max(200 if not compacto else 220, max(larg_tit, max_linha_badge) + pad_x * 2))
+        alt_badges = (len(linhas_badges) * 24 + (len(linhas_badges) - 1) * 4) if linhas_badges else 0
+        gap_secao = 5 if linhas_badges else 0
+        alt_card = pad_y * 2 + len(linhas_tit) * alt_linha_tit + gap_secao + alt_badges
+
+        card_x = (x - larg_card) if direita else x
+        card_x = max(16, min(self.largura - larg_card - 16, card_x))
+        card_rect = pygame.Rect(card_x, y, larg_card, alt_card)
+
+        surf_bg = pygame.Surface((card_rect.width, card_rect.height), pygame.SRCALPHA)
+        surf_bg.fill((14, 15, 20, 238))
+        tela.blit(surf_bg, card_rect.topleft)
+        tem_alerta = any(b[0].startswith("[!]") or b[0] == "[FÚRIA]" for b in badges)
+        cor_borda = (255, 220, 110) if destaque else ((255, 230, 175) if tem_alerta else (215, 210, 202))
+        pygame.draw.rect(tela, cor_borda, card_rect, 2 if destaque else 1, border_radius=3)
+
+        cur_y = card_rect.y + pad_y
+        for l_txt in linhas_tit:
+            surf_t = fonte_tit.render(l_txt, True, cor_titulo)
+            tx = (card_rect.right - pad_x - surf_t.get_width()) if direita else (card_rect.x + pad_x)
+            tela.blit(surf_t, (tx, cur_y))
+            cur_y += alt_linha_tit
+
+        if linhas_badges:
+            cur_y += gap_secao
+            for row, row_w in linhas_badges:
+                bx = (card_rect.right - pad_x - row_w) if direita else (card_rect.x + pad_x)
+                for texto_b, bg_b, borda_b, cor_b, bw, bh in row:
+                    self._desenhar_pilula(tela, pygame.Rect(bx, cur_y, bw, bh), texto_b, fonte_badge, bg_b, borda_b, cor_b)
+                    bx += bw + 6
+                cur_y += 28
+
+        return card_rect
+
+    def _desenhar_headers_status(self, tela):
+        """Renderiza cartões de nome: topo-esquerdo para Halia, topo-direito para 1 inimigo e ancorados acima de cada sprite para múltiplos."""
+        badges_h = self._montar_badges_entidade(self.cs.jogador, eh_jogador=True)
+        card_h = self._desenhar_card_status(
+            tela, self.cs.jogador.nome, badges_h,
+            x=40, y=14, max_largura=400, cor_titulo=(212, 248, 224),
+            direita=False, compacto=False,
+        )
+        self.cs.rects_hud_status["jogador"] = card_h
+
+        vivos = [e for e in self.cs.inimigos if getattr(e, "vivo", True)]
+        if not vivos:
+            return
+        if len(vivos) == 1:
+            inimigo = vivos[0]
+            badges_e = self._montar_badges_entidade(inimigo, eh_jogador=False)
+            destaque = self.cs.estado_combate == "SELECIONANDO_ALVO"
+            card_e = self._desenhar_card_status(
+                tela, inimigo.nome, badges_e,
+                x=self.largura - 40, y=14, max_largura=520,
+                cor_titulo=(252, 232, 224), direita=True, compacto=False, destaque=destaque,
+            )
+            self.cs.rects_hud_status[inimigo] = card_e
+            return
+
+        obstaculos = [card_h.inflate(8, 6)]
+        for r_spr in getattr(self.cs, "rects_sprites_combate", {}).values():
+            obstaculos.append(r_spr.inflate(6, 4))
+        for r_bar in getattr(self.cs, "_rects_barras_inimigos", []):
+            obstaculos.append(r_bar.inflate(4, 4))
+
+        for idx, inimigo in enumerate(vivos):
+            titulo = f"#{idx + 1} {inimigo.nome}"
+            badges_e = self._montar_badges_entidade(inimigo, eh_jogador=False)
+            r_spr = self.cs.rects_sprites_combate.get(inimigo)
+            if r_spr:
+                ancora_x = r_spr.centerx
+                ancora_y = max(14, r_spr.top - 46)
+            else:
+                pos_x, pos_y = self.cs._obter_posicao_combate(inimigo)
+                ancora_x = pos_x + 40
+                ancora_y = max(14, pos_y - 40)
+            destaque = self.cs.estado_combate == "SELECIONANDO_ALVO" and idx == self.cs.indice_alvo
+            card_e = self._desenhar_card_status(
+                tela, titulo, badges_e,
+                x=ancora_x, y=ancora_y, max_largura=270,
+                cor_titulo=(255, 240, 200) if destaque else (252, 232, 224),
+                direita=False, compacto=True, centralizado=True,
+                obstaculos=obstaculos, destaque=destaque,
+            )
+            self.cs.rects_hud_status[inimigo] = card_e
+            obstaculos.append(card_e.inflate(8, 6))
+
+    def atualizar_animacoes(self, dt_efetivo):
+        """Avança as animações e transições de estado de Halia e inimigos no ciclo update()."""
+        if self.cs.jogador and hasattr(self.cs.jogador, "animacoes"):
+            estado_h = self.cs.obter_estado_animacao_halia()
+            anim_h = self.cs.jogador.animacoes.get(estado_h)
+            if anim_h:
+                anim_h.atualizar(dt_efetivo)
+                if estado_h == "combate_special" and getattr(anim_h, "concluida", False):
+                    self.cs.animando_magia_halia = False
+                    anim_idle = self.cs.jogador.animacoes.get("combate_idle")
+                    if anim_idle:
+                        anim_idle.resetar()
+
+        for inimigo in self.cs.inimigos:
+            esta_vivo = getattr(inimigo, 'vivo', True) and getattr(inimigo, 'vida_atual', 1) > 0
+            if hasattr(inimigo, 'atualizar_animacao'):
+                if esta_vivo:
+                    est = getattr(inimigo, 'estado_atual', 'idle')
+                    if est == 'hurt' and getattr(inimigo.animacoes.get('hurt'), 'concluida', False):
+                        inimigo.definir_estado('idle')
+                    elif est in ('attack', 'ataque'):
+                        anim_atk = inimigo.animacoes.get('attack') or inimigo.animacoes.get('ataque')
+                        if getattr(anim_atk, 'concluida', False):
+                            inimigo.definir_estado('idle')
+                else:
+                    if getattr(inimigo, 'estado_atual', '') not in ('dead', 'morte', 'morrer'):
+                        for est_m in ('dead', 'morte', 'morrer'):
+                            if est_m in inimigo.animacoes:
+                                inimigo.definir_estado(est_m)
+                                break
+                inimigo.atualizar_animacao(dt_efetivo)
 
     def desenhar_barra(self, tela, x, y, valor_atual, valor_maximo, cor_barra, cor_fundo=FUNDO_BARRA, largura=180, altura=12):
         """Encaminha para o utilitário centralizado de UI."""
@@ -123,6 +410,50 @@ class CombatRenderer:
             self.cs.rect_scroll_cima = pygame.Rect(0, 0, 0, 0)
             self.cs.rect_scroll_baixo = pygame.Rect(0, 0, 0, 0)
 
+    def _resolver_sprite_combate_inimigo(self, inimigo):
+        """Obtém o sprite de combate do inimigo em escala proporcional à sua altura opaca."""
+        if hasattr(inimigo, '_sincronizar_imagem_atual'):
+            inimigo._sincronizar_imagem_atual()
+
+        imagem = getattr(inimigo, 'imagem_atual', None)
+        if not imagem:
+            return None
+
+        pasta_sprites = getattr(inimigo, 'pasta_sprites', None)
+        altura_alvo = getattr(inimigo, 'altura_combate_alvo', None)
+        estado_atual = getattr(inimigo, 'estado_atual', 'idle')
+        anims = getattr(inimigo, 'animacoes', None) or {}
+        anim_atual = anims.get(estado_atual)
+
+        img_base = None
+        if (
+            pasta_sprites
+            and altura_alvo
+            and anim_atual
+            and getattr(anim_atual, 'frames', None)
+            and imagem is anim_atual.get_imagem()
+        ):
+            img_base = ResourceManager.obter_frame_combate_inimigo(
+                pasta_sprites, estado_atual, int(anim_atual.frame_atual), altura_alvo
+            )
+
+        if img_base is None:
+            escala_c = getattr(inimigo, 'escala_combate', 0.85)
+            if altura_alvo:
+                anim_ref = anims.get('idle')
+                ref_surf = anim_ref.frames[0] if (anim_ref and getattr(anim_ref, 'frames', None)) else imagem
+                br_ref = ref_surf.get_bounding_rect()
+                if br_ref.height > 0:
+                    escala_c = float(altura_alvo) / float(br_ref.height)
+            nw = max(1, int(round(imagem.get_width() * escala_c)))
+            nh = max(1, int(round(imagem.get_height() * escala_c)))
+            img_base = imagem if (nw, nh) == imagem.get_size() else pygame.transform.scale(imagem, (nw, nh))
+
+        # Inimigos na direita da arena encaram Halia na esquerda
+        if getattr(inimigo, 'virado_direita', True):
+            return pygame.transform.flip(img_base, True, False)
+        return img_base
+
     def desenhar(self, tela):
         """Renderiza a arena, personagens, HUDs, menus, submenus, tooltips e banners."""
         if not self.cs.jogador:
@@ -136,6 +467,9 @@ class CombatRenderer:
 
         # 2. RENDERIZAR INIMIGOS (Lado Direito)
         self.cs.rects_inimigos.clear()
+        self.cs.rects_hud_status.clear()
+        self.cs.rects_sprites_combate.clear()
+        self.cs._rects_barras_inimigos = []
         inimigos_vivos = self.cs._obter_inimigos_vivos()
 
         for inimigo in self.cs.inimigos:
@@ -153,63 +487,64 @@ class CombatRenderer:
             
             draw_x = pos_x + offset_shake_x
             draw_y = pos_y + offset_shake_y
+            cx = draw_x + 40
+            cy = draw_y + 90
 
-            # Plataforma / Sombra sutil no chão sob o monstro
-            if esta_vivo or alpha_morte > 60:
-                if esta_vivo or alpha_morte >= 250:
-                    pygame.draw.ellipse(tela, (22, 22, 26), (draw_x - 10, draw_y + 80, 100, 20))
+            img_combate = self._resolver_sprite_combate_inimigo(inimigo)
+            rect_visivel = None
+            bx = draw_x
+            by = draw_y
+
+            if img_combate:
+                nw, nh = img_combate.get_size()
+                offset_flutuante = -16 if (getattr(inimigo, 'flutuante', False) and esta_vivo) else 0
+                bb_vis = img_combate.get_bounding_rect()
+                if bb_vis.width > 0 and bb_vis.height > 0:
+                    bx = cx - (bb_vis.x + bb_vis.width // 2)
+                    by = (cy + offset_flutuante) - bb_vis.bottom
+                    rect_visivel = pygame.Rect(bx + bb_vis.x, by + bb_vis.y, bb_vis.width, bb_vis.height)
                 else:
-                    sombra_surf = pygame.Surface((100, 20), pygame.SRCALPHA)
+                    bx = cx - (nw // 2)
+                    by = cy - nh + offset_flutuante
+                    rect_visivel = pygame.Rect(bx, by, nw, nh)
+                self.cs.rects_sprites_combate[inimigo] = rect_visivel
+            else:
+                rect_visivel = pygame.Rect(draw_x, draw_y, getattr(inimigo, 'largura', 40) * 2, getattr(inimigo, 'altura', 40) * 2)
+                self.cs.rects_sprites_combate[inimigo] = rect_visivel
+
+            # Plataforma / Sombra sutil no chão proporcional à envergadura do monstro
+            if esta_vivo or alpha_morte > 60:
+                larg_sombra = max(100, min(280, rect_visivel.width + 22))
+                sombra_x = cx - (larg_sombra // 2)
+                sombra_y = cy - 10
+                if esta_vivo or alpha_morte >= 250:
+                    pygame.draw.ellipse(tela, (22, 22, 26), (sombra_x, sombra_y, larg_sombra, 20))
+                else:
+                    sombra_surf = pygame.Surface((larg_sombra, 20), pygame.SRCALPHA)
                     alpha_sombra = int(220 * (alpha_morte / 255.0))
-                    pygame.draw.ellipse(sombra_surf, (22, 22, 26, alpha_sombra), (0, 0, 100, 20))
-                    tela.blit(sombra_surf, (draw_x - 10, draw_y + 80))
+                    pygame.draw.ellipse(sombra_surf, (22, 22, 26, alpha_sombra), (0, 0, larg_sombra, 20))
+                    tela.blit(sombra_surf, (sombra_x, sombra_y))
 
             # Hitbox para clique de mouse e cursor de mira (apenas se vivo)
             if esta_vivo:
-                rect_hitbox = pygame.Rect(draw_x - 10, draw_y - 25, 240, 125)
+                rect_hitbox = pygame.Rect(
+                    0,
+                    0,
+                    max(96, rect_visivel.width + 24),
+                    max(96, rect_visivel.height + 12),
+                )
+                rect_hitbox.center = rect_visivel.center
+                rect_hitbox = rect_hitbox.union(rect_visivel.inflate(16, 10))
                 self.cs.rects_inimigos.append(rect_hitbox)
 
                 if self.cs.estado_combate == "SELECIONANDO_ALVO" and self.cs.indice_alvo < len(inimigos_vivos) and inimigos_vivos[self.cs.indice_alvo] is inimigo:
                     cursor_txt = self.cs.fonte_titulo.render(">", True, TXT_SISTEMA_NARRADOR)
-                    tela.blit(cursor_txt, (draw_x - 30, draw_y + 15))
+                    cursor_x = min(draw_x - 30, rect_hitbox.left - 22)
+                    tela.blit(cursor_txt, (cursor_x, rect_hitbox.centery - 18))
                     pygame.draw.rect(tela, TXT_SISTEMA_NARRADOR, rect_hitbox, 1)
 
-            # Atualiza Animações do Inimigo
-            if hasattr(inimigo, 'atualizar_animacao'):
-                if esta_vivo:
-                    # Transição automática de estados hurt/attack para idle quando finalizados
-                    if getattr(inimigo, 'estado_atual', 'idle') == 'hurt' and getattr(inimigo.animacoes.get('hurt', None), 'concluida', False):
-                        inimigo.definir_estado('idle')
-                    elif getattr(inimigo, 'estado_atual', 'idle') in ['attack', 'ataque'] and getattr(inimigo.animacoes.get('attack', inimigo.animacoes.get('ataque', None)), 'concluida', False):
-                        inimigo.definir_estado('idle')
-                else:
-                    # Se está morto, garante que o estado é dead/morte/morrer
-                    if getattr(inimigo, 'estado_atual', '') not in ['dead', 'morte', 'morrer']:
-                        est_m = "dead" if "dead" in inimigo.animacoes else ("morte" if "morte" in inimigo.animacoes else "morrer")
-                        if est_m in inimigo.animacoes:
-                            inimigo.definir_estado(est_m)
-                inimigo.atualizar_animacao()
-
             # Renderiza Imagem ou Bloco Colorido
-            imagem = getattr(inimigo, 'imagem_atual', None)
-            if imagem:
-                # Inimigos na direita da arena encaram Halia na esquerda
-                if getattr(inimigo, 'virado_direita', True):
-                    img_virada = pygame.transform.flip(imagem, True, False)
-                else:
-                    img_virada = imagem
-                escala_c = getattr(inimigo, 'escala_combate', 0.85)
-                nw = max(1, int(img_virada.get_width() * escala_c))
-                nh = max(1, int(img_virada.get_height() * escala_c))
-                img_combate = pygame.transform.scale(img_virada, (nw, nh))
-
-                # Ancoragem bottom-center acima da elipse da plataforma
-                cx = draw_x + 40
-                cy = draw_y + 90
-                offset_flutuante = -16 if (getattr(inimigo, 'flutuante', False) and esta_vivo) else 0
-                bx = cx - (nw // 2)
-                by = cy - nh + offset_flutuante
-
+            if img_combate:
                 if esta_vivo:
                     if self.cs.shake_timers.get(inimigo, 0) > 6:
                         flash_surf = img_combate.copy()
@@ -226,31 +561,22 @@ class CombatRenderer:
                     else:
                         tela.blit(img_combate, (bx, by))
             else:
-                rect_inimigo = pygame.Rect(draw_x, draw_y, getattr(inimigo, 'largura', 40) * 2, getattr(inimigo, 'altura', 40) * 2)
                 cor_bloco = BRANCO if (esta_vivo and self.cs.shake_timers.get(inimigo, 0) > 6) else (getattr(inimigo, 'cor', (140, 40, 50)) if esta_vivo else (60, 60, 70))
-                pygame.draw.rect(tela, cor_bloco, rect_inimigo)
-                pygame.draw.rect(tela, CINZA_CLARO, rect_inimigo, 2)
+                pygame.draw.rect(tela, cor_bloco, rect_visivel)
+                pygame.draw.rect(tela, CINZA_CLARO, rect_visivel, 2)
 
-            # Interface de Status (Apenas se o inimigo estiver vivo)
+            # Interface de Status (Barras abaixo da plataforma; nomes/condições nos cartões superiores)
             if esta_vivo:
-                # Nome do Inimigo
-                texto_nome = self.cs.fonte_nomes.render(inimigo.nome, True, TEXTO_ALERTA_COMBATE)
-                tela.blit(texto_nome, (draw_x, draw_y - 28))
-                
-                # Badges de Condições Ativas
-                offset_icone_x = draw_x + texto_nome.get_width() + 8
-                for cond in getattr(inimigo, 'condicoes', []):
-                    txt_badge = self.cs.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
-                    tela.blit(txt_badge, (offset_icone_x, draw_y - 25))
-                    offset_icone_x += txt_badge.get_width() + 6
-
-                # Barra de Vida Suave Interpolada
                 base_bar_y = draw_y + 105
                 larg_bar_inimigo = 150
                 alt_bar = 12
+                if len(inimigos_vivos) > 1 and inimigo in inimigos_vivos:
+                    idx_v = inimigos_vivos.index(inimigo)
+                    txt_idx = self.cs.fonte_status.render(f"#{idx_v + 1}", True, (246, 243, 236))
+                    tela.blit(txt_idx, (draw_x - 36, base_bar_y - 2))
                 vida_v = self.cs.vidas_visuais.get(inimigo, float(inimigo.vida_atual))
                 self.desenhar_barra(tela, draw_x - 15, base_bar_y, vida_v, inimigo.vida_maxima, BARRA_VIDA_INIMIGO, largura=larg_bar_inimigo, altura=alt_bar)
-                txt_hp = self.cs.fonte_status.render(f"HP {int(vida_v)}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
+                txt_hp = self.cs.fonte_status.render(f"HP {int(round(vida_v))}/{inimigo.vida_maxima}", True, UI_TEXTO_DESTAQUE)
                 tela.blit(txt_hp, (draw_x - 15 + larg_bar_inimigo + 10, base_bar_y - 2))
 
                 # Barra de Mana Suave Interpolada do Monstro (Idêntico ao padrão visual de Halia)
@@ -258,66 +584,82 @@ class CombatRenderer:
                 mana_v = self.cs.manas_visuais.get(inimigo, float(getattr(inimigo, 'mana_atual', mana_max)))
                 mp_bar_y = base_bar_y + 20
                 self.desenhar_barra(tela, draw_x - 15, mp_bar_y, mana_v, mana_max, BARRA_MANA, largura=larg_bar_inimigo, altura=alt_bar)
-                txt_mp = self.cs.fonte_status.render(f"MP {int(mana_v)}/{mana_max}", True, UI_TEXTO_DESTAQUE)
+                txt_mp = self.cs.fonte_status.render(f"MP {int(round(mana_v))}/{mana_max}", True, UI_TEXTO_DESTAQUE)
                 tela.blit(txt_mp, (draw_x - 15 + larg_bar_inimigo + 10, mp_bar_y - 2))
+                self.cs._rects_barras_inimigos.append(pygame.Rect(draw_x - 42, base_bar_y - 4, 260, 42))
 
         # 3. RENDERIZAR HALIA COM AS NOVAS SPRITES DE ALTA FIDELIDADE (Lado Esquerdo)
-        halia_x, halia_y = 160, 150
+        halia_x, halia_y = self.cs._obter_posicao_combate(self.cs.jogador)
         offset_h_x = random.randint(-3, 3) if self.cs.shake_timers.get(self.cs.jogador, 0) > 0 else 0
         offset_h_y = random.randint(-2, 2) if self.cs.shake_timers.get(self.cs.jogador, 0) > 0 else 0
         
         draw_hx = halia_x + offset_h_x
         draw_hy = halia_y + offset_h_y
 
-        # Seleciona o estado da animação oficial da Halia no combate
-        estado_halia = "combate_idle"
-        if getattr(self.cs, "submenu_atual", None) == "magias" or getattr(self.cs, "animando_magia_halia", False):
-            estado_halia = "combate_special"
+        # Seleciona o estado da animação oficial da Halia no combate sem mutar cursores em render
+        if hasattr(self.cs, "obter_estado_animacao_halia"):
+            estado_halia = self.cs.obter_estado_animacao_halia()
+        else:
+            estado_halia = "combate_special" if getattr(self.cs, "animando_magia_halia", False) else "combate_idle"
 
         img_halia = None
-        if hasattr(self.cs.jogador, 'animacoes') and estado_halia in self.cs.jogador.animacoes:
-            anim_h = self.cs.jogador.animacoes[estado_halia]
-            anim_h.atualizar()
-            img_halia = anim_h.get_imagem()
-        elif hasattr(self.cs.jogador, 'animacoes') and "combate_idle" in self.cs.jogador.animacoes:
-            anim_h = self.cs.jogador.animacoes["combate_idle"]
-            anim_h.atualizar()
-            img_halia = anim_h.get_imagem()
-        elif hasattr(self.cs.jogador, 'animacoes') and "idle_direita" in self.cs.jogador.animacoes:
-            anim_h = self.cs.jogador.animacoes["idle_direita"]
-            anim_h.atualizar()
-            img_halia = anim_h.get_imagem()
-        
+        anims_h = getattr(self.cs.jogador, 'animacoes', {})
+        for cand_h in (estado_halia, "combate_idle", "idle_direita", "idle"):
+            anim_h = anims_h.get(cand_h)
+            if anim_h and getattr(anim_h, "frames", None):
+                img_halia = anim_h.get_imagem()
+                break
+
         if not img_halia:
             img_halia = getattr(self.cs.jogador, 'imagem_atual', None)
 
         alt_h = 120
         larg_h = 50
+        ponto_pes_x = draw_hx + 28
+        ponto_pes_y = draw_hy + alt_h
+
         if img_halia:
             ow_h, oh_h = img_halia.get_size()
-            larg_h = max(1, int(alt_h * (ow_h / oh_h)))
+            altura_corpo = getattr(self.cs.jogador, "altura_corpo_combate", None)
+            altura_canvas = getattr(self.cs.jogador, "altura_canvas_combate", oh_h)
+            if estado_halia.startswith("combate_") and altura_corpo and oh_h == altura_canvas:
+                escala_h = alt_h / float(altura_corpo)
+                larg_c = max(1, int(round(ow_h * escala_h)))
+                alt_c = max(1, int(round(oh_h * escala_h)))
+                img_c = img_halia if (larg_c, alt_c) == (ow_h, oh_h) else pygame.transform.scale(img_halia, (larg_c, alt_c))
+                bx_h = ponto_pes_x - (larg_c // 2)
+                by_h = ponto_pes_y - alt_c
+                larg_h = 56
+            else:
+                larg_h = max(1, int(alt_h * (ow_h / oh_h)))
+                img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
+                bx_h = draw_hx
+                by_h = draw_hy
 
         # Plataforma / Sombra sutil no chão sob Halia ancorada aos pés
-        pygame.draw.ellipse(tela, (22, 22, 26), (draw_hx - 12, draw_hy + alt_h - 12, max(larg_h + 24, 76), 22))
+        pygame.draw.ellipse(tela, (22, 22, 26), (ponto_pes_x - 38, ponto_pes_y - 12, 76, 22))
 
         if img_halia:
-            img_c = pygame.transform.scale(img_halia, (larg_h, alt_h))
+            bb_h = img_c.get_bounding_rect()
+            if bb_h.width > 0 and bb_h.height > 0:
+                self.cs.rects_sprites_combate["jogador"] = pygame.Rect(bx_h + bb_h.x, by_h + bb_h.y, bb_h.width, bb_h.height)
             if self.cs.shake_timers.get(self.cs.jogador, 0) > 6:
                 flash_surf = img_c.copy()
                 flash_surf.fill((255, 255, 255, 180), special_flags=pygame.BLEND_RGBA_MULT)
-                tela.blit(flash_surf, (draw_hx, draw_hy))
+                tela.blit(flash_surf, (bx_h, by_h))
             else:
-                tela.blit(img_c, (draw_hx, draw_hy))
+                tela.blit(img_c, (bx_h, by_h))
         else:
             rect_h = pygame.Rect(draw_hx, draw_hy, larg_h, alt_h)
+            self.cs.rects_sprites_combate["jogador"] = rect_h
             cor_h = BRANCO if self.cs.shake_timers.get(self.cs.jogador, 0) > 6 else (34, 139, 34)
             pygame.draw.rect(tela, cor_h, rect_h)
             pygame.draw.rect(tela, CINZA_CLARO, rect_h, 2)
 
         # Efeito Visual de Respingo de Sangue sobre Halia ao Sofrer Dano
         if self.cs.efeitos_sangue:
-            hx_centro = draw_hx + (larg_h // 2)
-            hy_centro = draw_hy + (alt_h // 2)
+            hx_centro = ponto_pes_x
+            hy_centro = ponto_pes_y - (alt_h // 2)
             for ef in self.cs.efeitos_sangue:
                 idx_s = int(ef["frame_atual"])
                 frames_s = ef["frames"]
@@ -327,34 +669,26 @@ class CombatRenderer:
                     pos_sy = hy_centro - (frame_s.get_height() // 2) + ef.get("offset_y", 0)
                     tela.blit(frame_s, (pos_sx, pos_sy))
 
-        # Nome da Halia
-        txt_halia = self.cs.fonte_nomes.render(self.cs.jogador.nome, True, NOME_HALIA)
-        tela.blit(txt_halia, (draw_hx, draw_hy - 32))
-        
-        # Badges de Condições da Halia
-        offset_h_badge = draw_hx + txt_halia.get_width() + 8
-        for cond in getattr(self.cs.jogador, 'condicoes', []):
-            txt_badge_h = self.cs.fonte_status.render(f"{cond.icone}:{cond.duracao}", True, TXT_SISTEMA_NARRADOR)
-            tela.blit(txt_badge_h, (offset_h_badge, draw_hy - 30))
-            offset_h_badge += txt_badge_h.get_width() + 6
-
-        # Barras Interpoladas de HP e MP da Halia (Mesmo padrão visual, espessura e espaçamento)
+        # Barras Interpoladas de HP e MP da Halia (Abaixo da plataforma dos pés, sem sobrepor botas)
         vida_h_v = self.cs.vidas_visuais.get(self.cs.jogador, float(self.cs.jogador.vida_atual))
         mana_h_v = self.cs.manas_visuais.get(self.cs.jogador, float(self.cs.jogador.mana_atual))
         larg_h_bar = 180
         alt_h_bar = 12
-        base_h_bar_y = draw_hy + 105
+        base_h_bar_y = draw_hy + 135
 
         self.desenhar_barra(tela, draw_hx, base_h_bar_y, vida_h_v, self.cs.jogador.vida_maxima, BARRA_VIDA_JOGADOR, largura=larg_h_bar, altura=alt_h_bar)
         hp_mostrado = 0 if (self.cs.jogador.vida_atual <= 0 or not getattr(self.cs.jogador, 'vivo', True)) else max(1, int(round(vida_h_v)))
         tela.blit(self.cs.fonte_status.render(f"HP {hp_mostrado}/{self.cs.jogador.vida_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y - 2))
 
         self.desenhar_barra(tela, draw_hx, base_h_bar_y + 20, mana_h_v, self.cs.jogador.mana_maxima, BARRA_MANA, largura=larg_h_bar, altura=alt_h_bar)
-        tela.blit(self.cs.fonte_status.render(f"MP {int(mana_h_v)}/{self.cs.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))
+        tela.blit(self.cs.fonte_status.render(f"MP {int(round(mana_h_v))}/{self.cs.jogador.mana_maxima}", True, UI_TEXTO_DESTAQUE), (draw_hx + larg_h_bar + 10, base_h_bar_y + 18))
 
         # Efeitos Mágicos Visuais (Projéteis Direcionados, Rastros, Flashes e Explosões Elementais)
         if hasattr(self.cs, "efeitos_visuais") and self.cs.efeitos_visuais:
             self.cs.efeitos_visuais.desenhar(tela)
+
+        # Cartões superiores reservados (nomes, fúria, alerta de sopro, condições)
+        self._desenhar_headers_status(tela)
 
         # 4. PAINEL INFERIOR DE MENUS E COMBAT LOG
         altura_painel = 245
@@ -378,7 +712,7 @@ class CombatRenderer:
                     pygame.draw.rect(tela, AZUL_HOVER_BG, item_rect, border_radius=2)
                     pygame.draw.rect(tela, AZUL_HOVER_MENU, item_rect, 1, border_radius=2)
                     cor = AZUL_HOVER_MENU
-                    marcador = "►  "
+                    marcador = ">  "
                 else:
                     pygame.draw.rect(tela, (18, 18, 22), item_rect, border_radius=2)
                     pygame.draw.rect(tela, CINZA_ARDOSIA, item_rect, 1, border_radius=2)
@@ -517,7 +851,8 @@ class CombatRenderer:
             for i, inimigo in enumerate(inimigos_vivos):
                 cor = TXT_SISTEMA_NARRADOR if i == self.cs.indice_alvo else CINZA_CLARO
                 marcador = "> " if i == self.cs.indice_alvo else "  "
-                txt_i = self.cs.fonte_status.render(f"{marcador}{inimigo.nome} ({inimigo.vida_atual}/{inimigo.vida_maxima} HP)", True, cor)
+                prefixo = f"#{i + 1} " if len(inimigos_vivos) > 1 else ""
+                txt_i = self.cs.fonte_status.render(f"{marcador}{prefixo}{inimigo.nome} ({inimigo.vida_atual}/{inimigo.vida_maxima} HP)", True, cor)
                 tela.blit(txt_i, (painel_rect.x + 20, painel_rect.y + 55 + (i * 32)))
 
         # RENDERIZAR COMBAT LOG (Seção Direita com Word Wrap e Cores Preservadas)

@@ -7,6 +7,7 @@ from src.utils.animations import EfeitoPetalas
 from src.utils.colors import DOURADO_ENVELHECIDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_TEXTO_APAGADO
 from src.entities.elemento_cenario import ChamaIndependente
 from src.mechanics.cutscenes.cena_base import CenaBase
+from src.ui.scenes.texto_editorial import ApresentacaoTextoEditorial
 
 
 class CinematicaAtaqueDragao(CenaBase):
@@ -46,10 +47,36 @@ class CinematicaAtaqueDragao(CenaBase):
         self.intensidade_shake = 0.0
         self.flash_clarão = 0.0
 
-        # Transição poética ao dormir (pétalas suaves)
+        # Transição poética ao dormir (pétalas suaves e apresentador textual compartilhado)
         larg_tela = getattr(game, "LARGURA", 1280) if game is not None else 1280
         alt_tela = getattr(game, "ALTURA", 720) if game is not None else 720
         self.efeito_petalas = EfeitoPetalas(larg_tela, alt_tela, quantidade_petalas=24, alpha=(80, 160))
+        self.apresentacao_noite = ApresentacaoTextoEditorial(
+            game=self.game,
+            largura=larg_tela,
+            altura=alt_tela,
+            titulo="✦ O SILÊNCIO DA NOITE EM OAKHAVEN ✦",
+            cor_titulo=DOURADO_ENVELHECIDO,
+            cor_fundo=(8, 10, 14),
+            fonte_titulo=ResourceManager.carregar_fonte("sunday", 26),
+            fonte_texto=ResourceManager.carregar_fonte("just_breathe", 25),
+            fonte_dica=ResourceManager.carregar_fonte("contrail", 16),
+            margem_horizontal=180,
+            altura_linha=38,
+            espaco_paragrafo=8,
+            velocidade_base=0.60,
+            pos_y_dica_offset=54,
+            dicas=(
+                "[ Pressione ENTER / ESPAÇO ou Clique para acelerar ]",
+                "[ Pressione ENTER / ESPAÇO ou Clique para despertar ]",
+            ),
+            paragrafos=[
+                ("Sob o teto acolhedor da Casa de Hóspedes, o crepitar da lareira dissipa o cansaço da estrada...", MARFIM_OFFWHITE),
+                ("Por uma breve noite, o peso do mundo e a dor das memórias esquecidas deram lugar à paz.", (230, 230, 235)),
+                ("Halia adormeceu sob o abraço sereno do refúgio... alheia à tempestade que cruzava os céus.", CINZA_LINHO),
+            ],
+        )
+        self.apresentacao_noite.completar_digitacao()
 
         # Coordenadas de Halia e da Casa de Hóspedes (Porta oficial de c1_f05 na base frontal sul)
         self.porta_casa_x = 1345
@@ -217,9 +244,12 @@ class CinematicaAtaqueDragao(CenaBase):
         self.game.halia.direcao = "baixo"
         self.game.halia.mudar_estado("idle")
 
-        # Inicia a trilha sonora épica
+        # Inicia a trilha sonora própria do ataque do dragão
         if hasattr(self.game, "audio") and self.game.audio:
-            self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=600)
+            try:
+                self.game.audio.tocar_musica("ataque_dragao", loop=-1, fade_ms=600, contexto="cutscene")
+            except TypeError:
+                self.game.audio.tocar_musica("ataque_dragao", loop=-1, fade_ms=600)
 
         # Posição e dinâmica inicial do voo contínuo
         self.dragao_x = -240.0
@@ -267,19 +297,27 @@ class CinematicaAtaqueDragao(CenaBase):
             return (self.dragao_x + 140.0, self.dragao_y + 100.0)
         return (self.game.halia.x, self.game.halia.y)
 
+    def _entrar_fase_dormindo(self):
+        self.fase = "DORMINDO"
+        self.tempo_fase = 0.0
+        self.alpha_fade = 255.0
+        self.apresentacao_noite.game = self.game
+        self.apresentacao_noite.reiniciar(revelar_tudo=False)
+
     def handle_event(self, evento):
-        """Permite avançar ou pular a cutscene com ENTER, ESPAÇO ou ESC."""
+        """Permite avançar ou pular a cutscene com ENTER, ESPAÇO, Clique ou ESC."""
         if not self.ativo:
             return False
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_ESCAPE:
                 self.pular()
                 return True
-            if evento.key in (pygame.K_RETURN, pygame.K_SPACE):
+            if evento.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE, pygame.K_e):
                 if self.fase == "DORMINDO":
-                    self.iniciar_ataque_aereo()
+                    if self.apresentacao_noite.processar_avanco() == "CONFIRMAR":
+                        self.iniciar_ataque_aereo()
                     return True
-                elif self.fase == "CAMINHANDO_CASA":
+                elif self.fase == "CAMINHANDO_CASA" and evento.key != pygame.K_e:
                     self.game.halia.x = self.porta_casa_x
                     self.game.halia.y = self.porta_casa_y
                     self.game.halia.direcao = "cima"
@@ -287,12 +325,17 @@ class CinematicaAtaqueDragao(CenaBase):
                     self.fase = "ENTRANDO_CASA"
                     self.tempo_fase = 0.0
                     return True
-                elif self.fase == "VOO_DRAGAO" and self.tempo_fase > 2.0:
+                elif self.fase == "VOO_DRAGAO" and self.tempo_fase > 2.0 and evento.key != pygame.K_e:
                     self._finalizar_ataque_e_despertar()
                     return True
-                elif self.fase == "HALIA_DESPERTANDO":
+                elif self.fase == "HALIA_DESPERTANDO" and evento.key != pygame.K_e:
                     self.finalizar()
                     return True
+        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            if self.fase == "DORMINDO":
+                if self.apresentacao_noite.processar_avanco() == "CONFIRMAR":
+                    self.iniciar_ataque_aereo()
+                return True
         return False
 
     def atualizar(self, dt=None):
@@ -351,7 +394,6 @@ class CinematicaAtaqueDragao(CenaBase):
                     self.game.halia.x += (dx / dist) * passo
                     self.game.halia.y += (dy / dist) * passo
                     self.game.halia.mudar_estado("andar")
-                    self.game.halia.atualizar_animacao()
             else:
                 self.game.halia.x = self.porta_casa_x
                 self.game.halia.y = self.porta_casa_y
@@ -366,20 +408,17 @@ class CinematicaAtaqueDragao(CenaBase):
             self.game.halia.direcao = "cima"
             self.game.halia.mudar_estado("andar")
             self.game.halia.y = max(1116.0, self.game.halia.y - dt * 14.0)
-            self.game.halia.atualizar_animacao()
 
             self.alpha_fade = min(255.0, self.alpha_fade + dt * 260.0)
             if self.alpha_fade >= 255.0:
-                self.alpha_fade = 255.0
-                self.fase = "DORMINDO"
-                self.tempo_fase = 0.0
+                self._entrar_fase_dormindo()
 
-        # 3. Noite de sono (transição poética de atmosfera de flashback)
+        # 3. Noite de sono (aguarda leitura e confirmação pela base textual compartilhada)
         elif self.fase == "DORMINDO":
             self.alpha_fade = 255.0
-            self.efeito_petalas.atualizar(dt)
-            if self.tempo_fase >= 4.5:
-                self.iniciar_ataque_aereo()
+            self.efeito_petalas.atualizar(dt, alpha_alvo=0.65)
+            self.apresentacao_noite.game = self.game
+            self.apresentacao_noite.atualizar(dt)
 
         # 4. Voo e bombardeio aéreo de Ignis'Vahr em circuito contínuo
         elif self.fase == "VOO_DRAGAO":
@@ -489,6 +528,8 @@ class CinematicaAtaqueDragao(CenaBase):
 
             # Torrentes de fogo descendentes e contínuas durante o ataque
             if em_ataque:
+                if getattr(self.game, "audio", None):
+                    self.game.audio.tocar_sfx_com_cooldown("rugido_monstro", cooldown_s=2.6)
                 vel_x_min, vel_x_max = (35, 115) if self.virado_direita else (-115, -35)
                 for _ in range(3):
                     self.particulas_sopro.append({
@@ -535,7 +576,9 @@ class CinematicaAtaqueDragao(CenaBase):
                         "onda_ativa": True
                     })
 
-                    # Clarão e abalo sísmico
+                    # Clarão, som de impacto e abalo sísmico
+                    if getattr(self.game, "audio", None):
+                        self.game.audio.tocar_sfx("explosao")
                     self.flash_clarão = 220.0
                     self.timer_shake = 1.9
                     self.intensidade_shake = shake_forca
@@ -620,7 +663,6 @@ class CinematicaAtaqueDragao(CenaBase):
                     self.game.halia.x += (dx / dist) * passo
                     self.game.halia.y += (dy / dist) * passo
                     self.game.halia.mudar_estado("andar")
-                    self.game.halia.atualizar_animacao()
             else:
                 self.finalizar()
 
@@ -686,6 +728,16 @@ class CinematicaAtaqueDragao(CenaBase):
         self.particulas_sopro.clear()
         self.colunas_fumaca.clear()
         self.focos_fogo_ativos.clear()
+        if (
+            self.game is not None
+            and hasattr(self.game, "audio")
+            and self.game.audio
+            and not getattr(self.game, "dragao_derrotado", False)
+        ):
+            try:
+                self.game.audio.tocar_musica("ataque_dragao", loop=-1, fade_ms=600, contexto="mundo")
+            except TypeError:
+                self.game.audio.tocar_musica("ataque_dragao", loop=-1, fade_ms=600)
         return super().finalizar()
 
     def pular(self):
@@ -788,38 +840,15 @@ class CinematicaAtaqueDragao(CenaBase):
 
         larg_tela, alt_tela = tela.get_width(), tela.get_height()
 
-        # Vinheta poética durante o sono de Halia (estilo canônico de tela de flashback)
+        # Vinheta poética durante o sono de Halia (apresentação editorial compartilhada)
         if self.fase == "DORMINDO":
-            overlay = pygame.Surface((larg_tela, alt_tela))
-            overlay.fill((8, 10, 14))
-            tela.blit(overlay, (0, 0))
-
-            fonte_tit = ResourceManager.carregar_fonte("sunday", 26)
-            fonte_sub = ResourceManager.carregar_fonte("just_breathe", 25)
-            fonte_pula = ResourceManager.carregar_fonte("contrail", 16)
-
-            txt_tit = fonte_tit.render("✦ O SILÊNCIO DA NOITE EM OAKHAVEN ✦", True, DOURADO_ENVELHECIDO)
-            txt_l1 = fonte_sub.render("Sob o teto acolhedor da Casa de Hóspedes, o crepitar da lareira dissipa o cansaço da estrada...", True, MARFIM_OFFWHITE)
-            txt_l2 = fonte_sub.render("Por uma breve noite, o peso do mundo e a dor das memórias esquecidas deram lugar à paz.", True, (230, 230, 235))
-            txt_l3 = fonte_sub.render("Halia adormeceu sob o abraço sereno do refúgio... alheia à tempestade que cruzava os céus.", True, CINZA_LINHO)
-            txt_pula = fonte_pula.render("[ Pressione ENTER ou ESPAÇO para despertar ]", True, UI_TEXTO_APAGADO)
-
-            # Define área excluída de proteção para manter legibilidade absoluta sem pétalas sobrepostas
-            cx_centro = larg_tela // 2
-            cy_centro = alt_tela // 2
-            rect_texto = pygame.Rect(cx_centro - 440, cy_centro - 140, 880, 280)
-
-            # Pétalas sutis de recordação ao fundo com exclusão do bloco de texto
-            self.efeito_petalas.desenhar(tela, areas_excluidas=[rect_texto], alpha_multiplicador=0.65)
-
-            # Renderização tipográfica canônica centralizada estilo flashback
-            tela.blit(txt_tit, txt_tit.get_rect(center=(cx_centro, cy_centro - 90)))
-            pygame.draw.line(tela, DOURADO_ENVELHECIDO, (cx_centro - 180, cy_centro - 65), (cx_centro + 180, cy_centro - 65), 1)
-
-            tela.blit(txt_l1, txt_l1.get_rect(center=(cx_centro, cy_centro - 20)))
-            tela.blit(txt_l2, txt_l2.get_rect(center=(cx_centro, cy_centro + 25)))
-            tela.blit(txt_l3, txt_l3.get_rect(center=(cx_centro, cy_centro + 70)))
-            tela.blit(txt_pula, txt_pula.get_rect(center=(cx_centro, cy_centro + 130)))
+            self.apresentacao_noite.game = self.game
+            self.apresentacao_noite.desenhar(
+                tela,
+                efeito_petalas=self.efeito_petalas,
+                alpha=255.0,
+                alpha_petalas=0.65,
+            )
 
         # Clarão de impacto das explosões (Flash de Calor)
         elif self.flash_clarão > 0 and self.fase == "VOO_DRAGAO":

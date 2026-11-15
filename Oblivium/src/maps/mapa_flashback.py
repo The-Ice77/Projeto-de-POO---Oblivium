@@ -5,7 +5,6 @@ import pygame
 import os
 from src.maps.cenario_base import CenarioBase
 from src.utils.resource_manager import ResourceManager, Animacao, PASTA_ASSETS
-from src.utils.colors import PRETO
 
 
 class VagaLume:
@@ -288,7 +287,7 @@ class MapaFlashbackAcampamento(CenarioBase):
         self.anim_sylvan = self._carregar_animacao_heroi("npc/sylvan_anao/idle", 88, flip=False) or Animacao([self.spr_sylvan], 0.1)
         self.anim_roland = self._carregar_animacao_heroi("npc/roland_paladino/idle", 84, flip=True) or Animacao([self.spr_roland], 0.1)
         self.anim_caelen = self._carregar_animacao_heroi("npc/caelen_clerigo/idle", 80, flip=False) or Animacao([self.spr_caelen], 0.1)
-        self.anim_halia = self._carregar_animacao_heroi("halia/novas_sprites/idle", 92, flip=True) or Animacao([self.spr_halia], 0.1)
+        self.anim_halia = self._carregar_animacao_heroi("halia/novas_sprites/idle", 92, flip=True, altura_corpo_base=120) or Animacao([self.spr_halia], 0.1)
 
         # 6. Iluminação Radial Suave Pré-Renderizada (Gaussian / Cosine Falloff)
         self._luz_fogo_suave = self._gerar_mapa_luz_suave(raio=430)
@@ -326,7 +325,7 @@ class MapaFlashbackAcampamento(CenarioBase):
         self.hitboxes.clear()
         self.itens_no_chao.clear()
 
-    def _carregar_animacao_heroi(self, pasta_rel, alt_alvo, flip=False):
+    def _carregar_animacao_heroi(self, pasta_rel, alt_alvo, flip=False, altura_corpo_base=None):
         """Carrega animação fluida em alta fidelidade a partir das novas sprites recortadas."""
         pasta_abs = os.path.join(PASTA_ASSETS, pasta_rel)
         if not os.path.exists(pasta_abs):
@@ -338,8 +337,11 @@ class MapaFlashbackAcampamento(CenarioBase):
             surf = ResourceManager.carregar_imagem(img_rel)
             if surf:
                 orig_w, orig_h = surf.get_size()
-                larg_alvo = max(1, int(orig_w * (alt_alvo / orig_h)))
-                surf_sc = pygame.transform.scale(surf, (larg_alvo, alt_alvo))
+                base_h = float(altura_corpo_base) if altura_corpo_base else float(orig_h)
+                fator = alt_alvo / max(1.0, base_h)
+                larg_alvo = max(1, int(round(orig_w * fator)))
+                alt_canvas = max(1, int(round(orig_h * fator)))
+                surf_sc = pygame.transform.scale(surf, (larg_alvo, alt_canvas))
                 if flip:
                     surf_sc = pygame.transform.flip(surf_sc, True, False)
                 frames.append(surf_sc)
@@ -417,21 +419,22 @@ class MapaFlashbackAcampamento(CenarioBase):
         return surf
 
     def _criar_sprite_halia(self):
-        """Gera Halia Jovem: maga com manto azul anil e cabelos prateados luminescentes."""
+        """Fallback de Halia: maga morena com capa verde e cajado rúnico."""
         gw, gh = 24, 34
         surf = pygame.Surface((gw, gh), pygame.SRCALPHA)
         contorno = (20, 18, 26)
         pele = (235, 195, 170)
-        manto = (45, 75, 145)
-        cabelo = (225, 230, 245)
+        manto = (46, 88, 56)
+        cabelo = (72, 46, 34)
         pygame.draw.rect(surf, contorno, (5, 12, 14, 20))
         pygame.draw.rect(surf, manto, (6, 13, 12, 18))
-        pygame.draw.rect(surf, (30, 50, 105), (8, 13, 8, 18))
+        pygame.draw.rect(surf, (30, 62, 38), (8, 13, 8, 18))
         pygame.draw.rect(surf, contorno, (5, 2, 14, 13))
         pygame.draw.rect(surf, cabelo, (6, 3, 12, 11))
         pygame.draw.rect(surf, pele, (8, 5, 8, 7))
-        pygame.draw.rect(surf, (60, 130, 230), (9, 7, 2, 2))
-        pygame.draw.rect(surf, (60, 130, 230), (13, 7, 2, 2))
+        pygame.draw.rect(surf, (70, 125, 95), (9, 7, 2, 2))
+        pygame.draw.rect(surf, (70, 125, 95), (13, 7, 2, 2))
+        pygame.draw.line(surf, (105, 72, 46), (20, 6), (20, 32), 2)
         return surf
 
     def atualizar(self, dt=0.016):
@@ -445,11 +448,11 @@ class MapaFlashbackAcampamento(CenarioBase):
         if self.frames_fumaca:
             self.frame_fumaca_idx = (self.frame_fumaca_idx + 8.0 * dt) % len(self.frames_fumaca)
 
-        # Atualiza animações dos heróis
-        if self.anim_sylvan: self.anim_sylvan.atualizar()
-        if self.anim_roland: self.anim_roland.atualizar()
-        if self.anim_caelen: self.anim_caelen.atualizar()
-        if self.anim_halia: self.anim_halia.atualizar()
+        # Atualiza animações dos heróis com base no tempo real
+        if self.anim_sylvan: self.anim_sylvan.atualizar(dt)
+        if self.anim_roland: self.anim_roland.atualizar(dt)
+        if self.anim_caelen: self.anim_caelen.atualizar(dt)
+        if self.anim_halia: self.anim_halia.atualizar(dt)
 
         # Atualiza vaga-lumes
         for vl in self.vaga_lumes:
@@ -710,7 +713,12 @@ class MapaFlashbackAcampamento(CenarioBase):
         # Halia (em primeiro plano à direita, jovem maga acolhida no calor da chama)
         spr_hal = self.anim_halia.get_imagem() if self.anim_halia else self.spr_halia
         if spr_hal:
-            tela.blit(spr_hal, (755, 382 + bob_halia))
+            if spr_hal.get_height() > 100:
+                bx_hal = 779 - (spr_hal.get_width() // 2)
+                by_hal = 474 - spr_hal.get_height() + bob_halia
+                tela.blit(spr_hal, (bx_hal, by_hal))
+            else:
+                tela.blit(spr_hal, (755, 382 + bob_halia))
             # Grimório aberto com runas luminescentes, cristal azul e bolsa de componentes
             self._desenhar_artefatos_halia(tela, 825, 410)
 

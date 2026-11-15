@@ -93,9 +93,9 @@
         "descricao": "Evoca ventos suaves impregnados de energia vital para restaurar vida.",
         "tipo": "CURA",
         "elemento": "SAGRADO",
-        "custo_mana": 15,
+        "custo_mana": 16,
         "alvo_tipo": "PROPRIO",
-        "poder_base": 28
+        "poder_base": 24
     },
     "vendaval_cortante": {
         "id_acao": "vendaval_cortante",
@@ -103,7 +103,7 @@
         "descricao": "Gira o cajado invocando lâminas de vento que varrem e fustigam todos os adversários no campo.",
         "tipo": "MAGICO",
         "elemento": "VENTO",
-        "custo_mana": 20,
+        "custo_mana": 18,
         "alvo_tipo": "TODOS_INIMIGOS",
         "poder_base": 14
     },
@@ -377,12 +377,26 @@
         "descricao": "Exala uma torrente ardente de chamas ancestrais que incendeia o alvo.",
         "tipo": "MAGICO",
         "elemento": "FOGO",
-        "custo_mana": 14,
+        "custo_mana": 16,
         "alvo_tipo": "INIMIGO_UNICO",
-        "poder_base": 22,
+        "poder_base": 50,
         "condicao_aplicada": {
             "id_condicao": "queimadura",
-            "chance": 50
+            "chance": 65
+        }
+    },
+    "garra_draconica": {
+        "id_acao": "garra_draconica",
+        "nome": "Garra Dracônica",
+        "descricao": "Rasga o alvo com garras rubras colossais com chance de provocar sangramento.",
+        "tipo": "FISICO",
+        "elemento": "FISICO",
+        "custo_mana": 0,
+        "alvo_tipo": "INIMIGO_UNICO",
+        "poder_base": 20,
+        "condicao_aplicada": {
+            "id_condicao": "sangramento",
+            "chance": 25
         }
     },
     "batida_de_asas": {
@@ -393,7 +407,7 @@
         "elemento": "FISICO",
         "custo_mana": 0,
         "alvo_tipo": "TODOS_INIMIGOS",
-        "poder_base": 15
+        "poder_base": 18
     },
     "escamas_incandescentes": {
         "id_acao": "escamas_incandescentes",

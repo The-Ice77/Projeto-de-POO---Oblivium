@@ -4,6 +4,7 @@ from src.utils.colors import CARVAO_PROFUNDO, MARFIM_OFFWHITE, CINZA_LINHO, UI_T
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
 from src.ui.ui_utils import quebrar_texto_em_linhas, desenhar_flor_botanica
+from src.ui.scenes.texto_editorial import ApresentacaoTextoEditorial
 from src.mechanics.cutscenes import CenaBase
 
 class Intro(CenaBase):
@@ -37,7 +38,7 @@ class Intro(CenaBase):
         self.alpha = 255.0
         self.estado_efeito = "DIGITANDO" # "DIGITANDO", "HOLD", "FADE_OUT"
         
-        # Sistema de máquina de escrever
+        # Sistema de máquina de escrever compartilhado pela base editorial
         self.caractere_atual = 0.0
         self.velocidade_digitacao = 0.45 # ~27 caracteres por segundo
         self.velocidade_fade = 5
@@ -45,6 +46,31 @@ class Intro(CenaBase):
         self.tempo_hold_acumulado = 0.0
         self.tempo_inicio_hold = 0
         self.tempo_inicio_intro = 0
+        self.apresentacao = ApresentacaoTextoEditorial(
+            game=self.game,
+            largura=self.largura,
+            altura=self.altura,
+            fonte_texto=self.fonte,
+            fonte_dica=self.fonte_pular,
+            margem_horizontal=240,
+            altura_linha=40,
+            deslocamento_y=-20,
+            velocidade_base=self.velocidade_digitacao,
+            mostrar_flor=True,
+            pos_y_dica_offset=45,
+            dicas=(
+                "[ Pressione ENTER / ESPAÇO ou Clique para acelerar ]",
+                "[ Pressione ENTER / ESPAÇO ou Clique para prosseguir ]",
+            ),
+        )
+        self._sincronizar_slide_atual()
+
+    def _sincronizar_slide_atual(self):
+        if self.indice_atual < len(self.textos):
+            self.apresentacao.game = self.game
+            self.apresentacao.velocidade_base = self.velocidade_digitacao
+            self.apresentacao.definir_conteudo([(self.textos[self.indice_atual], MARFIM_OFFWHITE)])
+            self.caractere_atual = 0.0
 
     def iniciar(self, on_concluido=None):
         self._reiniciar_estado_execucao(on_concluido=on_concluido)
@@ -55,7 +81,19 @@ class Intro(CenaBase):
         self.estado_efeito = "DIGITANDO"
         self.tempo_hold_acumulado = 0.0
         self.tempo_inicio_intro = pygame.time.get_ticks()
+        self._sincronizar_slide_atual()
         self.efeito_petalas.reiniciar(inicializar_na_tela=True)
+        self.efeito_petalas.definir_opacidade_alvo(0.78)
+        if self.game and getattr(self.game, "audio", None):
+            self.game.audio.tocar_musica(
+                "cutscene_intro", loop=-1, fade_ms=900, salvar_anterior=False, contexto="intro"
+            )
+
+    def obter_areas_protegidas(self, largura=None, altura=None, margem=28):
+        """Calcula retângulos reais da frase inteira, flor e dica de rodapé com margem."""
+        w = largura or self.largura
+        h = altura or self.altura
+        return self.apresentacao.obter_areas_protegidas(w, h, margem=margem)
 
     def handle_event(self, evento):
         """Processa teclado e clique para avançar ou pular a introdução."""
@@ -83,8 +121,8 @@ class Intro(CenaBase):
             
         texto_atual = self.textos[self.indice_atual]
         if self.estado_efeito == "DIGITANDO":
-            # Se ainda estiver digitando, completa a frase imediatamente
-            self.caractere_atual = float(len(texto_atual))
+            self.apresentacao.completar_digitacao()
+            self.caractere_atual = float(self.apresentacao.total_caracteres)
             self.estado_efeito = "HOLD"
             self.tempo_hold_acumulado = 0.0
             self.tempo_inicio_hold = pygame.time.get_ticks()
@@ -111,20 +149,20 @@ class Intro(CenaBase):
             dt = 1.0 / 60.0
         fator_quadro = dt * 60.0
             
-        # Atualiza a chuva de pétalas continuamente
-        self.efeito_petalas.atualizar(dt)
+        # Atualiza a chuva de pétalas continuamente com fade suave em leitura
+        em_leitura = self.indice_atual < len(self.textos) and self.estado_efeito in ("DIGITANDO", "HOLD")
+        self.efeito_petalas.atualizar(dt, alpha_alvo=0.78 if em_leitura else 1.0)
         
         if self.indice_atual >= len(self.textos):
             self.finalizar()
             return False
             
-        texto_atual = self.textos[self.indice_atual]
-        total_chars = len(texto_atual)
-        
         if self.estado_efeito == "DIGITANDO":
-            self.caractere_atual += self.velocidade_digitacao * fator_quadro
-            if self.caractere_atual >= total_chars:
-                self.caractere_atual = float(total_chars)
+            self.apresentacao.game = self.game
+            self.apresentacao.velocidade_base = self.velocidade_digitacao
+            terminou = self.apresentacao.atualizar(dt)
+            self.caractere_atual = self.apresentacao.caractere_atual
+            if terminou or self.apresentacao.esta_completa():
                 self.estado_efeito = "HOLD"
                 self.tempo_hold_acumulado = 0.0
                 self.tempo_inicio_hold = pygame.time.get_ticks()
@@ -145,64 +183,17 @@ class Intro(CenaBase):
                 self.indice_atual += 1
                 if self.indice_atual >= len(self.textos):
                     self.finalizar()
+                else:
+                    self._sincronizar_slide_atual()
                     
         return self.ativo
 
     def desenhar(self, tela): 
-        tela.fill(CARVAO_PROFUNDO)
-        
-        # 1. Desenha as pétalas caindo em segundo plano
-        self.efeito_petalas.desenhar(tela)
-        
-        if self.indice_atual < len(self.textos):
-            texto = self.textos[self.indice_atual]
-            
-            # Quebra o texto garantindo largura pré-calculada fixa
-            linhas = quebrar_texto_em_linhas(texto, self.fonte, self.largura - 240)
-            altura_linha = 40
-            altura_total = len(linhas) * altura_linha
-            y_inicial = self.altura // 2 - altura_total // 2 - 20
-            
-            # Flor Botânica no topo
-            desenhar_flor_botanica(tela, self.largura // 2, y_inicial - 30, cor=CINZA_LINHO, escala=0.7)
-            
-            # Renderização de máquina de escrever estável caractere a caractere
-            total_visivel = int(self.caractere_atual)
-            caracteres_acumulados = 0
-            piscar_cursor = (pygame.time.get_ticks() // 420) % 2 == 0
-            
-            for i, linha in enumerate(linhas):
-                len_linha = len(linha)
-                largura_linha_completa = self.fonte.size(linha)[0]
-                x_inicio_linha = self.largura // 2 - largura_linha_completa // 2
-                
-                if total_visivel <= caracteres_acumulados:
-                    break
-                elif total_visivel >= caracteres_acumulados + len_linha:
-                    texto_render = linha
-                    caracteres_acumulados += len_linha
-                    desenhar_cursor = (i == len(linhas) - 1 and self.estado_efeito == "DIGITANDO" and piscar_cursor)
-                else:
-                    chars_nesta = total_visivel - caracteres_acumulados
-                    texto_render = linha[:chars_nesta]
-                    caracteres_acumulados += len_linha
-                    desenhar_cursor = (self.estado_efeito == "DIGITANDO" and piscar_cursor)
-                
-                if texto_render:
-                    render = self.fonte.render(texto_render, True, MARFIM_OFFWHITE)
-                    if self.alpha < 255:
-                        render.set_alpha(int(max(0, min(255, self.alpha))))
-                    tela.blit(render, (x_inicio_linha, y_inicial + i * altura_linha))
-                    
-                    if desenhar_cursor:
-                        x_cursor = x_inicio_linha + render.get_width() + 2
-                        y_cursor = y_inicial + i * altura_linha + 6
-                        cursor_surf = pygame.Surface((2, 22), pygame.SRCALPHA)
-                        alpha_c = int(max(0, min(255, self.alpha))) if self.alpha < 255 else 200
-                        cursor_surf.fill((*MARFIM_OFFWHITE[:3], alpha_c))
-                        tela.blit(cursor_surf, (x_cursor, y_cursor))
-            
-            # Aviso editorial no rodapé
-            texto_aviso = "[ Pressione ENTER / ESPAÇO ou Clique para acelerar ]" if self.estado_efeito == "DIGITANDO" else "[ Pressione ENTER / ESPAÇO ou Clique para prosseguir ]"
-            aviso = self.fonte_pular.render(texto_aviso, True, UI_TEXTO_APAGADO)
-            tela.blit(aviso, (self.largura // 2 - aviso.get_width() // 2, self.altura - 45))
+        em_leitura = self.indice_atual < len(self.textos) and self.estado_efeito in ("DIGITANDO", "HOLD")
+        self.apresentacao.desenhar(
+            tela,
+            efeito_petalas=self.efeito_petalas,
+            alpha=self.alpha,
+            alpha_petalas=0.78 if em_leitura else 1.0,
+            apenas_fundo=(self.indice_atual >= len(self.textos)),
+        )

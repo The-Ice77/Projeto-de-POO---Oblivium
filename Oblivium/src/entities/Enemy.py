@@ -76,57 +76,32 @@ class Enemy(Entidade):
         """Carrega o pacote completo de animações do inimigo a partir do ResourceManager."""
         self.pasta_sprites = pasta_sprites
         pasta_low = pasta_sprites.lower()
+        tabela_arquetipos = [
+            (("dragao",), 2.0, (220, 130), False, 1.03, 186, (195, 42, 36), False),
+            (("superior", "gulosao", "grande"), 0.70, (55, 50), False, 1.63, 140, (150, 0, 200), False),
+            (("olho",), 0.65, (42, 42), True, 1.27, 80, (140, 30, 90), False),
+            (("pequeno",), 0.60, (38, 38), False, 1.42, 94, (110, 25, 70), False),
+            (("banco",), 0.55, (36, 36), True, 1.70, 92, (50, 80, 140), False),
+            (("mimico",), 0.70, (46, 40), False, 1.57, 118, (145, 45, 55), True),
+            (("orc",), 0.60, (44, 42), False, 1.50, 126, (90, 130, 70), False),
+        ]
+        escala, dims, flutuante, escala_combate, alt_combate, cor, eh_mimico = (
+            0.55, (36, 36), False, 1.57, 94, (80, 30, 110), False
+        )
+        for chaves, esc, dm, flut, esc_c, alt_c, cor_arq, mim_flag in tabela_arquetipos:
+            if any(k in pasta_low for k in chaves):
+                escala, dims, flutuante, escala_combate, alt_combate, cor, eh_mimico = (
+                    esc, dm, flut, esc_c, alt_c, cor_arq, mim_flag
+                )
+                break
 
-        if "dragao" in pasta_low:
-            escala = 2.0
-            self.largura = 220
-            self.altura = 130
-            self.flutuante = False
-            self.escala_combate = 1.15
-            self.cor = (195, 42, 36)
-        elif "superior" in pasta_low or "gulosao" in pasta_low or "grande" in pasta_low:
-            escala = 0.70
-            self.largura = 55
-            self.altura = 50
-            self.flutuante = False
-            self.escala_combate = 1.05
-            self.cor = (150, 0, 200)
-        elif "olho" in pasta_low:
-            escala = 0.65
-            self.largura = 42
-            self.altura = 42
-            self.flutuante = True
-            self.escala_combate = 0.95
-            self.cor = (140, 30, 90)
-        elif "pequeno" in pasta_low:
-            escala = 0.60
-            self.largura = 38
-            self.altura = 38
-            self.flutuante = False
-            self.escala_combate = 0.90
-            self.cor = (110, 25, 70)
-        elif "banco" in pasta_low:
-            escala = 0.55
-            self.largura = 36
-            self.altura = 36
-            self.flutuante = True
-            self.escala_combate = 0.85
-            self.cor = (50, 80, 140)
-        elif "mimico" in pasta_low:
-            escala = 0.70
-            self.largura = 46
-            self.altura = 40
-            self.flutuante = False
-            self.escala_combate = 1.05
-            self.cor = (145, 45, 55)
+        self.largura, self.altura = dims
+        self.flutuante = flutuante
+        self.escala_combate = escala_combate
+        self.altura_combate_alvo = alt_combate
+        self.cor = cor
+        if eh_mimico:
             self.eh_mimico = True
-        else: # demonio_inferior / padrão
-            escala = 0.55
-            self.largura = 36
-            self.altura = 36
-            self.flutuante = False
-            self.escala_combate = 0.85
-            self.cor = (80, 30, 110)
 
         self.animacoes = ResourceManager.carregar_animacoes_inimigo(pasta_sprites, escala_fator=escala)
         if self.eh_mimico and getattr(self, "disfarcado", False) and "corpo" in self.animacoes:
@@ -138,7 +113,7 @@ class Enemy(Entidade):
 
     def iniciar_revelacao(self):
         """Inicia a sequência de revelação do Mímico, saindo da forma de cadáver e erguendo-se como monstro feroz."""
-        if not getattr(self, 'eh_mimico', False) or getattr(self, 'revelado', False):
+        if not getattr(self, 'eh_mimico', False) or getattr(self, 'revelado', False) or getattr(self, 'revelando', False):
             return
         self.disfarcado = False
         self.revelando = True
@@ -151,18 +126,29 @@ class Enemy(Entidade):
         self.revelado = True
         self.mudar_estado("idle")
 
-    def atualizar_animacao(self):
-        """Atualiza a animação corrente respeitando a transição de revelação do Mímico."""
-        if getattr(self, 'eh_mimico', False) and getattr(self, 'revelando', False):
-            anim = self.animacoes.get("reveal")
-            if anim:
-                anim.atualizar()
-                self.imagem_atual = anim.get_imagem()
-                if getattr(anim, "concluida", False):
-                    self.finalizar_revelacao()
+    def atualizar_animacao(self, dt=None):
+        """Atualiza a animação corrente respeitando a transição de revelação do Mímico e morte."""
+        if not getattr(self, 'vivo', True):
+            if self.estado_atual not in ("dead", "morte", "morrer"):
+                self.mudar_estado("dead")
+            anim_m = self.animacoes.get(self.estado_atual)
+            if anim_m and anim_m.frames:
+                anim_m.atualizar(dt)
+            self._sincronizar_imagem_atual()
             return
 
-        super().atualizar_animacao()
+        if getattr(self, 'eh_mimico', False) and getattr(self, 'revelando', False):
+            anim = self.animacoes.get("reveal")
+            if anim and anim.frames:
+                anim.atualizar(dt)
+                self._sincronizar_imagem_atual()
+                if getattr(anim, "concluida", False):
+                    self.finalizar_revelacao()
+            else:
+                self.finalizar_revelacao()
+            return
+
+        super().atualizar_animacao(dt)
 
     def mudar_estado(self, novo_estado):
         # Se for um mímico já revelado (ex: em combate), impede regressão para forma de corpo de soldado
@@ -178,7 +164,7 @@ class Enemy(Entidade):
     def atualizar_movimento_mapa(self, alvo_x, alvo_y, lista_inimigos=None):
         if not getattr(self, 'vivo', True) or not getattr(self, 'agressivo', True):
             return
-        if getattr(self, 'eh_mimico', False) and getattr(self, 'disfarcado', False):
+        if getattr(self, 'eh_mimico', False) and (getattr(self, 'disfarcado', False) or getattr(self, 'revelando', False)):
             return
 
         dx_alvo = alvo_x - self.x
@@ -217,9 +203,9 @@ class Enemy(Entidade):
     def desenhar(self, tela):
         if not getattr(self, 'vivo', True):
             return
-            
-        if hasattr(self, 'atualizar_animacao'):
-            self.atualizar_animacao()
+
+        if hasattr(self, '_sincronizar_imagem_atual'):
+            self._sincronizar_imagem_atual()
             
         imagem = getattr(self, 'imagem_atual', None)
             
@@ -254,7 +240,8 @@ class Enemy(Entidade):
     def calcular_dano_base(self):
         """Calcula o dano bruto baseado no dano base + modificador de força/destreza."""
         variacao = random.randint(-1, 2)
-        mod = max(0, self.atributos.mod_for)
+        attrs = self.obter_atributos_efetivos() if hasattr(self, "obter_atributos_efetivos") else self.atributos
+        mod = max(0, attrs.mod_for)
         return max(1, self.dano + mod + variacao)
 
     def atacar(self, alvo):

@@ -92,7 +92,15 @@ class CombatAIController:
                 s._avancar_para_proximo_turno()
                 return
 
+            if entidade_atual is not s.jogador:
+                self.verificar_e_anunciar_mudanca_fase(entidade_atual)
+
             if impede_acao:
+                if getattr(entidade_atual, "preparando_sopro", False):
+                    entidade_atual.preparando_sopro = False
+                    s.adicionar_log(
+                        f"{entidade_atual.nome} perdeu a concentração e teve o sopro interrompido!"
+                    )
                 # Dá tempo para o jogador ler que a entidade perdeu o turno
                 s.timer_acao = s._ajustar_timer(70)
                 s.estado_combate = "EXECUTANDO_ACAO"
@@ -102,7 +110,12 @@ class CombatAIController:
         if entidade_atual is s.jogador:
             # Regeneração passiva natural de mana por turno da Grã-Maga
             if s.jogador.mana_atual < s.jogador.mana_maxima:
-                mana_reg = max(4, 4 + s.jogador.atributos.mod_sab + (s.jogador.atributos.mod_pre // 2))
+                attrs_jog = (
+                    s.jogador.obter_atributos_efetivos()
+                    if hasattr(s.jogador, "obter_atributos_efetivos")
+                    else s.jogador.atributos
+                )
+                mana_reg = min(4, max(2, 2 + (attrs_jog.mod_sab // 2)))
                 s.jogador.recuperar_mana(mana_reg)
                 hx, hy = s._obter_posicao_combate(s.jogador)
                 s.adicionar_texto_flutuante(f"+{mana_reg} MP", hx + 30, hy + 15, BARRA_MANA, duracao=60)
@@ -114,18 +127,21 @@ class CombatAIController:
             mana_atual = getattr(entidade_atual, "mana_atual", 0)
             mana_max = getattr(entidade_atual, "mana_maxima", 20)
             if mana_atual < mana_max and hasattr(entidade_atual, "recuperar_mana"):
-                if hasattr(entidade_atual, "atributos") and hasattr(
-                    entidade_atual.atributos, "calcular_regeneracao_mana"
-                ):
+                attrs_ini = (
+                    entidade_atual.obter_atributos_efetivos()
+                    if hasattr(entidade_atual, "obter_atributos_efetivos")
+                    else getattr(entidade_atual, "atributos", None)
+                )
+                if attrs_ini and hasattr(attrs_ini, "calcular_regeneracao_mana"):
                     bonus_chefe = (
                         2
                         if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, "eh_chefe", False))
                         else 0
                     )
-                    mana_reg = entidade_atual.atributos.calcular_regeneracao_mana(base=3 + bonus_chefe)
+                    mana_reg = attrs_ini.calcular_regeneracao_mana(base=3 + bonus_chefe)
                 else:
-                    mod_sab = getattr(entidade_atual.atributos, "mod_sab", 0) if hasattr(entidade_atual, "atributos") else 0
-                    mod_pre = getattr(entidade_atual.atributos, "mod_pre", 0) if hasattr(entidade_atual, "atributos") else 0
+                    mod_sab = getattr(attrs_ini, "mod_sab", 0) if attrs_ini else 0
+                    mod_pre = getattr(attrs_ini, "mod_pre", 0) if attrs_ini else 0
                     bonus_chefe = (
                         2
                         if (isinstance(entidade_atual, Boss) or getattr(entidade_atual, "eh_chefe", False))
@@ -141,13 +157,32 @@ class CombatAIController:
             s.estado_combate = "TURNO_INIMIGO"
             s.timer_acao = s._ajustar_timer(55)
 
-    def executar_turno_inimigo(self, inimigo):
-        """IA do inimigo: seleciona habilidade temática e executa contra Halia."""
-        s = self.screen
-        s.estado_combate = "EXECUTANDO_ACAO"
-        s.timer_acao = s._ajustar_timer(75)
+    def verificar_e_anunciar_mudanca_fase(self, entidade):
+        """Aciona a Fase 2 em chefes <= 50% HP e anuncia no log e tela."""
+        if (
+            entidade is not None
+            and getattr(entidade, "vivo", False)
+            and hasattr(entidade, "verificar_mudanca_fase")
+            and entidade.verificar_mudanca_fase()
+        ):
+            s = self.screen
+            ex, ey = s._obter_posicao_combate(entidade)
+            s.adicionar_log(
+                f"✦ {entidade.nome} despertou sua FÚRIA (Fase 2)! (+15% de Poder)"
+            )
+            s.adicionar_texto_flutuante(
+                "FASE 2: FÚRIA!", ex - 50, ey - 45, (255, 190, 70), duracao=95
+            )
+            s.shake_timers[entidade] = 16
+            return True
+        return False
 
-        # Filtra habilidades que o inimigo tem mana para usar
+    @staticmethod
+    def selecionar_acao_inimigo(inimigo):
+        """Seleciona a ação real do inimigo ou chefe usando regras do bestiário e custo de mana."""
+        if hasattr(inimigo, "decidir_acao_ia"):
+            return inimigo.decidir_acao_ia()
+
         kit = getattr(inimigo, "habilidades", ["garras_sombrias", "golpe_sombrio"])
         acoes_disponiveis = []
         for id_hab in kit:
@@ -171,16 +206,34 @@ class CombatAIController:
         if acoes_disponiveis:
             magias_com_custo = [a for a in acoes_disponiveis if a.custo_mana > 0]
             if magias_com_custo and random.random() < 0.65:
-                acao = random.choice(magias_com_custo)
-            else:
-                acao = random.choice(acoes_disponiveis)
-        else:
-            acao = (
-                SkillsRegistry.get("garras_sombrias")
-                or SkillsRegistry.get("golpe_sombrio")
-                or SkillsRegistry.get("investida_sombria")
-                or SkillsRegistry.get("ataque_basico")
+                return random.choice(magias_com_custo)
+            return random.choice(acoes_disponiveis)
+
+        return (
+            SkillsRegistry.get("garras_sombrias")
+            or SkillsRegistry.get("golpe_sombrio")
+            or SkillsRegistry.get("investida_sombria")
+            or SkillsRegistry.get("ataque_basico")
+        )
+
+    def executar_turno_inimigo(self, inimigo):
+        """IA do inimigo: seleciona habilidade temática e executa contra Halia."""
+        s = self.screen
+        s.estado_combate = "EXECUTANDO_ACAO"
+        s.timer_acao = s._ajustar_timer(75)
+
+        decisao = self.selecionar_acao_inimigo(inimigo)
+        if decisao == "PREPARAR_SOPRO":
+            ix, iy = s._obter_posicao_combate(inimigo)
+            s.adicionar_log(
+                f"[!] {inimigo.nome} está inspirando chamas profundas... PREPARE-SE!"
             )
+            s.adicionar_texto_flutuante(
+                "PREPARANDO SOPRO!", ix - 50, iy - 50, (255, 200, 110), duracao=95
+            )
+            s.shake_timers[inimigo] = 14
+            return
+        acao = decisao
 
         # Alvo apropriado conforme o tipo da habilidade
         alvo_acao = (
@@ -200,10 +253,20 @@ class CombatAIController:
 
         resultado = acao.executar(inimigo, alvo_acao)
 
+        nome_ini_l = str(getattr(inimigo, "nome", "")).lower()
+        eh_dragao_ini = ("drag" in nome_ini_l or "ignis" in nome_ini_l)
+        if eh_dragao_ini:
+            s._tocar_sfx("rugido_monstro")
+        elif "slime" in nome_ini_l:
+            s._tocar_sfx("slime")
+        if getattr(acao, "custo_mana", 0) > 0 or getattr(acao, "tipo", "").upper() == "MAGIA" or getattr(acao, "tipo_dano", "") == "MAGICO":
+            s._tocar_sfx_elemento(getattr(acao, "elemento", "ARCANO"), eh_dragao=eh_dragao_ini)
+
         if resultado.get("mensagem"):
             s.adicionar_log(resultado["mensagem"])
 
         # Redundância imediata no Log: garante que 100% das ações e ataques dos inimigos e do Dragão aparecem no histórico
+        from src.utils.formatting import formatar_numero_curto
         for r_entry in resultado.get("resultados", []):
             r_data = r_entry.get("dados") if ("dados" in r_entry and isinstance(r_entry["dados"], dict)) else r_entry
             msg_alvo = r_data.get("mensagem")
@@ -217,9 +280,11 @@ class CombatAIController:
                         msg_alvo = f"{inimigo.nome} usou {acao.nome}, mas errou o ataque contra {alvo_nome}!"
                 elif r_data.get("dano", 0) > 0:
                     crit_txt = " (CRÍTICO!)" if r_data.get("critico") else ""
-                    msg_alvo = f"{inimigo.nome} usou {acao.nome} em {alvo_nome} causando {r_data['dano']} de dano{crit_txt}."
+                    dano_str = formatar_numero_curto(r_data['dano'])
+                    msg_alvo = f"{inimigo.nome} usou {acao.nome} em {alvo_nome} causando {dano_str} de dano{crit_txt}."
                 elif r_data.get("cura", 0) > 0:
-                    msg_alvo = f"{inimigo.nome} usou {acao.nome} restaurando {r_data['cura']} de vida."
+                    cura_str = formatar_numero_curto(r_data['cura'])
+                    msg_alvo = f"{inimigo.nome} usou {acao.nome} restaurando {cura_str} de vida."
             if msg_alvo:
                 s.adicionar_log(msg_alvo)
                 r_entry["_log_registrado"] = True
@@ -228,7 +293,7 @@ class CombatAIController:
         # Feedback de mana recuperada e vulnerabilidade na própria entidade conjuradora
         mana_rec = float(resultado.get("mana_recuperada", 0) or 0)
         if mana_rec > 0:
-            mana_fmt = int(mana_rec) if mana_rec.is_integer() else f"{mana_rec:.1f}"
+            mana_fmt = formatar_numero_curto(mana_rec)
             ix, iy = s._obter_posicao_combate(inimigo)
             s.adicionar_texto_flutuante(f"+{mana_fmt} MP", ix + 30, iy + 15, BARRA_MANA, duracao=80)
 
@@ -296,7 +361,7 @@ class CombatAIController:
                     msg_morte = s._gerar_mensagem_morte_acao(s.jogador, acao)
                     s.adicionar_log(msg_morte)
             elif cura_r > 0:
-                s._tocar_sfx("magia_cast")
+                s._tocar_sfx("magia_cura")
                 cura_fmt = int(cura_r) if cura_r.is_integer() else f"{cura_r:.1f}"
                 cor_cura = BARRA_VIDA_JOGADOR if alvo_r is s.jogador else BARRA_VIDA_INIMIGO
                 s.adicionar_texto_flutuante(f"+{cura_fmt}", hx + 30, hy - 10, cor_cura)
@@ -328,11 +393,15 @@ class CombatAIController:
         # 1. Chefes e oponentes imponentes não permitem fuga
         hx, hy = s._obter_posicao_combate(s.jogador)
         for inimigo in inimigos_vivos:
+            attrs_inimigo = (
+                inimigo.obter_atributos_efetivos()
+                if hasattr(inimigo, "obter_atributos_efetivos")
+                else getattr(inimigo, "atributos", None)
+            )
             if (
                 isinstance(inimigo, Boss)
                 or getattr(inimigo, "eh_chefe", False)
-                or getattr(inimigo, "atributos", None)
-                and inimigo.atributos.forca >= 28
+                or (attrs_inimigo is not None and attrs_inimigo.forca >= 28)
             ):
                 s._tocar_sfx("ui_erro")
                 s.adicionar_log(CombatNarrator.obter_mensagem("fuga_impossivel"))
@@ -349,10 +418,12 @@ class CombatAIController:
 
         # 2. Cálculo de chance baseado em Destreza, fadiga e quantidade de oponentes
         des_inimigos = sum(
-            getattr(i, "atributos", None).destreza if hasattr(i, "atributos") else 10
+            (i.obter_atributos_efetivos() if hasattr(i, "obter_atributos_efetivos") else getattr(i, "atributos", None)).destreza
+            if hasattr(i, "atributos") or hasattr(i, "obter_atributos_efetivos") else 10
             for i in inimigos_vivos
         ) / max(1, len(inimigos_vivos))
-        des_jogador = s.jogador.atributos.destreza
+        attrs_jog = s.jogador.obter_atributos_efetivos() if hasattr(s.jogador, "obter_atributos_efetivos") else s.jogador.atributos
+        des_jogador = attrs_jog.destreza
 
         # Chance base: 45% + vantagem de destreza
         chance_fuga = 45.0 + ((des_jogador - des_inimigos) * 3.5)
@@ -427,7 +498,7 @@ class CombatAIController:
                     break
         audio = AudioManager.get_instance()
         if audio:
-            audio.tocar_musica("vitoria", loop=0, fade_ms=400, salvar_anterior=False)
+            audio.tocar_musica("vitoria", loop=0, fade_ms=120, salvar_anterior=False, contexto="resultado_combate")
 
     def finalizar_derrota(self):
         """Configura estado de derrota."""
@@ -436,23 +507,37 @@ class CombatAIController:
         s.estado_combate = "DERROTA"
         audio = AudioManager.get_instance()
         if audio:
-            audio.tocar_musica("derrota", loop=0, fade_ms=400, salvar_anterior=False)
+            audio.tocar_musica("derrota", loop=0, fade_ms=400, salvar_anterior=False, contexto="resultado_combate")
 
     def concluir_fechamento_combate(self):
-        """Dispara os callbacks configurados ao encerrar e restaura a trilha do mapa."""
+        """Dispara os callbacks configurados ao encerrar e restaura a trilha apenas se necessário."""
         s = self.screen
         s.efeitos_visuais.limpar()
         if hasattr(s.jogador, "sair_combate"):
             s.jogador.sair_combate()
 
-        # Restaura a música de exploração que tocava antes do combate
         audio = AudioManager.get_instance()
-        if audio:
-            audio.restaurar_musica_anterior(fade_ms=600)
+        token_combate = getattr(audio, "_token_combate", None) if audio else None
+        estado_apos = s.estado_combate
 
-        if s.estado_combate == "VITORIA" and callable(s.on_vitoria):
+        if estado_apos == "VITORIA" and callable(s.on_vitoria):
             s.on_vitoria()
-        elif s.estado_combate == "DERROTA" and callable(s.on_derrota):
+        elif estado_apos == "DERROTA" and callable(s.on_derrota):
             s.on_derrota()
-        elif s.estado_combate == "FUGIU" and callable(s.on_fuga):
+        elif estado_apos == "FUGIU" and callable(s.on_fuga):
             s.on_fuga()
+
+        if audio:
+            jogo = getattr(s, "game", None)
+            if (
+                jogo is not None
+                and getattr(jogo, "nome_estado_atual", "") == "JOGANDO"
+                and getattr(audio, "contexto_musica", "") in ("combate", "resultado_combate")
+                and hasattr(jogo, "sincronizar_trilha_cenario")
+            ):
+                jogo.sincronizar_trilha_cenario(fade_ms=600)
+            else:
+                try:
+                    audio.restaurar_musica_anterior(fade_ms=600, token_esperado=token_combate)
+                except TypeError:
+                    audio.restaurar_musica_anterior(fade_ms=600)

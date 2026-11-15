@@ -1,7 +1,6 @@
 # src/entities/Entity.py
 import pygame
 import math
-import os
 
 from abc import ABC
 from src.utils.resource_manager import Animacao
@@ -13,6 +12,8 @@ class Entidade(ABC):
     (Player/Halia, Inimigos comuns, Chefes e NPCs).
     Centraliza atributos, cálculo de mana/vida, condições e manipulação de sprites.
     """
+    _TURNOS_IMUNIDADE_CC = 1
+
     def __init__(self, nome, vida_maxima, x, y, velocidade, atributos=None, mana_maxima=None):
         self.nome = nome
         self.atributos = atributos if atributos is not None else Atributos()
@@ -36,6 +37,7 @@ class Entidade(ABC):
         self.vulneravel = False
         self.focado = False
         self.condicoes = [] # Lista de instâncias de Condicao ativas
+        self.imunidade_cc_turnos = 0
         
         self.largura = 40
         self.altura = 40
@@ -92,20 +94,20 @@ class Entidade(ABC):
         for estado, animacao in pacote.items():
             self.animacoes[estado] = animacao
 
-    def atualizar_animacao(self, dt=None):
-        """Atualiza o frame atual da animação baseada no estado da entidade."""
-        if not self.vivo and self.estado_atual not in ["morrer", "dead", "morte"]:
-            self.mudar_estado("morrer")
-            
+    def _tem_animacao_valida(self, chave):
+        anim = self.animacoes.get(chave)
+        return bool(anim and getattr(anim, "frames", None))
+
+    def _sincronizar_imagem_atual(self):
+        """Sincroniza `imagem_atual` a partir do quadro corrente sem avançar o cursor."""
         animacao = self.animacoes.get(self.estado_atual)
-        
         if animacao and animacao.frames:
-            animacao.atualizar()
             imagem_base = animacao.get_imagem()
-            
             if imagem_base:
-                # Se o estado for quadridirecional explícito (ex: esquerda/direita próprias), não espelha
-                tem_direcao_explicita = any(self.estado_atual.endswith(suf) for suf in ["_baixo", "_cima", "_direita", "_esquerda"])
+                tem_direcao_explicita = any(
+                    self.estado_atual.endswith(suf)
+                    for suf in ("_baixo", "_cima", "_direita", "_esquerda")
+                )
                 if not tem_direcao_explicita:
                     precisa_espelhar = (self.virado_direita != getattr(self, 'sprite_base_olha_direita', True))
                     if precisa_espelhar:
@@ -114,25 +116,47 @@ class Entidade(ABC):
                         self.imagem_atual = imagem_base
                 else:
                     self.imagem_atual = imagem_base
-            else:
-                self.imagem_atual = None
-        else:
-            self.imagem_atual = None
+                return
+        self.imagem_atual = None
+
+    def atualizar_animacao(self, dt=None):
+        """Atualiza o frame atual da animação baseada no estado da entidade."""
+        if not self.vivo and self.estado_atual not in ["morrer", "dead", "morte"]:
+            self.mudar_estado("morrer")
+
+        animacao = self.animacoes.get(self.estado_atual)
+        if animacao and animacao.frames:
+            animacao.atualizar(dt)
+        self._sincronizar_imagem_atual()
 
     def mudar_estado(self, novo_estado):
         """Altera o estado da animação e reseta o frame se o estado for novo."""
         # Suporte inteligente a mapeamento quadridirecional se disponível
-        if novo_estado == "idle" and f"idle_{self.direcao}" in self.animacoes:
+        if novo_estado == "idle" and self._tem_animacao_valida(f"idle_{self.direcao}"):
             novo_estado = f"idle_{self.direcao}"
-        elif novo_estado in ["andar", "walk"] and f"andar_{self.direcao}" in self.animacoes:
+        elif novo_estado in ["andar", "walk"] and self._tem_animacao_valida(f"andar_{self.direcao}"):
             novo_estado = f"andar_{self.direcao}"
-        elif novo_estado == "walk" and "andar" in self.animacoes and "walk" not in self.animacoes:
+        elif novo_estado in ["andar", "walk"] and self._tem_animacao_valida(f"walk_{self.direcao}"):
+            novo_estado = f"walk_{self.direcao}"
+        elif novo_estado.startswith("walk_") and not self._tem_animacao_valida(novo_estado):
+            dir_sufixo = novo_estado[5:]
+            for cand in (f"andar_{dir_sufixo}", "andar", "walk"):
+                if self._tem_animacao_valida(cand):
+                    novo_estado = cand
+                    break
+        elif novo_estado.startswith("andar_") and not self._tem_animacao_valida(novo_estado):
+            dir_sufixo = novo_estado[6:]
+            for cand in (f"walk_{dir_sufixo}", "andar", "walk"):
+                if self._tem_animacao_valida(cand):
+                    novo_estado = cand
+                    break
+        elif novo_estado == "walk" and self._tem_animacao_valida("andar") and not self._tem_animacao_valida("walk"):
             novo_estado = "andar"
-        elif novo_estado == "andar" and "andar" not in self.animacoes and "walk" in self.animacoes:
+        elif novo_estado == "andar" and not self._tem_animacao_valida("andar") and self._tem_animacao_valida("walk"):
             novo_estado = "walk"
         elif novo_estado in ["morrer", "dead", "morte"]:
             for cand in ["dead", "morte", "morrer"]:
-                if cand in self.animacoes:
+                if self._tem_animacao_valida(cand):
                     novo_estado = cand
                     break
 
@@ -143,6 +167,7 @@ class Entidade(ABC):
             # Se for a mesma animação subjacente (ex: alias andar/walk), preserva o frame
             if anim_nova and anim_nova is not anim_atual:
                 anim_nova.resetar()
+        self._sincronizar_imagem_atual()
 
     def definir_estado(self, novo_estado):
         """Alias para mudar_estado garantindo compatibilidade total em combate e animações."""
@@ -153,7 +178,7 @@ class Entidade(ABC):
             hitboxes_mapa = []
             
         if not self.vivo or (dx == 0 and dy == 0):
-            if f"idle_{self.direcao}" in self.animacoes:
+            if self._tem_animacao_valida(f"idle_{self.direcao}"):
                 self.mudar_estado(f"idle_{self.direcao}")
             else:
                 self.mudar_estado("idle")
@@ -166,11 +191,11 @@ class Entidade(ABC):
         else:
             self.direcao = "baixo" if dy > 0 else "cima"
 
-        if f"andar_{self.direcao}" in self.animacoes:
+        if self._tem_animacao_valida(f"andar_{self.direcao}"):
             self.mudar_estado(f"andar_{self.direcao}")
-        elif "andar" in self.animacoes:
+        elif self._tem_animacao_valida("andar"):
             self.mudar_estado("andar")
-        elif "walk" in self.animacoes:
+        elif self._tem_animacao_valida("walk"):
             self.mudar_estado("walk")
         else:
             self.mudar_estado("andar")
@@ -196,8 +221,8 @@ class Entidade(ABC):
                 elif dy < 0: self.y = parede.bottom
 
     def desenhar(self, tela):
-        # Atualiza o frame antes de desenhar
-        self.atualizar_animacao()
+        # Sincroniza o quadro atual sem avançar o cursor de animação
+        self._sincronizar_imagem_atual()
         
         if self.imagem_atual:
             largura_img = self.imagem_atual.get_width()
@@ -246,8 +271,17 @@ class Entidade(ABC):
         self.vulneravel = False
         self.focado = False
         self.condicoes.clear()
+        self.imunidade_cc_turnos = 0
         self.mudar_estado("idle")
         
+    def obter_atributos_efetivos(self):
+        """Retorna os atributos efetivos da entidade para cálculos de combate e defesa."""
+        return self.atributos
+
+    def obter_defesa_equipamento(self, tipo="fisico"):
+        """Retorna bônus fixo de defesa proveniente de equipamentos (0 para entidades sem inventário)."""
+        return 0
+
     def aplicar_dano(self, dano_bruto, tipo="fisico"):
         """
         Aplica dano considerando a defesa da entidade, postura defensiva e estado vulnerável.
@@ -256,7 +290,9 @@ class Entidade(ABC):
         if not self.vivo:
             return 0
             
-        defesa = self.atributos.calcular_defesa_fisica() if tipo == "fisico" else self.atributos.calcular_defesa_magica()
+        attrs = self.obter_atributos_efetivos() or self.atributos
+        defesa_attr = attrs.calcular_defesa_fisica() if tipo == "fisico" else attrs.calcular_defesa_magica()
+        defesa = defesa_attr + self.obter_defesa_equipamento(tipo)
         
         # Se estiver em postura defensiva, defesa amplificada e reduz dano recebido pela metade
         if self.defendendo:
@@ -275,16 +311,23 @@ class Entidade(ABC):
 
     def calcular_iniciativa(self):
         """Retorna a iniciativa para definir ordem de turnos."""
-        return self.atributos.calcular_iniciativa()
+        attrs = self.obter_atributos_efetivos() or self.atributos
+        return attrs.calcular_iniciativa()
 
     def adicionar_condicao(self, condicao):
-        """Aplica ou renova uma condição de estado na entidade."""
+        """Aplica ou renova uma condição de estado na entidade (retorna False se bloqueada por anti-stunlock)."""
+        if getattr(condicao, "tipo", "") == "CC":
+            if getattr(self, "imunidade_cc_turnos", 0) > 0:
+                return False
+            if any(getattr(c, "tipo", "") == "CC" for c in self.condicoes):
+                return False
         for c in self.condicoes:
             if c.id_condicao == condicao.id_condicao:
                 c.duracao = max(c.duracao, condicao.duracao)
                 c.intensidade = max(c.intensidade, condicao.intensidade)
-                return
+                return True
         self.condicoes.append(condicao)
+        return True
 
     def remover_condicao(self, id_condicao):
         """Remove uma condição específica da entidade."""
@@ -310,6 +353,14 @@ class Entidade(ABC):
             if cond.expirou() and cond in self.condicoes:
                 self.condicoes.remove(cond)
 
+        if impede_acao:
+            self.imunidade_cc_turnos = max(
+                getattr(self, "imunidade_cc_turnos", 0),
+                getattr(self, "_TURNOS_IMUNIDADE_CC", 1),
+            )
+        elif getattr(self, "imunidade_cc_turnos", 0) > 0:
+            self.imunidade_cc_turnos -= 1
+
         return relatorios, impede_acao
 
     @property
@@ -327,4 +378,5 @@ class Entidade(ABC):
         """Marca a entidade como morta, limpa condições ativas e transiciona para animação de morte."""
         self.vivo = False
         self.condicoes.clear()
+        self.imunidade_cc_turnos = 0
         self.mudar_estado("morrer")

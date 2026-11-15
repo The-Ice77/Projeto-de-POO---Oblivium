@@ -308,14 +308,64 @@ def obter_resumo_slots():
     return resumos
 
 
+ARQUIVO_PREFERENCIAS_NOME = "config_usuario.json"
+
+
+def obter_caminho_preferencias_usuario():
+    """Retorna o caminho completo do arquivo de preferências do usuário na pasta de saves ativa."""
+    return os.path.join(PASTA_SAVES, ARQUIVO_PREFERENCIAS_NOME)
+
+
+def salvar_preferencias_usuario(dados):
+    """Salva as preferências de áudio e interface do usuário de forma atômica."""
+    if not isinstance(dados, dict):
+        return False
+
+    caminho = obter_caminho_preferencias_usuario()
+    caminho_tmp = f"{caminho}.tmp"
+    try:
+        if not os.path.exists(PASTA_SAVES):
+            os.makedirs(PASTA_SAVES, exist_ok=True)
+        with open(caminho_tmp, "w", encoding="utf-8") as f:
+            json.dump(dados, f, indent=4, ensure_ascii=False)
+        os.replace(caminho_tmp, caminho)
+        return True
+    except (OSError, TypeError, ValueError) as e:
+        logger.error(f"[SaveIO] Erro ao salvar preferências em {caminho}: {e}")
+        if os.path.exists(caminho_tmp):
+            try:
+                os.remove(caminho_tmp)
+            except OSError:
+                pass
+        return False
+
+
+def carregar_preferencias_usuario():
+    """Carrega as preferências persistidas do usuário sem criar arquivos em disco se ausentes."""
+    caminho = obter_caminho_preferencias_usuario()
+    if not os.path.exists(caminho):
+        return None
+    try:
+        with open(caminho, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        return dados if isinstance(dados, dict) else None
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"[SaveIO] Falha ao carregar preferências em {caminho}: {e}")
+        return None
+
+
 __all__ = [
     "PASTA_SAVES_PADRAO",
     "PASTA_SAVES",
     "MAX_SLOTS",
     "NOMES_AMIGAVEIS_CENARIOS",
+    "ARQUIVO_PREFERENCIAS_NOME",
     "definir_pasta_saves",
     "normalizar_slot",
     "_obter_caminho_arquivo",
+    "obter_caminho_preferencias_usuario",
+    "salvar_preferencias_usuario",
+    "carregar_preferencias_usuario",
     "salvar_dados",
     "carregar_dados",
     "save_existe",

@@ -20,7 +20,7 @@ from src.ui.icon_registry import (
 
 class NotificacaoToast:
     """Representa um banner individual de notificação push."""
-    def __init__(self, titulo, mensagem, tipo="ITEM", duracao_ticks=150, icone="✦", subtitulo=None, descricao=None, eh_platina=False, id_conquista="", cor_icone=None):
+    def __init__(self, titulo, mensagem, tipo="ITEM", duracao_ticks=150, icone="✦", subtitulo=None, descricao=None, eh_platina=False, id_conquista="", cor_icone=None, chave_agrupamento=None):
         self.titulo = str(titulo)
         self.mensagem = str(mensagem) if mensagem is not None else ""
         self.tipo = tipo.upper()  # ITEM, RECEITA, MEMORIA, MISSAO, ALERTA, CONQUISTA, SISTEMA
@@ -28,13 +28,16 @@ class NotificacaoToast:
         self.descricao = descricao
         self.eh_platina = eh_platina
         self.id_conquista = id_conquista or ""
+        self.chave_agrupamento = chave_agrupamento
         self.duracao_maxima = duracao_ticks
         self.tempo_vida = duracao_ticks
         self.icone = icone or "✦"
         self.alpha = 0
         self.offset_y = -22  # Descida suave do topo (Slide-down)
+        self.aplicar_estilo_tipo(cor_icone)
 
-        # Configuração de cores e styling por tipo
+    def aplicar_estilo_tipo(self, cor_icone=None):
+        """Configura paleta visual do banner conforme categoria."""
         if self.tipo == "CONQUISTA":
             if self.eh_platina:
                 self.cor_borda = (240, 215, 115)
@@ -132,9 +135,25 @@ class NotificationManager:
                 print(f"[NotificationManager] Erro ao carregar notificacoes.json: {e}")
         return {}
 
-    def notificar(self, identificador_ou_titulo, mensagem=None, tipo="ITEM", duracao_ticks=150, icone="✦", **kwargs):
+    def _resolver_chave_agrupamento(self, chave_agrupamento, titulo, mensagem, tipo, template_id=None):
+        """Deriva chave de consolidação para avisos consecutivos da mesma missão ou autosave."""
+        if chave_agrupamento:
+            return str(chave_agrupamento)
+        tipo_u = str(tipo or "").upper()
+        tit_low = str(titulo or "").lower()
+        if template_id == "notificacao_autosave" or (tipo_u == "SISTEMA" and "automático" in tit_low):
+            return "sistema:autosave"
+        if template_id == "notificacao_salvo" or (tipo_u == "SISTEMA" and "jogo salvo" in tit_low):
+            return "sistema:save"
+        if (template_id == "notificacao_missao" or tipo_u == "MISSAO") and ":" in str(mensagem or ""):
+            assunto = str(mensagem).split(":", 1)[1].strip().lower()
+            if assunto:
+                return f"missao:{assunto}"
+        return None
+
+    def notificar(self, identificador_ou_titulo, mensagem=None, tipo="ITEM", duracao_ticks=150, icone="✦", chave_agrupamento=None, **kwargs):
         """
-        Adiciona uma nova notificação push à fila com proteção anti-duplicação.
+        Adiciona uma nova notificação push à fila com proteção anti-duplicação e consolidação.
         """
         if identificador_ou_titulo in self.catalogo_padrao:
             template = self.catalogo_padrao[identificador_ou_titulo]
@@ -159,18 +178,20 @@ class NotificationManager:
             tipo_final = kwargs.get("tipo", template.get("tipo", tipo))
             duracao_final = kwargs.get("duracao_ticks", template.get("duracao_ticks", duracao_ticks))
             icone_final = kwargs.get("icone", template.get("icone", icone))
+            grupo = self._resolver_chave_agrupamento(chave_agrupamento, titulo, mensagem_final, tipo_final, template_id=identificador_ou_titulo)
 
-            self._adicionar_toast(titulo, mensagem_final, tipo_final, duracao_final, icone_final)
+            self._adicionar_toast(titulo, mensagem_final, tipo_final, duracao_final, icone_final, chave_agrupamento=grupo)
         else:
             msg_final = mensagem if mensagem is not None else ""
-            self._adicionar_toast(identificador_ou_titulo, msg_final, tipo, duracao_ticks, icone)
+            grupo = self._resolver_chave_agrupamento(chave_agrupamento, identificador_ou_titulo, msg_final, tipo)
+            self._adicionar_toast(identificador_ou_titulo, msg_final, tipo, duracao_ticks, icone, chave_agrupamento=grupo)
 
     def notificar_padrao(self, chave, **kwargs):
         """Atalho explícito para disparar notificação padrão a partir do catálogo."""
         self.notificar(chave, **kwargs)
 
-    def _adicionar_toast(self, titulo, mensagem, tipo, duracao_ticks, icone, subtitulo=None, descricao=None, eh_platina=False, id_conquista="", cor_icone=None):
-        # Proteção anti-duplicação consecutiva (de-bounce)
+    def _adicionar_toast(self, titulo, mensagem, tipo, duracao_ticks, icone, subtitulo=None, descricao=None, eh_platina=False, id_conquista="", cor_icone=None, chave_agrupamento=None):
+        # Proteção anti-duplicação consecutiva idêntica (de-bounce)
         for t in self.notificacoes + self.fila_espera:
             if t.titulo == titulo and t.mensagem == mensagem and t.tipo == tipo:
                 return
@@ -185,8 +206,34 @@ class NotificationManager:
             descricao=descricao,
             eh_platina=eh_platina,
             id_conquista=id_conquista,
-            cor_icone=cor_icone
+            cor_icone=cor_icone,
+            chave_agrupamento=chave_agrupamento,
         )
+
+        # Registra sempre o evento integral no histórico permanente ([H])
+        self.historico.append({
+            "titulo": titulo,
+            "mensagem": descricao if descricao else mensagem,
+            "tipo": str(tipo).upper(),
+            "icone": icone,
+            "id_conquista": id_conquista,
+            "cor_icone": toast.cor_icone,
+            "cor_destaque": toast.cor_destaque,
+            "cor_borda": toast.cor_borda
+        })
+
+        # Consolidação de notificações consecutivas da mesma missão ou autosave
+        if chave_agrupamento and toast.tipo != "CONQUISTA":
+            for existente in self.fila_espera + self.notificacoes:
+                if getattr(existente, "chave_agrupamento", None) == chave_agrupamento:
+                    existente.titulo = toast.titulo
+                    existente.mensagem = toast.mensagem
+                    existente.tipo = toast.tipo
+                    existente.icone = toast.icone
+                    existente.duracao_maxima = toast.duracao_maxima
+                    existente.tempo_vida = toast.duracao_maxima
+                    existente.aplicar_estilo_tipo(cor_icone)
+                    return
 
         # Conquistas recebem prioridade máxima de exibição na fila
         if toast.tipo == "CONQUISTA":
@@ -199,18 +246,6 @@ class NotificationManager:
                 self.notificacoes.append(toast)
             else:
                 self.fila_espera.append(toast)
-
-        # Registra no histórico permanente
-        self.historico.append({
-            "titulo": titulo,
-            "mensagem": descricao if descricao else mensagem,
-            "tipo": str(tipo).upper(),
-            "icone": icone,
-            "id_conquista": id_conquista,
-            "cor_icone": toast.cor_icone,
-            "cor_destaque": toast.cor_destaque,
-            "cor_borda": toast.cor_borda
-        })
 
     def notificar_item_coletado(self, nome_item, quantidade=1):
         if isinstance(quantidade, str):
@@ -435,9 +470,26 @@ class NotificationManager:
         surf_toast.set_alpha(toast.alpha)
         tela.blit(surf_toast, (x_pos, y_pos))
 
+    def _encurtar_texto_toast(self, texto, fonte, largura_max):
+        """Encurta texto somente se ultrapassar a largura real útil do card."""
+        texto = str(texto or "")
+        if not texto or fonte.size(texto)[0] <= largura_max:
+            return texto
+        cortado = texto
+        while len(cortado) > 3 and fonte.size(f"{cortado}...")[0] > largura_max:
+            cortado = cortado[:-1]
+        return f"{cortado.rstrip()}..."
+
+    def _calcular_largura_toast(self, toast):
+        """Dimensiona o toast comum conforme conteúdo real até 500px para evitar cortes precoces."""
+        largura_tit = self.fonte_titulo_toast.size(str(toast.titulo or ""))[0]
+        largura_msg = self.fonte_texto.size(str(toast.mensagem or ""))[0]
+        limite_sup = max(340, min(500, self.largura_tela - 40))
+        return max(340, min(limite_sup, max(largura_tit, largura_msg) + 72))
+
     def _desenhar_toast_comum(self, tela, toast):
         """Renderiza banner compacto e discreto para missões, itens, checkpoints e alertas com ícone procedural."""
-        w_card = 340
+        w_card = self._calcular_largura_toast(toast)
         h_card = 54
         x_pos = (self.largura_tela - w_card) // 2
         y_pos = 20 + toast.offset_y
@@ -457,13 +509,15 @@ class NotificationManager:
         pygame.draw.rect(surf_toast, (50, 54, 66), rect_ico, 1, border_radius=3)
         desenhar_icone_notificacao(surf_toast, rect_ico.centerx, rect_ico.centery, tipo=toast.tipo, cor=toast.cor_destaque)
 
+        largura_txt_disp = w_card - 64
+
         # Título
-        tit_curto = toast.titulo if len(toast.titulo) <= 30 else toast.titulo[:27] + "..."
+        tit_curto = self._encurtar_texto_toast(toast.titulo, self.fonte_titulo_toast, largura_txt_disp)
         txt_tit = self.fonte_titulo_toast.render(tit_curto, True, toast.cor_destaque)
         surf_toast.blit(txt_tit, (52, 8))
 
         # Mensagem
-        msg_curta = toast.mensagem if len(toast.mensagem) <= 40 else toast.mensagem[:37] + "..."
+        msg_curta = self._encurtar_texto_toast(toast.mensagem, self.fonte_texto, largura_txt_disp)
         txt_msg = self.fonte_texto.render(msg_curta, True, MARFIM_OFFWHITE)
         surf_toast.blit(txt_msg, (52, 28))
 

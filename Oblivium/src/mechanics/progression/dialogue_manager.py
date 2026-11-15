@@ -138,7 +138,7 @@ class DialogueManager:
 
         if conversa_id not in self.banco_dialogos:
             print(f"[DialogueManager] Erro: Diálogo '{conversa_id}' não encontrado no JSON.")
-            self.ativo = False
+            self.finalizar(limpar_eventos=True)
             return False
 
         conversa = self.banco_dialogos[conversa_id]
@@ -147,7 +147,7 @@ class DialogueManager:
         id_inicio = no_inicial or conversa.get("no_inicial")
         if not id_inicio or id_inicio not in nos:
             print(f"[DialogueManager] Erro: Nó inicial '{id_inicio}' não encontrado na conversa '{conversa_id}'.")
-            self.ativo = False
+            self.finalizar(limpar_eventos=True)
             return False
 
         self.modo_lista = False
@@ -167,7 +167,7 @@ class DialogueManager:
         [{"autor": "...", "texto": "..."}]
         """
         if not lista_falas:
-            self.finalizar()
+            self.finalizar(limpar_eventos=True)
             return False
 
         self.modo_lista = True
@@ -269,24 +269,37 @@ class DialogueManager:
         if not self.ativo or not self.no_atual:
             return False
 
-        opt_id = opcao.get("id")
-        if opt_id and not self._opcao_eh_permanente(opcao):
-            self.historico_escolhas.add(opt_id)
+        # Revalida o nó e os requisitos no momento da confirmação, não só ao desenhar.
+        opcoes = self.no_atual.get("opcoes", self.no_atual.get("escolhas", []))
+        if not isinstance(opcao, dict) or opcao not in opcoes or not self._opcao_atende_condicoes(opcao):
+            return False
+        proximo_id = opcao.get("proximo")
+        if proximo_id and proximo_id not in self.banco_dialogos.get(self.conversa_id, {}).get("nos", {}):
+            logger.warning("Destino de escolha inválido em %s: %s", self.conversa_id, proximo_id)
+            return False
 
         # Integração direta com QuestManager
         if "aceitar_missao" in opcao:
             id_m = opcao["aceitar_missao"]
-            if self.quest_manager:
-                self.quest_manager.aceitar_missao(id_m)
+            if self.quest_manager and not self.quest_manager.aceitar_missao(id_m):
+                jogo = getattr(self.quest_manager, "game", None)
+                if jogo and getattr(jogo, "notificacoes", None):
+                    jogo.notificacoes.notificar("notificacao_alerta", titulo="Tarefa indisponível",
+                        mensagem="Conclua a outra tarefa ativa antes de aceitar esta missão.", tipo="ALERTA")
+                return False
             if "evento" not in opcao:
                 self.evento_pendente = f"aceitar_missao:{id_m}"
 
         if "concluir_missao" in opcao:
             id_m = opcao["concluir_missao"]
-            if self.quest_manager:
-                self.quest_manager.concluir_missao(id_m)
+            if self.quest_manager and not self.quest_manager.concluir_missao(id_m):
+                return False
             if "evento" not in opcao:
                 self.evento_pendente = f"concluir_missao:{id_m}"
+
+        opt_id = opcao.get("id")
+        if opt_id and not self._opcao_eh_permanente(opcao):
+            self.historico_escolhas.add(opt_id)
 
         # Integração direta com Loja
         if opcao.get("acao") == "abrir_loja" or opcao.get("evento") == "abrir_loja":
@@ -296,6 +309,8 @@ class DialogueManager:
         # Registra evento explícito caso a opção possua
         if "evento" in opcao:
             self.evento_pendente = opcao["evento"]
+        elif opcao.get("acao"):
+            self.evento_pendente = opcao["acao"]
 
         # Navega para o próximo nó indicado pela escolha
         proximo_id = opcao.get("proximo")
@@ -319,7 +334,11 @@ class DialogueManager:
         """Trata o fechamento de um menu de escolhas pelo botão [X]."""
         if not self.ativo or not self.no_atual:
             return
+        if not self.no_atual.get("pode_fechar", False):
+            return False
 
+        self.evento_pendente = None
+        self.loja_pendente = None
         id_cancel = self.no_atual.get("id_cancelamento")
         if id_cancel:
             self.evento_pendente = id_cancel
@@ -498,8 +517,11 @@ class DialogueManager:
 
         return erros
 
-    def finalizar(self):
+    def finalizar(self, limpar_eventos=False):
         """Encerra a conversa ativa."""
+        if limpar_eventos:
+            self.evento_pendente = None
+            self.loja_pendente = None
         self.ativo = False
         self.no_atual = None
         self.no_id_atual = None

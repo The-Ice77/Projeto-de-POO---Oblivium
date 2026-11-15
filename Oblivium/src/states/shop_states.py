@@ -15,7 +15,10 @@ from src.ui.icon_registry import (
     IconRegistry, desenhar_icone_fechar, desenhar_icone_moeda
 )
 from src.mechanics.shop import Loja
-from src.mechanics.items import ConsumivelItem, EquipamentoItem, ItemChave
+from src.mechanics.items import (
+    ConsumivelItem, EquipamentoItem, GrimorioItem, EnsinamentoFeiticoItem, ItemChave
+)
+from src.mechanics.rpg.grimorio import GrimorioHalia
 
 
 class ShopState(State):
@@ -95,6 +98,43 @@ class ShopState(State):
             self.teve_transacao = False
         self.game.mudar_estado("JOGANDO")
 
+    def _obter_linhas_detalhes_item_selecionado(self, item_selecionado, halia=None):
+        """Retorna pares (texto, cor) com efeitos, bônus e requisitos para o painel direito da loja."""
+        linhas = []
+        if isinstance(item_selecionado, ConsumivelItem):
+            if item_selecionado.tipo_consumivel == "CURA_HP":
+                linhas.append((f"• Regenera: +{item_selecionado.valor_efeito} Pontos de Vida (HP)", (140, 220, 160)))
+            elif item_selecionado.tipo_consumivel == "RESTAURA_MP":
+                linhas.append((f"• Restaura: +{item_selecionado.valor_efeito} Pontos de Mana (MP)", (130, 190, 240)))
+            elif item_selecionado.tipo_consumivel == "DANO_OFENSIVO":
+                linhas.append((f"• Causa: {item_selecionado.valor_efeito} de dano ({item_selecionado.condicao_aplicada or 'fogo'})", (240, 140, 140)))
+            elif item_selecionado.tipo_consumivel == "CURA_CONDICAO":
+                linhas.append(("• Purifica: Remove todas as aflições e venenos", (160, 230, 200)))
+        elif isinstance(item_selecionado, EquipamentoItem):
+            linhas.append((f"• Slot de Equipamento: {item_selecionado.slot}", (220, 210, 150)))
+            for attr, val in item_selecionado.obter_bonus_atributos_efetivos().items():
+                linhas.append((f"  + {attr.capitalize()}: +{val}", MARFIM_OFFWHITE))
+            for stat, val in item_selecionado.obter_bonus_stats_efetivos().items():
+                linhas.append((f"  + {stat.replace('_', ' ').title()}: +{val}", MARFIM_OFFWHITE))
+        elif isinstance(item_selecionado, (GrimorioItem, EnsinamentoFeiticoItem)) or getattr(item_selecionado, "categoria", "") in ("GRIMORIO", "ENSINAMENTO"):
+            st = GrimorioHalia.obter_status_aquisicao_item(item_selecionado, halia) or {}
+            nome_magia = st.get("nome_magia", getattr(item_selecionado, "magia_id", "Arcano"))
+            estado_m = "Já conhecido" if st.get("ja_conhece") else ("Novo feitiço" if st.get("pode_usar", True) else "Sincronia pendente")
+            linhas.append((f"• Feitiço: ✦ {nome_magia} [{estado_m}]", (220, 210, 150)))
+            req_txt = st.get("requisito_texto")
+            if req_txt:
+                cor_req = (140, 220, 160) if st.get("pode_usar", True) else (245, 170, 120)
+                linhas.append((f"• {req_txt}", cor_req))
+            if getattr(item_selecionado, "bonus_poder", 0) > 0:
+                linhas.append((f"  + Potência Mágica: +{item_selecionado.bonus_poder} pts", (150, 220, 170)))
+            if getattr(item_selecionado, "reducao_custo", 0) > 0:
+                linhas.append((f"  + Redução de Custo: -{item_selecionado.reducao_custo} MP", (150, 220, 170)))
+            for stat_k, val_k in (getattr(item_selecionado, "bonus_stats", None) or {}).items():
+                linhas.append((f"  + {stat_k.replace('_', ' ').title()}: +{val_k}%", (150, 220, 170)))
+            if not st.get("pode_usar", True) and st.get("motivo_bloqueio"):
+                linhas.append((f"Aviso: {st['motivo_bloqueio']}", (245, 160, 125)))
+        return linhas
+
     def exibir_mensagem(self, texto, duracao_ticks=150):
         self.mensagem_feedback = texto
         self.timer_feedback = duracao_ticks
@@ -126,19 +166,19 @@ class ShopState(State):
                     self.indice_selecionado = 0
                     self.offset_scroll = 0
                     if hasattr(self.game, 'audio') and self.game.audio:
-                        self.game.audio.tocar_sfx("ui_navegar")
+                        self.game.audio.tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_UP, pygame.K_w]:
                     if len(itens_atuais) > 0:
                         self.indice_selecionado = (self.indice_selecionado - 1) % len(itens_atuais)
                         self._ajustar_scroll(len(itens_atuais))
                         if hasattr(self.game, 'audio') and self.game.audio:
-                            self.game.audio.tocar_sfx("ui_navegar")
+                            self.game.audio.tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_DOWN, pygame.K_s]:
                     if len(itens_atuais) > 0:
                         self.indice_selecionado = (self.indice_selecionado + 1) % len(itens_atuais)
                         self._ajustar_scroll(len(itens_atuais))
                         if hasattr(self.game, 'audio') and self.game.audio:
-                            self.game.audio.tocar_sfx("ui_navegar")
+                            self.game.audio.tocar_sfx("ui_cursor")
                 elif evento.key in [pygame.K_RETURN, pygame.K_SPACE]:
                     # Atalho de teclado para acionar a confirmação do item inspecionado
                     self._executar_transacao(self.indice_selecionado)
@@ -156,7 +196,7 @@ class ShopState(State):
                             self.indice_selecionado = 0
                             self.offset_scroll = 0
                             if hasattr(self.game, 'audio') and self.game.audio:
-                                self.game.audio.tocar_sfx("ui_navegar")
+                                self.game.audio.tocar_sfx("ui_cursor")
                         return
 
                 # Clique no BOTÃO DE AÇÃO DELIBERADA [ COMPRAR ] / [ VENDER ]
@@ -170,7 +210,7 @@ class ShopState(State):
                         if self.indice_selecionado != idx_item:
                             self.indice_selecionado = idx_item
                             if hasattr(self.game, 'audio') and self.game.audio:
-                                self.game.audio.tocar_sfx("ui_navegar")
+                                self.game.audio.tocar_sfx("ui_cursor")
                         return
 
             elif evento.type == pygame.MOUSEWHEEL:
@@ -203,11 +243,11 @@ class ShopState(State):
                     self.teve_transacao = True
                     self.exibir_mensagem(msg)
                     if hasattr(self.game, 'audio') and self.game.audio:
-                        self.game.audio.tocar_sfx("item_coletar")
+                        self.game.audio.tocar_sfx("moeda")
                 else:
                     self.exibir_mensagem(f"Aviso: {msg}")
                     if hasattr(self.game, 'audio') and self.game.audio:
-                        self.game.audio.tocar_sfx("ui_confirmar")
+                        self.game.audio.tocar_sfx("ui_erro")
         else:
             # Vender
             if 0 <= indice < len(inv.slots):
@@ -217,13 +257,13 @@ class ShopState(State):
                     self.teve_transacao = True
                     self.exibir_mensagem(msg)
                     if hasattr(self.game, 'audio') and self.game.audio:
-                        self.game.audio.tocar_sfx("item_coletar")
+                        self.game.audio.tocar_sfx("moeda")
                     if self.indice_selecionado >= len(inv.slots):
                         self.indice_selecionado = max(0, len(inv.slots) - 1)
                 else:
                     self.exibir_mensagem(f"Aviso: {msg}")
                     if hasattr(self.game, 'audio') and self.game.audio:
-                        self.game.audio.tocar_sfx("ui_confirmar")
+                        self.game.audio.tocar_sfx("ui_erro")
 
     def update(self):
         if self.timer_feedback > 0:
@@ -323,14 +363,27 @@ class ShopState(State):
 
                 nome_it = merc.item_template.nome if merc.item_template else merc.item_id
                 marcador = "▶ " if esta_sel else "   "
-                txt_it = self.fonte_texto.render(f"{marcador}{nome_it}", True, MARFIM_OFFWHITE if esta_sel else CINZA_LINHO)
-                tela.blit(txt_it, (rect_card.x + 8, rect_card.centery - txt_it.get_height() // 2))
 
-                # Preço e Estoque
-                info_preco = f"{merc.preco_compra} Ouro | Est: {merc.estoque_atual}"
+                # Preço, Estoque e eventual requisito pendente de Memória para tomos/ensinamentos
+                st_merc = GrimorioHalia.obter_status_aquisicao_item(merc.item_template, halia) if merc.item_template else None
+                tag_mem = ""
                 cor_preco = (240, 220, 130) if merc.disponivel else (120, 120, 120)
+                if st_merc and not st_merc["pode_usar"] and st_merc["memorias_minimas"]:
+                    tag_mem = f"Mem {st_merc['memorias_minimas']}+ | "
+                    cor_preco = (245, 170, 120) if merc.disponivel else (120, 120, 120)
+
+                info_preco = f"{tag_mem}{merc.preco_compra} Ouro | Est: {merc.estoque_atual}"
                 txt_pr = self.fonte_mini.render(info_preco, True, cor_preco)
                 tela.blit(txt_pr, (rect_card.right - txt_pr.get_width() - 10, rect_card.centery - txt_pr.get_height() // 2))
+
+                w_disp_nome = rect_card.width - txt_pr.get_width() - 28
+                nome_render = f"{marcador}{nome_it}"
+                if self.fonte_texto.size(nome_render)[0] > w_disp_nome:
+                    while len(nome_render) > 5 and self.fonte_texto.size(f"{nome_render}..")[0] > w_disp_nome:
+                        nome_render = nome_render[:-1]
+                    nome_render = f"{nome_render}.."
+                txt_it = self.fonte_texto.render(nome_render, True, MARFIM_OFFWHITE if esta_sel else CINZA_LINHO)
+                tela.blit(txt_it, (rect_card.x + 8, rect_card.centery - txt_it.get_height() // 2))
 
                 y_pos += h_item_card + 6
 
@@ -436,26 +489,14 @@ class ShopState(State):
                 tela.blit(r_l, (rect_det_card.x + 16, y_linha))
                 y_linha += 20
 
-            # Bônus ou Efeitos
+            # Bônus, efeitos e requisitos arcanos com quebra segura antes do botão
             y_linha += 8
-            if isinstance(item_selecionado, ConsumivelItem):
-                if item_selecionado.tipo_consumivel == "CURA_HP":
-                    tela.blit(self.fonte_mini.render(f"• Regenera: +{item_selecionado.valor_efeito} Pontos de Vida (HP)", True, (140, 220, 160)), (rect_det_card.x + 16, y_linha))
-                elif item_selecionado.tipo_consumivel == "RESTAURA_MP":
-                    tela.blit(self.fonte_mini.render(f"• Restaura: +{item_selecionado.valor_efeito} Pontos de Mana (MP)", True, (130, 190, 240)), (rect_det_card.x + 16, y_linha))
-                elif item_selecionado.tipo_consumivel == "DANO_OFENSIVO":
-                    tela.blit(self.fonte_mini.render(f"• Causa: {item_selecionado.valor_efeito} de dano ({item_selecionado.condicao_aplicada or 'fogo'})", True, (240, 140, 140)), (rect_det_card.x + 16, y_linha))
-                elif item_selecionado.tipo_consumivel == "CURA_CONDICAO":
-                    tela.blit(self.fonte_mini.render("• Purifica: Remove todas as aflições e venenos", True, (160, 230, 200)), (rect_det_card.x + 16, y_linha))
-
-            elif isinstance(item_selecionado, EquipamentoItem):
-                tela.blit(self.fonte_mini.render(f"• Slot de Equipamento: {item_selecionado.slot}", True, (220, 210, 150)), (rect_det_card.x + 16, y_linha))
-                y_linha += 18
-                for attr, val in item_selecionado.obter_bonus_atributos_efetivos().items():
-                    tela.blit(self.fonte_mini.render(f"  + {attr.capitalize()}: +{val}", True, MARFIM_OFFWHITE), (rect_det_card.x + 16, y_linha))
-                    y_linha += 18
-                for stat, val in item_selecionado.obter_bonus_stats_efetivos().items():
-                    tela.blit(self.fonte_mini.render(f"  + {stat.replace('_', ' ').title()}: +{val}", True, MARFIM_OFFWHITE), (rect_det_card.x + 16, y_linha))
+            y_max_det = rect_det_card.bottom - 56
+            for texto_det, cor_det in self._obter_linhas_detalhes_item_selecionado(item_selecionado, halia):
+                for linha_wrap in quebrar_texto_em_linhas(texto_det, self.fonte_mini, w_det - 32):
+                    if y_linha + 16 > y_max_det:
+                        break
+                    tela.blit(self.fonte_mini.render(linha_wrap, True, cor_det), (rect_det_card.x + 16, y_linha))
                     y_linha += 18
 
             # =================================================================
@@ -517,7 +558,8 @@ class ShopState(State):
 
         # 8. RODAPÉ INFORMATIVO E FEEDBACK
         if self.mensagem_feedback:
-            txt_feed = self.fonte_texto.render(self.mensagem_feedback, True, (160, 230, 180))
+            cor_fb = (245, 185, 120) if self.mensagem_feedback.startswith("Aviso:") else (160, 230, 180)
+            txt_feed = self.fonte_texto.render(self.mensagem_feedback, True, cor_fb)
             tela.blit(txt_feed, (self.x_loja + 45, self.y_loja + self.altura_loja - 36))
         else:
             txt_dica = self.fonte_mini.render("[Clique / Setas] Selecionar e Inspecionar Item   |   [Botão de Ação / ENTER] Confirmar   |   [ESC/E] Sair", True, CINZA_LINHO)

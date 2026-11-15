@@ -3,7 +3,11 @@ import math
 import random
 import pygame
 from src.maps.cenario_base import CenarioBase
-from src.maps.oakhaven.terreno_utils import _carregar_tiles_terreno, _renderizar_grade_autotile
+from src.maps.oakhaven.terreno_utils import (
+    _carregar_tiles_terreno,
+    _renderizar_grade_autotile,
+    criar_sombra_contato_estrutura,
+)
 from src.utils.resource_manager import ResourceManager
 from src.entities.npc_factory import NPCFactory
 from src.entities.animal import Passaro, Gato
@@ -155,7 +159,11 @@ class MapaOakhaven(CenarioBase):
             "vaso_vermelho": _carregar_escala(f"{p_vila}/Props/Vegetacao_e_Jardim/vaso_flores_vermelho.png", 0.26),
             "vaso_arbusto": _carregar_escala(f"{p_vila}/Props/Vegetacao_e_Jardim/vaso_arbusto_grande.png", 0.26),
             "cerca_h": _carregar_escala(f"{p_cercas}/01_Frente_Horizontal/cerca_frente_horizontal_33x18.png", 2.0),
-            "cerca_v": _carregar_escala(f"{p_cercas}/02_Lateral_Vertical/cerca_lateral_vertical_7x48.png", 2.0),
+            "cerca_v": _carregar_escala(f"{p_cercas}/03_Laterais_Verticais/cerca_lateral_esq_modulo_18x16.png", 2.0),
+            "cerca_craft_v": _carregar_escala(
+                "assets/novos assets/craftpix-net-665131-free-fields-tileset-pixel-art-for-tower-defense/2 Objects/2 Fence/7.png",
+                2.0,
+            ),
         }
 
         # 6. Árvores Frondosas da Vila (sem troncos mortos!)
@@ -297,6 +305,9 @@ class MapaOakhaven(CenarioBase):
 
         # ---------------------------------------------------------------------
         # 3. PALIÇADA DEFENSIVA NORTE (Muralha de Toras de Carvalho no limite norte)
+        # Inspeção visual R05: peças de 08_Cercas (~36px alt.) e Craftpix 2 Fence (~30-62px)
+        # são cercas baixas de jardim/pasto; esticá-las para ~90px distorceria a silhueta.
+        # Mantemos a paliçada robusta de carvalho (~84-99px) com abertura exata em x=1030..1200.
         # ---------------------------------------------------------------------
         for tx in range(0, w, 28):
             if 1030 <= tx <= 1200:
@@ -387,9 +398,18 @@ class MapaOakhaven(CenarioBase):
             pygame.Rect(1216, h - 18, w - 1216, 18),  # Borda Sul Direita
         ])
 
-        def _add_estrutura(sprite, x, y, hitbox_rel=None, sombra=True, y_sort_custom=None):
+        def _add_estrutura(
+            sprite,
+            x,
+            y,
+            hitbox_rel=None,
+            sombra=True,
+            y_sort_custom=None,
+            id_estrutura=None,
+            categoria=None,
+        ):
             if not sprite:
-                return
+                return None
             sw, sh = sprite.get_size()
             if hitbox_rel is None:
                 # Hitbox 2.5D padrão: ocupa os 38% inferiores da construção (permitindo passar atrás do telhado!)
@@ -400,33 +420,54 @@ class MapaOakhaven(CenarioBase):
             if hb.width > 0 and hb.height > 0:
                 self.hitboxes.append(hb)
 
-            # Pré-renderização da sombra para zero alocações por frame
+            # Pré-renderização da sombra de contato ancorada à base opaca real (zero alocações por frame)
             sombra_surf = None
+            sombra_offset = (0, 0)
             if sombra:
-                sombra_larg = int(sw * 0.86)
-                sombra_surf = pygame.Surface((sombra_larg, 18), pygame.SRCALPHA)
-                pygame.draw.ellipse(sombra_surf, (14, 18, 16, 75), (0, 0, sombra_larg, 18))
+                sombra_surf, sombra_offset = criar_sombra_contato_estrutura(sprite, cor=(14, 18, 16, 75))
 
             calc_ysort = y_sort_custom if y_sort_custom is not None else max(int(hb.bottom), int(y + sh - 4))
-            self.estruturas_ysort.append({
+            est_dict = {
+                "id": id_estrutura,
+                "categoria": categoria,
                 "sprite": sprite,
                 "x": int(x),
                 "y": int(y),
                 "y_sort": calc_ysort,
                 "sombra": sombra,
                 "sombra_surf": sombra_surf,
+                "sombra_offset": sombra_offset,
                 "sw": sw,
                 "sh": sh,
-                "rect": pygame.Rect(int(x), int(y), sw, sh)
-            })
+                "rect": pygame.Rect(int(x), int(y), sw, sh),
+                "hitbox_ref": hb,
+            }
+            self.estruturas_ysort.append(est_dict)
+            return est_dict
+
+        self._add_estrutura_fn = _add_estrutura
 
         # =====================================================================
         # 1. PRAÇA CENTRAL DOS HERÓIS (Coração de Oakhaven)
         # =====================================================================
         # Monumento dos 6 Heróis (no topo norte da Praça Central)
-        _add_estrutura(self.spr_monumento, 935, 455, hitbox_rel=(18, 82, 334, 52))
+        _add_estrutura(
+            self.spr_monumento,
+            935,
+            455,
+            hitbox_rel=(18, 82, 334, 52),
+            id_estrutura="monumento_praca",
+            categoria="monumento",
+        )
         # Fonte de Pedra Intacta (no centro-sul da Praça Central)
-        _add_estrutura(self.spr_fonte, 1042, 705, hitbox_rel=(20, 62, 116, 66))
+        _add_estrutura(
+            self.spr_fonte,
+            1042,
+            705,
+            hitbox_rel=(20, 62, 116, 66),
+            id_estrutura="fonte_praca",
+            categoria="fonte",
+        )
 
         # Bancos de pedra, postes de iluminação, quadro de avisos e vasos ao redor da Praça
         _add_estrutura(self.sprites_props["banco_pedra"], 835, 585, hitbox_rel=(6, 22, 60, 20))
@@ -450,25 +491,32 @@ class MapaOakhaven(CenarioBase):
         # 2. DISTRITO NOROESTE & OESTE — TAVERNA, LIVRARIA, BOTÂNICA DE ELARA & FEIRA
         # =====================================================================
         # Grande Taverna e Estalagem + Livraria na Alameda Noroeste (y=140..330, acima da alameda y=320..416)
-        _add_estrutura(self.sprites_lojas["taverna_frente"], 310, 140)
-        _add_estrutura(self.sprites_lojas["livraria_frente"], 610, 155)
+        _add_estrutura(self.sprites_lojas["taverna_frente"], 310, 140, id_estrutura="loja_taverna", categoria="loja")
+        _add_estrutura(self.sprites_lojas["livraria_frente"], 610, 155, id_estrutura="loja_livraria", categoria="loja")
         # Barris e banco posicionados ao lado da Taverna sem sobrepor a fachada
         _add_estrutura(self.sprites_props["barris"], 245, 285, hitbox_rel=(6, 26, 44, 24))
-        _add_estrutura(self.sprites_props["banco_madeira"], 535, 295, hitbox_rel=(6, 20, 62, 18))
+        _add_estrutura(
+            self.sprites_props["banco_madeira"],
+            535,
+            295,
+            hitbox_rel=(6, 20, 62, 18),
+            id_estrutura="banco_taverna",
+            categoria="prop",
+        )
 
         # Botânica de Elara + Loja de Poções + Floricultura na Avenida Oeste (acima da calçada y=608)
-        _add_estrutura(self.sprites_lojas["magia_frente"], 175, 430)
-        _add_estrutura(self.sprites_lojas["botanica_frente"], 385, 425)
-        _add_estrutura(self.sprites_lojas["floricultura_frente"], 600, 435)
+        _add_estrutura(self.sprites_lojas["magia_frente"], 175, 430, id_estrutura="loja_magia", categoria="loja")
+        _add_estrutura(self.sprites_lojas["botanica_frente"], 385, 425, id_estrutura="loja_botanica", categoria="loja")
+        _add_estrutura(self.sprites_lojas["floricultura_frente"], 600, 435, id_estrutura="loja_floricultura", categoria="loja")
 
         # Canteiros de Ervas flanqueando a loja de Elara (deixando a porta central em x=440..530 livre!)
         _add_estrutura(self.sprites_props["canteiro_ervas"], 330, 580, hitbox_rel=(6, 18, 56, 22))
         _add_estrutura(self.sprites_props["canteiro_flores"], 555, 580, hitbox_rel=(6, 18, 56, 22))
 
         # Barracas da Feira Botânica e Canteiros na Clareira Sudoeste
-        _add_estrutura(self.sprites_barracas["b_hortifruti"], 155, 745)
-        _add_estrutura(self.sprites_barracas["b_flores"], 355, 745)
-        _add_estrutura(self.sprites_barracas["b_alquimia"], 555, 745)
+        _add_estrutura(self.sprites_barracas["b_hortifruti"], 155, 745, id_estrutura="barraca_hortifruti", categoria="barraca")
+        _add_estrutura(self.sprites_barracas["b_flores"], 355, 745, id_estrutura="barraca_flores", categoria="barraca")
+        _add_estrutura(self.sprites_barracas["b_alquimia"], 555, 745, id_estrutura="barraca_alquimia", categoria="barraca")
         _add_estrutura(self.sprites_props["canteiro_ervas"], 185, 915, hitbox_rel=(6, 18, 56, 22))
         _add_estrutura(self.sprites_props["canteiro_flores"], 435, 915, hitbox_rel=(6, 18, 56, 22))
 
@@ -476,19 +524,33 @@ class MapaOakhaven(CenarioBase):
         # 3. DISTRITO NORDESTE & LESTE — PADARIA, EMPÓRIO, ARMERIA & FORJA DE TORVALD
         # =====================================================================
         # Alameda Nordeste: Padaria, Empório e Carpintaria
-        _add_estrutura(self.sprites_lojas["padaria_frente"], 1435, 145)
-        _add_estrutura(self.sprites_lojas["emporio_frente"], 1690, 145)
-        _add_estrutura(self.sprites_lojas["carpintaria_frente"], 1945, 155)
+        _add_estrutura(self.sprites_lojas["padaria_frente"], 1435, 145, id_estrutura="loja_padaria", categoria="loja")
+        _add_estrutura(self.sprites_lojas["emporio_frente"], 1690, 145, id_estrutura="loja_emporio", categoria="loja")
+        _add_estrutura(self.sprites_lojas["carpintaria_frente"], 1945, 155, id_estrutura="loja_carpintaria", categoria="loja")
 
         # Avenida Leste: Armeria Principal + Casa da Forja de Torvald (hitbox refinada apenas na parede base)
-        _add_estrutura(self.sprites_lojas["armeria_frente"], 1545, 425, hitbox_rel=(10, 110, 142, 48))
-        _add_estrutura(self.sprites_casas["c2_f02_forja"], 1800, 420, hitbox_rel=(12, 104, 170, 54))
+        _add_estrutura(
+            self.sprites_lojas["armeria_frente"],
+            1545,
+            425,
+            hitbox_rel=(10, 110, 142, 48),
+            id_estrutura="loja_armeria",
+            categoria="loja",
+        )
+        _add_estrutura(
+            self.sprites_casas["c2_f02_forja"],
+            1800,
+            420,
+            hitbox_rel=(12, 104, 170, 54),
+            id_estrutura="casa_forja",
+            categoria="casa",
+        )
 
         # Pátio da Forja e Barracas de Equipamentos (espaçamento amplo para fluxo suave de Halia)
-        _add_estrutura(self.sprites_barracas["b_ferraria"], 1485, 750)
-        _add_estrutura(self.sprites_barracas["b_aventureiro"], 1925, 750)
+        _add_estrutura(self.sprites_barracas["b_ferraria"], 1485, 750, id_estrutura="barraca_ferraria", categoria="barraca")
+        _add_estrutura(self.sprites_barracas["b_aventureiro"], 1925, 750, id_estrutura="barraca_aventureiro", categoria="barraca")
         _add_estrutura(self.sprites_props["bebedouro"], 1645, 785, hitbox_rel=(6, 16, 52, 22))
-        _add_estrutura(self.sprites_props["carroca"], 1755, 775, hitbox_rel=(10, 22, 76, 28))
+        _add_estrutura(self.sprites_props["carroca"], 1755, 775, hitbox_rel=(10, 22, 76, 28), id_estrutura="carroca_forja", categoria="prop")
         _add_estrutura(self.sprites_props["barris"], 1500, 585, hitbox_rel=(4, 18, 38, 18))
         _add_estrutura(self.sprites_props["caixas_pilha"], 1745, 600, hitbox_rel=(4, 18, 44, 18))
         _add_estrutura(self.sprites_props["lenha_org"], 2005, 575, hitbox_rel=(4, 18, 32, 18))
@@ -511,8 +573,8 @@ class MapaOakhaven(CenarioBase):
         # 4. CASAS RESIDENCIAIS E CASAS NAS BORDAS DO MAPA (Zero sobreposições!)
         # =====================================================================
         # Borda Oeste (parcialmente ocultas na margem esquerda, reveladas ao explorar):
-        _add_estrutura(self.sprites_casas["c1_f04"], -45, 155)
-        _add_estrutura(self.sprites_casas["c2_f05_sobrado"], -55, 415)
+        _add_estrutura(self.sprites_casas["c1_f04"], -45, 155, id_estrutura="casa_c1_f04", categoria="casa")
+        _add_estrutura(self.sprites_casas["c2_f05_sobrado"], -55, 415, id_estrutura="casa_c2_f05_sobrado", categoria="casa")
         _add_estrutura(self.sprites_casas["c1_b05"], -55, 770)
         _add_estrutura(self.sprites_casas["c2_b06"], -45, 1135)
 
@@ -522,11 +584,11 @@ class MapaOakhaven(CenarioBase):
         _add_estrutura(self.sprites_casas["c1_b01"], 2090, 1135)
 
         # Quarteirão Residencial Sul (voltadas para a Rua Residencial Sul em y=1152..1248):
-        _add_estrutura(self.sprites_casas["c1_f03"], 575, 965)
-        _add_estrutura(self.sprites_casas["c2_f03_hera"], 825, 980)
+        _add_estrutura(self.sprites_casas["c1_f03"], 575, 965, id_estrutura="casa_c1_f03", categoria="casa")
+        _add_estrutura(self.sprites_casas["c2_f03_hera"], 825, 980, id_estrutura="casa_c2_f03_hera", categoria="casa")
         _add_estrutura(self.sprites_casas["c1_f05"], 1245, 975)
-        _add_estrutura(self.sprites_casas["c2_f06_dois_andares"], 1495, 965)
-        _add_estrutura(self.sprites_casas["c1_f07"], 1755, 985)
+        _add_estrutura(self.sprites_casas["c2_f06_dois_andares"], 1495, 965, id_estrutura="casa_c2_f06_dois_andares", categoria="casa")
+        _add_estrutura(self.sprites_casas["c1_f07"], 1755, 985, id_estrutura="casa_c1_f07", categoria="casa")
 
         # Fileira Extrema Sul (telhados de costas parcialmente na borda inferior da câmera):
         _add_estrutura(self.sprites_casas["c1_b02"], 115, 1315)
@@ -539,27 +601,74 @@ class MapaOakhaven(CenarioBase):
         # Portão Norte — Pilares e Estandartes da Guarda de Oakhaven
         _add_estrutura(self.sprites_props["pilar_pedra"], 1000, 55, hitbox_rel=(4, 65, 16, 24))
         _add_estrutura(self.sprites_props["pilar_pedra"], 1210, 55, hitbox_rel=(4, 65, 16, 24))
-        _add_estrutura(self.sprites_props["estandarte"], 950, 65, hitbox_rel=(6, 65, 32, 18))
-        _add_estrutura(self.sprites_props["estandarte"], 1245, 65, hitbox_rel=(6, 65, 32, 18))
+        _add_estrutura(
+            self.sprites_props["estandarte"],
+            950,
+            65,
+            hitbox_rel=(6, 65, 32, 18),
+            id_estrutura="estandarte_norte_esq",
+            categoria="prop",
+        )
+        _add_estrutura(
+            self.sprites_props["estandarte"],
+            1245,
+            65,
+            hitbox_rel=(6, 65, 32, 18),
+            id_estrutura="estandarte_norte_dir",
+            categoria="prop",
+        )
 
         # =====================================================================
-        # 5. CERCAS DE MADEIRA DA VILA (08_Cercas)
+        # 5. CERCAS MODULARES DE MADEIRA DA VILA (08_Cercas & 2 Fence)
         # =====================================================================
         sp_ch = self.sprites_props.get("cerca_h")
+        sp_cv_esq = self.sprites_props.get("cerca_v")
+        idx_cerca = 1
+
         if sp_ch:
             posicoes_cercas_h = [
-                # Cercado do jardim botânico sudoeste
+                # Cercado do jardim botânico sudoeste (corredor central aberto em x=302..390)
                 (170, 865), (236, 865), (390, 865), (456, 865),
-                # Cercas dos jardins residenciais sul
+                # Cercas dos jardins residenciais sul (preservando acesso aos portões)
                 (782, 1110), (1020, 1110),
                 (1442, 1110), (1700, 1110),
                 # Cercado rústico próximo ao canto de Patusco
                 (1785, 920), (1851, 920),
-                # Cercas decorativas ao longo da entrada sul
+                # Cercas decorativas ao longo da entrada sul (corredor sul 1024..1216 livre)
                 (880, 1255), (946, 1255), (1225, 1255), (1291, 1255),
             ]
             for cx, cy in posicoes_cercas_h:
-                _add_estrutura(sp_ch, cx, cy, hitbox_rel=(4, 20, 58, 14), sombra=False)
+                _add_estrutura(
+                    sp_ch,
+                    cx,
+                    cy,
+                    hitbox_rel=(4, 20, 58, 14),
+                    sombra=False,
+                    id_estrutura=f"cerca_vila_{idx_cerca:02d}",
+                    categoria="cerca",
+                )
+                idx_cerca += 1
+
+        # Cercas laterais verticais fechando as extremidades dos canteiros e pátio rústico
+        sp_craft_v = self.sprites_props.get("cerca_craft_v") or sp_cv_esq
+        laterais_v = [
+            (sp_craft_v, 166, 896, (2, 18, 10, 36)),
+            (sp_craft_v, 504, 896, (2, 18, 10, 36)),
+            (sp_craft_v, 1775, 926, (2, 18, 10, 36)),
+            (sp_craft_v, 1912, 926, (2, 18, 10, 36)),
+        ]
+        for sp_v, cx, cy, hb_v in laterais_v:
+            if sp_v:
+                _add_estrutura(
+                    sp_v,
+                    cx,
+                    cy,
+                    hitbox_rel=hb_v,
+                    sombra=False,
+                    id_estrutura=f"cerca_vila_{idx_cerca:02d}",
+                    categoria="cerca",
+                )
+                idx_cerca += 1
 
         # =====================================================================
         # 6. ÁRVORES FRONDOSAS DA VILA E BOSQUES INTERNOS (Zero árvores mortas!)
@@ -926,6 +1035,10 @@ class MapaOakhaven(CenarioBase):
         aplicando frustum culling da câmera para garantir 60+ FPS cravados e camadas perfeitas sem sobreposição indevida.
         """
         qm = getattr(self.game, "missoes", None) or getattr(self.game, "quest_manager", None)
+        estado_jogando = getattr(self.game, "estados", {}).get("JOGANDO") if hasattr(self.game, "estados") else None
+        cut_reconst = getattr(estado_jogando, "cutscene_reconstrucao", None) if estado_jogando else None
+        if getattr(self.game, "ocultar_marcadores_npc", False) or (cut_reconst and getattr(cut_reconst, "ativo", False)):
+            qm = None
 
         # 0. Iluminação de solo (glow) das chamas antes de desenhar corpos sólidos
         for foco in self.focos_fogo:
@@ -987,7 +1100,8 @@ class MapaOakhaven(CenarioBase):
                 ox, oy = obj["x"], obj["y"]
                 s_surf = obj.get("sombra_surf")
                 if s_surf:
-                    tela.blit(s_surf, (ox + int(obj["sw"] * 0.07), oy + obj["sh"] - 12))
+                    dx_s, dy_s = obj.get("sombra_offset", (int(obj["sw"] * 0.07), obj["sh"] - 12))
+                    tela.blit(s_surf, (ox + dx_s, oy + dy_s))
                 tela.blit(sp, (ox, oy))
             elif tipo == "fogo":
                 obj.desenhar_sprite(tela)

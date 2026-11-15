@@ -44,7 +44,8 @@ class Condicao:
             # Teste de Constituição pode mitigar parte do veneno
             dano = self.intensidade
             if self.elemento == "VENENO" and hasattr(entidade, 'atributos'):
-                mod_con = entidade.atributos.mod_con
+                attrs_ef = entidade.obter_atributos_efetivos() if hasattr(entidade, 'obter_atributos_efetivos') else entidade.atributos
+                mod_con = getattr(attrs_ef, 'mod_con', 0) if attrs_ef else 0
                 dano = max(1, dano - max(0, mod_con))
 
             entidade.receber_dano(dano)

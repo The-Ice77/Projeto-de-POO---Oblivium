@@ -1,4 +1,5 @@
 # src/mechanics/rpg/skills.py
+import copy
 import random
 import json
 import os
@@ -6,6 +7,21 @@ import os
 from abc import ABC, abstractmethod
 from src.mechanics.rpg.conditions import Condicao
 from src.utils.constants import PASTA_DATA
+
+
+def _obter_atributos_efetivos(entidade):
+    """Retorna os atributos efetivos da entidade (com equipamentos quando aplicável)."""
+    if entidade is None:
+        return None
+    if hasattr(entidade, "obter_atributos_efetivos"):
+        attrs = entidade.obter_atributos_efetivos()
+        if attrs is not None:
+            return attrs
+    if hasattr(entidade, "obter_atributos_totais"):
+        attrs = entidade.obter_atributos_totais()
+        if attrs is not None:
+            return attrs
+    return getattr(entidade, "atributos", None)
 
 class AcaoCombate(ABC):
     """
@@ -75,9 +91,10 @@ class AcaoCombate(ABC):
 
     def calcular_critico(self, conjurador):
         """Determina se a ação gerou um acerto crítico baseado em Destreza e Presença."""
-        if not hasattr(conjurador, 'atributos'):
+        attrs = _obter_atributos_efetivos(conjurador)
+        if attrs is None:
             return False, 1.0
-        chance = conjurador.atributos.calcular_chance_critico()
+        chance = attrs.calcular_chance_critico()
         rolagem = random.uniform(0, 100)
         if rolagem <= chance:
             return True, 1.5
@@ -85,6 +102,7 @@ class AcaoCombate(ABC):
 
     def tentar_aplicar_condicao(self, alvo):
         """Aplica condição de estado caso configurada e a rolagem de chance tenha sucesso."""
+        alvo._ultima_resistencia_cc = None
         if not self.condicao_aplicada or not hasattr(alvo, 'adicionar_condicao'):
             return None
 
@@ -95,7 +113,11 @@ class AcaoCombate(ABC):
 
         if random.uniform(0, 100) <= chance:
             nova_cond = Condicao.criar(id_cond, duracao=duracao, intensidade=intensidade)
-            alvo.adicionar_condicao(nova_cond)
+            aplicada = alvo.adicionar_condicao(nova_cond)
+            if aplicada is False:
+                if getattr(nova_cond, 'tipo', '') == 'CC':
+                    alvo._ultima_resistencia_cc = nova_cond.nome
+                return None
             return nova_cond
         return None
 
@@ -108,7 +130,9 @@ class AcaoCombate(ABC):
 
         """
 
-        if not hasattr(alvo, 'atributos') or not hasattr(conjurador, 'atributos'):
+        attrs_conjurador = _obter_atributos_efetivos(conjurador)
+        attrs_alvo = _obter_atributos_efetivos(alvo)
+        if attrs_alvo is None or attrs_conjurador is None:
             return True, "acerto"
 
         # Se o alvo estiver atordoado ou incapacitado, acerto garantido (100%)
@@ -118,14 +142,14 @@ class AcaoCombate(ABC):
         # Precisão do atacante
         if self.tipo == "FISICO":
             precisao_base = 86.0
-            bonus_conjurador = (conjurador.atributos.mod_des * 2.0) + (conjurador.atributos.mod_for * 0.5)
+            bonus_conjurador = (attrs_conjurador.mod_des * 2.0) + (attrs_conjurador.mod_for * 0.5)
         else: # MAGICO
             precisao_base = 88.0
-            bonus_conjurador = (conjurador.atributos.mod_int * 2.0) + (conjurador.atributos.mod_sab * 1.0)
+            bonus_conjurador = (attrs_conjurador.mod_int * 2.0) + (attrs_conjurador.mod_sab * 1.0)
 
         # Evasão do defensor (base de agilidade + modificador de Destreza)
         evasao_base = 8.0
-        evasao_alvo = evasao_base + max(0.0, alvo.atributos.mod_des * 3.0)
+        evasao_alvo = evasao_base + max(0.0, attrs_alvo.mod_des * 3.0)
         
         # Postura defensiva (Defender) concede enorme bônus de esquiva (+45%)
         if getattr(alvo, 'defendendo', False):
@@ -205,18 +229,21 @@ class AtaqueFisico(AcaoCombate):
 
             # 2. Executa cálculo de dano e crítico em caso de acerto
             critico, mult_crit = self.calcular_critico(conjurador)
-            mod_for = getattr(conjurador.atributos, 'mod_for', 0) if hasattr(conjurador, 'atributos') else 0
-            mod_des = getattr(conjurador.atributos, 'mod_des', 0) if hasattr(conjurador, 'atributos') else 0
+            attrs_conj = _obter_atributos_efetivos(conjurador)
+            mod_for = getattr(attrs_conj, 'mod_for', 0) if attrs_conj else 0
+            mod_des = getattr(attrs_conj, 'mod_des', 0) if attrs_conj else 0
             variacao = random.randint(-2, 2)
 
             dano_bruto = int((self.poder_base + (mod_for * 1.5) + (mod_des * 0.8) + variacao) * mult_crit)
-            dano_bruto = max(1, dano_bruto)
+            mult_fase = float(getattr(conjurador, 'multiplicador_fase', 1.15 if getattr(conjurador, 'enfurecido', False) else 1.0))
+            dano_bruto = max(1, int(round(dano_bruto * mult_fase)))
 
             dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="fisico")
             
             cond_aplicada = self.tentar_aplicar_condicao(alvo)
             texto_crit = " (CRÍTICO!)" if critico else ""
-            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+            res_cc = getattr(alvo, '_ultima_resistencia_cc', None)
+            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else (f" [{res_cc} Resistido - Imunidade Temporária!]" if res_cc else "")
             msg = f"{conjurador.nome} usou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano{texto_crit}{texto_cond}."
             
             resultados.append({
@@ -281,8 +308,9 @@ class MagiaOfensiva(AcaoCombate):
 
             # 2. Executa cálculo de dano e crítico em caso de acerto
             critico, mult_crit = self.calcular_critico(conjurador)
-            mod_int = getattr(conjurador.atributos, 'mod_int', 0) if hasattr(conjurador, 'atributos') else 0
-            mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
+            attrs_conj = _obter_atributos_efetivos(conjurador)
+            mod_int = getattr(attrs_conj, 'mod_int', 0) if attrs_conj else 0
+            mod_sab = getattr(attrs_conj, 'mod_sab', 0) if attrs_conj else 0
             variacao = random.randint(-2, 3)
 
             bonus_maestria = 0
@@ -309,12 +337,14 @@ class MagiaOfensiva(AcaoCombate):
             if bonus_elemental_pct > 0:
                 poder_calculado = poder_calculado * (1.0 + (bonus_elemental_pct / 100.0))
             dano_bruto = int(poder_calculado * mult_crit)
-            dano_bruto = max(2, dano_bruto)
+            mult_fase = float(getattr(conjurador, 'multiplicador_fase', 1.15 if getattr(conjurador, 'enfurecido', False) else 1.0))
+            dano_bruto = max(2, int(round(dano_bruto * mult_fase)))
             dano_sofrido = alvo.aplicar_dano(dano_bruto, tipo="magico")
             
             cond_aplicada = self.tentar_aplicar_condicao(alvo)
             texto_crit = " (CRÍTICO MÁGICO!)" if critico else ""
-            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+            res_cc = getattr(alvo, '_ultima_resistencia_cc', None)
+            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else (f" [{res_cc} Resistido - Imunidade Temporária!]" if res_cc else "")
             msg = f"{conjurador.nome} conjurou {self.nome} em {alvo.nome} causando {dano_sofrido} de dano [{self.elemento}]{texto_crit}{texto_cond}."
             
             resultados.append({
@@ -340,8 +370,8 @@ class MagiaOfensiva(AcaoCombate):
 
 class MagiaCura(AcaoCombate):
     """Magia de restauração de pontos de vida escalada com Sabedoria e Presença."""
-    def __init__(self, id_acao, nome, descricao, custo_mana=15, poder_base=25, alvo_tipo="PROPRIO", condicao_aplicada=None):
-        super().__init__(id_acao, nome, descricao, tipo="CURA", elemento="SAGRADO", custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
+    def __init__(self, id_acao, nome, descricao, custo_mana=15, poder_base=25, alvo_tipo="PROPRIO", condicao_aplicada=None, elemento="SAGRADO"):
+        super().__init__(id_acao, nome, descricao, tipo="CURA", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos):
         if not self.pode_usar(conjurador):
@@ -357,8 +387,9 @@ class MagiaCura(AcaoCombate):
             if not getattr(alvo, 'vivo', True):
                 continue
 
-            mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
-            mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
+            attrs_conj = _obter_atributos_efetivos(conjurador)
+            mod_sab = getattr(attrs_conj, 'mod_sab', 0) if attrs_conj else 0
+            mod_pre = getattr(attrs_conj, 'mod_pre', 0) if attrs_conj else 0
             variacao = random.randint(-1, 3)
 
             bonus_maestria = 0
@@ -382,22 +413,26 @@ class MagiaCura(AcaoCombate):
                 cura_base = cura_base * (1.0 + (bonus_cura_pct / 100.0))
             cura_calculada = max(5.0, cura_base)
             cura_bruta = round(cura_calculada, 1)
-            vida_antes = alvo.vida_atual
+            vida_antes = float(alvo.vida_atual)
             alvo.curar(cura_bruta)
-            cura_efetiva = round(alvo.vida_atual - vida_antes, 1)
+            from src.utils.formatting import formatar_numero_curto, limpar_numero
+            cura_efetiva = limpar_numero(max(0.0, float(alvo.vida_atual) - vida_antes))
+            cond_aplicada = self.tentar_aplicar_condicao(alvo)
 
             # Formatação limpa de dígitos (ex: 33 se inteiro, 33.3 se decimal)
-            cura_fmt = int(cura_efetiva) if float(cura_efetiva).is_integer() else f"{cura_efetiva:.1f}"
-            vida_atual_fmt = int(alvo.vida_atual) if float(alvo.vida_atual).is_integer() else f"{alvo.vida_atual:.1f}"
-            vida_max_fmt = int(alvo.vida_maxima) if float(alvo.vida_maxima).is_integer() else f"{alvo.vida_maxima:.1f}"
+            cura_fmt = formatar_numero_curto(cura_efetiva)
+            vida_atual_fmt = formatar_numero_curto(alvo.vida_atual)
+            vida_max_fmt = formatar_numero_curto(alvo.vida_maxima)
 
-            msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_fmt} de vida ({vida_atual_fmt}/{vida_max_fmt})."
+            texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+            msg = f"{conjurador.nome} usou {self.nome} e recuperou {cura_fmt} de vida ({vida_atual_fmt}/{vida_max_fmt}){texto_cond}."
             
             resultados.append({
                 "alvo": alvo,
                 "dano": 0,
                 "cura": cura_efetiva,
                 "critico": False,
+                "condicao": cond_aplicada,
                 "tipo_dano": "CURA",
                 "mensagem": msg
             })
@@ -412,15 +447,21 @@ class MagiaCura(AcaoCombate):
 
 class AcaoDefender(AcaoCombate):
     """Ação tática que assume postura de guarda para reduzir danos pela metade e esquivar de ataques."""
-    def __init__(self, id_acao="defender", nome="Defender", descricao="Assume postura de guarda. Reduz danos recebidos pela metade e esquiva com facilidade."):
-        super().__init__(id_acao, nome, descricao, tipo="DEFESA", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=0)
+    def __init__(self, id_acao="defender", nome="Defender", descricao="Assume postura de guarda. Reduz danos recebidos pela metade e esquiva com facilidade.", custo_mana=0, poder_base=0, elemento="NEUTRO", alvo_tipo="PROPRIO", condicao_aplicada=None):
+        super().__init__(id_acao, nome, descricao, tipo="DEFESA", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos=None):
+        if not self.pode_usar(conjurador):
+            return {"sucesso": False, "mensagem": f"{conjurador.nome} não tem mana suficiente para {self.nome}!"}
+
+        self.deduzir_custos(conjurador)
         conjurador.defendendo = True
         conjurador.vulneravel = False
         conjurador.focado = False
+        cond_aplicada = self.tentar_aplicar_condicao(conjurador)
 
-        msg = f"{conjurador.nome} assumiu postura defensiva em guarda total, reduzindo danos e preparando esquiva!"
+        texto_cond = f" [{cond_aplicada.nome} {cond_aplicada.icone}]" if cond_aplicada else ""
+        msg = f"{conjurador.nome} assumiu postura defensiva em guarda total, reduzindo danos e preparando esquiva!{texto_cond}"
         
         return {
             "sucesso": True,
@@ -434,6 +475,7 @@ class AcaoDefender(AcaoCombate):
                 "cura": 0,
                 "defendendo": True,
                 "critico": False,
+                "condicao": cond_aplicada,
                 "mensagem": msg
             }]
         }
@@ -441,28 +483,34 @@ class AcaoDefender(AcaoCombate):
 
 class AcaoFoco(AcaoCombate):
     """Ação que canaliza energia espiritual para recuperar Mana, abrindo a guarda e deixando o conjurador vulnerável."""
-    def __init__(self, id_acao="foco_espiritual", nome="Foco Espiritual", descricao="Canaliza energia espiritual para recuperar grande quantidade de Mana, mas fica vulnerável (+35% dano)."):
-        super().__init__(id_acao, nome, descricao, tipo="FOCO", elemento="NEUTRO", custo_mana=0, alvo_tipo="PROPRIO", poder_base=15)
+    def __init__(self, id_acao="foco_espiritual", nome="Foco Espiritual", descricao="Canaliza energia espiritual para recuperar grande quantidade de Mana, mas fica vulnerável (+35% dano).", custo_mana=0, poder_base=15, elemento="NEUTRO", alvo_tipo="PROPRIO", condicao_aplicada=None):
+        super().__init__(id_acao, nome, descricao, tipo="FOCO", elemento=elemento, custo_mana=custo_mana, alvo_tipo=alvo_tipo, poder_base=poder_base, condicao_aplicada=condicao_aplicada)
 
     def executar(self, conjurador, alvos=None):
-        mod_pre = getattr(conjurador.atributos, 'mod_pre', 0) if hasattr(conjurador, 'atributos') else 0
-        mod_sab = getattr(conjurador.atributos, 'mod_sab', 0) if hasattr(conjurador, 'atributos') else 0
+        if not self.pode_usar(conjurador):
+            return {"sucesso": False, "mensagem": f"{conjurador.nome} não tem mana suficiente para {self.nome}!"}
+
+        self.deduzir_custos(conjurador)
+        attrs_conj = _obter_atributos_efetivos(conjurador)
+        mod_pre = getattr(attrs_conj, 'mod_pre', 0) if attrs_conj else 0
+        mod_sab = getattr(attrs_conj, 'mod_sab', 0) if attrs_conj else 0
         
         mana_recuperada = max(12, 12 + (mod_pre * 3) + (mod_sab * 2) + random.randint(2, 5))
         
-        mana_antes = getattr(conjurador, 'mana_atual', 0)
+        mana_antes = float(getattr(conjurador, 'mana_atual', 0))
         if hasattr(conjurador, 'recuperar_mana'):
             conjurador.recuperar_mana(mana_recuperada)
         elif hasattr(conjurador, 'mana_atual'):
             conjurador.mana_atual = min(conjurador.mana_maxima, conjurador.mana_atual + mana_recuperada)
-        mana_efetiva = conjurador.mana_atual - mana_antes
+        from src.utils.formatting import formatar_numero_curto, limpar_numero
+        mana_efetiva = limpar_numero(max(0.0, float(getattr(conjurador, 'mana_atual', 0)) - mana_antes))
 
         # Ao concentrar, abre a guarda ficando vulnerável
         conjurador.defendendo = False
         conjurador.vulneravel = True
         conjurador.focado = True
 
-        msg = f"{conjurador.nome} concentrou sua energia recuperando {mana_efetiva} MP, mas ficou vulnerável a ataques (+35% dano)!"
+        msg = f"{conjurador.nome} concentrou sua energia recuperando {formatar_numero_curto(mana_efetiva)} MP, mas ficou vulnerável a ataques (+35% dano)!"
         
         return {
             "sucesso": True,
@@ -488,15 +536,17 @@ class AcaoFoco(AcaoCombate):
 # ==============================================================================
 
 class SkillsRegistry:
-    """
-
-    Catálogo centralizado de todas as habilidades, magias e ações de combate do jogo.
-
-    Permite registrar novas habilidades e buscá-las por ID de forma global.
-
-    """
+    """Catálogo centralizado de todas as habilidades, magias e ações de combate do jogo."""
 
     _catalogo = {}
+    _dados_json = {}
+    _MAPA_CLASSES_TIPO = {
+        "FISICO": (AtaqueFisico, {"elemento": "FISICO", "custo_mana": 0, "poder_base": 12, "alvo_tipo": "INIMIGO_UNICO"}),
+        "CURA": (MagiaCura, {"elemento": "SAGRADO", "custo_mana": 15, "poder_base": 25, "alvo_tipo": "PROPRIO"}),
+        "DEFESA": (AcaoDefender, {"elemento": "NEUTRO", "custo_mana": 0, "poder_base": 0, "alvo_tipo": "PROPRIO"}),
+        "BUFF": (AcaoDefender, {"elemento": "NEUTRO", "custo_mana": 0, "poder_base": 0, "alvo_tipo": "PROPRIO"}),
+        "FOCO": (AcaoFoco, {"elemento": "NEUTRO", "custo_mana": 0, "poder_base": 15, "alvo_tipo": "PROPRIO"}),
+    }
 
     @classmethod
     def registrar(cls, acao):
@@ -531,13 +581,65 @@ class SkillsRegistry:
 
     @classmethod
     def obter_magias_iniciais_player(cls):
-        """Retorna as magias que Halia possui no início da jornada."""
+        """Retorna as ações iniciais que Halia possui no início da jornada."""
         return [
             cls.get("ataque_basico"),
             cls.get("bola_de_fogo"),
             cls.get("levitar"),
-            cls.get("brisa_curativa")
         ]
+
+    @classmethod
+    def _instanciar_acao(cls, info):
+        """Instancia uma subclasse concreta de AcaoCombate a partir de um dicionário canônico."""
+        tipo = str(info.get("tipo", "MAGICO")).upper()
+        classe_alvo, defaults = cls._MAPA_CLASSES_TIPO.get(
+            tipo,
+            (MagiaOfensiva, {"elemento": "ARCANO", "custo_mana": 10, "poder_base": 20, "alvo_tipo": "INIMIGO_UNICO"}),
+        )
+        return classe_alvo(
+            id_acao=info["id_acao"],
+            nome=info["nome"],
+            descricao=info.get("descricao", ""),
+            elemento=info.get("elemento", defaults["elemento"]),
+            custo_mana=info.get("custo_mana", defaults["custo_mana"]),
+            poder_base=info.get("poder_base", defaults["poder_base"]),
+            alvo_tipo=info.get("alvo_tipo", defaults["alvo_tipo"]),
+            condicao_aplicada=info.get("condicao_aplicada", None),
+        )
+
+    @classmethod
+    def criar_instancia(cls, id_acao):
+        """Retorna uma nova instância independente da ação a partir do JSON canônico."""
+        if not cls._catalogo:
+            cls.inicializar_catalogo_padrao()
+        info = cls._dados_json.get(id_acao)
+        if info:
+            return cls._instanciar_acao(info)
+        modelo = cls.get(id_acao)
+        return copy.copy(modelo) if modelo is not None else None
+
+    @classmethod
+    def obter_dados_raw(cls, id_acao):
+        """Retorna cópia dos metadados de combate de uma ação definida em skills.json."""
+        if not cls._catalogo:
+            cls.inicializar_catalogo_padrao()
+        info = cls._dados_json.get(id_acao)
+        if info:
+            return copy.deepcopy(info)
+        acao = cls.get(id_acao)
+        if not acao:
+            return None
+        return {
+            "id_acao": acao.id_acao,
+            "nome": acao.nome,
+            "descricao": acao.descricao,
+            "tipo": acao.tipo,
+            "elemento": acao.elemento,
+            "custo_mana": acao.custo_mana,
+            "poder_base": acao.poder_base,
+            "alvo_tipo": acao.alvo_tipo,
+            "condicao_aplicada": copy.deepcopy(acao.condicao_aplicada),
+        }
 
     @classmethod
     def carregar_de_json(cls, caminho_json=None):
@@ -554,55 +656,10 @@ class SkillsRegistry:
                 dados = json.load(f)
 
             cls._catalogo.clear()
+            cls._dados_json.clear()
             for id_acao, info in dados.items():
-                tipo = info.get("tipo", "MAGICO").upper()
-                cond = info.get("condicao_aplicada", None)
-                
-                if tipo == "FISICO":
-                    instancia = AtaqueFisico(
-                        id_acao=info["id_acao"],
-                        nome=info["nome"],
-                        descricao=info.get("descricao", ""),
-                        poder_base=info.get("poder_base", 12),
-                        custo_mana=info.get("custo_mana", 0),
-                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO"),
-                        elemento=info.get("elemento", "FISICO"),
-                        condicao_aplicada=cond
-                    )
-                elif tipo == "CURA":
-                    instancia = MagiaCura(
-                        id_acao=info["id_acao"],
-                        nome=info["nome"],
-                        descricao=info.get("descricao", ""),
-                        custo_mana=info.get("custo_mana", 15),
-                        poder_base=info.get("poder_base", 25),
-                        alvo_tipo=info.get("alvo_tipo", "PROPRIO"),
-                        condicao_aplicada=cond
-                    )
-                elif tipo == "DEFESA":
-                    instancia = AcaoDefender(
-                        id_acao=info["id_acao"],
-                        nome=info["nome"],
-                        descricao=info.get("descricao", "")
-                    )
-                elif tipo == "FOCO":
-                    instancia = AcaoFoco(
-                        id_acao=info["id_acao"],
-                        nome=info["nome"],
-                        descricao=info.get("descricao", "")
-                    )
-                else: # MAGICO
-                    instancia = MagiaOfensiva(
-                        id_acao=info["id_acao"],
-                        nome=info["nome"],
-                        descricao=info.get("descricao", ""),
-                        elemento=info.get("elemento", "ARCANO"),
-                        custo_mana=info.get("custo_mana", 10),
-                        poder_base=info.get("poder_base", 20),
-                        alvo_tipo=info.get("alvo_tipo", "INIMIGO_UNICO"),
-                        condicao_aplicada=cond
-                    )
-                
+                cls._dados_json[id_acao] = copy.deepcopy(info)
+                instancia = cls._instanciar_acao(info)
                 cls.registrar(instancia)
             return True
         except Exception as e:

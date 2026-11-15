@@ -2,7 +2,12 @@
 import random
 import pygame
 from src.maps.cenario_base import CenarioBase
-from src.maps.oakhaven.terreno_utils import _carregar_tiles_terreno, _renderizar_grade_autotile
+from src.maps.oakhaven.terreno_utils import (
+    _carregar_tiles_terreno,
+    _renderizar_grade_autotile,
+    criar_sombra_contato_estrutura,
+    criar_sombra_silhueta_achatada,
+)
 from src.utils.resource_manager import ResourceManager
 from src.entities.elemento_cenario import ChamaIndependente
 
@@ -159,10 +164,9 @@ class MapaNinhoDragao(CenarioBase):
                 self.hitboxes.append(hb)
 
             sombra_surf = None
+            sombra_offset = (0, 0)
             if sombra:
-                sombra_larg = int(sw * 0.86)
-                sombra_surf = pygame.Surface((sombra_larg, 18), pygame.SRCALPHA)
-                pygame.draw.ellipse(sombra_surf, (10, 8, 8, 90), (0, 0, sombra_larg, 18))
+                sombra_surf, sombra_offset = criar_sombra_contato_estrutura(sprite, cor=(10, 8, 8, 90))
 
             calc_ysort = y_sort_custom if y_sort_custom is not None else max(int(hb.bottom), int(y + sh - 4))
             self.estruturas_ysort.append({
@@ -172,6 +176,7 @@ class MapaNinhoDragao(CenarioBase):
                 "y_sort": calc_ysort,
                 "sombra": sombra,
                 "sombra_surf": sombra_surf,
+                "sombra_offset": sombra_offset,
                 "sw": sw,
                 "sh": sh,
                 "rect": pygame.Rect(int(x), int(y), sw, sh)
@@ -386,7 +391,8 @@ class MapaNinhoDragao(CenarioBase):
                 ox, oy = obj["x"], obj["y"]
                 s_surf = obj.get("sombra_surf")
                 if s_surf:
-                    tela.blit(s_surf, (ox + int(obj["sw"] * 0.07), oy + obj["sh"] - 12))
+                    dx_s, dy_s = obj.get("sombra_offset", (int(obj["sw"] * 0.07), obj["sh"] - 12))
+                    tela.blit(s_surf, (ox + dx_s, oy + dy_s))
                 tela.blit(sp, (ox, oy))
             elif tipo == "entidade":
                 obj.desenhar(tela)
@@ -395,10 +401,16 @@ class MapaNinhoDragao(CenarioBase):
                 obj.desenhar_particulas(tela)
             elif tipo == "dragao_derrotado":
                 cx, cy = obj["x"], obj["y"]
-                # Sombra massiva do dragão derrotado espalhada sobre a rocha vulcânica
-                sombra_corpo = pygame.Surface((450, 44), pygame.SRCALPHA)
-                pygame.draw.ellipse(sombra_corpo, (14, 10, 14, 125), (0, 0, 450, 44))
-                tela.blit(sombra_corpo, (cx - 3, cy + 48))
+                # Sombra contornada pela silhueta real do dragão abatido sobre a rocha vulcânica
+                sombra_corpo = getattr(self, "_sombra_dragao_derrotado", None)
+                if sombra_corpo is None:
+                    sombra_corpo = criar_sombra_silhueta_achatada(
+                        obj["sprite"], cor=(14, 10, 14, 105), escala_y=0.26, desloc_x=4, desloc_y=3
+                    )
+                    self._sombra_dragao_derrotado = sombra_corpo
+                s_surf_d, (dx_d, dy_d) = sombra_corpo
+                if s_surf_d:
+                    tela.blit(s_surf_d, (cx + dx_d, cy + dy_d))
                 tela.blit(obj["sprite"], (cx, cy))
 
                 # Fumaça e fuligem subindo dos ferimentos e escamas da carcaça colossal

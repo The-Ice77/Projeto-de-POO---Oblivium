@@ -173,3 +173,122 @@ def _renderizar_grade_autotile(largura_mundo, altura_mundo, grade, tiles, seed=4
                     pygame.draw.line(surf, cor_friso, (px + 31, py), (px + 31, py + 31), 2)
 
     return surf
+
+
+def criar_sombra_contato_estrutura(sprite, cor=(14, 18, 16, 75), offset_x_sol=2):
+    """
+    Gera superfície e offset (dx, dy) relativo a (ox, oy) de sombra de contato 2.5D
+    ancorada na base opaca real do sprite (evitando sombras flutuantes em padding
+    transparente ou ovais exageradamente largos sob pilares e vãos).
+    """
+    if sprite is None:
+        return None, (0, 0)
+
+    bb = sprite.get_bounding_rect()
+    if bb.width <= 0 or bb.height <= 0:
+        return None, (0, 0)
+
+    mascara = pygame.mask.from_surface(sprite, 35)
+    faixa_h = max(3, min(14, int(bb.height * 0.14)))
+    y_ini = max(bb.top, bb.bottom - faixa_h)
+
+    colunas_base = []
+    for x in range(bb.left, bb.right):
+        maior_y = -1
+        for y in range(bb.bottom - 1, y_ini - 1, -1):
+            if mascara.get_at((x, y)):
+                maior_y = y
+                break
+        if maior_y >= 0:
+            colunas_base.append((x, maior_y + 1))
+
+    segmentos = []
+    if colunas_base:
+        seg_x0, seg_bot = colunas_base[0]
+        seg_x1 = seg_x0
+        for cx, cbot in colunas_base[1:]:
+            if cx - seg_x1 <= 6:
+                seg_x1 = cx
+                if cbot > seg_bot:
+                    seg_bot = cbot
+            else:
+                if seg_x1 - seg_x0 + 1 >= 4:
+                    segmentos.append((seg_x0, seg_x1, seg_bot))
+                seg_x0, seg_x1, seg_bot = cx, cx, cbot
+        if seg_x1 - seg_x0 + 1 >= 4:
+            segmentos.append((seg_x0, seg_x1, seg_bot))
+
+    if not segmentos:
+        segmentos = [(bb.left, bb.right - 1, bb.bottom)]
+
+    elipses = []
+    for x0, x1, y_bot in segmentos:
+        seg_w = max(6, x1 - x0 + 1)
+        larg_e = min(bb.width + 4, seg_w + min(4, max(0, seg_w // 10)))
+        alt_e = max(6, min(14, int(min(seg_w * 0.26, bb.height * 0.14))))
+        if bb.height < 28:
+            alt_e = max(5, min(9, int(bb.height * 0.28)))
+        ext_baixo = max(2, min(5, alt_e // 3 + 1))
+        top_e = y_bot + ext_baixo - alt_e
+        desloc_x = min(int(offset_x_sol), max(0, bb.right - x1 + 2))
+        left_e = x0 + (seg_w - larg_e) // 2 + desloc_x
+        elipses.append((left_e, top_e, larg_e, alt_e))
+
+    min_x = min(e[0] for e in elipses)
+    min_y = min(e[1] for e in elipses)
+    max_x = max(e[0] + e[2] for e in elipses)
+    max_y = max(e[1] + e[3] for e in elipses)
+
+    sombra_surf = pygame.Surface((max(1, max_x - min_x), max(1, max_y - min_y)), pygame.SRCALPHA)
+    r, g, b = cor[0], cor[1], cor[2]
+    alpha_base = cor[3] if len(cor) >= 4 else 80
+    alpha_penumbra = max(20, int(alpha_base * 0.55))
+    alpha_nucleo = max(30, int(alpha_base * 0.90))
+
+    for lx, ty, lw, lh in elipses:
+        rx, ry = lx - min_x, ty - min_y
+        pygame.draw.ellipse(sombra_surf, (r, g, b, alpha_penumbra), (rx, ry, lw, lh))
+        nw = max(4, int(lw * 0.78))
+        nh = max(4, int(lh * 0.68))
+        nx = rx + (lw - nw) // 2
+        ny = ry + (lh - nh) // 2
+        pygame.draw.ellipse(sombra_surf, (r, g, b, alpha_nucleo), (nx, ny, nw, nh))
+
+    return sombra_surf, (int(min_x), int(min_y))
+
+
+def criar_sombra_silhueta_achatada(sprite, cor=(14, 10, 14, 95), escala_y=0.28, desloc_x=4, desloc_y=3):
+    """Gera sombra contornada e achatada pela silhueta real para corpos horizontais deitados."""
+    if sprite is None:
+        return None, (0, 0)
+    bb = sprite.get_bounding_rect()
+    if bb.width <= 0 or bb.height <= 0:
+        return None, (0, 0)
+
+    recorte = sprite.subsurface(bb)
+    mascara = pygame.mask.from_surface(recorte, 40)
+    r, g, b = cor[0], cor[1], cor[2]
+    alpha_base = cor[3] if len(cor) >= 4 else 95
+
+    sil_ext = mascara.to_surface(
+        setcolor=(r, g, b, max(20, int(alpha_base * 0.55))), unsetcolor=(0, 0, 0, 0)
+    ).convert_alpha()
+    sil_int = mascara.to_surface(
+        setcolor=(r, g, b, max(30, int(alpha_base * 0.85))), unsetcolor=(0, 0, 0, 0)
+    ).convert_alpha()
+
+    w_ext = bb.width + 6
+    h_ext = max(10, int(round(bb.height * escala_y)))
+    w_int = max(4, int(round(bb.width * 0.96)))
+    h_int = max(6, int(round(h_ext * 0.68)))
+
+    surf_ext = pygame.transform.smoothscale(sil_ext, (w_ext, h_ext))
+    surf_int = pygame.transform.smoothscale(sil_int, (w_int, h_int))
+
+    final = pygame.Surface((w_ext, h_ext), pygame.SRCALPHA)
+    final.blit(surf_ext, (0, 0))
+    final.blit(surf_int, ((w_ext - w_int) // 2, (h_ext - h_int) // 2))
+
+    dx = bb.left - 3 + int(desloc_x)
+    dy = bb.bottom - h_ext + int(desloc_y)
+    return final, (dx, dy)
