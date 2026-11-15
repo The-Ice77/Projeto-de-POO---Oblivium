@@ -26,25 +26,35 @@ class Animacao:
     Classe utilitária para gerenciar o estado e os frames de uma animação.
     Garante compatibilidade total com superfícies 32-bit com canal alfa.
     """
+    FPS_REFERENCIA = 60.0
+
     def __init__(self, frames, velocidade=0.15, loop=True):
-        self.frames = frames if frames else []
-        self.velocidade = velocidade
-        self.loop = loop
+        self.frames = list(frames) if frames else []
+        self.velocidade = float(velocidade)
+        self.loop = bool(loop)
         self.frame_atual = 0.0
         self.concluida = False
 
-    def atualizar(self):
+    def atualizar(self, dt=None):
         if not self.frames:
             return
 
         if not self.concluida:
-            self.frame_atual += self.velocidade
+            if dt is None:
+                passo = self.velocidade
+            else:
+                dt_seg = max(0.0, min(float(dt), 0.5))
+                passo = self.velocidade * (dt_seg * self.FPS_REFERENCIA)
+            self.frame_atual = round(self.frame_atual + passo, 9)
             if self.frame_atual >= len(self.frames):
                 if self.loop:
-                    self.frame_atual = 0.0
+                    self.frame_atual = round(self.frame_atual % len(self.frames), 9)
                 else:
                     self.frame_atual = len(self.frames) - 1
                     self.concluida = True
+
+    def clonar(self):
+        return Animacao(list(self.frames), velocidade=self.velocidade, loop=self.loop)
 
     def get_imagem(self):
         if not self.frames:
@@ -57,6 +67,126 @@ class Animacao:
     def resetar(self):
         self.frame_atual = 0.0
         self.concluida = False
+
+
+class FonteEditorialWrapper:
+    """
+    Wrapper transparente para pygame.font.Font que intercepta glifos especiais
+    ausentes nas fontes TTF/OTF customizadas ('✦', '✕', '✓', '✔', '▲', '▼', '◀', '▶')
+    e os desenha proceduralmente com geometria vetorial nítida na mesma cor e linha base,
+    eliminando retângulos vazios (.notdef) em qualquer texto do jogo.
+    """
+    GLIFOS_VETORIAIS = frozenset({"✦", "✕", "✓", "✔", "▲", "▼", "◀", "▶"})
+
+    def __init__(self, fonte_pygame, tamanho=20):
+        self._fonte = fonte_pygame
+        self._tamanho = max(8, int(tamanho))
+        self._largura_glifo = max(10, int(self._tamanho * 0.65))
+
+    def _contem_glifo_especial(self, texto):
+        if not texto:
+            return False
+        for ch in str(texto):
+            if ch in self.GLIFOS_VETORIAIS:
+                return True
+        return False
+
+    def size(self, texto):
+        texto_str = str(texto) if texto is not None else ""
+        if not self._contem_glifo_especial(texto_str):
+            return self._fonte.size(texto_str)
+
+        largura_total = 0
+        altura_max = self._fonte.get_height()
+        buffer_normal = []
+
+        for ch in texto_str:
+            if ch in self.GLIFOS_VETORIAIS:
+                if buffer_normal:
+                    seg = "".join(buffer_normal)
+                    w_s, h_s = self._fonte.size(seg)
+                    largura_total += w_s
+                    altura_max = max(altura_max, h_s)
+                    buffer_normal.clear()
+                largura_total += self._largura_glifo
+            else:
+                buffer_normal.append(ch)
+
+        if buffer_normal:
+            seg = "".join(buffer_normal)
+            w_s, h_s = self._fonte.size(seg)
+            largura_total += w_s
+            altura_max = max(altura_max, h_s)
+
+        return (largura_total, altura_max)
+
+    def render(self, texto, antialias, color, background=None):
+        texto_str = str(texto) if texto is not None else ""
+        if not self._contem_glifo_especial(texto_str):
+            if background is not None:
+                return self._fonte.render(texto_str, antialias, color, background)
+            return self._fonte.render(texto_str, antialias, color)
+
+        w_total, h_total = self.size(texto_str)
+        w_total = max(1, w_total)
+        h_total = max(1, h_total)
+
+        surf = pygame.Surface((w_total, h_total), pygame.SRCALPHA, 32)
+        if background is not None:
+            surf.fill(background)
+
+        cor_rgb = tuple(color[:3]) if isinstance(color, (tuple, list, pygame.Color)) else (240, 240, 240)
+        cursor_x = 0
+        buffer_normal = []
+
+        def _flush_texto(cx):
+            if not buffer_normal:
+                return cx
+            seg = "".join(buffer_normal)
+            buffer_normal.clear()
+            r_seg = self._fonte.render(seg, antialias, color)
+            surf.blit(r_seg, (cx, (h_total - r_seg.get_height()) // 2))
+            return cx + r_seg.get_width()
+
+        for ch in texto_str:
+            if ch in self.GLIFOS_VETORIAIS:
+                cursor_x = _flush_texto(cursor_x)
+                cx = cursor_x + self._largura_glifo // 2
+                cy = h_total // 2
+                r = max(3, int(self._tamanho * 0.26))
+                ri = max(1, int(r * 0.35))
+
+                if ch == "✦":
+                    pts = [
+                        (cx, cy - r), (cx + ri, cy - ri),
+                        (cx + r, cy), (cx + ri, cy + ri),
+                        (cx, cy + r), (cx - ri, cy + ri),
+                        (cx - r, cy), (cx - ri, cy - ri)
+                    ]
+                    pygame.draw.polygon(surf, cor_rgb, pts)
+                elif ch == "✕":
+                    pygame.draw.line(surf, cor_rgb, (cx - r, cy - r), (cx + r, cy + r), 2)
+                    pygame.draw.line(surf, cor_rgb, (cx - r, cy + r), (cx + r, cy - r), 2)
+                elif ch in ("✓", "✔"):
+                    pygame.draw.lines(surf, cor_rgb, False, [(cx - r, cy), (cx - ri, cy + r - 1), (cx + r, cy - r + 1)], 2)
+                elif ch == "▲":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx, cy - r), (cx + r, cy + r - 1), (cx - r, cy + r - 1)])
+                elif ch == "▼":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx - r, cy - r + 1), (cx + r, cy - r + 1), (cx, cy + r)])
+                elif ch == "◀":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx + r - 1, cy - r), (cx + r - 1, cy + r), (cx - r, cy)])
+                elif ch == "▶":
+                    pygame.draw.polygon(surf, cor_rgb, [(cx - r + 1, cy - r), (cx - r + 1, cy + r), (cx + r, cy)])
+
+                cursor_x += self._largura_glifo
+            else:
+                buffer_normal.append(ch)
+
+        _flush_texto(cursor_x)
+        return surf
+
+    def __getattr__(self, nome):
+        return getattr(self._fonte, nome)
 
 
 class ResourceManager:
@@ -140,8 +270,9 @@ class ResourceManager:
         if not fonte_obj:
             fonte_obj = pygame.font.Font(None, tamanho)
 
-        cls._cache_fontes[chave] = fonte_obj
-        return fonte_obj
+        fonte_wrapped = FonteEditorialWrapper(fonte_obj, tamanho=tamanho)
+        cls._cache_fontes[chave] = fonte_wrapped
+        return fonte_wrapped
 
 
     @classmethod
@@ -227,9 +358,11 @@ class ResourceManager:
                     escala = min(largura_alvo / w_orig, altura_alvo / h_orig)
                     novo_w = max(1, int(w_orig * escala))
                     novo_h = max(1, int(h_orig * escala))
-                    imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
                 else:
-                    imagem = pygame.transform.scale(imagem, (largura_alvo, altura_alvo))
+                    novo_w, novo_h = largura_alvo, altura_alvo
+
+                # Preservação estrita de nitidez pixel art por vizinho mais próximo (sem desfoque)
+                imagem = pygame.transform.scale(imagem, (novo_w, novo_h))
                 
             cls._cache_imagens[chave] = imagem
             return imagem
@@ -351,7 +484,7 @@ class ResourceManager:
 
             arquivos = sorted([
                 f for f in os.listdir(pasta_abs)
-                if f.lower().endswith(".png") and (filtro is None or filtro in f)
+                if f.lower().endswith(".png") and not f.lower().endswith(("_sheet.png", "sheet.png")) and (filtro is None or filtro in f)
             ], key=_chave_natural)
             frames = []
             for arq in arquivos:
@@ -384,7 +517,7 @@ class ResourceManager:
 
         chave = f"anim_inimigo_{pasta_inimigo}_{escala_fator}_{tamanho}"
         if chave in cls._cache_animacoes:
-            return cls._cache_animacoes[chave]
+            return cls._instanciar_animacoes_de_espec(cls._cache_animacoes[chave], pasta_inimigo)
 
         pasta_absoluta = cls._obter_caminho_absoluto(os.path.join("inimigos", pasta_inimigo))
         if not os.path.exists(pasta_absoluta) or not os.path.isdir(pasta_absoluta):
@@ -394,13 +527,35 @@ class ResourceManager:
             else:
                 return {}
 
-        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png")])
-        grupos = {}
+        arquivos = sorted([f for f in os.listdir(pasta_absoluta) if f.lower().endswith(".png") and not f.lower().endswith("_sheet.png")])
+        grupos_brutos = {}
+        prefixo = f"{pasta_inimigo.lower()}_"
         for nome_arq in arquivos:
-            partes = os.path.splitext(nome_arq)[0].split("_")
-            if len(partes) >= 2:
-                estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
-                grupos.setdefault(estado, []).append(nome_arq)
+            nome_sem_ext = os.path.splitext(nome_arq)[0]
+            if nome_sem_ext.lower().startswith(prefixo):
+                resto = nome_sem_ext[len(prefixo):]
+                estado = resto.split("_")[0].lower()
+                grupos_brutos.setdefault(estado, []).append(nome_arq)
+            else:
+                partes = nome_sem_ext.split("_")
+                if len(partes) >= 2:
+                    estado = partes[1].lower() if len(partes) >= 3 else partes[0].lower()
+                    grupos_brutos.setdefault(estado, []).append(nome_arq)
+
+        mapa_canonico_pt_para_en = {
+            "andar": "walk",
+            "ataque": "attack",
+            "dano": "hurt",
+            "morte": "dead",
+            "morrer": "dead",
+        }
+        grupos = {}
+        for estado_bruto, lista_arqs in grupos_brutos.items():
+            canon = mapa_canonico_pt_para_en.get(estado_bruto, estado_bruto)
+            # Se já existir o grupo em inglês, evita duplicar com arquivos sinônimos em português
+            if estado_bruto in mapa_canonico_pt_para_en and canon in grupos_brutos:
+                continue
+            grupos.setdefault(canon, []).extend(lista_arqs)
 
         # Configurações de velocidade e repetição por estado
         config_estados = {
@@ -409,30 +564,80 @@ class ResourceManager:
             "attack": {"vel": 0.18, "loop": False},
             "hurt": {"vel": 0.20, "loop": False},
             "dead": {"vel": 0.15, "loop": False},
-            "projectile": {"vel": 0.20, "loop": True}
+            "projectile": {"vel": 0.20, "loop": True},
+            "reveal": {"vel": 0.15, "loop": False},
+            "special": {"vel": 0.18, "loop": False},
+            "takeoff": {"vel": 0.16, "loop": False},
+            "landing": {"vel": 0.16, "loop": False},
+            "flight": {"vel": 0.16, "loop": True},
+            "corpo": {"vel": 0.05, "loop": True},
+            "soldado": {"vel": 0.05, "loop": True},
         }
 
-        dicionario_animacoes = {}
+        brutos_img = {}
+        frames_escalados = {}
         for estado, lista_arqs in grupos.items():
-            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
-            frames = []
-            for nome_arq in lista_arqs:
+            raw_list = []
+            sc_list = []
+            for nome_arq in sorted(lista_arqs):
                 caminho_rel = os.path.join("inimigos", pasta_inimigo, nome_arq).replace("\\", "/")
                 img = cls.carregar_imagem(caminho_rel)
                 if img:
+                    raw_list.append(img)
+                    img_sc = img
                     if escala_fator and escala_fator != 1.0:
                         nw = max(1, int(img.get_width() * escala_fator))
                         nh = max(1, int(img.get_height() * escala_fator))
-                        img = pygame.transform.scale(img, (nw, nh))
+                        img_sc = pygame.transform.scale(img, (nw, nh))
                     elif tamanho:
-                        img = pygame.transform.scale(img, tamanho)
-                    frames.append(img)
-            
-            if frames:
-                anim = Animacao(frames, velocidade=cfg["vel"], loop=cfg["loop"])
-                dicionario_animacoes[estado] = anim
+                        img_sc = pygame.transform.scale(img, tamanho)
+                    sc_list.append(img_sc)
+            if sc_list:
+                brutos_img[estado] = raw_list
+                frames_escalados[estado] = sc_list
 
-        # Aliases de compatibilidade em português
+        # Normaliza os estados corporais sobre canvas uniforme ancorado no centro inferior (pés no chão)
+        estados_livres = {"projectile", "projetil"}
+        estados_corpo = [
+            est for est, flist in frames_escalados.items()
+            if est not in estados_livres and flist
+        ]
+        if estados_corpo:
+            max_w = max(fr.get_width() for est in estados_corpo for fr in frames_escalados[est])
+            max_h = max(fr.get_height() for est in estados_corpo for fr in frames_escalados[est])
+            for est in estados_corpo:
+                normalizados = []
+                for fr in frames_escalados[est]:
+                    canvas = pygame.Surface((max_w, max_h), pygame.SRCALPHA)
+                    ox = (max_w - fr.get_width()) // 2
+                    oy = max_h - fr.get_height()
+                    canvas.blit(fr, (ox, oy))
+                    normalizados.append(canvas)
+                frames_escalados[est] = normalizados
+
+        especificacoes = {}
+        for estado, lista_frames in frames_escalados.items():
+            cfg = config_estados.get(estado, {"vel": 0.15, "loop": True})
+            especificacoes[estado] = {
+                "frames": tuple(lista_frames),
+                "vel": cfg["vel"],
+                "loop": cfg["loop"],
+            }
+
+        cls._cache_animacoes[chave] = especificacoes
+        return cls._instanciar_animacoes_de_espec(especificacoes, pasta_inimigo)
+
+    @classmethod
+    def _instanciar_animacoes_de_espec(cls, especificacoes, pasta_inimigo=""):
+        dicionario_animacoes = {}
+        for estado, espec in especificacoes.items():
+            dicionario_animacoes[estado] = Animacao(
+                list(espec["frames"]),
+                velocidade=espec["vel"],
+                loop=espec["loop"],
+            )
+
+        # Aliases locais à instância (nunca compartilhados entre dois inimigos distintos)
         if "walk" in dicionario_animacoes and "andar" not in dicionario_animacoes:
             dicionario_animacoes["andar"] = dicionario_animacoes["walk"]
         if "attack" in dicionario_animacoes and "ataque" not in dicionario_animacoes:
@@ -442,9 +647,67 @@ class ResourceManager:
         if "dead" in dicionario_animacoes:
             dicionario_animacoes.setdefault("morte", dicionario_animacoes["dead"])
             dicionario_animacoes.setdefault("morrer", dicionario_animacoes["dead"])
+        if pasta_inimigo.lower() == "mimico" and "corpo" in dicionario_animacoes:
+            dicionario_animacoes.setdefault("soldado", dicionario_animacoes["corpo"])
 
-        cls._cache_animacoes[chave] = dicionario_animacoes
         return dicionario_animacoes
+
+    @classmethod
+    def obter_frame_combate_inimigo(cls, pasta_inimigo, estado, frame_idx, altura_combate_alvo):
+        """
+        Retorna quadro de combate em resolução nativa escalonado diretamente pela
+        altura opaca canônica de 'idle', evitando perda de nitidez por dupla escala.
+        """
+        alias_pastas = {
+            "gulosao": "demonio_superior",
+            "gulosinho": "demonio_inferior",
+        }
+        pasta_norm = alias_pastas.get(str(pasta_inimigo).lower(), str(pasta_inimigo))
+        chave_comb = ("combate_inimigo_nativo", pasta_norm, int(altura_combate_alvo))
+
+        if chave_comb not in cls._cache_animacoes:
+            anims_nativas = cls.carregar_animacoes_inimigo(pasta_norm, escala_fator=1.0)
+            if not anims_nativas:
+                cls._cache_animacoes[chave_comb] = None
+                return None
+
+            h_ref = 0
+            for cand in ("idle", "walk", "corpo"):
+                anim_r = anims_nativas.get(cand)
+                if anim_r and getattr(anim_r, "frames", None):
+                    hs = [
+                        fr.get_bounding_rect().height
+                        for fr in anim_r.frames
+                        if fr.get_bounding_rect().height > 0
+                    ]
+                    if hs:
+                        h_ref = sorted(hs)[len(hs) // 2]
+                        break
+            if h_ref <= 0:
+                cls._cache_animacoes[chave_comb] = None
+                return None
+
+            escala_comb = float(altura_combate_alvo) / float(h_ref)
+            cache_estados = {}
+            for est_nome, anim_nat in anims_nativas.items():
+                frames_nat = getattr(anim_nat, "frames", None) or []
+                frames_sc = []
+                for fr in frames_nat:
+                    ow, oh = fr.get_size()
+                    nw = max(1, int(round(ow * escala_comb)))
+                    nh = max(1, int(round(oh * escala_comb)))
+                    frames_sc.append(fr if (nw, nh) == (ow, oh) else pygame.transform.scale(fr, (nw, nh)))
+                if frames_sc:
+                    cache_estados[est_nome] = frames_sc
+            cls._cache_animacoes[chave_comb] = cache_estados
+
+        mapa_estados = cls._cache_animacoes.get(chave_comb)
+        if not mapa_estados:
+            return None
+        lista_frames = mapa_estados.get(estado) or mapa_estados.get("idle")
+        if not lista_frames:
+            return None
+        return lista_frames[int(frame_idx) % len(lista_frames)]
 
     @classmethod
     def carregar_imagem_com_transparencia(cls, caminho, tamanho=None, escala_fator=None, manter_proporcao=False, auto_crop=True, threshold_corte=4):
@@ -495,9 +758,9 @@ class ResourceManager:
             else:
                 nw, nh = w, h
 
-            # Redimensionamento suave com preservação de detalhes
+            # Redimensionamento nítido com preservação de bordas pixel art
             if (nw, nh) != (w, h):
-                img_scaled = pygame.transform.smoothscale(img, (nw, nh))
+                img_scaled = pygame.transform.scale(img, (nw, nh))
             else:
                 img_scaled = img.copy()
 
@@ -551,7 +814,7 @@ class ResourceManager:
                     sub = sheet.subsurface(rect).copy()
                     
                     if tamanho_frame:
-                        sub = pygame.transform.smoothscale(sub, tamanho_frame)
+                        sub = pygame.transform.scale(sub, tamanho_frame)
                         
                     sw, sh = sub.get_size()
                     if remover_fundo_preto:
@@ -645,109 +908,26 @@ class ResourceManager:
 
     @classmethod
     def obter_tile(cls, caminho_tileset, col, lin, tamanho_tile=16, escala=None):
-        """
-        Extrai um tile individual (16x16 por padrão) de uma folha de tileset com cache.
-        """
-        chave = f"tile_{caminho_tileset}_{col}x{lin}_{tamanho_tile}_{escala}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        img_sheet = cls.carregar_imagem(caminho_tileset)
-        if not img_sheet:
-            return None
-
-        rect = pygame.Rect(col * tamanho_tile, lin * tamanho_tile, tamanho_tile, tamanho_tile)
-        if rect.right > img_sheet.get_width() or rect.bottom > img_sheet.get_height():
-            return None
-
-        tile = img_sheet.subsurface(rect).copy()
-        if escala and escala != 1.0:
-            nw = int(tamanho_tile * escala)
-            nh = int(tamanho_tile * escala)
-            tile = pygame.transform.scale(tile, (nw, nh))
-
-        cls._cache_imagens[chave] = tile
-        return tile
+        """Delega a extração de tile individual para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.obter_tile(caminho_tileset, col, lin, tamanho_tile=tamanho_tile, escala=escala)
 
     @classmethod
     def criar_superficie_tiled(cls, caminho_tileset, largura_total, altura_total, col=0, lin=0, tamanho_tile=16, escala_tile=2):
-        """
-        Cria uma superfície contínua preenchida pela repetição de um tile específico de um tileset.
-        Ideal para gerar pisos de grama, terra, pedra ou madeira com alta performance de renderização.
-        """
-        chave = f"tiled_{caminho_tileset}_{col}x{lin}_{largura_total}x{altura_total}_{escala_tile}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        tile = cls.obter_tile(caminho_tileset, col, lin, tamanho_tile=tamanho_tile, escala=escala_tile)
-        if not tile:
-            # Fallback seguro
-            surf = cls.criar_superficie_32bit(largura_total, altura_total)
-            surf.fill((35, 55, 30))
-            return surf
-
-        tw, th = tile.get_size()
-        superficie_final = cls.criar_superficie_32bit(largura_total, altura_total)
-
-        for y in range(0, altura_total, th):
-            for x in range(0, largura_total, tw):
-                superficie_final.blit(tile, (x, y))
-
-        cls._cache_imagens[chave] = superficie_final
-        return superficie_final
+        """Delega a criação de superfície contínua de tiles para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.criar_superficie_tiled(
+            caminho_tileset, largura_total, altura_total,
+            col=col, lin=lin, tamanho_tile=tamanho_tile, escala_tile=escala_tile
+        )
 
     @classmethod
     def gerar_chao_com_estrada_e_transicao(cls, largura_total, altura_total, y_estrada=240, h_estrada=240):
-        """
-        Gera uma superfície rica de chão com base de grama verde exuberante, caminho central de terra
-        e faixas de transição orgânica (bordas recortadas de grama que avançam sobre a terra).
-        """
-        chave = f"chao_estrada_transicao_{largura_total}x{altura_total}_{y_estrada}_{h_estrada}"
-        if chave in cls._cache_imagens:
-            return cls._cache_imagens[chave]
-
-        p_ext = "assets/cenario/02_Pisos_Externos"
-        p_grama = f"{p_ext}/01_Grama_Verde"
-        p_terra = f"{p_ext}/03_Terra_Marrom"
-
-        # 1. Tiles base (32x32 com escala=2)
-        tile_grama = cls.carregar_imagem(f"{p_grama}/piso_grama_r10_c01.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/grama/Floors_Tiles.png", 1, 10, tamanho_tile=16, escala=2)
-        tile_terra = cls.carregar_imagem(f"{p_terra}/piso_terra_r10_c11.png", (32, 32)) or cls.obter_tile("assets/cenario/pisos_externos/terra/Floors_Tiles.png", 11, 10, tamanho_tile=16, escala=2)
-
-        # Transições nativas (piso_grama_r00_c02: grama no topo, dentes descendo; piso_grama_r04_c02: dentes subindo, grama na base)
-        tile_trans_norte = cls.carregar_imagem(f"{p_grama}/piso_grama_r00_c02.png", (32, 32))
-        tile_trans_sul = cls.carregar_imagem(f"{p_grama}/piso_grama_r04_c02.png", (32, 32))
-
-        surf_final = cls.criar_superficie_32bit(largura_total, altura_total)
-        tw = 32
-        th = 32
-
-        # 2. Preenche todo o mapa com grama verde viçosa
-        if tile_grama:
-            for y in range(0, altura_total, th):
-                for x in range(0, largura_total, tw):
-                    surf_final.blit(tile_grama, (x, y))
-
-        # 3. Preenche a faixa da estrada em superfície estritamente delimitada (evita qualquer vazamento de terra)
-        surf_estrada = cls.criar_superficie_32bit(largura_total, h_estrada)
-        if tile_terra:
-            for y in range(0, h_estrada, th):
-                for x in range(0, largura_total, tw):
-                    surf_estrada.blit(tile_terra, (x, y))
-
-        # 4. Desenha as transições recortadas de grama sobre a terra (norte e sul)
-        if tile_trans_norte:
-            for x in range(0, largura_total, tw):
-                surf_estrada.blit(tile_trans_norte, (x, 0))
-
-        if tile_trans_sul:
-            for x in range(0, largura_total, tw):
-                surf_estrada.blit(tile_trans_sul, (x, h_estrada - th))
-
-        surf_final.blit(surf_estrada, (0, y_estrada))
-
-        cls._cache_imagens[chave] = surf_final
-        return surf_final
+        """Delega a geração do terreno de estrada com transição para o TilemapBuilder."""
+        from src.maps.tilemap_builder import TilemapBuilder
+        return TilemapBuilder.gerar_chao_com_estrada_e_transicao(
+            largura_total, altura_total, y_estrada=y_estrada, h_estrada=h_estrada
+        )
 
     @classmethod
     def carregar_frames_de_pasta(cls, caminho_pasta, filtro_prefixo=None, tamanho=None, manter_proporcao=False):
@@ -767,6 +947,7 @@ class ResourceManager:
         arquivos = sorted([
             f for f in os.listdir(pasta_absoluta)
             if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp"))
+            and not f.lower().endswith(("_sheet.png", "sheet.png"))
             and (not filtro_prefixo or f.lower().startswith(filtro_prefixo.lower()))
         ])
 

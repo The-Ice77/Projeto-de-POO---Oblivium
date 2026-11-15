@@ -307,6 +307,113 @@
 - **Refinamento de Paleta Dark Fantasy**:
   - Substituição de tons dourados e amarelos saturados na tela de conquistas e badges por tons nobres de Prata Arcana (`#d0daf0` e `#8fa0c0`), Marfim Offwhite e Cinza Linho, harmonizando com a estética gótica de Oblivium.
 
+---
 
+### Atualização v[0.9.3] — Calibragem de Demônios, Puzzles de Magia e Controle de Missões
+#### Implementação, Correção e Aprimoramento
+- **Rebalanceamento dos Demônios**:
+  - **Demônio Inferior** (`demonio_inferior`, `sombra_menor`, `gulosinho`): Redução sutil de dificuldade para suavizar combates em dupla (`vida_base` de 42 para 36, `dano_base` de 11 para 9, Força 10, Destreza 12 e Constituição 10).
+  - **Demônio Superior** (`demonio_superior`, `anomalia_maior`, `gulosao`, `Boss`): Fortalecimento moderado para preservar sua imponência como Chefe (`vida_base` de 64 para 78, `mana_base` 55, `dano_base` de 12 para 15, Força 14, Destreza 12, Constituição 14, Intelecto 13 e Presença 14), além de calibragem nas habilidades `impacto_anomalo` e `onda_corrosiva`.
+- **Ajuste de Dificuldade dos Puzzles de Magia**:
+  - **Bola de Fogo (`MinigameTiming`)**: Tornado mais acessível com redução da velocidade do cursor nas 3 etapas (`5.5`, `7.5` e `9.5`), ampliação das zonas de acerto (`110px`, `84px` e `60px`) e reinício previsível do cursor na base a cada etapa.
+  - **Levitação Gravitacional (`MinigameMash`)**: Tornado mais desafiador com janela de reação mais exigente (`62` ticks base reduzindo até `38` ticks em sequência), maior inércia gravitacional (`-0.14`/frame), ganho de `+13.5%` por acerto (exigindo ~7 a 8 acertos) e penalidade de `-20%` por falha.
+- **Controle de Ativação e Teste de Missões**:
+  - Vinculação direta ao `QuestManager` (`game.missoes` / `game.quest_manager`) com suporte ao ciclo completo do catálogo (`missao_boas_vindas`, `missao_ervas_medicinais`, `missao_ronda_fronteiras`).
+  - Adição do controle configurável **Missões `[J]`** (ativa missão inicial ou recolhe/expande o Quest Tracker HUD) e atalho rápido **`[M]`** / **`[0]` no Dev Menu** para ativar missões e avançar objetivos etapa por etapa em tempo real.
 
-
+---
+
+### Atualização v[0.9.4] — Quest Tracker Simultâneo (1 Principal + 1 Secundária), Curadoria de Conquistas & Ícones Procedurais
+#### Implementação, Correção e Aprimoramento
+- **Desassociação de Teclas de Teste e Atalho `[O]` para Missões**:
+  - Desassociadas as teclas de teste do gameplay livre; a tecla oficial **`[O]` (`pygame.K_o`)** agora é dedicada exclusivamente a **minimizar e expandir** o HUD de Missões durante a exploração.
+  - O controle de ativação/progresso rápido de missões permanece centralizado no Console de Desenvolvedor (`'` -> opção `[0]`).
+- **Quest Tracker Ampliado com 1 Missão Principal + 1 Secundária Simultâneas**:
+  - Regra de negócio aplicada no `QuestManager`: o jogador pode manter ativas simultaneamente no máximo **1 Missão Principal** e **1 Missão Secundária**.
+  - `QuestTracker` redimensionado (`350px` de largura, tipografia ampliada `18pt`/`20pt`/`16pt` e alto contraste) exibindo **ambas as missões ativas juntas** na tela, separadas por divisória ornamentada e identificadas por insígnias procedurais (`Principal` em âmbar dourado e `Secundária` em prata azulada).
+- **Curadoria de Conquistas Especiais e Únicas**:
+  - Remoção das conquistas triviais de início de jogo (dar 1 passo no quarto, coletar moedas iniciais, pegar o cajado básico, falar com o carroceiro, assustar pássaro).
+  - Consolidação de **10 marcos realmente significativos** em `conquistas.json`, incluindo *Caçadora do Abismo* (`cacadora_abissal`, ao derrotar o Demônio Superior) e *Cumpridor de Promessas* (`cumpridor_promessas`, ao concluir integralmente uma missão).
+- **Geração Procedural de Ícones e Emblemas via Código (`ui_utils.py`)**:
+  - Eliminação de blocos vazios e glifos Unicode ausentes nas fontes customizadas (`sunday.ttf` / `contrail.ttf`).
+  - Criação de geradores vetoriais procedurais para **todos os 10 emblemas de conquistas**, **botões de fechar `[X]`**, **botões de minimizar/expandir `[-]`/`[+]`**, **moedas de Ouro/Prata/Cobre** e **ilustrações dos slots de Equipamentos e Grimórios**.
+
+---
+
+### Atualização v[0.9.5] — Refatoração Arquitetural de Artes (`IconRegistry` & `TilemapBuilder`) e Polimento do HUD/Inventário
+#### Implementação, Correção e Aprimoramento
+- **HUD e Inventário**:
+  - Remoção do bloco lateral ao lado das barras de status (`HP`/`MP`) da Halia no `HUD`, tornando o painel superior esquerdo mais limpo e compacto (`250x78` px).
+  - Preservação dos ícones antigos para os slots de Equipamentos (`ROUPA`, `CAJADO`, `ACESSORIO_1`, `ACESSORIO_2`) e Grimórios (`GRIMORIO`).
+  - Nos itens da Bolsa e da Loja, utilização estrita apenas das sprites oficiais de itens que existem no projeto (`props/Cajado.png` e `props/Grimório.png`), mantendo o modelo original de **apenas texto** para itens que não possuem sprite própria.
+- **Refatoração Arquitetural (Padrão *Flyweight* / *Factory* e Princípio da Responsabilidade Única — SRP)**:
+  - Criação do [`IconRegistry`](Oblivium/src/ui/icon_registry.py): centraliza a resolução de sprites oficiais de itens e gera **uma única vez em cache (`pygame.Surface` RGBA)** todos os ícones procedurais (conquistas, notificações, moedas, marcadores de missão e slots), eliminando recálculos geométricos a cada frame (60 FPS).
+  - Limpeza de [`ui_utils.py`](Oblivium/src/ui/ui_utils.py): focado exclusivamente em primitivas de layout, barras interpoladas, quebras de texto e `BotaoGrafico`.
+  - Criação do [`TilemapBuilder`](Oblivium/src/maps/tilemap_builder.py): extração da lógica de composição de terrenos, estradas e autotiling que antes sobrecarregava o [`ResourceManager`](Oblivium/src/utils/resource_manager.py).
+  - Unificação do roteamento de persistência em `PlayingState` e `SlotsState` através da instância orientada a objetos `game.save_manager` ([`SaveManager`](Oblivium/src/core/save_manager.py)).
+
+---
+
+### Atualização v[0.9.6] — Polimento da Demo, Animações, Combate Tático, Epílogo e Áudio (Requisitos 01–09)
+#### Implementação, Correção e Aprimoramento
+- **R01 — Sprites da Halia, Animações e Remoção de Recortes Obsoletos**:
+  - Eliminação do estado compartilhado em [`Animacao`](Oblivium/src/utils/resource_manager.py) com normalização temporal por `dt` (`FPS_REFERENCIA = 60.0`); `ResourceManager` passa a manter apenas superfícies e listas de quadros imutáveis em cache.
+  - Consolidação das 104 sprites da Halia com manto verde em `assets/halia/novas_sprites/` e [`halia_sprites_manifest.json`](Oblivium/assets/halia/halia_sprites_manifest.json) (`14` sequências validadas e `0` sprites legadas em raiz), com atualização em [`Player`](Oblivium/src/entities/player.py), [`CombatRenderer`](Oblivium/src/mechanics/combat/combat_renderer.py), [`MapaFlashbackAcampamento`](Oblivium/src/maps/mapa_flashback.py), [`SlotsState`](Oblivium/src/states/menus/slots_states.py) e [`CutsceneReconstrucaoVisual`](Oblivium/src/mechanics/cutscenes/cutscene_reconstrucao_visual.py).
+- **R02 — Remoção de Retratos em Diálogos e Painéis**:
+  - Remoção completa de retratos e molduras de [`DialogueBox`](Oblivium/src/ui/dialogue_box.py) e [`DialoguePortraitCatalog`](Oblivium/src/ui/dialogue_portraits.py), com exclusão definitiva das imagens `retrato_*.png` (`0` arquivos restantes).
+  - Unificação da geometria de texto/escolhas/pop-up sem reserva lateral de retrato, mantendo o padrão tipográfico Dark Fantasy editorial.
+- **R03 — Despertar da Memória 2 Pós-Sylvan e Consolidação Arcana**:
+  - Encadeamento automático de `TelaDespertarMemoria` (Estágio 2) imediatamente após o flashback de Sylvan no pós-clímax em [`OakhavenController`](Oblivium/src/states/playing/oakhaven_controller.py), mantendo `tema_memorias.ogg` contínua entre [`Flashback`](Oblivium/src/ui/scenes/flashback.py) e `DESPERTAR_PENDENTE`.
+  - Persistência v2 em [`SaveManager`](Oblivium/src/core/save_manager.py) com `estagio_memoria_apresentado`, `etapa_epilogo` e `versao_progressao`, além de `limpar_estado_execucao_ativo()` no retorno ao menu e `resetar_progresso()` completo.
+- **R04 — Reconstrução em Mapa de Oakhaven, Despedida, Próximo Destino e Créditos em Cascata**:
+  - Encadeamento pós-clímax em [`OakhavenController`](Oblivium/src/states/playing/oakhaven_controller.py): retorno a Oakhaven destruída -> sequência cinematográfica [`CutsceneReconstrucaoVisual`](Oblivium/src/mechanics/cutscenes/cutscene_reconstrucao_visual.py) no mapa real (`forja` -> `botanica` -> `praca`, remoção dinâmica de entulhos e *fade* de brasas) -> diálogo de despedida no Portão Sul com próximo destino e mensagem `"obrigado por jogar a demo"`.
+  - Transição automática para [`CreditsState`](Oblivium/src/states/menus/credits_states.py) no modo `"DEMO"` com retorno em cascata ao menu principal e persistência `etapa_epilogo = "DEMO_CONCLUIDA"` sem softlocks.
+- **R05 — Cercas e Muros de Madeira na Vila e Orla**:
+  - Integração das cercas modulares de `assets/cenario/08_Cercas/` e complemento em [`MapaVilaOakhaven`](Oblivium/src/maps/oakhaven/mapa_vila.py) (`cerca_vila_01..18`); limitação documentada: a paliçada defensiva superior em [`MapaVilaOakhaven`](Oblivium/src/maps/oakhaven/mapa_vila.py) e [`MapaOrlaNorteOakhaven`](Oblivium/src/maps/oakhaven/mapa_orla_norte.py) foi preservada porque `08_Cercas` fornece apenas cercados internos baixos (`32x48px` de perímetro exigem muralhas completas).
+- **R06 — Animação de Andar e Parar dos Mímicos, Carroceiro e NPCs**:
+  - Correções nos **Mímicos** (remoção de duplicidade de chave PT/EN, postura furtiva estacionária e transição limpa na revelação), no **Carroceiro** (cache por diretório/`targets`, sequência `walk_esquerda` e movimento desacoplado de `desenhar()`) e em NPCs secundários (ex.: Patusco e Guardas).
+- **R07 — Trilha Sonora Oficial, Normalização, AudioManager e Créditos Musicais**:
+  - Conversão e normalização das faixas oficiais de `assets/audio/Trilha Sonora Oblivium/*.m4a` para `.ogg` Vorbis estéreo `44.1 kHz` em [`assets/audio/music/`](Oblivium/assets/audio/music) com mapeamento declarativo em [`audio_manifest.json`](Oblivium/src/data/audio_manifest.json) e documentação atualizada em [`sounds.md`](Oblivium/sounds.md). As pastas `assets/audio/sfx/` e `assets/audio/ambience/` permanecem vazias (apenas `.gitkeep`) como pendências explícitas aguardando efeitos futuros.
+  - Reescrita de [`AudioManager`](Oblivium/src/core/audio_manager.py) para normalização exata de volume (`0..100` vs `0..1`), respeito estrito ao mudo, máquina de *fade* sequencial orientada a `dt` no loop principal, continuidade sem reinício por caminho normalizado e pilha/token de contexto de combate com restauração segura.
+- **R08 — Proteção Contra Folhas/Pétalas sobre Textos de Introdução/Noite e Fade Suave**:
+  - Atualização de [`EfeitoChuvaParticulas`](Oblivium/src/utils/animations.py), [`EfeitoFolhas`](Oblivium/src/utils/animations.py), [`Intro`](Oblivium/src/ui/scenes/intro.py), [`Flashback`](Oblivium/src/ui/scenes/flashback.py), `PlayingState` e [`CinematicaDragao`](Oblivium/src/mechanics/cutscenes/cinematica_dragao.py) com `obter_areas_protegidas()` e desvanecimento gradual sobre zonas de texto e interface.
+- **R09 — Balanceamento de Combates, Dragão Ignis'Vahr, Progressão Arcana e Refatorações**:
+  - [`SkillsRegistry`](Oblivium/src/mechanics/rpg/skills.py) consolidado como autoridade única sobre [`skills.json`](Oblivium/src/data/skills.json) e [`grimorio_halia.json`](Oblivium/src/data/grimorio_halia.json); centralização de `obter_atributos_efetivos()` e `obter_defesa_equipamento()`, suporte a `condicao_aplicada` em `MagiaCura` e `AcaoDefender`; redução do kit inicial para `['ataque_basico']` com `['bola_de_fogo', 'levitar']` na Memória 0 (`raio_arcano` e `brisa_curativa` na Memória 1; `vendaval_cortante` opcional pré-dragão; `impacto_anomalo` na Memória 2; feitiços posteriores bloqueados por `memorias_minimas_aquisicao`).
+  - Conexão de `Boss.verificar_mudanca_fase()` aos 50% de HP (amplificação de `1.15x` uma única vez inclusive por dano contínuo via [`CombatAIController`](Oblivium/src/mechanics/combat/combat_ai.py)) e ciclo telegrafado de Ignis'Vahr (`PREPARAR_SOPRO` -> `sopro_de_brasas`, poder base `50` / queimadura `65%`, interrompível por CC com imunidade pós-CC de `2` turnos em `Boss` e `1` turno em `Entidade`); calibração de `dragao_vermelho` (`325` HP, `140` MP, dano base `23`; `garra_draconica` `20`, `batida_de_asas` `18`), `demonio_inferior`, `demonio_superior`, `mimico`, `mimico_batedor`, `brisa_curativa` e `vendaval_cortante`.
+  - Extração de fluxos do prólogo e pós-prólogo em [`PrologoController`](Oblivium/src/states/playing/prologo_controller.py) e [`OakhavenController`](Oblivium/src/states/playing/oakhaven_controller.py), mantendo módulos críticos abaixo dos limites arquiteturais (`combat_screen.py` `< 800`, `dialogue_box.py` `< 930`, `skills.py` `< 700`, `player.py` `< 700`, `inventory_states.py` `< 700`, `playing_states.py` `< 900`, `mapa_oakhaven.py` `< 50`) e criação das suítes `test_lote1` a `test_lote7` registradas em [`run_all_tests.py`](Oblivium/tests/run_all_tests.py) (`Oblivium/tests/` ignorado pelo [`.gitignore`](.gitignore)).
+
+---
+
+### Atualização v[0.9.7] — Pós-Revisão Etapas 1–7, Hotfixes Visuais, IA Unificada e Nova Faixa do Ataque do Dragão
+#### Implementação, Correção e Aprimoramento
+- **Pós-Revisão Etapas 1–6 e Hotfixes Visuais/Narrativos**:
+  - Correção da transição automática da Cabana de Prólogo para a Fase 1 (`ESTRADA` / `OAKHAVEN`), eliminação do quadrado verde na saída da vila com cobertura completa de direções/quadros de Halia, remoção de sombras distorcidas no ninho do dragão e melhor aproveitamento do espaço superior nos nomes/barras em combates com múltiplos inimigos.
+  - Limpeza de artefatos em overlays e telas (`ScreenOverlay`, `CombatScreen`) e adição das suítes dedicadas `test_pos_revisao_etapa1.py` a `test_pos_revisao_etapa7.py` e `test_hotfix_pos_etapa6.py`.
+- **Nova Música do Ataque do Dragão (`ataque_dragao.ogg`)**:
+  - Conversão e normalização (`-17.5 LUFS`) da nova faixa `Ancient Magic_spotdown.org.mp3` (Evan Call) para [`ataque_dragao.ogg`](Oblivium/assets/audio/music/ataque_dragao.ogg), registrada como 12ª trilha oficial em [`audio_manifest.json`](Oblivium/src/data/audio_manifest.json) e [`sounds.md`](Oblivium/sounds.md) e conectada à [`CinematicaAtaqueDragao`](Oblivium/src/mechanics/cutscenes/cinematica_dragao.py), à função `iniciar_amanhecer_ataque_dragao()` em [`OakhavenController`](Oblivium/src/states/playing/oakhaven_controller.py) e ao [`map_loader.py`](Oblivium/src/maps/map_loader.py).
+- **Seletor Unificado de IA Inimiga e Rota Sem Assistência (`F13`)**:
+  - Unificação de `CombatAIController.selecionar_acao_inimigo` como método compartilhado entre o combate em runtime e os cenários estatísticos do [`test_lote4_combates_e_balanceamento.py`](Oblivium/tests/test_lote4_combates_e_balanceamento.py), com validação do cenário sem loja (`3A-SEM-LOJA`).
+  - Implementação de `test_4_percurso_sem_assistencia_combate_e_leitura_natural` em [`test_lote7_percurso_demo_completo.py`](Oblivium/tests/test_lote7_percurso_demo_completo.py) cobrindo prólogo, minijogos, combate tático real, ataque aéreo do dragão, pós-clímax, reconstrução e créditos sem manipulação de HP/MP ou `.pular()`, além da verificação automática pré/pós-execução via SHA-256 dos saves em [`run_all_tests.py`](Oblivium/tests/run_all_tests.py).
+
+---
+
+### Atualização v[0.9.8] — Pacote Completo de SFX, Passos com Variações, Ambiências por Cenário e Proporção do Ferreiro Torvald
+#### Implementação e Balanceamento
+- **Proporção do Ferreiro Torvald (`alvo_h=66`)**:
+  - Recalibração de altura visual de `ferreiro` / `torvald` (`82 -> 66`, mantendo hitbox `(40, 36)`) em [`NPC.py`](Oblivium/src/entities/NPC.py) e [`npcs.json`](Oblivium/src/data/npcs.json) para que sua silhueta curvada sobre a bigorna acompanhe com naturalidade a escala de Halia, Elara, Aldous e a forja.
+- **Pacote de Efeitos Sonoros (105 OGGs) e Ambiências (11 OGGs) Normalizados**:
+  - Processamento com normalização de loudness por categoria e `0` amostras clipadas (preservando integralmente `sons.zip` e pastas originais dos pacotes) em `assets/audio/sfx/{ui,combate,itens,mundo}/` e `assets/audio/ambience/`.
+  - Recorte individual de passos em [`passo_grama_01..03.ogg`](Oblivium/assets/audio/sfx/mundo/passo_grama_01.ogg) e [`passo_pedra_01..03.ogg`](Oblivium/assets/audio/sfx/mundo/passo_pedra_01.ogg), suporte a variações aleatórias sem repetição imediata e cooldown em [`AudioManager`](Oblivium/src/core/audio_manager.py), além de detecção automática de terreno (`grama` vs `pedra`) e ambiência por cenário em [`CenarioBase`](Oblivium/src/maps/cenario_base.py), [`map_loader.py`](Oblivium/src/maps/map_loader.py) e [`Game`](Oblivium/src/core/game.py).
+  - Conexão contextual de SFX elementais em combate (`magia_fogo`, `magia_gelo`, `magia_raio`, `magia_cura`, `defesa_escudo`, `slime`, `rugido_monstro`), bombardeio da cinemática do dragão (`explosao`, `rugido_monstro`), missões (`quest_nova`, `quest_concluida`), level up (`level_up`), forja (`forja_bigorna`), loja (`moeda`), sliders (`ui_slider`), inventário (`item_pocao`, `equipar_armadura`, `desembainhar`, `livro_abrir`, `pagina_virar`), e inclusão da atribuição **CC BY 4.0** de *Fantasy UI SFX Free by heyheythere* em [`CreditsState`](Oblivium/src/states/menus/credits_states.py), [`audio_manifest.json`](Oblivium/src/data/audio_manifest.json) e [`sounds.md`](Oblivium/sounds.md).
+
+---
+
+### Atualização v[0.9.9] — Explosão no Prólogo, Reequilíbrio da Mixagem e Controles de Áudio Aprimorados
+#### Implementação, Mixagem e Qualidade de Vida
+- **SFX da Bola de Fogo e Explosão no Prólogo**:
+  - Conexão de `magia_fogo` ao disparo arcano da Halia e `explosao` à detonação das rochas na Estrada 2 em [`CutsceneManager`](Oblivium/src/mechanics/cutscenes/cutscene_manager.py).
+- **Reequilíbrio Global entre Música, Ambiente e Efeitos**:
+  - Recalibração acústica das 11 ambiências (~`-23 dBFS RMS`) e 105 SFX por RMS ativo em janelas de `20 ms` com `0` amostras clipadas pós-codec (`passo_grama_01..03`, `passo_pedra_01..03`, cliques de UI, combates e itens), além de ajuste fino do ganho de passos em [`AudioManager`](Oblivium/src/core/audio_manager.py) e digitação de diálogo em [`DialogueBox`](Oblivium/src/ui/dialogue_box.py).
+  - Definição do perfil de mixagem padrão equilibrado em [`Game`](Oblivium/src/core/game.py): **Master `100%` • Música `55%` • Efeitos `95%` • Ambiente `70%`**.
+- **Controles de Volume Avançados e Persistência (`Configurações`)**:
+  - Expansão de [`SettingsState`](Oblivium/src/states/menus/settings_states.py) com barras clicáveis/arrastáveis contínuas, botões `[-]`/`[+]`, passo fino de `5%` (`1%` com `Shift`), suporte à roda do mouse, botão/atalho `[M]` para **Silenciar Tudo (Mute)**, `[R]` para **Restaurar Padrões**, prévia ao vivo de ambiente no menu principal e persistência automática em `config_usuario.json` via [`save_storage`](Oblivium/src/utils/save_storage.py).

@@ -4,9 +4,11 @@ from src.utils.colors import (
     CINZA_LINHO, CINZA_ARDOSIA, MARFIM_OFFWHITE,
     BARRA_VIDA_JOGADOR, BARRA_MANA
 )
+from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import (
     desenhar_painel_padrao,
-    desenhar_barra_status_interpolada
+    desenhar_barra_status_interpolada,
+    desenhar_icone_moeda
 )
 
 
@@ -16,7 +18,7 @@ class TabPerfilRenderer:
 
     Responsabilidades:
     - Exibição de Recursos Vitais com barras interpoladas (HP e MP).
-    - Exibição de Carteira decomposta (Moedas de Ouro, Prata e Cobre).
+    - Exibição de Carteira decomposta (Moedas de Ouro, Prata e Cobre) com ícones procedurais.
     - Cálculo visual de Parâmetros de Combate (Esquiva, Bloqueio/Defesa Física, Defesa Mágica, Poder Mágico e Crítico).
     - Ficha de Atributos D20 Primários (INT, SAB, PRE, CON, DES, FOR) discriminando valores base, bônus de equipamentos e modificadores.
     """
@@ -33,9 +35,20 @@ class TabPerfilRenderer:
         attrs_totais = halia.obter_atributos_totais()
         attrs_base = halia.atributos
 
-        # Cabeçalho Superior: Estágio da Memória
-        txt_cab = s.fonte_destaque.render(f"Halia — Estágio da Memória: {memorias}", True, MARFIM_OFFWHITE)
+        nivel = getattr(halia, 'nivel', 1)
+        xp_atual = getattr(halia, 'xp', 0)
+        xp_prox = getattr(halia, 'xp_proximo_nivel', 50)
+
+        # Cabeçalho Superior: Nível, Sincronia e Barra de XP
+        txt_cab = s.fonte_destaque.render(f"Halia — Nível {nivel} (Grã-Maga) | Sincronia: {memorias}/7", True, MARFIM_OFFWHITE)
         tela.blit(txt_cab, (s.x_menu + 45, s.y_menu + 75))
+
+        # Rótulo e Barra de XP Arcano no topo à direita
+        txt_xp = s.fonte_mini.render(f"XP: {xp_atual} / {xp_prox}", True, (210, 185, 245))
+        rx_xp = s.x_menu + 570
+        tela.blit(txt_xp, (rx_xp, s.y_menu + 74))
+        w_barra_xp = 505 - txt_xp.get_width() - 16
+        desenhar_barra_status_interpolada(tela, rx_xp + txt_xp.get_width() + 12, s.y_menu + 78, xp_atual, xp_prox, (150, 95, 225), largura=w_barra_xp, altura=10)
 
         # BLOCO 1 (Esquerda): RECURSOS E ESTATÍSTICAS
         r_bloco1 = pygame.Rect(s.x_menu + 45, s.y_menu + 110, 505, 450)
@@ -50,16 +63,33 @@ class TabPerfilRenderer:
         tela.blit(s.fonte_texto.render(f"Reserva de Mana (MP): {halia.mana_atual} / {halia.mana_maxima}", True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 112))
         desenhar_barra_status_interpolada(tela, r_bloco1.x + 20, r_bloco1.y + 138, halia.mana_atual, halia.mana_maxima, BARRA_MANA, largura=465, altura=14)
 
-        # 2. Carteira Decomposta
+        # 2. Carteira Decomposta reutilizando a sprite da Bolsa de Moedas do jogo
         pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 170), (r_bloco1.right - 20, r_bloco1.y + 170), 1)
         tela.blit(s.fonte_mini.render("CARTEIRA (20 Cobre = 1 Prata | 10 Prata = 1 Ouro)", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 180))
 
-        str_moedas = f"🪙 {halia.moedas_ouro} Ouro   |   🥈 {halia.moedas_prata} Prata   |   🥉 {halia.moedas_cobre} Cobre"
-        tela.blit(s.fonte_destaque.render(str_moedas, True, MARFIM_OFFWHITE), (r_bloco1.x + 20, r_bloco1.y + 206))
+        y_moeda = r_bloco1.y + 206
+        x_m = r_bloco1.x + 22
+        sprite_bolsa_m = ResourceManager.carregar_imagem("props/Bolsa de Moedas.png", (24, 24))
+        if sprite_bolsa_m:
+            tela.blit(sprite_bolsa_m, (x_m, y_moeda - 2))
+            x_m += 32
+
+        dados_moedas = [
+            ("OURO", f"{halia.moedas_ouro} Ouro", (245, 220, 140)),
+            ("PRATA", f"{halia.moedas_prata} Prata", (215, 220, 230)),
+            ("COBRE", f"{halia.moedas_cobre} Cobre", (225, 165, 125))
+        ]
+        for idx_m, (tipo_m, txt_m, cor_m) in enumerate(dados_moedas):
+            desenhar_icone_moeda(tela, x_m, y_moeda + 10, tipo=tipo_m, raio=7)
+            surf_m = s.fonte_destaque.render(txt_m, True, cor_m)
+            tela.blit(surf_m, (x_m + 12, y_moeda))
+            x_m += 12 + surf_m.get_width() + 20
+            if idx_m < 2:
+                pygame.draw.line(tela, CINZA_ARDOSIA, (x_m - 10, y_moeda + 3), (x_m - 10, y_moeda + 18), 1)
 
         # 3. Parâmetros de Combate
-        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 242), (r_bloco1.right - 20, r_bloco1.y + 242), 1)
-        tela.blit(s.fonte_mini.render("PARÂMETROS DE COMBATE", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 252))
+        pygame.draw.line(tela, CINZA_ARDOSIA, (r_bloco1.x + 20, r_bloco1.y + 238), (r_bloco1.right - 20, r_bloco1.y + 238), 1)
+        tela.blit(s.fonte_mini.render("PARÂMETROS DE COMBATE & MAGIA", True, (210, 195, 140)), (r_bloco1.x + 20, r_bloco1.y + 246))
 
         inv = getattr(halia, 'inventario', None)
         bonus_stats = inv.obter_bonus_totais_equipamentos()["stats"] if inv else {}
@@ -68,21 +98,49 @@ class TabPerfilRenderer:
         def_magica = attrs_totais.calcular_defesa_magica() + bonus_stats.get("defesa_magica", 0)
         esquiva = int(min(45.0, max(5.0, 10.0 + (attrs_totais.mod_des * 2.5) + bonus_stats.get("esquiva", 0))))
         critico = int(attrs_totais.calcular_chance_critico() + bonus_stats.get("critico", 0))
-        poder_magico = max(0, attrs_totais.mod_int * 2) + bonus_stats.get("dano_magico", 0)
+        poder_magico = max(0, attrs_totais.mod_int * 2) + bonus_stats.get("poder_magico", 0) + bonus_stats.get("dano_magico", 0)
 
+        fogo_bonus = bonus_stats.get("dano_fogo_bonus", 0)
+        gelo_bonus = bonus_stats.get("dano_gelo_bonus", 0)
+        cura_bonus = bonus_stats.get("cura_bonus", 0)
+        elem_parts = []
+        if fogo_bonus > 0:
+            elem_parts.append(f"+{fogo_bonus}% Fogo")
+        if gelo_bonus > 0:
+            elem_parts.append(f"+{gelo_bonus}% Gelo")
+        if cura_bonus > 0:
+            elem_parts.append(f"+{cura_bonus}% Cura")
+        elem_str = ", ".join(elem_parts) if elem_parts else "Neutra (+0%)"
+
+        total_feiticos = len(getattr(halia, 'magias_desbloqueadas', []))
+        total_maestrias = len(getattr(halia, 'maestria_feiticos', {}))
         stats_combate = [
-            ("✦ Chance de Esquiva:", f"{esquiva}%"),
-            ("✦ Bloqueio & Defesa Física:", f"{def_fisica} pts"),
-            ("✦ Defesa Mágica:", f"{def_magica} pts"),
-            ("✦ Poder Mágico Arcano:", f"+{poder_magico} pts"),
-            ("✦ Acerto Crítico:", f"{critico}%")
+            ("Chance de Esquiva:", f"{esquiva}%"),
+            ("Bloqueio & Defesa Física:", f"{def_fisica} pts"),
+            ("Defesa Mágica:", f"{def_magica} pts"),
+            ("Poder Mágico Arcano:", f"+{poder_magico} pts"),
+            ("Ressonância Elemental:", elem_str),
+            ("Acerto Crítico:", f"{critico}%"),
+            ("Grimório & Maestria:", f"{total_feiticos} feitiços ({total_maestrias} aprimorados)")
         ]
 
-        y_sc = r_bloco1.y + 280
+        # Espaçamento vertical balanceado para caber perfeitamente no bloco sem vazar
+        y_sc = r_bloco1.y + 264
         for rotulo_sc, valor_sc in stats_combate:
             tela.blit(s.fonte_texto.render(rotulo_sc, True, CINZA_LINHO), (r_bloco1.x + 24, y_sc))
-            tela.blit(s.fonte_destaque.render(valor_sc, True, MARFIM_OFFWHITE), (r_bloco1.right - 100, y_sc - 2))
-            y_sc += 30
+            w_rot = s.fonte_texto.size(rotulo_sc)[0]
+            w_disp_val = (r_bloco1.width - 48) - w_rot - 12
+            
+            fonte_v = s.fonte_mini if (len(valor_sc) > 15 or s.fonte_destaque.size(valor_sc)[0] > w_disp_val) else s.fonte_destaque
+            val_render = valor_sc
+            if fonte_v.size(val_render)[0] > w_disp_val:
+                while len(val_render) > 3 and fonte_v.size(f"{val_render}...")[0] > w_disp_val:
+                    val_render = val_render[:-1]
+                val_render = f"{val_render}..."
+
+            surf_val = fonte_v.render(val_render, True, MARFIM_OFFWHITE)
+            tela.blit(surf_val, (r_bloco1.right - 24 - surf_val.get_width(), y_sc - (0 if fonte_v == s.fonte_mini else 2)))
+            y_sc += 24
 
         # BLOCO 2 (Direita): OS 6 ATRIBUTOS
         r_bloco2 = pygame.Rect(s.x_menu + 570, s.y_menu + 110, 505, 450)

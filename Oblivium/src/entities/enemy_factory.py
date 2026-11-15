@@ -3,12 +3,6 @@ import random
 import copy
 import json
 import os
-import sys
-
-# Garante que a pasta raiz do projeto ('Oblivium') esteja no sys.path
-_raiz_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if _raiz_projeto not in sys.path:
-    sys.path.insert(0, _raiz_projeto)
 
 from src.entities.Enemy import Enemy
 from src.entities.Boss import Boss
@@ -53,10 +47,10 @@ class EnemyFactory:
                     "sombra_menor": {
                         "nome": "Sombra Menor",
                         "classe": "Enemy",
-                        "vida_base": 42,
+                        "vida_base": 36,
                         "velocidade": 2.5,
-                        "dano_base": 11,
-                        "atributos": {"forca": 12, "destreza": 14, "constituicao": 12, "intelecto": 10, "sabedoria": 8, "presenca": 10},
+                        "dano_base": 9,
+                        "atributos": {"forca": 10, "destreza": 12, "constituicao": 10, "intelecto": 9, "sabedoria": 8, "presenca": 9},
                         "habilidades": ["ataque_basico", "golpe_sombrio"],
                         "recompensas": {"moedas": 10, "memorias": 0, "xp": 18},
                         "dimensoes": [35, 45],
@@ -65,11 +59,11 @@ class EnemyFactory:
                     "anomalia_maior": {
                         "nome": "Anomalia Maior",
                         "classe": "Boss",
-                        "vida_base": 60,
+                        "vida_base": 74,
                         "velocidade": 2.0,
-                        "dano_base": 11,
-                        "atributos": {"forca": 12, "destreza": 10, "constituicao": 12, "intelecto": 11, "sabedoria": 10, "presenca": 12},
-                        "habilidades": ["golpe_sombrio", "impacto_anomalo"],
+                        "dano_base": 14,
+                        "atributos": {"forca": 14, "destreza": 12, "constituicao": 14, "intelecto": 13, "sabedoria": 11, "presenca": 14},
+                        "habilidades": ["golpe_sombrio", "investida_sombria", "impacto_anomalo", "onda_corrosiva"],
                         "recompensas": {"moedas": 45, "memorias": 1, "xp": 80},
                         "dimensoes": [55, 75],
                         "cor": [150, 0, 200]
@@ -170,9 +164,9 @@ class EnemyFactory:
         posicoes = posicoes_custom or posicoes_padrao
 
         tabelas_regiao = {
-            "estrada": ["sombra_menor", "sombra_guardia", "espectro_errante"],
-            "floresta": ["sombra_menor", "espectro_errante"],
-            "ruinas": ["sombra_guardia", "espectro_errante"]
+            "estrada": ["demonio_inferior", "demonio_pequeno", "sombra_guardia"],
+            "floresta": ["demonio_olho", "demonio_pequeno", "espectro_errante"],
+            "ruinas": ["demonio_olho", "sombra_guardia", "espectro_errante"]
         }
 
         opcoes_inimigos = tabelas_regiao.get(regiao.lower(), ["sombra_menor"])

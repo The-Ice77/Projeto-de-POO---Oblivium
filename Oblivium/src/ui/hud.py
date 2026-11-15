@@ -4,21 +4,24 @@ import math
 from src.utils.colors import (
     CINZA_LINHO, CINZA_ARDOSIA, CARVAO_PROFUNDO,
     MARFIM_OFFWHITE, BARRA_VIDA_JOGADOR, BARRA_MANA,
-    BORDA_PADRAO, AZUL_HOVER_MENU, AZUL_HOVER_BG,
+    BORDA_PADRAO, AZUL_HOVER_MENU, AZUL_HOVER_BG, DOURADO_ENVELHECIDO,
     AMULETO_COR_FASE_1, AMULETO_COR_FASE_2, AMULETO_COR_FASE_3, AMULETO_COR_FASE_4,
     AMULETO_COR_FASE_5, AMULETO_COR_FASE_6, AMULETO_COR_FASE_7
 )
 from src.utils.resource_manager import ResourceManager
-from src.ui.ui_utils import desenhar_barra_status_interpolada, desenhar_painel_padrao
+from src.ui.ui_utils import (
+    desenhar_barra_status_interpolada,
+    desenhar_painel_padrao
+)
 
 class HUD:
     """
     HUD Simplificado e Focado de Oblivium:
-    - Retrato de Halia com moldura sutil em carvão escuro
+    - Container enxuto em carvão escuro sem blocos vazios ao lado dos stats
     - Nome de Halia em tipografia Sunday
     - Barras de HP (Carmim) e MP (Cerúleo) limpas com interpolação suave
     - Amuleto das 7 Fases de Memória na lateral do container
-    - Botão da Bolsa no canto inferior direito com atalho [B] e hover azul etéreo
+    - Botão da Bolsa no canto inferior direito com atalho [TAB] e hover azul etéreo
     - Fade dinâmico de proximidade quando Halia se aproxima
     """
     def __init__(self, largura_tela, altura_tela):
@@ -41,7 +44,7 @@ class HUD:
         
         # --- SUPORTE A SPRITES ---
         self.sprite_bolsa = ResourceManager.carregar_imagem("hud/Bolsa.png", (75, 75))
-        self.sprite_halia = None  # Temporariamente desativado a pedido do usuário (aguardando novas artes)
+        self.sprite_halia = None
         
         # Pré-carrega as 8 fases do amuleto
         self.sprites_memorias = {
@@ -102,33 +105,17 @@ class HUD:
         mana_atual = getattr(halia, 'mana_atual', 50)
         mana_maxima = max(1, getattr(halia, 'mana_maxima', 50))
 
-        # 3. CONTAINER PRINCIPAL SUPERIOR ESQUERDO
+        # 3. CONTAINER PRINCIPAL SUPERIOR ESQUERDO (Sem bloco lateral ao lado dos stats)
         x_hud = 24
         y_hud = 20
-        largura_painel = 310
+        largura_painel = 250
         altura_painel = 78
 
         rect_painel = pygame.Rect(x_hud, y_hud, largura_painel, altura_painel)
         desenhar_painel_padrao(surface_hud, rect_painel, cor_fundo=CARVAO_PROFUNDO, cor_borda=CINZA_LINHO, alpha=240)
 
-        # 3.1 Moldura e Retrato de Halia
-        x_ret = x_hud + 9
-        y_ret = y_hud + 9
-        w_ret = 52
-        h_ret = 60
-        rect_retrato = pygame.Rect(x_ret, y_ret, w_ret, h_ret)
-        pygame.draw.rect(surface_hud, (14, 14, 18), rect_retrato, border_radius=2)
-        pygame.draw.rect(surface_hud, CINZA_ARDOSIA, rect_retrato, 1, border_radius=2)
-
-        if self.sprite_halia:
-            surface_hud.blit(self.sprite_halia, (x_ret + 1, y_ret + 1))
-        else:
-            f_ini = ResourceManager.carregar_fonte("sunday", 28)
-            txt_ini = f_ini.render("H", True, MARFIM_OFFWHITE)
-            surface_hud.blit(txt_ini, txt_ini.get_rect(center=rect_retrato.center))
-
-        # 3.2 Nome e Barras de Status (HP e MP)
-        x_conteudo = x_ret + w_ret + 14
+        # 3.1 Nome e Barras de Status (HP e MP)
+        x_conteudo = x_hud + 16
         txt_nome = self.fonte_nome.render(nome_personagem, True, MARFIM_OFFWHITE)
         surface_hud.blit(txt_nome, (x_conteudo, y_hud + 8))
 

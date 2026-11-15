@@ -4,6 +4,13 @@ import random
 import math
 from src.utils.resource_manager import ResourceManager
 
+
+def _distancia_rect_a_rect(rect_a, rect_b):
+    """Distância euclidiana mínima entre as bordas de dois retângulos (0.0 se houver contato)."""
+    dx = max(rect_a.left - rect_b.right, rect_b.left - rect_a.right, 0)
+    dy = max(rect_a.top - rect_b.bottom, rect_b.top - rect_a.bottom, 0)
+    return math.hypot(dx, dy)
+
 class ParticulaFlutuante:
     """
     Classe base de física e renderização para partículas orgânicas flutuantes
@@ -59,30 +66,35 @@ class ParticulaFlutuante:
         if self.y > self.altura_tela + 40 or self.x < -60 or self.x > self.largura_tela + 60:
             self.reset(inicializar_na_tela=False)
 
-    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
-        if not self.sprite_base or alpha_multiplicador <= 0.01:
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0, largura_suavizacao=32.0):
+        if not self.sprite_base or alpha_multiplicador <= 0.005:
             return
 
-        # Verificação rápida por ponto central antes de aplicar transformações pesadas
+        # Verificação rápida por ponto central antes de aplicar rotações
         if areas_excluidas:
             for area in areas_excluidas:
                 if area.collidepoint(self.x, self.y):
                     return
 
         rot_surf = pygame.transform.rotozoom(self.sprite_base, self.angulo, self.escala)
-        alpha_final = int(self.alpha * alpha_multiplicador)
-        if alpha_final < 255:
-            rot_surf.set_alpha(max(0, min(255, alpha_final)))
-            
         pos_x = int(self.x - rot_surf.get_width() // 2)
         pos_y = int(self.y - rot_surf.get_height() // 2)
 
-        # Verificação precisa de colisão com a área da superfície para evitar qualquer sobreposição indesejada
+        fator_local = 1.0
         if areas_excluidas:
             rect_particula = pygame.Rect(pos_x, pos_y, rot_surf.get_width(), rot_surf.get_height())
-            for area in areas_excluidas:
-                if area.colliderect(rect_particula):
-                    return
+            dist_min = min(_distancia_rect_a_rect(rect_particula, area) for area in areas_excluidas)
+            if dist_min <= 0.0:
+                return
+            if largura_suavizacao and largura_suavizacao > 0 and dist_min < largura_suavizacao:
+                t = dist_min / float(largura_suavizacao)
+                fator_local = t * t * (3.0 - 2.0 * t)
+
+        alpha_final = int(round(self.alpha * alpha_multiplicador * fator_local))
+        if alpha_final <= 1:
+            return
+        if alpha_final < 255:
+            rot_surf.set_alpha(max(0, min(255, alpha_final)))
 
         superficie.blit(rot_surf, (pos_x, pos_y))
 
@@ -109,21 +121,61 @@ class EfeitoChuvaParticulas:
             ParticulaFlutuante(self.sprites, self.largura, self.altura, inicializar_na_tela=True, **kwargs_particula)
             for _ in range(quantidade)
         ]
+        self._inicializar_controle_visibilidade()
+
+    def _inicializar_controle_visibilidade(self):
+        self.alpha_global = 1.0
+        self.alpha_alvo = 1.0
+        self.tempo_transicao_alpha = 0.55
+        self.largura_suavizacao = 32.0
+
+    def definir_opacidade_alvo(self, alvo, tempo_transicao=None):
+        """Define a opacidade alvo periférica [0.0..1.0] sem interromper a física."""
+        self.alpha_alvo = max(0.0, min(1.0, float(alvo)))
+        if tempo_transicao is not None and tempo_transicao > 0:
+            self.tempo_transicao_alpha = float(tempo_transicao)
+
+    def _atualizar_opacidade_global(self, dt):
+        duracao = max(0.05, getattr(self, "tempo_transicao_alpha", 0.55))
+        passo = dt / duracao
+        diff = self.alpha_alvo - self.alpha_global
+        if abs(diff) <= passo:
+            self.alpha_global = self.alpha_alvo
+        else:
+            self.alpha_global += passo if diff > 0 else -passo
+
+    def _resolver_alpha_desenho(self, alpha_multiplicador):
+        base = getattr(self, "alpha_global", 1.0)
+        if alpha_multiplicador is None:
+            return base
+        return max(0.0, min(1.0, base * float(alpha_multiplicador)))
 
     def reiniciar(self, inicializar_na_tela=True):
         """Reinicia e redistribui todas as partículas na tela."""
         for p in self.particulas:
             p.reset(inicializar_na_tela=inicializar_na_tela)
 
-    def atualizar(self, dt=0.016):
+    def atualizar(self, dt=None, alpha_alvo=None):
+        if dt is None or not isinstance(dt, (int, float)) or dt <= 0:
+            dt = 1.0 / 60.0
+        if alpha_alvo is not None:
+            self.definir_opacidade_alvo(alpha_alvo)
+        self._atualizar_opacidade_global(dt)
         for p in self.particulas:
             p.atualizar(dt)
 
-    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
-        if alpha_multiplicador <= 0.01:
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=None):
+        alpha_eff = self._resolver_alpha_desenho(alpha_multiplicador)
+        if alpha_eff <= 0.005:
             return
+        suav = getattr(self, "largura_suavizacao", 32.0)
         for p in self.particulas:
-            p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+            p.desenhar(
+                superficie,
+                areas_excluidas=areas_excluidas,
+                alpha_multiplicador=alpha_eff,
+                largura_suavizacao=suav,
+            )
 
 
 class EfeitoPetalas(EfeitoChuvaParticulas):
@@ -132,11 +184,12 @@ class EfeitoPetalas(EfeitoChuvaParticulas):
     Reutiliza a base de EfeitoChuvaParticulas e ResourceManager.
     """
     def __init__(self, largura_tela=1280, altura_tela=720, quantidade_petalas=30, **kwargs):
+        qtd = kwargs.pop("quantidade", quantidade_petalas)
         super().__init__(
             sprites_ou_caminho="menu inicial/Spritesheet - Petálas Caindo.png",
             largura_tela=largura_tela,
             altura_tela=altura_tela,
-            quantidade=quantidade_petalas,
+            quantidade=qtd,
             **kwargs
         )
 
@@ -275,6 +328,7 @@ class EfeitoFolhas(EfeitoChuvaParticulas):
                                       camada=ParticulaFolhaProfunda.CAMADA_FRENTE,
                                       inicializar_na_tela=True)
             )
+        self._inicializar_controle_visibilidade()
 
     def _obter_sprites_filtradas(self, apenas_verdes):
         if apenas_verdes and len(self.todas_sprites) > 1:
@@ -293,31 +347,37 @@ class EfeitoFolhas(EfeitoChuvaParticulas):
             p.sprites = sprites_finais
             p.sprite_base = random.choice(sprites_finais)
 
-    def desenhar_camada_fundo(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+    def desenhar_camada_fundo(self, superficie, areas_excluidas=None, alpha_multiplicador=None):
         """Desenha apenas as folhas da camada de fundo (ideal para passar atrás dos personagens)."""
-        if alpha_multiplicador <= 0.01:
+        alpha_eff = self._resolver_alpha_desenho(alpha_multiplicador)
+        if alpha_eff <= 0.005:
             return
+        suav = getattr(self, "largura_suavizacao", 32.0)
         for p in self.particulas:
             if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_FUNDO:
-                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_eff, largura_suavizacao=suav)
 
-    def desenhar_camada_frente(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+    def desenhar_camada_frente(self, superficie, areas_excluidas=None, alpha_multiplicador=None):
         """Desenha as folhas das camadas média e frontal (passando na frente dos personagens e rente à tela)."""
-        if alpha_multiplicador <= 0.01:
+        alpha_eff = self._resolver_alpha_desenho(alpha_multiplicador)
+        if alpha_eff <= 0.005:
             return
+        suav = getattr(self, "largura_suavizacao", 32.0)
         # Desenha na ordem: médias primeiro, depois frontais por cima de tudo
         for p in self.particulas:
             if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_MEDIA:
-                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_eff, largura_suavizacao=suav)
         for p in self.particulas:
             if getattr(p, 'camada', None) == ParticulaFolhaProfunda.CAMADA_FRENTE:
-                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+                p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_eff, largura_suavizacao=suav)
 
-    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=1.0):
+    def desenhar(self, superficie, areas_excluidas=None, alpha_multiplicador=None):
         """Desenha todas as folhas ordenadas por profundidade (fundo -> média -> frente)."""
-        if alpha_multiplicador <= 0.01:
+        alpha_eff = self._resolver_alpha_desenho(alpha_multiplicador)
+        if alpha_eff <= 0.005:
             return
+        suav = getattr(self, "largura_suavizacao", 32.0)
         # Ordenação estável por camada garante que folhas de primeiro plano fiquem sempre na frente
         particulas_ordenadas = sorted(self.particulas, key=lambda p: getattr(p, 'camada', 1))
         for p in particulas_ordenadas:
-            p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_multiplicador)
+            p.desenhar(superficie, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_eff, largura_suavizacao=suav)

@@ -1,7 +1,11 @@
 # src/maps/map_loader.py
-from src.maps.mapa_casa import MapaCasa
-from src.maps.mapa_estrada import MapaEstrada
-from src.maps.mapa_estrada_2 import MapaEstrada2
+from src.maps.prologo import MapaCasa, MapaEstrada, MapaEstrada2
+from src.maps.oakhaven import (
+    MapaOakhaven,
+    MapaOrlaNorte,
+    MapaOakhavenDestruida,
+    MapaNinhoDragao,
+)
 
 
 class Mapa:
@@ -23,7 +27,11 @@ class Mapa:
         self.cenarios = {
             "CASA": MapaCasa(game, largura_tela, altura_tela),
             "ESTRADA": MapaEstrada(game, largura_tela, altura_tela),
-            "ESTRADA_2": MapaEstrada2(game, largura_tela, altura_tela)
+            "ESTRADA_2": MapaEstrada2(game, largura_tela, altura_tela),
+            "OAKHAVEN": MapaOakhaven(game, largura_tela, altura_tela),
+            "ORLA_NORTE": MapaOrlaNorte(game, largura_tela, altura_tela),
+            "OAKHAVEN_DESTRUIDA": MapaOakhavenDestruida(game, largura_tela, altura_tela),
+            "NINHO_DRAGAO": MapaNinhoDragao(game, largura_tela, altura_tela),
         }
 
         self.cenario_atual = "CASA"
@@ -40,18 +48,113 @@ class Mapa:
             self.cenario_objeto = self.cenarios[nome_cenario]
             self.cenario_objeto.inicializar_cenario()
 
-            # Gerenciamento acústico do cenário (se não estiver em combate)
-            if hasattr(self.game, 'audio') and self.game.audio and getattr(self.game, 'nome_estado_atual', '') != 'COMBATE':
-                if nome_cenario == "CASA":
-                    self.game.audio.tocar_musica("casa_halia", loop=-1, fade_ms=1000)
-                elif nome_cenario in ["ESTRADA", "ESTRADA_2"]:
-                    self.game.audio.tocar_musica("estrada_floresta", loop=-1, fade_ms=1000)
+            # Gerenciamento acústico contextual (somente em exploração ativa e sem cutscene sobreposta)
+            if self._deve_sincronizar_trilha_cenario():
+                trilha = self.obter_trilha_cenario(nome_cenario)
+                if trilha:
+                    self.game.audio.tocar_musica(trilha, loop=-1, fade_ms=1000, contexto="mundo")
+                if hasattr(self.game, "sincronizar_ambiente_cenario"):
+                    self.game.sincronizar_ambiente_cenario(fade_ms=900)
         else:
             print(f"[MapLoader] Aviso: Cenário '{nome_cenario}' não reconhecido.")
+
+    def _deve_sincronizar_trilha_cenario(self):
+        """Evita que cargas em Menu/Slots, Combate ou Cutscenes troquem a trilha ativa."""
+        if not (self.game and getattr(self.game, "audio", None)):
+            return False
+        if getattr(self.game, "nome_estado_atual", "") != "JOGANDO":
+            return False
+        if getattr(getattr(self.game, "intro", None), "ativo", False):
+            return False
+        if getattr(getattr(self.game, "flashback_sistema", None), "estado", "INATIVO") != "INATIVO":
+            return False
+        if getattr(getattr(self.game, "tela_despertar", None), "estado", "INATIVO") != "INATIVO":
+            return False
+        if getattr(self.game, "flashback_sylvan_ativo", False):
+            return False
+        if getattr(self.game, "etapa_epilogo", None) == "DESPERTAR_PENDENTE":
+            return False
+        if getattr(getattr(self.game, "cinematica_dragao", None), "ativo", False):
+            return False
+        estados = getattr(self.game, "estados", {}) or {}
+        estado_jogando = estados.get("JOGANDO")
+        if estado_jogando and (
+            getattr(getattr(estado_jogando, "cutscene_reconstrucao", None), "ativo", False)
+            or getattr(getattr(estado_jogando, "cinematica_dragao", None), "ativo", False)
+        ):
+            return False
+        return True
+
+    def obter_trilha_cenario(self, nome_cenario=None):
+        """Retorna o alias musical contextual correspondente ao cenário e marco narrativo."""
+        cen = nome_cenario or self.cenario_atual
+        if cen == "CASA":
+            return "casa_halia"
+        if cen in ("ESTRADA", "ESTRADA_2", "ORLA_NORTE"):
+            return "estrada_floresta"
+        if cen == "OAKHAVEN":
+            return "vila_oakhaven"
+        if cen in ("OAKHAVEN_DESTRUIDA", "NINHO_DRAGAO"):
+            epilogo_pos = getattr(self.game, "etapa_epilogo", "NAO_INICIADO") in (
+                "POS_DRAGAO",
+                "DESPERTAR_PENDENTE",
+                "RETORNO_VILA",
+                "RECONSTRUCAO_PENDENTE",
+                "DESPEDIDA_PENDENTE",
+                "DEMO_CONCLUIDA",
+            )
+            cenario_obj = self.cenarios.get(cen, self.cenario_objeto)
+            amanhecer_ninho = bool(
+                cen == "NINHO_DRAGAO"
+                and cenario_obj is not None
+                and (getattr(cenario_obj, "ninho_amanhecer", False) or getattr(cenario_obj, "dragao_derrotado", False))
+            )
+            dragao_vencido = bool(getattr(self.game, "dragao_derrotado", False) or epilogo_pos or amanhecer_ninho)
+            if dragao_vencido:
+                return "tema_melancolico"
+            if cen == "OAKHAVEN_DESTRUIDA":
+                return "ataque_dragao"
+            return "combate_dragao"
+        return None
 
     # =========================================================================
     # DELEGAÇÃO E PROPRIEDADES POLIMÓRFICAS (COMPATIBILIDADE TOTAL)
     # =========================================================================
+    @property
+    def largura_mundo(self):
+        return getattr(self.cenario_objeto, "largura_mundo", self.largura_tela)
+
+    @property
+    def altura_mundo(self):
+        return getattr(self.cenario_objeto, "altura_mundo", self.altura_tela)
+
+    @property
+    def npcs(self):
+        return getattr(self.cenario_objeto, "npcs", [])
+
+    @property
+    def animais(self):
+        return getattr(self.cenario_objeto, "animais", [])
+
+    @property
+    def pontos_interacao(self):
+        return getattr(self.cenario_objeto, "pontos_interacao", [])
+
+    @property
+    def ervas_coletaveis(self):
+        """Retorna a lista de ervas lunares coletáveis do cenário ativo."""
+        return getattr(self.cenario_objeto, "ervas_coletaveis", [])
+
+    @ervas_coletaveis.setter
+    def ervas_coletaveis(self, nova_lista):
+        if hasattr(self.cenario_objeto, "ervas_coletaveis"):
+            self.cenario_objeto.ervas_coletaveis = nova_lista
+
+    def respawn_erva_alternativa(self, item_antigo=None):
+        """Delega a geração de erva alternativa para o cenário ativo, se suportado."""
+        if hasattr(self.cenario_objeto, "respawn_erva_alternativa"):
+            return self.cenario_objeto.respawn_erva_alternativa(item_antigo)
+        return None
     @property
     def hitboxes(self):
         """Retorna a lista viva de hitboxes do cenário ativo."""
@@ -155,6 +258,18 @@ class Mapa:
     def desenhar_camada_superior(self, tela):
         """Delega a renderização de elementos que ficam acima do jogador (copas/telhados)."""
         self.cenario_objeto.desenhar_camada_superior(tela)
+
+    def obter_superficie_passo(self, x, y):
+        """Delega a detecção da superfície de pisada ao cenário ativo."""
+        if hasattr(self.cenario_objeto, "obter_superficie_passo"):
+            return self.cenario_objeto.obter_superficie_passo(x, y)
+        return "grama"
+
+    def obter_ambiente_cenario(self):
+        """Delega a seleção do loop de ambiente ao cenário ativo."""
+        if hasattr(self.cenario_objeto, "obter_ambiente_cenario"):
+            return self.cenario_objeto.obter_ambiente_cenario()
+        return None
 
 
 # Alias semântico para arquitetura limpa

@@ -1,4 +1,5 @@
 # src/states/intro_states.py
+import inspect
 import pygame
 from src.states.states import State
 
@@ -18,15 +19,21 @@ class IntroState(State):
 
     def update(self):
         # Se a introdução terminar de rodar, muda automaticamente para o jogo livre
-        if not self.game.intro.atualizar():
+        dt = getattr(self.game, "dt", 1.0 / 60.0)
+        atualizar_fn = self.game.intro.atualizar
+        aceita_dt = any(
+            p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.VAR_POSITIONAL,
+            )
+            for p in inspect.signature(atualizar_fn).parameters.values()
+        )
+        ativo = atualizar_fn(dt) if aceita_dt else atualizar_fn()
+        if not ativo:
             pygame.event.clear()
             # Inicializa o diálogo inicial da Halia na caixa de diálogo global
-            self.game.caixa_dialogo.iniciar_dialogo([
-                {"autor": "Pensamento", "texto": "Hm... Que péssima noite de sono. Minhas costas estão me matando depois de dormir aqui."},
-                {"autor": "Pensamento", "texto": "Eu preciso pegar as minhas coisas e ir logo, o carroceiro que contratei já deve estar me esperando do lado de fora da casa."},
-                {"autor": "Narrador", "texto": "Encontre e pegue: A Bolsa de moedas, O Livro antigo e O Cajado mágico de Halia."},
-                {"autor": "Narrador", "texto": "Para coletar os itens encontrados se mova utilizando W,A,S,D ou as setas do teclado e aparte a tecla E"}
-            ])
+            self.game.caixa_dialogo.iniciar_dialogo("despertar_cabana")
             self.game.mudar_estado("JOGANDO")
 
     def draw(self, tela):

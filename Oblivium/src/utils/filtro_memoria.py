@@ -32,6 +32,10 @@ class FiltroMemoria:
         self.alpha_visual = float(self.ESTAGIOS[0]["alpha_cinza"])
         self.desativado = False
         
+        # Superfície pré-alocada em resolução 100% NATIVA (1280x720) sem downscale
+        # Elimina alocações de 3.6 MB por frame no Garbage Collector mantendo nitidez máxima
+        self._camada_cinza = pygame.Surface((self.largura, self.altura))
+        
         # Superfície de Flash / Onda de Expansão de Cor ao absorver memória
         self.overlay_flash = pygame.Surface((self.largura, self.altura), pygame.SRCALPHA)
         self.flash_alpha = 0.0
@@ -42,6 +46,8 @@ class FiltroMemoria:
     def reiniciar(self, estagio=0):
         """Reinicia instantaneamente o filtro para um estágio específico (padrão 0 = 100% P&B)."""
         self.definir_estagio(estagio, com_transicao_suave=False)
+        if estagio == 0:
+            self._camada_cinza.set_alpha(None)
 
     def definir_estagio(self, fragmentos_memoria, com_transicao_suave=True, pos_origem=None):
         """Atualiza o estágio do filtro de acordo com a quantidade de fragmentos coletados (0 a 7)."""
@@ -64,14 +70,19 @@ class FiltroMemoria:
         if not com_transicao_suave:
             config = self.ESTAGIOS[self.estagio_atual]
             self.alpha_visual = float(config["alpha_cinza"])
+            if self.estagio_atual == 0 or self.alpha_visual >= 254.0:
+                self._camada_cinza.set_alpha(None)
 
     def atualizar(self):
         """Atualiza a interpolação suave entre os níveis de saturação a cada frame."""
         config_alvo = self.ESTAGIOS[self.estagio_atual]
         alvo_alpha = float(config_alvo["alpha_cinza"])
 
-        # Interpolação suave (Lerp) de 6% por frame
-        self.alpha_visual += (alvo_alpha - self.alpha_visual) * 0.06
+        # Interpolação suave (Lerp) de 8% por frame com snap próximo do alvo
+        if abs(alvo_alpha - self.alpha_visual) < 1.5:
+            self.alpha_visual = alvo_alpha
+        else:
+            self.alpha_visual += (alvo_alpha - self.alpha_visual) * 0.08
 
         # Atualiza flash de transição
         if self.flash_alpha > 0:
@@ -99,16 +110,17 @@ class FiltroMemoria:
         alpha_int = int(max(0, min(255, self.alpha_visual)))
         
         if alpha_int > 0:
-            # 1. Converte a tela colorida em escala de cinza fotográfica real
-            camada_cinza = pygame.transform.grayscale(tela)
+            # 1. Converte a tela em escala de cinza nativa 1280x720 reutilizando o buffer pré-alocado
+            pygame.transform.grayscale(tela, self._camada_cinza)
             
-            # 2. Se estiver 100% preto e branco (Estágio 0), desenha direto para máximo desempenho
-            if alpha_int >= 254:
-                tela.blit(camada_cinza, (0, 0))
+            # 2. Se estiver 100% preto e branco (Estágio 0 ou alpha máximo), garante opacidade total sem vazamentos
+            if alpha_int >= 254 or self.estagio_atual == 0:
+                self._camada_cinza.set_alpha(None)
+                tela.blit(self._camada_cinza, (0, 0))
             else:
                 # 3. Se for estágio intermediário, mescla proporcionalmente para dar efeito de saturação parcial
-                camada_cinza.set_alpha(alpha_int)
-                tela.blit(camada_cinza, (0, 0))
+                self._camada_cinza.set_alpha(alpha_int)
+                tela.blit(self._camada_cinza, (0, 0))
 
         # 4. Onda de Expansão de Cor ao Despertar
         if self.onda_ativa:

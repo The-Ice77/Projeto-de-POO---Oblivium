@@ -1,0 +1,405 @@
+{
+  "versao": 1,
+  "taxa_amostragem_hz": 44100,
+  "canais": 2,
+  "formato_musica": "ogg",
+  "pasta_origem": "assets/audio/Trilha Sonora Oblivium",
+  "pasta_musica": "assets/audio/music",
+  "faixas_musica": {
+    "menu_tema": {
+      "arquivo": "menu_tema.ogg",
+      "origem": "Kevin Penkin - OLD STORIES.m4a",
+      "titulo": "OLD STORIES",
+      "compositor": "Kevin Penkin",
+      "obra": "Made in Abyss OST",
+      "papel": "Tema contemplativo do menu principal, seleção de slots e telas de sistema",
+      "trim_s": [
+        1.847,
+        404.902
+      ],
+      "duracao_s": 403.06,
+      "ganho_db": -1.67,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -4.0,
+      "rms_dbfs": -19.0,
+      "clipped_samples": 0
+    },
+    "tema_intro": {
+      "arquivo": "tema_intro.ogg",
+      "origem": "Evan Call - For 1000 Years.m4a",
+      "titulo": "For 1000 Years",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema solene da abertura narrativa e prólogo na tela de introdução",
+      "trim_s": [
+        3.6,
+        130.799
+      ],
+      "duracao_s": 127.2,
+      "ganho_db": 7.92,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -1.67,
+      "rms_dbfs": -19.06,
+      "clipped_samples": 0
+    },
+    "tema_exploracao": {
+      "arquivo": "tema_exploracao.ogg",
+      "origem": "Evan Call - Life Is Worth Living.m4a",
+      "titulo": "Life Is Worth Living",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema sereno de exploração diurna (Cabana, Estradas, Oakhaven e Reconstrução)",
+      "trim_s": [
+        3.15,
+        119.698
+      ],
+      "duracao_s": 116.55,
+      "ganho_db": 15.53,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -2.02,
+      "rms_dbfs": -19.0,
+      "clipped_samples": 0
+    },
+    "tema_memorias": {
+      "arquivo": "tema_memorias.ogg",
+      "origem": "Evan Call - Life and Legacy.m4a",
+      "titulo": "Life and Legacy",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema emocional de flashbacks e despertares do Amuleto de Memória",
+      "trim_s": [
+        0.85,
+        149.399
+      ],
+      "duracao_s": 148.55,
+      "ganho_db": 7.23,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -2.32,
+      "rms_dbfs": -19.0,
+      "clipped_samples": 0
+    },
+    "combate_comum": {
+      "arquivo": "combate_comum.ogg",
+      "origem": "Shiro SAGISU - Treachery.m4a",
+      "titulo": "Treachery",
+      "compositor": "Shiro SAGISU",
+      "obra": "Bleach OST",
+      "papel": "Tema de encontros e emboscadas padrão (Estrada 2 e Mímicos da Orla Norte)",
+      "trim_s": [
+        0.35,
+        196.897
+      ],
+      "duracao_s": 196.55,
+      "ganho_db": -4.19,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -3.51,
+      "rms_dbfs": -17.6,
+      "clipped_samples": 0
+    },
+    "combate_chefe": {
+      "arquivo": "combate_chefe.ogg",
+      "origem": "Evan Call - Demon's Bane.m4a",
+      "titulo": "Demon's Bane",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema reservado para sub-chefes, elites especiais e combates táticos avançados",
+      "trim_s": [
+        0.45,
+        223.949
+      ],
+      "duracao_s": 223.5,
+      "ganho_db": 1.46,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -1.28,
+      "rms_dbfs": -17.61,
+      "clipped_samples": 0
+    },
+    "combate_dragao": {
+      "arquivo": "combate_dragao.ogg",
+      "origem": "Evan Call - Dragon Smasher.m4a",
+      "titulo": "Dragon Smasher",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema de confronto climático contra Ignis'Vahr no Ninho do Dragão",
+      "trim_s": [
+        0.38,
+        109.196
+      ],
+      "duracao_s": 108.82,
+      "ganho_db": -4.8,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -3.4,
+      "rms_dbfs": -17.61,
+      "clipped_samples": 0
+    },
+    "ataque_dragao": {
+      "arquivo": "ataque_dragao.ogg",
+      "origem": "Ancient Magic_spotdown.org.mp3",
+      "titulo": "Ancient Magic",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema dramático do ataque aéreo de Ignis'Vahr em Oakhaven e da vila em chamas antes do Ninho",
+      "trim_s": [
+        0.381,
+        130.743
+      ],
+      "duracao_s": 130.36,
+      "ganho_db": 1.03,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -1.23,
+      "rms_dbfs": -17.84,
+      "clipped_samples": 0
+    },
+    "vitoria": {
+      "arquivo": "vitoria.ogg",
+      "origem": "Yasunori Nishiki - Victory Fanfare.m4a",
+      "titulo": "Victory Fanfare",
+      "compositor": "Yasunori Nishiki",
+      "obra": "Octopath Traveler II OST",
+      "papel": "Fanfarra curta sem loop após vitória em combate",
+      "trim_s": [
+        0.38,
+        4.25
+      ],
+      "duracao_s": 3.87,
+      "ganho_db": -4.31,
+      "fade_in_s": 0.01,
+      "fade_out_s": 0.1,
+      "loop_padrao": 0,
+      "peak_dbfs": -4.41,
+      "rms_dbfs": -17.61,
+      "clipped_samples": 0
+    },
+    "derrota": {
+      "arquivo": "derrota.ogg",
+      "origem": "Evan Call - Before the Light Fades.m4a",
+      "titulo": "Before the Light Fades",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Trecho melódico curto sem loop para tela de derrota",
+      "trim_s": [
+        0.55,
+        6.85
+      ],
+      "duracao_s": 6.3,
+      "ganho_db": 7.14,
+      "fade_in_s": 0.01,
+      "fade_out_s": 0.18,
+      "loop_padrao": 0,
+      "peak_dbfs": -4.74,
+      "rms_dbfs": -18.81,
+      "clipped_samples": 0
+    },
+    "tema_melancolico": {
+      "arquivo": "tema_melancolico.ogg",
+      "origem": "MUSASHI PROJECT - 哀と悲.m4a",
+      "titulo": "哀と悲 (Sadness and Sorrow)",
+      "compositor": "Toshio Masuda / MUSASHI PROJECT",
+      "obra": "Naruto OST",
+      "papel": "Tema introspectivo pós-dragão (amanhecer no Ninho e Oakhaven destruída antes da reconstrução)",
+      "trim_s": [
+        0.952,
+        166.349
+      ],
+      "duracao_s": 165.4,
+      "ganho_db": -0.19,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -2.79,
+      "rms_dbfs": -19.0,
+      "clipped_samples": 0
+    },
+    "tema_encerramento": {
+      "arquivo": "tema_encerramento.ogg",
+      "origem": "Evan Call - Journey of a Lifetime ~ Frieren Main Theme.m4a",
+      "titulo": "Journey of a Lifetime ~ Frieren Main Theme",
+      "compositor": "Evan Call",
+      "obra": "Frieren: Beyond Journey's End OST",
+      "papel": "Tema final de despedida pelo Portão Sul e créditos finais da demo",
+      "trim_s": [
+        0.85,
+        176.095
+      ],
+      "duracao_s": 175.25,
+      "ganho_db": -5.38,
+      "fade_in_s": 0.0,
+      "fade_out_s": 0.0,
+      "loop_padrao": -1,
+      "peak_dbfs": -3.92,
+      "rms_dbfs": -18.8,
+      "clipped_samples": 0
+    }
+  },
+  "aliases_musica": {
+    "menu_tema": "menu_tema.ogg",
+    "tema_intro": "tema_intro.ogg",
+    "cutscene_intro": "tema_intro.ogg",
+    "tema_exploracao": "tema_exploracao.ogg",
+    "casa_halia": "tema_exploracao.ogg",
+    "estrada_floresta": "tema_exploracao.ogg",
+    "vila_oakhaven": "tema_exploracao.ogg",
+    "tema_vila": "tema_exploracao.ogg",
+    "tema_memorias": "tema_memorias.ogg",
+    "cutscene_magia": "tema_memorias.ogg",
+    "combate_comum": "combate_comum.ogg",
+    "combate_chefe": "combate_chefe.ogg",
+    "combate_dragao": "combate_dragao.ogg",
+    "ataque_dragao": "ataque_dragao.ogg",
+    "vitoria": "vitoria.ogg",
+    "derrota": "derrota.ogg",
+    "tema_melancolico": "tema_melancolico.ogg",
+    "oakhaven_destruida": "tema_melancolico.ogg",
+    "ninho_amanhecer": "tema_melancolico.ogg",
+    "tema_encerramento": "tema_encerramento.ogg",
+    "cutscene_final": "tema_encerramento.ogg",
+    "creditos_demo": "tema_encerramento.ogg"
+  },
+  "aliases_sfx": {
+    "ui_navegar": "ui_cursor",
+    "acerto": "ataque_acerto",
+    "critico": "ataque_critico",
+    "magia": "magia_cast",
+    "pocao": "item_pocao",
+    "armadura": "equipar_armadura",
+    "compra": "moeda",
+    "venda": "moeda",
+    "bigorna": "forja_bigorna",
+    "passo_terra": "passo_grama",
+    "passo_rua": "passo_pedra",
+    "dragao_rugido": "rugido_monstro"
+  },
+  "aliases_ambiente": {
+    "lavas": "caverna_lava",
+    "vulcao": "caverna_lava",
+    "ninho_dragao": "caverna_lava",
+    "floresta": "floresta_dia",
+    "lago": "cachoeira",
+    "riacho": "cachoeira",
+    "brisa": "vento_suave",
+    "noite": "vento_noite"
+  },
+  "recursos_integrados": {
+    "fontes_licenciadas": [
+      {
+        "pacote": "Fantasy UI SFX Free",
+        "autor": "heyheythere",
+        "licenca": "CC BY 4.0",
+        "url": "https://heyheythere.itch.io/fantasy-ui-sfx-free",
+        "credito_obrigatorio": "Fantasy UI SFX Free by heyheythere - https://heyheythere.itch.io/fantasy-ui-sfx-free - CC BY 4.0"
+      },
+      {
+        "pacote": "FantasySFX Sampler",
+        "autor": "AHTu20",
+        "licenca": "Free for commercial/personal use (no raw pack resale)",
+        "url": "https://ahtu20.itch.io"
+      },
+      {
+        "pacote": "Ambient Loops Free Lite 3",
+        "autor": "yetiancai",
+        "licenca": "Commercial & non-commercial game projects (credit optional)",
+        "url": ""
+      }
+    ],
+    "sfx": {
+      "pasta": "assets/audio/sfx",
+      "subpastas": [
+        "ui",
+        "combate",
+        "itens",
+        "mundo"
+      ],
+      "arquivos_disponiveis": 105,
+      "normalizacao": "44.1 kHz estereo OGG Vorbis, envelope RMS ativo calibrado, pico <= -0.3 dBFS, 0 amostras clipadas",
+      "canonicos": [
+        "ui_cursor",
+        "ui_confirmar",
+        "ui_voltar",
+        "ui_erro",
+        "ui_dialogo",
+        "ui_hover",
+        "ui_slider",
+        "ui_aceitar",
+        "ui_trancado",
+        "ui_notificacao",
+        "quest_nova",
+        "quest_concluida",
+        "level_up",
+        "livro_abrir",
+        "pagina_virar",
+        "pergaminho_abrir",
+        "toggle_on",
+        "toggle_off",
+        "item_coletar",
+        "item_pocao",
+        "garrafa_abrir",
+        "moeda",
+        "saco_moedas",
+        "equipar_armadura",
+        "desembainhar",
+        "ataque_acerto",
+        "ataque_critico",
+        "ataque_erro",
+        "ataque_espada",
+        "defesa_escudo",
+        "magia_cast",
+        "magia_fogo",
+        "magia_gelo",
+        "magia_raio",
+        "magia_cura",
+        "explosao",
+        "rugido_monstro",
+        "slime",
+        "flecha",
+        "dano_halia",
+        "dano_inimigo",
+        "esquiva",
+        "fuga",
+        "concentrar",
+        "porta_abrir",
+        "porta_fechar",
+        "bau_abrir",
+        "forja_bigorna",
+        "passo_grama",
+        "passo_pedra"
+      ]
+    },
+    "ambience": {
+      "pasta": "assets/audio/ambience",
+      "arquivos_disponiveis": 11,
+      "normalizacao": "44.1 kHz estereo OGG Vorbis, ~ -23 dBFS RMS, 0 amostras clipadas",
+      "canonicos": [
+        "chuva",
+        "vento_noite",
+        "vento_suave",
+        "floresta_dia",
+        "fogueira",
+        "caverna_lava",
+        "cachoeira"
+      ]
+    },
+    "mix_padrao_jogo": {
+      "master": 100,
+      "musica": 55,
+      "sfx": 95,
+      "ambiente": 70,
+      "mutado": false
+    }
+  }
+}

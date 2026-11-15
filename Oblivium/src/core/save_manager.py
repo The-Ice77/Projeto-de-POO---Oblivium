@@ -1,8 +1,10 @@
 # src/core/save_manager.py
 import logging
-from src.utils import save_manager as save_io
+import datetime
+from src.utils import save_storage as save_io
 from src.mechanics.attributes import Atributos
 from src.mechanics.inventory import Inventario
+from src.mechanics.shop import Loja
 
 logger = logging.getLogger(__name__)
 
@@ -12,19 +14,116 @@ class SaveManager:
     Gerenciador Central de Persistência, Integridade e Ciclo de Vida dos Saves de Oblivium.
 
     Responsabilidades:
-    - Serialização completa do estado de jogo (Halia, Carroceiro, Cenários, Flags e Inventário).
-    - Desserialização e reconstrução de entidades e subsistemas ao restaurar saves.
+    - Serialização completa do estado de jogo (Halia, Carroceiro, Cenários, Flags, Missões e Inventário).
+    - Desserialização robusta com retrocompatibilidade, saneamento de dados e recuperação de integridade.
+    - Sincronização e restauração inteligente de inimigos de combate e Câmera 2D ao carregar.
     - Sincronização de integridade entre Saves Manuais e Autosaves (Blindagem de Autosave).
-    - Verificação de integridade estrutural e de esquema de arquivos de save em disco.
+    - Diagnóstico e verificação de integridade estrutural contra corrupção em disco.
     - Reinicialização segura de progresso para criação de Novo Jogo.
     """
+
+    CENARIOS_VALIDOS = {
+        "CASA",
+        "ESTRADA",
+        "ESTRADA_2",
+        "OAKHAVEN",
+        "ORLA_NORTE",
+        "OAKHAVEN_DESTRUIDA",
+        "NINHO_DRAGAO"
+    }
+
+    SPAWNS_SEGUROS = {
+        "CASA": (210, 280),
+        "ESTRADA": (40, 330),
+        "ESTRADA_2": (60, 330),
+        "OAKHAVEN": (1102, 1320),
+        "ORLA_NORTE": (610, 520),
+        "OAKHAVEN_DESTRUIDA": (1102, 660),
+        "NINHO_DRAGAO": (610, 520),
+    }
+
+    ETAPAS_EPILOGO_VALIDAS = (
+        "NAO_INICIADO",
+        "POS_DRAGAO",
+        "FLASHBACK_SYLVAN_PENDENTE",
+        "DESPERTAR_PENDENTE",
+        "RETORNO_VILA",
+        "RECONSTRUCAO_PENDENTE",
+        "DESPEDIDA_PENDENTE",
+        "DEMO_CONCLUIDA",
+    )
+
+    ATAQUES_LEGADO_AUTO = (
+        "golpe_concentrado",
+        "varredura_de_cajado",
+        "estocada_perfurante",
+    )
+
+    # (atributo em self.game, chave no bloco 'flags' do JSON, valor padrão)
+    FLAGS_PERSISTENTES = (
+        ("investigou_pedras", "investigou_pedras", False),
+        ("flashback_magia_concluido", "flashback_magia_concluido", False),
+        ("magia_ativa", "magia_ativa", None),
+        ("magia_usada_no_puzzle", "magia_usada_no_puzzle", None),
+        ("combate_estrada_concluido", "combate_concluido", False),
+        ("pedra_torvald_quebrada", "pedra_torvald_quebrada", False),
+        ("oakhaven_noite", "oakhaven_noite", False),
+        ("oakhaven_destruida", "oakhaven_destruida", False),
+        ("dragao_derrotado", "dragao_derrotado", False),
+        ("desespero_superado", "desespero_superado", False),
+        ("patusco_pos_oakhaven", "patusco_pos_oakhaven", None),
+        ("estagio_memoria_apresentado", "estagio_memoria_apresentado", 0),
+        ("etapa_epilogo", "etapa_epilogo", "NAO_INICIADO"),
+        ("versao_progressao", "versao_progressao", 2),
+    )
+
+    # (atributo transitório em self.game, valor padrão no reset/load)
+    FLAGS_TRANSITORIAS = (
+        ("fechando_porta", False),
+        ("aguardando_fim_viagem", False),
+        ("magia_selecionada_temporaria", None),
+        ("iniciando_combate", False),
+        ("cena_inimigos_andando", False),
+        ("conversa_combate_ativa", False),
+        ("combate_climax_dragao", False),
+        ("aguardando_dialogo_pos_dragao", False),
+        ("flashback_monumento_ativo", False),
+        ("flashback_sylvan_ativo", False),
+        ("despedida_demo_exibida", False),
+        ("partindo_estrada2", False),
+        ("pronto_viajar_oakhaven", False),
+        ("timer_magia", 0),
+        ("distanciando_halia", False),
+        ("bola_fogo_x", 0),
+        ("bola_fogo_y", 0),
+        ("bola_fogo_ativa", False),
+    )
 
     def __init__(self, game):
         self.game = game
 
+    def _obter_resumo_missao_ativa(self):
+        """Retorna título e categoria da missão principal (ou secundária) ativa para metadados do save."""
+        if hasattr(self.game, 'missoes') and self.game.missoes:
+            m_princ = self.game.missoes.obter_missao_principal_ativa()
+            if m_princ:
+                return {
+                    "id": m_princ.get("id"),
+                    "titulo": m_princ.get("titulo", "Missão Principal"),
+                    "categoria": "PRINCIPAL"
+                }
+            m_sec = self.game.missoes.obter_missao_secundaria_ativa()
+            if m_sec:
+                return {
+                    "id": m_sec.get("id"),
+                    "titulo": m_sec.get("titulo", "Missão Secundária"),
+                    "categoria": "SECUNDARIA"
+                }
+        return {"id": None, "titulo": "Sem Missão Ativa", "categoria": "NENHUMA"}
+
     def salvar_estado(self, slot=None, tipo="manual", silenciar_notificacao=False):
         """Serializa todo o estado atual da sessão e persiste no slot indicado em disco."""
-        slot_alvo = slot or self.game.slot_atual
+        slot_alvo = save_io.normalizar_slot(slot or self.game.slot_atual)
         if not slot_alvo:
             return False
 
@@ -32,11 +131,34 @@ class SaveManager:
         carroceiro = self.game.carroceiro
         mapa = self.game.mapa_casa
 
+        # Garante que as magias e técnicas estejam atualizadas antes de gravar
+        if hasattr(halia, 'atualizar_grimorio'):
+            halia.atualizar_grimorio()
+
+        ataques_padrao = ["ataque_basico"]
+        ataques_salvar = getattr(halia, 'ataques_fisicos', ataques_padrao)
+
+        flags_dict = {
+            "porta_aberta": getattr(mapa, 'porta_aberta', False),
+            "puzzle_concluido": (self.game.magia_ativa == "CONCLUIDO"),
+            "itens_coletados": self.game.itens_coletados,
+            "historico_dialogos": list(self.game.caixa_dialogo.historico_escolhas),
+        }
+        for attr_game, chave_save, padrao in self.FLAGS_PERSISTENTES:
+            valor = getattr(self.game, attr_game, padrao)
+            if attr_game == "patusco_pos_oakhaven" and isinstance(valor, (tuple, list)) and len(valor) == 2:
+                valor = [int(valor[0]), int(valor[1])]
+            flags_dict[chave_save] = valor
+
         dados_save = {
             "cenario_atual": mapa.cenario_atual,
             "tempo_jogado": self.game.tempo_jogado,
+            "data_hora": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "timestamp_epoch": datetime.datetime.now().timestamp(),
             "slot": slot_alvo,
             "tipo_save": tipo,
+            "missao_ativa": self._obter_resumo_missao_ativa(),
+            "progresso_npcs": getattr(self.game, 'progresso_npcs', {"carroceiro": 0}),
             "halia": {
                 "nome": halia.nome,
                 "x": halia.x,
@@ -49,13 +171,17 @@ class SaveManager:
                 "vida_maxima": getattr(halia, 'vida_maxima', 100),
                 "mana_atual": getattr(halia, 'mana_atual', 50),
                 "mana_maxima": getattr(halia, 'mana_maxima', 50),
+                "nivel": getattr(halia, 'nivel', 1),
+                "xp": getattr(halia, 'xp', 0),
+                "feiticos_aprendidos": list(getattr(halia, 'feiticos_aprendidos', set())),
+                "maestria_feiticos": getattr(halia, 'maestria_feiticos', {}),
                 "fragmentos_memoria": getattr(halia, 'fragmentos_memoria', 0),
                 "nivel_sincronia": getattr(halia, 'nivel_sincronia', 1),
                 "dinheiro": getattr(halia, 'dinheiro', 0),
                 "atributos": halia.atributos.to_dict(),
                 "inventario": halia.inventario.to_dict() if hasattr(halia, 'inventario') else {},
                 "magias_desbloqueadas": getattr(halia, 'magias_desbloqueadas', []),
-                "ataques_fisicos": getattr(halia, 'ataques_fisicos', ["ataque_basico", "golpe_concentrado"])
+                "ataques_fisicos": ataques_salvar
             },
             "carroceiro": {
                 "x": carroceiro.x,
@@ -64,25 +190,27 @@ class SaveManager:
                 "andando": self.game.carroceiro_andando,
                 "conversa_terminou": getattr(self.game, 'conversa_carroceiro_terminou', False)
             },
-            "flags": {
-                "porta_aberta": getattr(mapa, 'porta_aberta', False),
-                "investigou_pedras": self.game.investigou_pedras,
-                "flashback_magia_concluido": self.game.flashback_magia_concluido,
-                "magia_ativa": self.game.magia_ativa,
-                "magia_usada_no_puzzle": self.game.magia_usada_no_puzzle,
-                "puzzle_concluido": (self.game.magia_ativa == "CONCLUIDO"),
-                "combate_concluido": getattr(self.game, 'combate_estrada_concluido', False),
-                "itens_coletados": self.game.itens_coletados,
-                "historico_dialogos": list(self.game.caixa_dialogo.historico_escolhas)
-            },
-            "missoes": self.game.missoes.to_dict() if hasattr(self.game, 'missoes') else {}
+            "flags": flags_dict,
+            "missoes": self.game.missoes.to_dict() if hasattr(self.game, 'missoes') else {},
+            "lojas": Loja.salvar_estado_lojas()
         }
 
-        save_io.salvar_dados(slot_alvo, dados_save, tipo=tipo)
+        sucesso = save_io.salvar_dados(slot_alvo, dados_save, tipo=tipo)
+        slot_num = str(slot_alvo).replace("slot_", "")
+        slot_str = f"Slot {slot_num}"
+
+        if not sucesso:
+            logger.error(f"[SaveManager] Falha ao salvar progresso ({tipo}) no {slot_str}.")
+            if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+                self.game.notificacoes.notificar(
+                    "notificacao_alerta",
+                    titulo="Falha ao Salvar",
+                    mensagem=f"Não foi possível gravar o progresso no {slot_str}.",
+                    tipo="ALERTA"
+                )
+            return False
 
         if not silenciar_notificacao and hasattr(self.game, 'notificacoes') and self.game.notificacoes:
-            slot_num = str(slot_alvo).replace("slot_", "")
-            slot_str = f"Slot {slot_num}"
             if tipo == "autosave":
                 self.game.notificacoes.notificar("notificacao_autosave", slot=slot_str)
             else:
@@ -91,44 +219,227 @@ class SaveManager:
         return True
 
     def carregar_estado(self, slot, tipo="manual"):
-        """Carrega e desserializa os dados do save, restaurando entidades, flags e cenários."""
+        """
+        Carrega e desserializa os dados do save em duas fases:
+        1. Preparar/Validar: valida estrutura, tipos e constrói objetos em variáveis locais sem mutar a sessão.
+        2. Aplicar: transfere o estado validado para `self.game` e `self.game.halia`.
+        """
+        slot = save_io.normalizar_slot(slot)
+        tipo_pedido = tipo
+        tipo_efetivo = tipo
+        usou_fallback_tipo = False
+
         dados = save_io.carregar_dados(slot, tipo=tipo)
         if not dados:
             outro_tipo = "autosave" if tipo == "manual" else "manual"
             dados = save_io.carregar_dados(slot, tipo=outro_tipo)
+            if dados:
+                tipo_efetivo = outro_tipo
+                usou_fallback_tipo = True
 
         if not dados:
             return False
 
-        self.game.slot_atual = slot
-        self.game.tempo_jogado = dados.get("tempo_jogado", 0.0)
-        self.game.origem_pause = "JOGANDO"
-        self.game.caixa_dialogo.historico_escolhas = set(dados.get("flags", {}).get("historico_dialogos", []))
+        slot_num = str(slot).replace("slot_", "")
+        slot_str = f"Slot {slot_num}"
 
-        # 1. Recupera as flags e o progresso
-        flags = dados.get("flags", {})
-        self.game.mapa_casa.porta_aberta = flags.get("porta_aberta", False)
-        self.game.investigou_pedras = flags.get("investigou_pedras", False)
-        self.game.flashback_magia_concluido = flags.get("flashback_magia_concluido", False)
-        self.game.magia_ativa = flags.get("magia_ativa", None)
-        self.game.magia_usada_no_puzzle = flags.get("magia_usada_no_puzzle", None)
-        self.game.combate_estrada_concluido = flags.get("combate_concluido", False)
-        self.game.itens_coletados = flags.get("itens_coletados", [])
-        self.game.conversa_carroceiro_terminou = dados.get("carroceiro", {}).get("conversa_terminou", False)
+        def _notificar_falha_load(motivo):
+            logger.error(f"[SaveManager] Falha ao carregar {slot_str} ({tipo_efetivo}): {motivo}")
+            if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
+                self.game.notificacoes.notificar(
+                    "notificacao_alerta",
+                    titulo="Falha ao Carregar",
+                    mensagem=f"Os dados do {slot_str} estão corrompidos ou inválidos.",
+                    tipo="ALERTA"
+                )
+
+        # --- FASE 1: PREPARAR E VALIDAR (nenhuma mutação na sessão até validar tudo) ---
+        valido, motivo = self._validar_dados_save(
+            dados, slot=slot, tipo=tipo_efetivo, verificar_limites_estritos=False
+        )
+        if not valido:
+            _notificar_falha_load(motivo)
+            return False
+
+        try:
+            flags = dados.get("flags", {})
+            carroceiro_dados = dados.get("carroceiro") or {}
+            halia_dados = dados.get("halia", {})
+
+            tempo_jogado_novo = float(dados.get("tempo_jogado") or 0.0)
+
+            raw_hist = flags.get("historico_dialogos", [])
+            if raw_hist is None:
+                historico_escolhas_novo = set()
+            elif isinstance(raw_hist, (list, tuple, set)):
+                historico_escolhas_novo = set(raw_hist)
+            else:
+                raise TypeError("historico_dialogos inválido.")
+
+            raw_itens = flags.get("itens_coletados", [])
+            if raw_itens is None:
+                itens_coletados_novos = []
+            elif isinstance(raw_itens, list):
+                itens_coletados_novos = list(raw_itens)
+            else:
+                raise TypeError("itens_coletados inválido.")
+
+            conversa_terminou_nova = bool(
+                carroceiro_dados.get("conversa_terminou", flags.get("conversa_carroceiro_terminou", False))
+            )
+            progresso_npcs_novo = dict(dados.get("progresso_npcs") or {"carroceiro": 0})
+            missoes_dados = dados.get("missoes") if "missoes" in dados else None
+            lojas_dados = dados.get("lojas") or {}
+            for id_loja, estoques in lojas_dados.items():
+                if not isinstance(estoques, dict):
+                    raise TypeError(f"Estoque da loja '{id_loja}' inválido.")
+                for item_id, qtd in estoques.items():
+                    if not self._eh_numero(qtd):
+                        raise TypeError(f"Quantidade inválida para '{item_id}' na loja '{id_loja}'.")
+
+            cenario_salvo = dados.get("cenario_atual", "CASA")
+            if cenario_salvo not in self.CENARIOS_VALIDOS:
+                logger.warning(f"[SaveManager] Cenário inválido '{cenario_salvo}', revertendo para 'CASA'.")
+                cenario_salvo = "CASA"
+
+            nivel_raw = halia_dados.get("nivel", 1)
+            nivel_novo = max(1, int(1 if nivel_raw is None else nivel_raw))
+            xp_raw = halia_dados.get("xp", 0)
+            xp_novo = max(0, int(0 if xp_raw is None else xp_raw))
+
+            raw_feiticos = halia_dados.get("feiticos_aprendidos", [])
+            if raw_feiticos is None:
+                feiticos_aprendidos_novos = set()
+            elif isinstance(raw_feiticos, (list, tuple, set)):
+                feiticos_aprendidos_novos = set(raw_feiticos)
+            else:
+                raise TypeError("feiticos_aprendidos inválido.")
+
+            raw_maestria = halia_dados.get("maestria_feiticos", {})
+            if raw_maestria is None:
+                maestria_feiticos_nova = {}
+            elif isinstance(raw_maestria, dict):
+                maestria_feiticos_nova = dict(raw_maestria)
+            else:
+                raise TypeError("maestria_feiticos inválido.")
+
+            mems_raw = halia_dados.get("fragmentos_memoria", 0)
+            fragmentos_memoria_novos = max(0, min(7, int(0 if mems_raw is None else mems_raw)))
+            sinc_raw = halia_dados.get("nivel_sincronia")
+            nivel_sincronia_novo = int(sinc_raw) if sinc_raw is not None else (1 + fragmentos_memoria_novos)
+            dinheiro_raw = halia_dados.get("dinheiro", 0)
+            dinheiro_novo = max(0, int(0 if dinheiro_raw is None else dinheiro_raw))
+
+            direcao_nova = halia_dados.get("direcao", "baixo")
+            if not isinstance(direcao_nova, str):
+                direcao_nova = "baixo"
+            virado_direita_novo = bool(halia_dados.get("virado_direita", True))
+
+            raw_x = halia_dados.get("x", 210)
+            raw_y = halia_dados.get("y", 280)
+
+            atributos_novos = Atributos.from_dict(halia_dados["atributos"])
+
+            usar_inventario_padrao = False
+            if "inventario" in halia_dados and halia_dados["inventario"]:
+                inventario_novo = Inventario.from_dict(halia_dados["inventario"])
+            else:
+                inventario_novo = Inventario()
+                usar_inventario_padrao = True
+
+            raw_vida = halia_dados.get("vida_atual")
+            if raw_vida is not None:
+                raw_vida = float(raw_vida)
+            vivo_salvo = bool(halia_dados.get("vivo", True))
+
+            raw_mana = halia_dados.get("mana_atual")
+            if raw_mana is not None:
+                raw_mana = float(raw_mana)
+
+            raw_ataques = halia_dados.get("ataques_fisicos", [])
+            if raw_ataques is None:
+                salvos_ataques = []
+            elif isinstance(raw_ataques, list):
+                salvos_ataques = raw_ataques
+            else:
+                raise TypeError("ataques_fisicos inválido.")
+
+            flags_persistentes_novas = {}
+            for attr_game, chave_save, padrao in self.FLAGS_PERSISTENTES:
+                if attr_game == "patusco_pos_oakhaven":
+                    raw_pos = flags.get(chave_save, None)
+                    if (
+                        isinstance(raw_pos, (list, tuple))
+                        and len(raw_pos) == 2
+                        and self._eh_numero(raw_pos[0])
+                        and self._eh_numero(raw_pos[1])
+                    ):
+                        flags_persistentes_novas[attr_game] = (int(raw_pos[0]), int(raw_pos[1]))
+                    else:
+                        flags_persistentes_novas[attr_game] = None
+                elif isinstance(padrao, bool):
+                    flags_persistentes_novas[attr_game] = bool(flags.get(chave_save, padrao))
+                else:
+                    flags_persistentes_novas[attr_game] = flags.get(chave_save, padrao)
+
+            ataques_fisicos_novos = self._migrar_progressao_e_grimorio(
+                dados=dados,
+                flags=flags,
+                halia_dados=halia_dados,
+                cenario_salvo=cenario_salvo,
+                fragmentos_memoria_novos=fragmentos_memoria_novos,
+                flags_persistentes_novas=flags_persistentes_novas,
+                feiticos_aprendidos_novos=feiticos_aprendidos_novos,
+                inventario_novo=inventario_novo,
+                salvos_ataques=salvos_ataques,
+            )
+        except (TypeError, ValueError, KeyError, AttributeError) as e:
+            _notificar_falha_load(str(e))
+            return False
+
+        # --- FASE 2: APLICAR ESTADO VALIDADO NA SESSÃO ---
+        self.limpar_estado_execucao_ativo()
+        self.game.slot_atual = slot
+        self.game.tempo_jogado = tempo_jogado_novo
+        self.game.origem_pause = "JOGANDO"
+        self.game.caixa_dialogo.historico_escolhas = historico_escolhas_novo
+
+        # 1. Recupera as flags permanentes e o progresso
+        self.game.mapa_casa.porta_aberta = bool(flags.get("porta_aberta", False))
+        for attr_game, valor in flags_persistentes_novas.items():
+            setattr(self.game, attr_game, valor)
+        self.game.itens_coletados = itens_coletados_novos
+        self.game.conversa_carroceiro_terminou = conversa_terminou_nova
+        self.game.progresso_npcs = progresso_npcs_novo
 
         # Restaura progresso das missões
-        if hasattr(self.game, 'missoes') and "missoes" in dados:
-            self.game.missoes.from_dict(dados.get("missoes", {}))
+        if hasattr(self.game, 'missoes') and self.game.missoes:
+            if missoes_dados is not None:
+                self.game.missoes.from_dict(missoes_dados)
+            else:
+                self.game.missoes.resetar()
 
-        # Reseta flags temporárias de transição e batalha em andamento
-        self.game.inimigos_em_cena = []
-        self.game.cena_inimigos_andando = False
-        self.game.iniciando_combate = False
-        self.game.conversa_combate_ativa = False
-        self.game.transicao.estado = "INATIVO"
+        etapa_epilogo_atual = getattr(self.game, "etapa_epilogo", "NAO_INICIADO")
+        if etapa_epilogo_atual in ("POS_DRAGAO", "FLASHBACK_SYLVAN_PENDENTE") and self.game.dragao_derrotado:
+            cenario_salvo = "NINHO_DRAGAO"
+            raw_x, raw_y = 610, 380
+        elif etapa_epilogo_atual == "DEMO_CONCLUIDA":
+            self.game.oakhaven_destruida = False
+            self.game.oakhaven_noite = False
+            self.game.dragao_derrotado = True
+            self.game.desespero_superado = True
+            cenario_salvo = "OAKHAVEN"
+            raw_x, raw_y = 1102, 650
+            direcao_nova = "baixo"
+        elif etapa_epilogo_atual == "DESPEDIDA_PENDENTE":
+            self.game.oakhaven_destruida = False
+            self.game.oakhaven_noite = False
+            if cenario_salvo == "OAKHAVEN_DESTRUIDA":
+                cenario_salvo = "OAKHAVEN"
+        elif etapa_epilogo_atual == "RECONSTRUCAO_PENDENTE" and getattr(self.game, "oakhaven_destruida", False):
+            self.game.aguardando_dialogo_pos_dragao = True
 
-        # 2. Carrega o cenário e desobstrui caminhos se já resolvidos
-        cenario_salvo = dados.get("cenario_atual", "CASA")
+        # 2. Carrega o cenário com validação e desobstrui caminhos se já resolvidos
         self.game.mapa_casa.restaurar_bloqueio_estrada2()
         self.game.mapa_casa.carregar_cenario(cenario_salvo)
 
@@ -137,37 +448,49 @@ class SaveManager:
                 self.game.magia_ativa = "CONCLUIDO"
                 self.game.mapa_casa.desobstruir_estrada(self.game.magia_usada_no_puzzle or "FOGO")
 
-        # 3. Restaura posições da Halia, atributos, Grimório e NPCs
-        halia_dados = dados.get("halia", {})
+        # 3. Restaura atributos, Grimório e inventário de Halia
         halia = self.game.halia
-        halia.x = halia_dados.get("x", 210)
-        halia.y = halia_dados.get("y", 280)
-        halia.direcao = halia_dados.get("direcao", "baixo")
-        halia.virado_direita = halia_dados.get("virado_direita", True)
-        halia.fragmentos_memoria = halia_dados.get("fragmentos_memoria", 0)
-        halia.nivel_sincronia = halia_dados.get("nivel_sincronia", 1 + halia.fragmentos_memoria)
-        halia.dinheiro = halia_dados.get("dinheiro", 0)
 
-        if "atributos" in halia_dados:
-            halia.atributos = Atributos.from_dict(halia_dados["atributos"])
+        halia.nivel = nivel_novo
+        halia.xp = xp_novo
+        halia.xp_proximo_nivel = halia.calcular_xp_proximo(halia.nivel)
+        halia.feiticos_aprendidos = feiticos_aprendidos_novos
+        halia.maestria_feiticos = maestria_feiticos_nova
 
-        if "inventario" in halia_dados and halia_dados["inventario"]:
-            halia.inventario = Inventario.from_dict(halia_dados["inventario"])
+        halia.fragmentos_memoria = fragmentos_memoria_novos
+        halia.nivel_sincronia = nivel_sincronia_novo
+        halia.dinheiro = dinheiro_novo
+        halia.direcao = direcao_nova
+        halia.virado_direita = virado_direita_novo
+
+        # Saneamento e verificação de limites do mundo para coordenadas (x, y)
+        larg_mundo = self.game.mapa_casa.largura_mundo
+        alt_mundo = self.game.mapa_casa.altura_mundo
+        if self._eh_numero(raw_x) and self._eh_numero(raw_y) and (0 <= raw_x <= larg_mundo - 20) and (0 <= raw_y <= alt_mundo - 20):
+            halia.x = raw_x
+            halia.y = raw_y
         else:
-            halia.inventario = Inventario()
+            spawn_def = self.SPAWNS_SEGUROS.get(cenario_salvo, (100, 100))
+            halia.x, halia.y = spawn_def
+
+        halia.atributos = atributos_novos
+        halia.inventario = inventario_novo
+        if usar_inventario_padrao:
             halia.inicializar_inventario_padrao()
 
         halia.recalcular_status_derivados(manter_porcentagem=False)
 
-        halia.vida_atual = halia_dados.get("vida_atual", halia.vida_maxima)
-        halia.mana_atual = halia_dados.get("mana_atual", halia.mana_maxima)
-
-        # Herda a condição de vivo ou reanima Halia para poder movimentar
-        esta_vivo = halia_dados.get("vivo", True)
-        if halia.vida_atual > 0:
-            halia.vivo = esta_vivo
+        # Saneamento de vida e mana: nunca permite que Halia carregue morta/com 0 de vida
+        vida_alvo = halia.vida_maxima if raw_vida is None else raw_vida
+        if vida_alvo <= 0:
+            halia.vida_atual = halia.vida_maxima
+            halia.vivo = True
         else:
-            halia.restaurar_total()
+            halia.vida_atual = min(vida_alvo, halia.vida_maxima)
+            halia.vivo = vivo_salvo
+
+        mana_alvo = halia.mana_maxima if raw_mana is None else raw_mana
+        halia.mana_atual = max(0, min(mana_alvo, halia.mana_maxima))
 
         # Limpa resíduos de combate
         halia.condicoes.clear()
@@ -182,21 +505,17 @@ class SaveManager:
         else:
             halia.mudar_estado("morrer")
 
-        # Atualiza a animação imediatamente para desenhar o sprite correto de imediato
         if hasattr(halia, 'atualizar_animacao'):
             halia.atualizar_animacao()
 
-        if "magias_desbloqueadas" in halia_dados and halia_dados["magias_desbloqueadas"]:
-            halia.magias_desbloqueadas = list(halia_dados["magias_desbloqueadas"])
-        else:
-            halia.atualizar_grimorio()
+        # Sincroniza o Grimório para garantir todos os feitiços do nível atual de Memória
+        halia.atualizar_grimorio()
 
-        if "ataques_fisicos" in halia_dados:
-            halia.ataques_fisicos = list(halia_dados["ataques_fisicos"])
+        # Sincroniza técnicas de ataque físico de cajado
+        halia.ataques_fisicos = ataques_fisicos_novos
 
-        carroceiro_dados = dados.get("carroceiro", {})
-        conversa_terminou = carroceiro_dados.get("conversa_terminou", flags.get("conversa_carroceiro_terminou", False))
-        self.game.conversa_carroceiro_terminou = conversa_terminou
+        # Restaura Carroceiro
+        self.game.conversa_carroceiro_terminou = conversa_terminou_nova
 
         if cenario_salvo == "CASA":
             self.game.carroceiro.x = carroceiro_dados.get("x", 1350)
@@ -205,132 +524,464 @@ class SaveManager:
             self.game.carroceiro_andando = False
             self.game.carroceiro.velocidade = 2
         elif cenario_salvo == "ESTRADA":
-            padrao_x = 900 if conversa_terminou else 1350
+            padrao_x = 900 if conversa_terminou_nova else 1350
             self.game.carroceiro.x = carroceiro_dados.get("x", padrao_x)
             self.game.carroceiro.y = carroceiro_dados.get("y", 330)
-            self.game.carroceiro_visivel = carroceiro_dados.get("visivel", conversa_terminou)
+            self.game.carroceiro_visivel = carroceiro_dados.get("visivel", conversa_terminou_nova)
             self.game.carroceiro_andando = carroceiro_dados.get("andando", False)
-            self.game.carroceiro.velocidade = 2 if not conversa_terminou else 0
-        else:  # ESTRADA_2
+            self.game.carroceiro.velocidade = 2 if not conversa_terminou_nova else 0
+        else:  # ESTRADA_2 ou cenários posteriores
             self.game.carroceiro.x = carroceiro_dados.get("x", 200)
             self.game.carroceiro.y = carroceiro_dados.get("y", 330)
-            self.game.carroceiro_visivel = carroceiro_dados.get("visivel", True)
+            self.game.carroceiro_visivel = carroceiro_dados.get("visivel", (cenario_salvo == "ESTRADA_2"))
             self.game.carroceiro_andando = False
             self.game.carroceiro.velocidade = 0
 
-        # 4. Sincroniza imediatamente o Filtro de Memória, HUD e telas visuais com o save carregado
+        if hasattr(self.game.carroceiro, "sincronizar_teleporte"):
+            self.game.carroceiro.sincronizar_teleporte()
+
+        # 4. Respawn Inteligente de Inimigos em Cenários de Missão/Combate Ativos
+        if cenario_salvo == "ORLA_NORTE":
+            missao_ronda = (self.game.missoes.obter_missao("missao_ronda_fronteiras") if hasattr(self.game, "missoes") else None)
+            if missao_ronda and missao_ronda.get("status") == "ATIVA" and not self.game.missoes.pronta_para_entregar("missao_ronda_fronteiras"):
+                from src.entities.enemy_factory import EnemyFactory
+                b1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
+                b2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
+                for b in (b1, b2):
+                    b.velocidade = 0
+                    b.virado_direita = False
+                    b.direcao = "esquerda"
+                    b.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
+                    b.disfarcado = True
+                    b.revelado = False
+                    b.revelando = False
+                    b.mudar_estado("corpo")
+                self.game.inimigos_em_cena = [b1, b2]
+        elif cenario_salvo == "NINHO_DRAGAO":
+            if self.game.dragao_derrotado or halia.fragmentos_memoria >= 2:
+                self.game.dragao_derrotado = True
+                ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
+                if ninho is not None:
+                    ninho.ninho_amanhecer = True
+                    ninho.dragao_derrotado = True
+                    if hasattr(ninho, "inicializar_cenario"):
+                        ninho.inicializar_cenario()
+            else:
+                from src.entities.enemy_factory import EnemyFactory
+                dragao = EnemyFactory.criar_boss("dragao_vermelho", x=575, y=210, nome_custom="Ignis'Vahr, o Dragão Vermelho")
+                dragao.velocidade = 0
+                dragao.virado_direita = False
+                dragao.direcao = "esquerda"
+                self.game.inimigos_em_cena = [dragao]
+                if (
+                    getattr(self.game, "nome_estado_atual", "") == "JOGANDO"
+                    and hasattr(self.game, "sincronizar_trilha_cenario")
+                ):
+                    self.game.sincronizar_trilha_cenario(fade_ms=800)
+
+        # 5. Sincroniza Câmera 2D, Filtro de Memória, HUD e telas visuais
+        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
+            self.game.estados["JOGANDO"].atualizar_camera(instantaneo=True)
+            self.game.estados["JOGANDO"].memoria_anterior_registrada = self.game.estagio_memoria_apresentado
+
         if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
-            self.game.filtro_memoria.definir_estagio(halia.fragmentos_memoria, com_transicao_suave=False)
+            self.game.filtro_memoria.definir_estagio(self.game.estagio_memoria_apresentado, com_transicao_suave=False)
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar:
             self.game.tela_despertar.reiniciar()
-        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
-            self.game.estados["JOGANDO"].memoria_anterior_registrada = halia.fragmentos_memoria
         if hasattr(self.game, 'hud') and self.game.hud:
             self.game.hud.memorias_coletadas = halia.fragmentos_memoria
 
-        # 5. Blindagem de Autosave: ao carregar um Save Manual, sincroniza o autosave do slot
-        # com o checkpoint restaurado, garantindo que o autosave não fique apontando para um "futuro" antigo
-        if tipo == "manual" and slot:
+        # 6. Restaura estado dos estoques de lojas isolado por slot
+        Loja.carregar_estado_lojas(lojas_dados)
+
+        # 7. Blindagem de Autosave (Decisão D3): ao carregar um Save Manual, sincroniza o autosave
+        # do slot somente após o carregamento ter sido aplicado com sucesso
+        if tipo_efetivo == "manual" and slot:
             self.salvar_estado(slot, tipo="autosave", silenciar_notificacao=True)
 
-        # Dispara notificação push de confirmação ao carregar
+        # Dispara notificação push de confirmação ao carregar (com aviso de fallback pela Decisão D4)
         if hasattr(self.game, 'notificacoes') and self.game.notificacoes:
-            slot_num = str(slot).replace("slot_", "")
-            slot_str = f"Slot {slot_num}"
-            self.game.notificacoes.notificar("notificacao_carregar", slot=slot_str)
+            if usou_fallback_tipo:
+                lbl_pedido = "Save manual" if tipo_pedido == "manual" else "Autosave"
+                lbl_carregado = "autosave" if tipo_efetivo == "autosave" else "save manual"
+                self.game.notificacoes.notificar(
+                    "notificacao_carregar_fallback",
+                    tipo_pedido=lbl_pedido,
+                    tipo_carregado=lbl_carregado,
+                    slot=slot_str
+                )
+            else:
+                self.game.notificacoes.notificar("notificacao_carregar", slot=slot_str)
 
         return True
 
+    def limpar_estado_execucao_ativo(self):
+        """Limpa combate, minigames, diálogos e cutscenes transitórias ao sair ou reiniciar partida."""
+        for attr_game, padrao in self.FLAGS_TRANSITORIAS:
+            setattr(self.game, attr_game, padrao)
+        if hasattr(self.game, "inimigos_em_cena"):
+            self.game.inimigos_em_cena = []
+        if hasattr(self.game, "npc_interagindo_atual"):
+            self.game.npc_interagindo_atual = None
+        if hasattr(self.game, "transicao") and self.game.transicao:
+            self.game.transicao.estado = "INATIVO"
+        if hasattr(self.game, "mg_timing") and self.game.mg_timing:
+            self.game.mg_timing.ativo = False
+        if hasattr(self.game, "mg_mash") and self.game.mg_mash:
+            self.game.mg_mash.ativo = False
+        if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
+            if getattr(self.game.caixa_dialogo, "manager", None):
+                self.game.caixa_dialogo.manager.finalizar(limpar_eventos=True)
+                self.game.caixa_dialogo._sincronizar_com_manager()
+        flashback = getattr(self.game, "flashback_sistema", None)
+        if flashback is not None:
+            flashback.ativo = False
+            flashback.estado = "INATIVO"
+            flashback.on_concluido = None
+        despertar = getattr(self.game, "tela_despertar", None)
+        if despertar is not None:
+            despertar.reiniciar()
+        if hasattr(self.game, "tela_combate") and self.game.tela_combate:
+            tc = self.game.tela_combate
+            tc.estado_combate = "INATIVO"
+            tc.inimigos = []
+            tc.on_vitoria = None
+            tc.on_derrota = None
+            tc.on_fuga = None
+        if hasattr(self.game, "halia") and self.game.halia:
+            if hasattr(self.game.halia, "sair_combate"):
+                self.game.halia.sair_combate()
+        estados = getattr(self.game, "estados", {}) or {}
+        ps = estados.get("JOGANDO")
+        if ps:
+            ps.camera_cinematica_alvo = None
+            ps.cutscene.ativo = False
+            for attr_sub in ("cutscene_reconstrucao", "cinematica_dragao", "minigame_ferraria", "minigame_curandeira"):
+                sub = getattr(ps, attr_sub, None)
+                if sub is not None:
+                    sub.ativo = False
+
     def resetar_progresso(self, slot_novo):
         """Limpa as variáveis globais para iniciar um Novo Jogo limpo no slot."""
+        slot_novo = save_io.normalizar_slot(slot_novo)
         self.game.slot_atual = slot_novo
         self.game.tempo_jogado = 0.0
         self.game.itens_coletados = []
         self.game.caixa_dialogo.historico_escolhas.clear()
         save_io.apagar_dados(slot_novo, tipo="autosave")
+        Loja.resetar_lojas()
 
-        # Reset da Halia
+        # Reset completo da Halia (inclui nível, XP, feitiços aprendidos, condições e poses)
         halia = self.game.halia
         halia.x, halia.y = 210, 280
+        halia.direcao = "baixo"
+        halia.virado_direita = True
+        halia.nivel = 1
+        halia.xp = 0
+        halia.xp_proximo_nivel = halia.calcular_xp_proximo(1)
+        halia.feiticos_aprendidos = set()
+        halia.maestria_feiticos = {}
         halia.fragmentos_memoria = 0
+        halia.nivel_sincronia = 1
         halia.dinheiro = 0
         halia.atributos = Atributos(forca=7, destreza=10, constituicao=10, intelecto=13, sabedoria=11, presenca=12)
         halia.inventario = Inventario()
         halia.inicializar_inventario_padrao()
         halia.recalcular_status_derivados(manter_porcentagem=False)
         halia.atualizar_grimorio()
-        # Inicia o jogo com vida e mana cheias
-        halia.vida_atual = halia.vida_maxima
-        halia.mana_atual = halia.mana_maxima
-        halia.vivo = True
-        halia.mudar_estado("idle")
+        halia.ataques_fisicos = ["ataque_basico"]
+        halia.restaurar_total()
+        halia.sair_combate()
+        halia.mudar_estado("idle_baixo")
+        if hasattr(halia, "atualizar_animacao"):
+            halia.atualizar_animacao()
 
         # Reset do Carroceiro
         carroceiro = self.game.carroceiro
         carroceiro.x, carroceiro.y = 1350, 330
         carroceiro.velocidade = 2
+        carroceiro.sincronizar_teleporte()
         self.game.carroceiro_visivel = False
         self.game.carroceiro_andando = False
         self.game.conversa_carroceiro_terminou = False
-        self.game.progresso_npcs["carroceiro"] = 0
+        self.game.progresso_npcs = {"carroceiro": 0}
 
-        # Reset de Flags do Mapa e Progresso
-        self.game.fechando_porta = False
-        self.game.aguardando_fim_viagem = False
-        self.game.investigou_pedras = False
-        self.game.flashback_magia_concluido = False
+        # Reset de Flags Permanentes e Estado Transitório em Execução
         self.game.mapa_casa.porta_aberta = False
-        self.game.magia_ativa = None
-        self.game.magia_usada_no_puzzle = None
-        self.game.magia_selecionada_temporaria = None
-        self.game.combate_estrada_concluido = False
-        self.game.iniciando_combate = False
-        self.game.cena_inimigos_andando = False
-        self.game.conversa_combate_ativa = False
-        self.game.inimigos_em_cena = []
-        self.game.transicao.estado = "INATIVO"
+        for attr_game, _chave_save, padrao in self.FLAGS_PERSISTENTES:
+            setattr(self.game, attr_game, padrao)
+        self.limpar_estado_execucao_ativo()
         self.game.mapa_casa.restaurar_bloqueio_estrada2()
-        self.game.mapa_casa.carregar_cenario("CASA")
 
-        # Sincroniza e reseta o Filtro de Memória (100% P&B / Estágio 0), HUD e Cutscenes
         if hasattr(self.game, 'filtro_memoria') and self.game.filtro_memoria:
             self.game.filtro_memoria.reiniciar(0)
         if hasattr(self.game, 'tela_despertar') and self.game.tela_despertar:
             self.game.tela_despertar.reiniciar()
-        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
-            self.game.estados["JOGANDO"].memoria_anterior_registrada = 0
         if hasattr(self.game, 'hud') and self.game.hud:
             self.game.hud.memorias_coletadas = 0
-
-        # Reinicia o progresso das missões
         if hasattr(self.game, 'missoes'):
             self.game.missoes.resetar()
 
-        # Recarrega o cenário inicial limpo
         self.game.mapa_casa.carregar_cenario("CASA")
+        if hasattr(self.game, 'estados') and "JOGANDO" in self.game.estados:
+            self.game.estados["JOGANDO"].memoria_anterior_registrada = 0
+            self.game.estados["JOGANDO"].atualizar_camera(instantaneo=True)
+
+    @classmethod
+    def _migrar_progressao_e_grimorio(
+        cls,
+        *,
+        dados,
+        flags,
+        halia_dados,
+        cenario_salvo,
+        fragmentos_memoria_novos,
+        flags_persistentes_novas,
+        feiticos_aprendidos_novos,
+        inventario_novo,
+        salvos_ataques,
+    ):
+        """Migra saves legados para esquema v2 de progresso/grimório de forma idempotente."""
+        try:
+            from src.mechanics.rpg.grimorio import GrimorioHalia
+            from src.mechanics.items import ItemFactory
+        except ImportError:
+            from mechanics.rpg.grimorio import GrimorioHalia
+            from mechanics.items import ItemFactory
+
+        raw_versao = flags.get("versao_progressao", dados.get("versao_progressao", 1))
+        versao_salva = int(raw_versao) if cls._eh_inteiro(raw_versao) else 1
+
+        estagio_salvo = flags.get("estagio_memoria_apresentado", dados.get("estagio_memoria_apresentado"))
+        etapa_salva = flags.get("etapa_epilogo", dados.get("etapa_epilogo"))
+        v2_valido = (
+            versao_salva >= 2
+            and cls._eh_inteiro(estagio_salvo)
+            and 0 <= int(estagio_salvo) <= 7
+            and isinstance(etapa_salva, str)
+            and etapa_salva in cls.ETAPAS_EPILOGO_VALIDAS
+        )
+
+        if v2_valido:
+            flags_persistentes_novas["estagio_memoria_apresentado"] = int(estagio_salvo)
+            flags_persistentes_novas["etapa_epilogo"] = etapa_salva
+            flags_persistentes_novas["versao_progressao"] = max(2, versao_salva)
+        else:
+            destruida = bool(flags_persistentes_novas.get("oakhaven_destruida", False))
+            dragao_derrotado = bool(flags_persistentes_novas.get("dragao_derrotado", False))
+            if fragmentos_memoria_novos >= 2 and cenario_salvo == "OAKHAVEN" and not destruida:
+                etapa_inferida = "DESPEDIDA_PENDENTE"
+            elif fragmentos_memoria_novos >= 2 and (
+                cenario_salvo == "OAKHAVEN_DESTRUIDA" or (cenario_salvo == "OAKHAVEN" and destruida)
+            ):
+                etapa_inferida = "RECONSTRUCAO_PENDENTE"
+            elif fragmentos_memoria_novos >= 2:
+                etapa_inferida = "RETORNO_VILA"
+            elif dragao_derrotado and fragmentos_memoria_novos < 2:
+                etapa_inferida = "POS_DRAGAO"
+            else:
+                etapa_inferida = "NAO_INICIADO"
+
+            flags_persistentes_novas["estagio_memoria_apresentado"] = fragmentos_memoria_novos
+            flags_persistentes_novas["etapa_epilogo"] = etapa_inferida
+            flags_persistentes_novas["versao_progressao"] = 2
+
+        if versao_salva < 2:
+            # Preserva tomos comprados (equipados ou guardados na bolsa) em saves legados sem restaurar a lista antiga derivada
+            magias_auto = set(GrimorioHalia.obter_magias_desbloqueadas(fragmentos_memoria_novos))
+            candidatos_tomos = list(getattr(inventario_novo, "equipados", {}).values())
+            for slot_obj in getattr(inventario_novo, "slots", []) or []:
+                item_slot = getattr(slot_obj, "item", slot_obj)
+                if item_slot is not None and getattr(item_slot, "categoria", None) == "GRIMORIO":
+                    candidatos_tomos.append(item_slot)
+
+            inv_raw = halia_dados.get("inventario") or {}
+            equip_raw = inv_raw.get("equipados") or {}
+            for slot_nome, item_info in equip_raw.items():
+                if isinstance(item_info, dict):
+                    candidatos_tomos.append(item_info)
+                    if not isinstance(getattr(inventario_novo, "equipados", {}).get(slot_nome), object) or getattr(inventario_novo, "equipados", {}).get(slot_nome) is None:
+                        item_id = item_info.get("item_id") or item_info.get("id")
+                        if item_id:
+                            item_criado = ItemFactory.criar(item_id, nivel_upgrade=item_info.get("nivel_upgrade", 0))
+                            if item_criado and slot_nome in inventario_novo.equipados:
+                                inventario_novo.equipados[slot_nome] = item_criado
+
+            for slot_info in inv_raw.get("slots") or []:
+                if not isinstance(slot_info, dict):
+                    continue
+                item_info = slot_info.get("item", slot_info)
+                if not isinstance(item_info, dict):
+                    continue
+                cat_info = item_info.get("categoria")
+                if not cat_info:
+                    item_id = item_info.get("item_id") or item_info.get("id")
+                    criado = ItemFactory.criar(item_id) if item_id else None
+                    cat_info = getattr(criado, "categoria", None)
+                if cat_info == "GRIMORIO":
+                    candidatos_tomos.append(item_info)
+
+            for item in candidatos_tomos:
+                if item is None:
+                    continue
+                if isinstance(item, dict):
+                    magia_id = item.get("magia_id")
+                    if not magia_id:
+                        item_id = item.get("item_id") or item.get("id")
+                        criado = ItemFactory.criar(item_id) if item_id else None
+                        magia_id = getattr(criado, "magia_id", None) if criado else None
+                    item_id_ref = item.get("item_id") or item.get("id")
+                else:
+                    magia_id = getattr(item, "magia_id", None)
+                    item_id_ref = getattr(item, "id", None)
+
+                if magia_id and item_id_ref != "tomo_chama_ancestral" and magia_id != "bola_de_fogo" and magia_id not in magias_auto:
+                    feiticos_aprendidos_novos.add(magia_id)
+
+            filtrados = [atk for atk in salvos_ataques if isinstance(atk, str) and atk not in cls.ATAQUES_LEGADO_AUTO]
+            return list(dict.fromkeys(["ataque_basico"] + filtrados))
+
+        ataques_limpos = [atk for atk in salvos_ataques if isinstance(atk, str) and atk]
+        return list(dict.fromkeys(["ataque_basico"] + ataques_limpos))
+
+    @staticmethod
+    def _eh_numero(valor):
+        """Retorna True para int ou float, rejeitando booleanos."""
+        return isinstance(valor, (int, float)) and not isinstance(valor, bool)
+
+    @staticmethod
+    def _eh_inteiro(valor):
+        """Retorna True para int, rejeitando booleanos."""
+        return isinstance(valor, int) and not isinstance(valor, bool)
+
+    def _validar_dados_save(self, dados, slot=None, tipo="manual", verificar_limites_estritos=False):
+        """
+        Valida a estrutura e os tipos de um dicionário de save já carregado.
+        Retorna (True, 'Save íntegro') se válido, ou (False, 'Motivo') caso contrário.
+        """
+        rotulo_slot = f"slot {slot} ({tipo})" if slot is not None else f"save ({tipo})"
+        if not dados or not isinstance(dados, dict):
+            return False, f"Dados do {rotulo_slot} corrompidos ou formato JSON inválido."
+
+        chaves_obrigatorias = ["cenario_atual", "halia", "flags"]
+        for chave in chaves_obrigatorias:
+            if chave not in dados:
+                return False, f"{rotulo_slot.capitalize()} com estrutura corrompida: chave '{chave}' ausente."
+
+        # Validação do cenário
+        cenario = dados.get("cenario_atual")
+        if not isinstance(cenario, str) or (verificar_limites_estritos and cenario not in self.CENARIOS_VALIDOS):
+            return False, f"Cenário '{cenario}' não reconhecido no {rotulo_slot}."
+
+        flags = dados.get("flags", {})
+        if not isinstance(flags, dict):
+            return False, f"Bloco 'flags' inválido no {rotulo_slot}."
+
+        if "versao_progressao" in flags and flags["versao_progressao"] is not None:
+            if not self._eh_inteiro(flags["versao_progressao"]) or int(flags["versao_progressao"]) < 1:
+                return False, f"Campo 'versao_progressao' inválido no {rotulo_slot}."
+
+        if "estagio_memoria_apresentado" in flags and flags["estagio_memoria_apresentado"] is not None:
+            estagio_m = flags["estagio_memoria_apresentado"]
+            if not self._eh_inteiro(estagio_m) or (verificar_limites_estritos and (estagio_m < 0 or estagio_m > 7)):
+                return False, f"Campo 'estagio_memoria_apresentado' inválido no {rotulo_slot}."
+
+        if "etapa_epilogo" in flags and flags["etapa_epilogo"] is not None:
+            etapa_m = flags["etapa_epilogo"]
+            if not isinstance(etapa_m, str) or (verificar_limites_estritos and etapa_m not in self.ETAPAS_EPILOGO_VALIDAS):
+                return False, f"Campo 'etapa_epilogo' inválido no {rotulo_slot}."
+
+        if "tempo_jogado" in dados and dados["tempo_jogado"] is not None:
+            if not self._eh_numero(dados["tempo_jogado"]):
+                return False, f"Campo 'tempo_jogado' inválido no {rotulo_slot}."
+
+        for chave_dict in ("carroceiro", "progresso_npcs", "lojas"):
+            if chave_dict in dados and dados[chave_dict] is not None and not isinstance(dados[chave_dict], dict):
+                return False, f"Bloco '{chave_dict}' inválido no {rotulo_slot}."
+
+        if "missoes" in dados and dados["missoes"] is not None:
+            missoes_dados = dados["missoes"]
+            if not isinstance(missoes_dados, dict):
+                return False, f"Bloco 'missoes' inválido no {rotulo_slot}."
+            for subchave in ("missoes", "progresso"):
+                if subchave in missoes_dados and missoes_dados[subchave] is not None:
+                    sub = missoes_dados[subchave]
+                    if not isinstance(sub, dict) or any(not isinstance(v, dict) for v in sub.values()):
+                        return False, f"Subbloco 'missoes.{subchave}' inválido no {rotulo_slot}."
+
+        # Validação da entidade Halia
+        halia_dados = dados.get("halia", {})
+        if not isinstance(halia_dados, dict) or not isinstance(halia_dados.get("atributos"), dict):
+            return False, f"{rotulo_slot.capitalize()} com dados de Halia corrompidos ou ausentes."
+
+        # Validação da integridade dos atributos
+        atributos = halia_dados.get("atributos", {})
+        chaves_attr = ["forca", "destreza", "constituicao", "intelecto", "sabedoria", "presenca"]
+        for attr in chaves_attr:
+            if attr not in atributos or not self._eh_numero(atributos[attr]):
+                return False, f"Atributo '{attr}' corrompido no {rotulo_slot}."
+
+        campos_numericos_halia = (
+            "nivel", "xp", "dinheiro", "vida_atual", "vida_maxima",
+            "mana_atual", "mana_maxima", "nivel_sincronia", "x", "y",
+        )
+        for campo in campos_numericos_halia:
+            if campo in halia_dados and halia_dados[campo] is not None and not self._eh_numero(halia_dados[campo]):
+                return False, f"Campo '{campo}' de Halia inválido no {rotulo_slot}."
+
+        # Validação dos fragmentos de memória (0 a 7 quando estrito)
+        if "fragmentos_memoria" in halia_dados and halia_dados["fragmentos_memoria"] is not None:
+            mems = halia_dados["fragmentos_memoria"]
+            if not self._eh_inteiro(mems) or (verificar_limites_estritos and (mems < 0 or mems > 7)):
+                return False, f"Valor de fragmentos de memória inválido ({mems}) no {rotulo_slot}."
+
+        # Validação do inventário
+        if "inventario" in halia_dados and halia_dados["inventario"] is not None:
+            inv_dados = halia_dados["inventario"]
+            if not isinstance(inv_dados, dict):
+                return False, f"Bloco 'inventario' inválido no {rotulo_slot}."
+            if "capacidade" in inv_dados and inv_dados["capacidade"] is not None and not self._eh_inteiro(inv_dados["capacidade"]):
+                return False, f"Capacidade de inventário inválida no {rotulo_slot}."
+            if "slots" in inv_dados and inv_dados["slots"] is not None:
+                if not isinstance(inv_dados["slots"], list) or any(not isinstance(s, dict) for s in inv_dados["slots"]):
+                    return False, f"Lista de slots do inventário inválida no {rotulo_slot}."
+            if "equipados" in inv_dados and inv_dados["equipados"] is not None and not isinstance(inv_dados["equipados"], dict):
+                return False, f"Equipamentos do inventário inválidos no {rotulo_slot}."
+
+        return True, "Save íntegro"
 
     def verificar_integridade_slot(self, slot, tipo="manual"):
         """
-        Verifica a integridade estrutural e consistência de esquema do save no slot.
+        Verifica a integridade estrutural, consistência de esquema e limites do save no slot.
         Retorna (True, 'Save íntegro') se válido, ou (False, 'Motivo') se ausente ou corrompido.
         """
         if not save_io.save_existe(slot, tipo=tipo):
             return False, f"Nenhum arquivo de save ({tipo}) encontrado para o slot {slot}."
 
         dados = save_io.carregar_dados(slot, tipo=tipo)
-        if not dados or not isinstance(dados, dict):
-            return False, f"Dados do slot {slot} ({tipo}) corrompidos ou formato JSON inválido."
+        return self._validar_dados_save(dados, slot=slot, tipo=tipo, verificar_limites_estritos=True)
 
-        chaves_obrigatorias = ["cenario_atual", "halia", "flags"]
-        for chave in chaves_obrigatorias:
-            if chave not in dados:
-                return False, f"Slot {slot} ({tipo}) com estrutura corrompida: chave '{chave}' ausente."
-
-        halia_dados = dados.get("halia", {})
-        if not isinstance(halia_dados, dict) or "atributos" not in halia_dados:
-            return False, f"Slot {slot} ({tipo}) com dados de Halia corrompidos ou ausentes."
-
-        return True, "Save íntegro"
+    def diagnosticar_saves(self):
+        """
+        Executa um diagnóstico detalhado em todos os slots (manuais e autosaves),
+        reportando o status de integridade e metadados de cada arquivo em disco.
+        """
+        diagnostico = {}
+        for s in range(1, save_io.MAX_SLOTS + 1):
+            diag_slot = {"slot": s}
+            for tipo in ["manual", "autosave"]:
+                existe = save_io.save_existe(s, tipo=tipo)
+                if existe:
+                    valido, motivo = self.verificar_integridade_slot(s, tipo=tipo)
+                    diag_slot[tipo] = {
+                        "existe": True,
+                        "integro": valido,
+                        "status": motivo
+                    }
+                else:
+                    diag_slot[tipo] = {"existe": False, "integro": False, "status": "Vazio"}
+            diagnostico[s] = diag_slot
+        return diagnostico
 
     def save_existe(self, slot, tipo=None):
         """Verifica se existe save no slot especificado."""

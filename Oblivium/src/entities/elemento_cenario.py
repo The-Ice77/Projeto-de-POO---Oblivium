@@ -40,6 +40,10 @@ class ElementoCenario(ABC):
         # Sistema de partículas dinâmicas do prop
         self.particulas = []
 
+        self._frames_escalados = None
+        self._glow_cache = None
+        self._glow_cache_raio = 0
+
     def atualizar_animacao(self, dt=0.016):
         """Avança o ciclo de frames da textura animada."""
         if self.frames:
@@ -68,49 +72,57 @@ class ElementoCenario(ABC):
         pass
 
     def desenhar_glow(self, tela, offset_y=-4):
-        """Renderiza o halo de iluminação pulsante ancorado na base do chão."""
+        """Renderiza o halo de iluminação pulsante ancorado na base do chão com cache."""
         if self.glow_base <= 0:
             return
 
         pulso_luz = (math.sin(self.fase_pulso_luz) + 1.0) * 0.5
         raio_glow = max(10, int(self.glow_base * (0.88 + pulso_luz * 0.24)))
-        surf_luz = pygame.Surface((raio_glow * 2, raio_glow * 2), pygame.SRCALPHA)
 
-        alpha_ext = int(42 + pulso_luz * 22)
-        alpha_int = int(75 + pulso_luz * 30)
-
-        pygame.draw.circle(surf_luz, (*self.cor_glow_ext[:3], alpha_ext), (raio_glow, raio_glow), raio_glow)
-        pygame.draw.circle(surf_luz, (*self.cor_glow_int[:3], alpha_int), (raio_glow, raio_glow), raio_glow // 2)
+        if self._glow_cache is None or self._glow_cache_raio != raio_glow:
+            surf_luz = pygame.Surface((raio_glow * 2, raio_glow * 2), pygame.SRCALPHA)
+            alpha_ext = int(42 + pulso_luz * 22)
+            alpha_int = int(75 + pulso_luz * 30)
+            pygame.draw.circle(surf_luz, (*self.cor_glow_ext[:3], alpha_ext), (raio_glow, raio_glow), raio_glow)
+            pygame.draw.circle(surf_luz, (*self.cor_glow_int[:3], alpha_int), (raio_glow, raio_glow), raio_glow // 2)
+            self._glow_cache = surf_luz
+            self._glow_cache_raio = raio_glow
 
         pos_gx = int(self.x - raio_glow)
         pos_gy = int(self.y + offset_y - raio_glow)
-        tela.blit(surf_luz, (pos_gx, pos_gy))
+        tela.blit(self._glow_cache, (pos_gx, pos_gy))
 
     def desenhar_sprite(self, tela):
-        """Renderiza o frame atual da sprite ancorado na base inferior (self.y)."""
+        """Renderiza o frame atual da sprite pré-escalado ancorado na base inferior (self.y)."""
         if not self.frames:
             return
 
-        idx = int(self.frame_idx) % len(self.frames)
-        frame_base = self.frames[idx]
+        if self._frames_escalados is None:
+            if abs(self.escala_base - 1.0) < 0.01:
+                self._frames_escalados = self.frames
+            else:
+                self._frames_escalados = [
+                    pygame.transform.scale(
+                        f,
+                        (max(1, int(f.get_width() * self.escala_base)), max(1, int(f.get_height() * self.escala_base)))
+                    )
+                    for f in self.frames
+                ]
 
-        fw = max(1, int(frame_base.get_width() * self.escala_base))
-        fh = max(1, int(frame_base.get_height() * self.escala_base))
-        frame_render = pygame.transform.scale(frame_base, (fw, fh))
+        idx = int(self.frame_idx) % len(self._frames_escalados)
+        frame_render = self._frames_escalados[idx]
+        fw, fh = frame_render.get_size()
 
         pos_x = int(self.x - fw // 2)
         pos_y = int(self.y - fh)
         tela.blit(frame_render, (pos_x, pos_y))
 
     def desenhar_particulas(self, tela):
-        """Renderiza as partículas emitidas com atenuação gradual de tamanho e transparência."""
+        """Renderiza as partículas emitidas diretamente na superfície sem alocação por partícula."""
         for p in self.particulas:
             pct = max(0.0, p["vida"] / p["vida_max"])
             raio = max(1, int(p["raio"] * pct))
-            alpha = int(240 * pct)
-            surf_p = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
-            pygame.draw.circle(surf_p, (*p["cor"][:3], alpha), (raio, raio), raio)
-            tela.blit(surf_p, (int(p["x"] - raio), int(p["y"] - raio)))
+            pygame.draw.circle(tela, p["cor"][:3], (int(p["x"]), int(p["y"])), raio)
 
     def desenhar(self, tela):
         """Template Method padrão: renderiza halo de luz, sprite e partículas."""

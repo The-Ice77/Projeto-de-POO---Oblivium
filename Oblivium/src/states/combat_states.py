@@ -21,7 +21,8 @@ class CombatState(State):
             self.game.transicao.atualizar()
             
         # O motor de combate gerencia turnos e dispara callbacks ao finalizar
-        self.game.tela_combate.atualizar()
+        dt = getattr(self.game, "dt", 1.0 / 60.0)
+        self.game.tela_combate.atualizar(dt)
 
     def draw(self, tela):
         # Desenha a arena de combate, HUD, menus e efeitos

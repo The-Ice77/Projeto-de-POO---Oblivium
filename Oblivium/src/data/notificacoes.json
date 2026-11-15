@@ -84,6 +84,13 @@
       "icone": "📂",
       "duracao_ticks": 180
     },
+    "notificacao_carregar_fallback": {
+      "titulo": "Jogo Carregado",
+      "mensagem": "{tipo_pedido} não encontrado no {slot} — {tipo_carregado} carregado.",
+      "tipo": "SISTEMA",
+      "icone": "📂",
+      "duracao_ticks": 210
+    },
     "notificacao_cura": {
       "titulo": "Vitalidade Restaurada",
       "mensagem": "Recuperou {quantidade} pontos de vida.",
@@ -100,7 +107,7 @@
     },
     "notificacao_bolsa_moedas": {
       "titulo": "Bolsa de Moedas",
-      "mensagem": "Recebeu 50 Moedas de Prata (5 de Ouro).",
+      "mensagem": "Recebeu 50 Moedas de Ouro.",
       "tipo": "ITEM",
       "icone": "✦",
       "duracao_ticks": 180

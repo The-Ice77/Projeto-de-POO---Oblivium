@@ -46,10 +46,22 @@ class Transition:
         self.texto_estado = "DIGITANDO" # DIGITANDO, HOLD, FADE_OUT
         self.tempo_hold_texto = 0
         self.tempo_inicio_hold = 0
+        self._tempo_hold_decorrido_ms = 0.0
         
         # Sistema de máquina de escrever para a transição
         self.caractere_atual = 0.0
         self.velocidade_digitacao = 0.55 # Digitação fluida de nomes/capítulos
+
+    @property
+    def ativo(self):
+        """Retorna True se a transição estiver em andamento (qualquer estado diferente de INATIVO)."""
+        return self.estado != "INATIVO"
+
+    @ativo.setter
+    def ativo(self, valor):
+        if not valor:
+            self.estado = "INATIVO"
+            self.alpha = 0
 
     def iniciar(self, texto_opcional=""):
         """
@@ -62,6 +74,7 @@ class Transition:
             self.texto_alpha = 255
             self.caractere_atual = 0.0
             self.texto_estado = "DIGITANDO"
+            self._tempo_hold_decorrido_ms = 0.0
             self.estado = "ESCURECENDO"
             # Reinicia e distribui as pétalas para uma brisa renovada na transição
             self.efeito_petalas.reiniciar(inicializar_na_tela=True)
@@ -73,6 +86,7 @@ class Transition:
                 self.caractere_atual = float(len(self.texto_atual))
                 self.texto_estado = "HOLD"
                 self.tempo_inicio_hold = pygame.time.get_ticks()
+                self._tempo_hold_decorrido_ms = 0.0
             elif self.texto_estado == "HOLD":
                 self.texto_estado = "FADE_OUT"
 
@@ -110,10 +124,15 @@ class Transition:
                     self.caractere_atual = float(total_chars)
                     self.texto_estado = "HOLD"
                     self.tempo_inicio_hold = pygame.time.get_ticks()
+                    self._tempo_hold_decorrido_ms = 0.0
                     
             elif self.texto_estado == "HOLD":
+                self._tempo_hold_decorrido_ms += max(0.0, float(dt) * 1000.0)
                 tempo_atual = pygame.time.get_ticks()
-                if tempo_atual - self.tempo_inicio_hold > self.tempo_hold_texto:
+                if (
+                    self._tempo_hold_decorrido_ms > self.tempo_hold_texto
+                    or tempo_atual - self.tempo_inicio_hold > self.tempo_hold_texto
+                ):
                     self.texto_estado = "FADE_OUT"
                     
             elif self.texto_estado == "FADE_OUT":
@@ -138,9 +157,24 @@ class Transition:
         self.superficie.set_alpha(int(self.alpha))
         tela.blit(self.superficie, (0, 0))
         
-        # 2. Desenha a brisa de pétalas do menu flutuando pela transição com transparência proporcional
+        # 2. Se houver texto ativo, calcula a área excluída para impedir que pétalas sobreponham a tipografia
+        areas_excluidas = []
+        if (self.estado == "EXIBINDO_TEXTO" or self.texto_atual) and self.texto_atual:
+            largura_total_texto = self.fonte.size(self.texto_atual)[0]
+            altura_texto = self.fonte.size(self.texto_atual)[1]
+            x_inicio_texto = (self.largura - largura_total_texto) // 2
+            y_centro = (self.altura // 2) - (altura_texto // 2) - 10
+            rect_texto = pygame.Rect(
+                x_inicio_texto - 40,
+                y_centro - 25,
+                largura_total_texto + 80,
+                altura_texto + 50
+            )
+            areas_excluidas.append(rect_texto)
+
+        # Desenha a brisa de pétalas do menu flutuando pela transição com transparência proporcional
         alpha_petalas = min(1.0, max(0.15, self.alpha / 220.0))
-        self.efeito_petalas.desenhar(tela, alpha_multiplicador=alpha_petalas)
+        self.efeito_petalas.desenhar(tela, areas_excluidas=areas_excluidas, alpha_multiplicador=alpha_petalas)
         
         # 3. Se houver um texto ativo, renderiza com máquina de escrever e ornamentação delicada
         if self.estado == "EXIBINDO_TEXTO" and self.texto_atual:

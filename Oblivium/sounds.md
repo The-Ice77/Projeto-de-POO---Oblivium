@@ -1,111 +1,87 @@
-# ◈ Guia Geral de Áudio e Sonoplastia — Oblivium ◈
+# Guia Oficial de Áudio e Trilhas — Oblivium
 
-Este documento cataloga todos os recursos sonoros (trilhas musicais, ambientes e efeitos sonoros) necessários para o jogo, especificando nomes de arquivo esperados pelo `AudioManager`, diretórios de destino, especificações técnicas e as referências originais de inspiração.
-
----
-
-## 📁 Estrutura de Diretórios de Áudio
-
-Todos os arquivos devem ser colocados dentro de `Oblivium/assets/audio/`:
-
-```
-Oblivium/assets/audio/
-├── music/               # Trilhas musicais de fundo (BGM) e temas de cutscenes
-├── ambience/            # Efeitos sonoros contínuos em loop (BGS / Clima / Ambientes)
-└── sfx/                 # Efeitos sonoros pontuais (SFX)
-    ├── ui/              # Navegação, cliques e confirmações de interface
-    ├── combate/         # Golpes, danos, magias, esquivas e impactos
-    ├── mundo/           # Portas, passos, interações com cenário
-    └── itens/           # Coleta de itens, uso de poções e inventário
-```
-
-> **Formatos recomendados:**
-> - **Músicas e Ambientes:** Formato `.ogg` (ou `.mp3`), taxa de amostragem de 44.1 kHz, estéreo, com pontos de loop limpos.
-> - **Efeitos Sonoros (SFX):** Formato `.ogg` ou `.wav` (PCM 16-bit), sem silêncio no início ou final do arquivo.
+Estado real da infraestrutura sonora integrada no jogo e gerenciada por [audio_manager.py](file:///Oblivium/src/core/audio_manager.py) com manifesto em [audio_manifest.json](file:///Oblivium/src/data/audio_manifest.json).
 
 ---
 
-## 🎼 1. Trilhas Musicais (BGM)
-*Diretório:* `assets/audio/music/`
+## 1. Trilhas Musicais Integradas (`assets/audio/music/*.ogg`)
 
-| Nome do Arquivo Esperado | Faixa de Referência (Inspiração) | Trecho / Momento no Jogo | Link de Referência |
-| :--- | :--- | :--- | :--- |
-| `menu_tema.ogg` | **OLD STORIES** (Made in Abyss) | Menu Principal, Seleção de Saves e Controles | [[Spotify]](https://open.spotify.com/intl-pt/track/5FHMiH3xAfrD8TN86wgYp1?si=30266d2c9ad8483a) |
-| `cutscene_intro.ogg` | **For 1000 Years** (Frieren OST) | Cena de introdução do jogo (trecho inicial) | [[Spotify]](https://open.spotify.com/intl-pt/track/5REuZbHvPSPieO9GmI9cTT) |
-| `casa_halia.ogg` | **Before the Light Fades** (Frieren OST) | Despertar e exploração da cabana de Halia | [[Spotify]](https://open.spotify.com/intl-pt/track/5gtXuXuaRyryyyYOaFt4MG?si=ee65ae5e836b472f) |
-| `estrada_floresta.ogg` | **Life is Worth Living** (Frieren OST) | Exploração externa das Estradas 1 e 2 | [[Spotify]](https://open.spotify.com/intl-pt/track/25LDFStf0IOKR5CKkW7X4o) |
-| `cutscene_magia.ogg` | **Life and Legacy** (Frieren OST) | Momento do despertar e descoberta da magia | [[Spotify]](https://open.spotify.com/intl-pt/track/6SikhD5725vrCkrypteTTr?si=d8d5754a0e634fc8) |
-| `combate_comum.ogg` | **Demon's Bane** (Frieren OST) | Luta contra demônios inferiores / monstros comuns | [[Spotify]](https://open.spotify.com/intl-pt/track/5pwqeBM9u6oLbB2jhqme3D?si=11c5b3363f0842d3) |
-| `combate_chefe.ogg` | **Treachery** (Bleach OST) | Luta contra demônios superiores / chefes de área | [[Spotify]](https://open.spotify.com/intl-pt/track/6a7su3dkJJXidSuFiowJC2?si=ed69f8e9461b4af5) |
-| `combate_dragao.ogg` | **Dragon Smasher** (Frieren OST) | Batalha climática contra o dragão ancestral | [[Spotify]](https://open.spotify.com/intl-pt/track/1Bn5xNMZYDfUk5e1eisPei) |
-| `vitoria.ogg` | *Fanfarra Curta de Vitória (~4s)* | Tela de vitória e recompensas pós-batalha | [[Spotify]](https://open.spotify.com/intl-pt/track/37rEStoUXtMSoLioh9BoM4?si=717fadf3ff9f4a0d) |
-| `derrota.ogg` | *Jingle Fúnebre de Game Over (~5s)* | Queda de Halia e tela de derrota | [[Spotify]](https://open.spotify.com/intl-pt/track/6faRsCMylJKKQqESbwJTA9?si=75e4f07d544b4eb7) |
-| `cutscene_final.ogg` | **Journey Of a Lifetime** (Frieren OST) | Última cena e encerramento do jogo | [[Spotify]](https://open.spotify.com/intl-pt/track/0ZpugAMYdppMFqp8FAGidT) |
+Todas as 12 faixas fornecidas em `assets/audio/Trilha Sonora Oblivium/` (`11` `.m4a` + `1` `.mp3`) foram decodificadas em PCM 44.1 kHz estéreo, aparadas nos cortes musicais ativos sem fade-outs ou silêncios nas extremidades dos loops (`loop_padrao = -1`), niveladas por compressor/limitador suave e normalizadas com teto anti-clipping pós-codec (`clipped_samples = 0`, pico <= `-1.23 dBFS`) para **Ogg Vorbis estéreo 44.1 kHz (`-b:a 192k`)**, mantendo todos os arquivos-fonte originais intactos.
 
----
+| Arquivo OGG | Origem | Título / Obra / Compositor | Recorte / Duração | Ganho / Pico / RMS | Contexto e Aliases |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `menu_tema.ogg` | `Kevin Penkin - OLD STORIES.m4a` | **OLD STORIES** — *Made in Abyss OST* (Kevin Penkin) | `1.85s–404.90s` (`403.06s`, loop contínuo) | `-1.67 dB` / `-4.00 dBFS` / `-19.00 dB` | `menu_tema` (Menu Principal, Slots, Pausa/Opções fora de cena) |
+| `tema_intro.ogg` | `Evan Call - For 1000 Years.m4a` | **For 1000 Years** — *Frieren OST* (Evan Call) | `3.60s–130.80s` (`127.20s`, loop contínuo) | `+7.92 dB` / `-1.67 dBFS` / `-19.06 dB` | `tema_intro`, `cutscene_intro` (Introdução do Novo Jogo) |
+| `tema_exploracao.ogg` | `Evan Call - Life Is Worth Living.m4a` | **Life Is Worth Living** — *Frieren OST* (Evan Call) | `3.15s–119.70s` (`116.55s`, loop contínuo) | `+15.53 dB` / `-2.02 dBFS` / `-19.00 dB` | `tema_exploracao`, `casa_halia`, `estrada_floresta`, `vila_oakhaven`, `tema_vila` (Cabana, Estradas, Orla Norte, Oakhaven e Reconstrução) |
+| `tema_memorias.ogg` | `Evan Call - Life and Legacy.m4a` | **Life and Legacy** — *Frieren OST* (Evan Call) | `0.85s–149.40s` (`148.55s`, loop contínuo) | `+7.23 dB` / `-2.32 dBFS` / `-19.00 dB` | `tema_memorias`, `cutscene_magia` (Flashbacks e Tela de Despertar de Memória) |
+| `combate_comum.ogg` | `Shiro SAGISU - Treachery.m4a` | **Treachery** — *Bleach OST* (Shiro SAGISU) | `0.35s–196.90s` (`196.55s`, loop contínuo) | `-4.19 dB` / `-3.51 dBFS` / `-17.60 dB` | `combate_comum` (Combates padrão e emboscada dos Mímicos) |
+| `combate_chefe.ogg` | `Evan Call - Demon's Bane.m4a` | **Demon's Bane** — *Frieren OST* (Evan Call) | `0.45s–223.95s` (`223.50s`, loop contínuo) | `+1.46 dB` / `-1.28 dBFS` / `-17.61 dB` | `combate_chefe` (Reservada para mini-chefes/elites táticos e confrontos especiais) |
+| `ataque_dragao.ogg` | `Ancient Magic_spotdown.org.mp3` | **Ancient Magic** — *Frieren OST* (Evan Call) | `0.38s–130.74s` (`130.36s`, loop contínuo) | `+1.03 dB` / `-1.23 dBFS` / `-17.84 dB` | `ataque_dragao` (Ataque aéreo de Ignis'Vahr em `CinematicaAtaqueDragao` e Oakhaven destruída pré-Ninho) |
+| `combate_dragao.ogg` | `Evan Call - Dragon Smasher.m4a` | **Dragon Smasher** — *Frieren OST* (Evan Call) | `0.38s–109.20s` (`108.82s`, loop contínuo) | `-4.80 dB` / `-3.40 dBFS` / `-17.61 dB` | `combate_dragao` (Ninho do Dragão pré-chefe e batalha contra Ignis'Vahr) |
+| `vitoria.ogg` | `Yasunori Nishiki - Victory Fanfare.m4a` | **Victory Fanfare** — *Octopath Traveler II OST* (Yasunori Nishiki) | `0.38s–4.25s` (`3.87s`, sem loop) | `-4.31 dB` / `-4.41 dBFS` / `-17.61 dB` | `vitoria` (Fanfarra concisa encerrada no fim da cadência de vitória) |
+| `derrota.ogg` | `Evan Call - Before the Light Fades.m4a` | **Before the Light Fades** — *Frieren OST* (Evan Call) | `0.55s–6.85s` (`6.30s`, sem loop) | `+7.14 dB` / `-4.74 dBFS` / `-18.81 dB` | `derrota` (Frase dramática curta para tela de derrota) |
+| `tema_melancolico.ogg` | `MUSASHI PROJECT - 哀と悲.m4a` | **哀と悲 (Sadness and Sorrow)** — *Naruto OST* (Toshio Masuda / MUSASHI PROJECT) | `0.95s–166.35s` (`165.40s`, loop contínuo) | `-0.19 dB` / `-2.79 dBFS` / `-19.00 dB` | `tema_melancolico`, `ninho_amanhecer`, `oakhaven_destruida` (Amanhecer pós-dragão no Ninho e Oakhaven destruída antes da reconstrução) |
+| `tema_encerramento.ogg` | `Evan Call - Journey of a Lifetime ~ Frieren Main Theme.m4a` | **Journey of a Lifetime ~ Frieren Main Theme** — *Frieren OST* (Evan Call) | `0.85s–176.10s` (`175.25s`, loop contínuo) | `-5.38 dB` / `-3.92 dBFS` / `-18.80 dB` | `tema_encerramento`, `cutscene_final`, `creditos_demo` (Despedida pelo Portão Sul e créditos finais da Demo) |
 
-## 🍃 2. Sons de Ambiente Contínuos (BGS)
-*Diretório:* `assets/audio/ambience/`  
-*Características:* Devem tocar em loop contínuo suave, sem estalos na junção.
-
-| Nome do Arquivo Esperado | Descrição Sonora | Momento de Uso no Jogo |
-| :--- | :--- | :--- |
-| `vento_noite.ogg` | Vento noturno suave soprando entre galhos e folhagens | Exploração noturna (sistema de clima) |
-| `chuva.ogg` | Chuva moderada contínua com gotas na relva e pedras | Clima de chuva ativo no mapa |
-| `tempestade.ogg` | Chuva forte com ventania e trovões ocasionais | Clima tempestuoso |
-| `lareira.ogg` | Crepitar suave de brasa, fogo e lenha queimando | Interior da cabana de Halia e fogueiras |
+### Garantias de Execução do `AudioManager`
+- **Fade sequencial não bloqueante**: `tocar_musica(..., fade_ms)` executa atenuação (`SAINDO`), troca de stream e entrada (`ENTRANDO`) quadro a quadro em `AudioManager.update(dt)`, chamado em `Game.run()`, sem `time.sleep` e sem congelar quadros.
+- **Continuidade entre aliases**: aliases que resolvem para o mesmo arquivo físico (`casa_halia` -> `estrada_floresta` -> `vila_oakhaven`; `cutscene_magia` entre `Flashback` e `TelaDespertarMemoria`; `cutscene_final` -> `creditos_demo`) não reiniciam o streaming da música.
+- **Blindagem de contexto e retorno ao Menu**: tokens de geração e contexto impedem que `restaurar_musica_anterior` ao fechar combate sobrescreva uma cutscene posterior (`tema_melancolico`, `cutscene_magia`, `menu_tema`), e voltar ao `MENU` encerra ambiências e limpa a pilha de retorno.
+- **Normalização de volume**: `definir_volume_*` distingue corretamente escalas percentuais inteiras (`int(1)` -> `0.01`, `100` -> `1.0`) e unitárias (`float(1.0)` -> `1.0`), além de suportar `definir_mute(bool)`.
 
 ---
 
-## 🖱️ 3. Efeitos Sonoros de Interface (UI)
-*Diretório:* `assets/audio/sfx/ui/` *(ou diretamente em `assets/audio/sfx/`)*
+## 2. Efeitos Sonoros (`assets/audio/sfx/`) — Integrados (105 arquivos)
 
-| Nome do Arquivo Esperado | Descrição Sonora | Momento de Uso no Jogo |
-| :--- | :--- | :--- |
-| `ui_cursor.ogg` | Toque sutil, tecla de madeira suave ou clique tátil | Navegar com teclado/mouse entre menus, botões e opções |
-| `ui_confirmar.ogg` | Ressonância positiva metálica/mágica suave | Confirmar escolhas, avançar diálogos e aceitar ações |
-| `ui_voltar.ogg` | Tom suave descendente de desmarcação | Tecla ESC, retornar menus e fechar janelas |
-| `ui_erro.ogg` | Tom abafado de recusa/bloqueio | Ação bloqueada, mana insuficiente ou comando inválido |
-| `ui_dialogo.ogg` | Blip sutil ultra-curto (~15 a 25ms) | Efeito de datilografia na exibição do texto dos NPCs |
+Os efeitos sonoros curados dos pacotes oficiais estão normalizados (44,1 kHz estéreo `.ogg` Vorbis, normalização por janela RMS de 20 ms e proteção anti-clipping com `0` amostras clipadas) e organizados por contexto em `Oblivium/assets/audio/sfx/`, com **seleção aleatória não repetitiva de variações** (`_02`, `_03`, `_04`) no [`AudioManager`](src/core/audio_manager.py):
 
----
+- **`sfx/ui/` (27 arquivos):** `ui_cursor` (`01..03`), `ui_hover`, `ui_slider`, `ui_confirmar` (`01..03`), `ui_aceitar`, `ui_voltar`, `ui_erro` (`01..03`), `ui_trancado`, `ui_dialogo`, `ui_notificacao`, `ui_clique_pedra`, `ui_clique_madeira`, `ui_clique_ferro`, `quest_nova`, `quest_concluida`, `level_up`, `livro_abrir`, `pagina_virar`, `pergaminho_abrir`, `toggle_on`, `toggle_off`.
+- **`sfx/combate/` (48 arquivos):** `ataque_acerto` (`01..03`), `ataque_critico`, `ataque_erro` (`01..02`), `ataque_espada` (`01..02`), `defesa_escudo` (`01..03`), `magia_cast`, `magia_fogo` (`01..03`), `magia_gelo` (`01..03`), `magia_raio` (`01..03`), `magia_cura` (`01..04`), `explosao` (`01..03`), `rugido_monstro` (`01..03`), `slime` (`01..03`), `flecha` (`01..03`), `dano_halia` (`01..03`), `dano_inimigo` (`01..03`), `esquiva` (`01..03`), `fuga`, `concentrar`.
+- **`sfx/itens/` (15 arquivos):** `item_coletar`, `item_pocao` (`01..04`), `garrafa_abrir`, `moeda` (`01..04`), `saco_moedas` (`01..03`), `equipar_armadura`, `desembainhar`.
+- **`sfx/mundo/` (15 arquivos):** `porta_abrir` (`01..03`), `porta_fechar`, `bau_abrir` (`01..04`), `forja_bigorna`, além de passos individuais recortados sem sobreposição e sincronizados com cadência/terreno em **`passo_grama_01..03.ogg`** e **`passo_pedra_01..03.ogg`**.
 
-## 🚪 4. Efeitos Sonoros de Mundo e Exploração
-*Diretório:* `assets/audio/sfx/mundo/` e `assets/audio/sfx/itens/`
-
-| Nome do Arquivo Esperado | Descrição Sonora | Momento de Uso no Jogo |
-| :--- | :--- | :--- |
-| `porta_abrir.ogg` | Trinco de ferro destrancando e ranger de madeira | Entrar na casa de Halia ou interiores |
-| `porta_fechar.ogg` | Batente suave e fecho de porta de madeira | Sair de interiores para os mapas externos |
-| `item_coletar.ogg` | Brilho sonoro metálico e suave | Apanhar itens, baús e recursos do chão |
-| `pocao.ogg` | Desrolhar frasco de vidro e absorção de energia | Ingerir poção de cura/mana no inventário ou batalha |
-| `passos_grama.ogg` *(opcional)* | Passadas sutis em vegetação/terra | Movimentação a pé de Halia no mapa |
+*(As pastas originais dos pacotes e `sons.zip` em `Oblivium/assets/audio/` foram mantidas intactas conforme solicitado.)*
 
 ---
 
-## ⚔️ 5. Efeitos Sonoros de Combate
-*Diretório:* `assets/audio/sfx/combate/`
+## 3. Sons de Ambiente (`assets/audio/ambience/`) — Integrados (11 arquivos)
 
-| Nome do Arquivo Esperado | Descrição Sonora | Momento de Uso no Jogo |
-| :--- | :--- | :--- |
-| `acerto.ogg` | Impacto seco de golpe físico de lâmina/cajado | Acerto de ataque corpo a corpo no oponente |
-| `dano_inimigo.ogg` | Som de carne/armadura atingida e corte | Inimigo sofrendo dano |
-| `dano_halia.ogg` | Golpe pesado e som cortante | Halia sofrendo dano e efeito visual de sangue |
-| `critico.ogg` | Impacto forte e estrondoso com agudo de energia | Golpe crítico desferido em batalha |
-| `ataque_erro.ogg` | Som de vento cortante rápido (*woosh*) | Golpe errando o alvo |
-| `esquiva.ogg` | Deslizamento rápido e movimento ágil | Halia ou inimigo desviando de ataque |
-| `magia.ogg` | Zumbido etéreo e projeção de energia arcana | Disparo de magias ofensivas |
-| `concentrar.ogg` | Tom grave de foco e aura mágica de proteção | Halia usando comando Concentrar / Guarda |
-| `morte_inimigo.ogg` | Dissipação etérea, colapso ou desintegração | Finalização da animação de morte do monstro |
-| `fuga.ogg` | Passadas rápidas com rajada de vento | Fugir com sucesso de um combate |
+Loops contínuos normalizados (~ `-23 dBFS RMS`, `0` amostras clipadas) acionados automaticamente por [`Game.sincronizar_ambiente_cenario`](src/core/game.py) (prioridade da cena narrativa, seguida de clima e mapa) e [`CenarioBase.obter_ambiente_cenario`](src/maps/cenario_base.py):
+- `chuva.ogg`: chuva comum e tempestade em [`EfeitoChuva`](src/utils/clima.py).
+- `vento_noite.ogg`: neve, nevasca e brisa noturna contínua.
+- `vento_suave.ogg`: Oakhaven, amanhecer pós-dragão no Ninho e vila reconstruída.
+- `floresta_dia.ogg`: Estradas (`ESTRADA`, `ESTRADA_2`) e Orla Norte em tempo limpo.
+- `fogueira.ogg`: acampamento no Flashback, Oakhaven destruída em chamas e cabana à noite.
+- `caverna_lava_01..03.ogg`: Ninho do Dragão antes da derrota de Ignis'Vahr.
+- `cachoeira_01..03.ogg`: variações de água corrente disponíveis no manifesto.
 
----
+### Mixagem Padrão e Controles em Configurações
+- **Mixagem Padrão do Jogo (`Game.PADROES_AUDIO`)**: `Master 100%` • `Música 55%` • `Efeitos (SFX) 95%` • `Ambiente 70%`, equilibrando trilha (~`-23,6 dBFS`), camada climática (~`-26,1 dBFS`) e efeitos de combate/passos/UI em primeiro plano.
+- **Prólogo (`CutsceneManager`)**: disparo da *Bola de Fogo* toca `magia_fogo` e a detonação das rochas na Estrada 2 toca `explosao`.
+- **Controles Finos (`SettingsState` + `config_usuario.json`)**: barras arrastáveis/clicáveis contínuas, botões `[-]`/`[+]`, passo de `5%` (`1%` com `Shift`), roda do mouse, atalho/opção **Silenciar Tudo (`[M]`)**, **Restaurar Padrões (`[R]`)**, prévia ao vivo de ambiente no Menu e persistência em `saves/config_usuario.json`.
 
-## ⚙️ Como o Sistema Processa os Arquivos
+### Licenças e Atribuições de SFX / Ambiência
+- **Fantasy UI SFX Free by heyheythere** — https://heyheythere.itch.io/fantasy-ui-sfx-free — **CC BY 4.0** (atribuído também na tela de Créditos do jogo).
+- **FantasySFX Sampler** por **AHTu20** — https://ahtu20.itch.io — Uso comercial/pessoal permitido sem redistribuição isolada do pacote.
+- **Ambient Loops Free Lite 3** por **yetiancai** — Uso permitido em jogos comerciais/não comerciais sem redistribuição isolada do pacote.
 
-1. **Busca Automática:** O `AudioManager` busca os arquivos pelo alias amigável (ex: `"ui_cursor"`, `"combate_comum"`), checando automaticamente as extensões `.ogg`, `.wav` e `.mp3` nas pastas correspondentes.
-2. **Fallback Silencioso:** Se um arquivo ainda não tiver sido inserido na pasta, o motor **não trava** e **não gera ruídos sintéticos**, permanecendo silencioso até que o arquivo real seja adicionado.
-3. **Canais Independentes:**
-   - **BGM:** Canal de música do Pygame com transição suave (`fade_ms`).
-   - **BGS:** Canal reservado `CANAL_AMBIENTE_ID = 0` para sons contínuos de clima.
-   - **SFX:** Até 32 canais dinâmicos simultâneos para efeitos sonoros rápidos sem corte.
+**Recomendação de escuta final:** antes da apresentação, validar em dispositivo de áudio real o equilíbrio entre passos (`passo_grama`/`passo_pedra`), ambiências, ataques elementais e trilha musical.
+
+## 4. Inventário e memórias — integração de 15 de novembro de 2026
+
+| Evento | Alias ou recurso | Ganho relativo e regra |
+|---|---|---|
+| Abrir inventário pelo atalho, HUD ou pausa | `livro_abrir` | Uma vez por entrada real; sem confirmação duplicada da pausa. |
+| Fechar por ESC, atalho ou X | `ui_voltar` | Uma vez ao voltar à exploração. |
+| Mudar aba / filtro / seleção | `pagina_virar` / `ui_cursor` | Somente quando a seleção mudar. |
+| Rolar a lista de magias | `ui_cursor` | Ganho `0.35`, intervalo mínimo `0.10 s`, sem som nos limites. |
+| Equipar cajado / desequipar | `desembainhar` / `toggle_off` | Após sucesso; tentativas recusadas recebem erro. |
+| Acampamento visível no flashback | `ambience/fogueira.ogg` | Loop, ganho `0.70` sobre Ambiente; suspenso na entrada, saída e despertar. |
+| Impacto da mandala | `memoria_despertar` → `magia_cura_02` | Ganho `0.65` sobre SFX, uma vez por ciclo visível. |
+| Onda de cores no mundo | `memoria_onda` → `concentrar` | Ganho `0.50` sobre SFX, uma vez após a tela de memória. |
+
+Os dois aliases de memória reutilizam arquivos já integrados; a quantidade de arquivos físicos permanece a mesma. A música de memória continua entre flashback e despertar sem reinício forçado. `FiltroMemoria` permanece visual: load e reset não disparam som de onda.
+
+O `AudioManager` aplica ganhos por canal, acompanha o contexto dos SFX e atualiza os sons em execução quando mute, Master ou SFX mudam. O impacto pertence ao contexto `despertar`; a onda pertence a `memoria_onda`, para que a limpeza da tela não corte o evento seguinte. As atenuações de SFX são atualizadas por `dt`, inclusive com a música pausada.
+
+Menu, introdução e carregamento cancelam a apresentação sem conceder memórias ou executar callbacks pendentes. O clima passa pelo mesmo resolvedor de ambiente e não substitui a fogueira durante o acampamento. Os testes automatizados usam mixer SDL simulado; o equilíbrio percebido em alto-falantes ou fones ainda precisa de escuta em dispositivo real.

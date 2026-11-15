@@ -1,0 +1,1751 @@
+{
+  "schema_version": 1,
+  "character": "halia",
+  "standing_height_px": 120,
+  "canvas": [
+    162,
+    162
+  ],
+  "anchor": [
+    81,
+    162
+  ],
+  "sequences": {
+    "idle": {
+      "state": "idle",
+      "direction": "direita",
+      "fps": 5.0,
+      "frame_duration_s": 0.2,
+      "speed_at_60fps": 0.0833,
+      "loop": true,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/idle",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/idle/halia_idle_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            403,
+            87,
+            136,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/idle/halia_idle_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            673,
+            87,
+            134,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/idle/halia_idle_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            941,
+            87,
+            134,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/idle/halia_idle_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1213,
+            86,
+            134,
+            203
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/idle/halia_idle_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1484,
+            86,
+            134,
+            203
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/idle/halia_idle_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1748,
+            86,
+            141,
+            203
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/idle/halia_idle_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2027,
+            86,
+            134,
+            203
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        }
+      ]
+    },
+    "idle_esquerda": {
+      "state": "idle",
+      "direction": "esquerda",
+      "fps": 5.0,
+      "frame_duration_s": 0.2,
+      "speed_at_60fps": 0.0833,
+      "loop": true,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/idle_esquerda",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            403,
+            87,
+            136,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            673,
+            87,
+            134,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            941,
+            87,
+            134,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1213,
+            86,
+            134,
+            203
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1484,
+            86,
+            134,
+            203
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1748,
+            86,
+            141,
+            203
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/idle_esquerda/halia_idle_esquerda_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2027,
+            86,
+            134,
+            203
+          ],
+          "mirrored": true,
+          "mirrored_from": "idle",
+          "scale": 0.591133
+        }
+      ]
+    },
+    "dialogue": {
+      "state": "dialogue",
+      "direction": "direita",
+      "fps": 6.0,
+      "frame_duration_s": 0.1667,
+      "speed_at_60fps": 0.1,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/dialogue",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            406,
+            413,
+            132,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            674,
+            413,
+            128,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            942,
+            413,
+            130,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1214,
+            413,
+            132,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1484,
+            413,
+            133,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1755,
+            413,
+            134,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2030,
+            413,
+            131,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/dialogue/halia_dialogue_08.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2302,
+            413,
+            132,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        }
+      ]
+    },
+    "dialogue_esquerda": {
+      "state": "dialogue",
+      "direction": "esquerda",
+      "fps": 6.0,
+      "frame_duration_s": 0.1667,
+      "speed_at_60fps": 0.1,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/dialogue_esquerda",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            406,
+            413,
+            132,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            674,
+            413,
+            128,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            942,
+            413,
+            130,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1214,
+            413,
+            132,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1484,
+            413,
+            133,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1755,
+            413,
+            134,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2030,
+            413,
+            131,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/dialogue_esquerda/halia_dialogue_esquerda_08.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2302,
+            413,
+            132,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "dialogue",
+          "scale": 0.591133
+        }
+      ]
+    },
+    "special": {
+      "state": "special",
+      "direction": "direita",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": false,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/special",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/special/halia_special_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            408,
+            723,
+            132,
+            200
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/special/halia_special_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            671,
+            695,
+            155,
+            228
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/special/halia_special_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            933,
+            696,
+            177,
+            227
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/special/halia_special_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1212,
+            694,
+            185,
+            229
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/special/halia_special_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1467,
+            688,
+            187,
+            235
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/special/halia_special_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1744,
+            671,
+            191,
+            252
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/special/halia_special_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2008,
+            665,
+            198,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        }
+      ]
+    },
+    "special_esquerda": {
+      "state": "special",
+      "direction": "esquerda",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": false,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/special_esquerda",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            408,
+            723,
+            132,
+            200
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            671,
+            695,
+            155,
+            228
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            933,
+            696,
+            177,
+            227
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1212,
+            694,
+            185,
+            229
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1467,
+            688,
+            187,
+            235
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1744,
+            671,
+            191,
+            252
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/special_esquerda/halia_special_esquerda_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2008,
+            665,
+            198,
+            258
+          ],
+          "mirrored": true,
+          "mirrored_from": "special",
+          "scale": 0.591133
+        }
+      ]
+    },
+    "walk": {
+      "state": "walk",
+      "direction": "direita",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/walk",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/walk/halia_walk_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            410,
+            1019,
+            135,
+            201
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/walk/halia_walk_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            656,
+            1019,
+            156,
+            201
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/walk/halia_walk_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            942,
+            1019,
+            143,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/walk/halia_walk_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1201,
+            1013,
+            152,
+            208
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/walk/halia_walk_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1487,
+            1019,
+            136,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/walk/halia_walk_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1753,
+            1019,
+            141,
+            201
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/walk/halia_walk_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2008,
+            1019,
+            159,
+            201
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/walk/halia_walk_08.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2302,
+            1019,
+            132,
+            202
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        }
+      ]
+    },
+    "walk_esquerda": {
+      "state": "walk",
+      "direction": "esquerda",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/walk_esquerda",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            410,
+            1019,
+            135,
+            201
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            656,
+            1019,
+            156,
+            201
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            942,
+            1019,
+            143,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1201,
+            1013,
+            152,
+            208
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1487,
+            1019,
+            136,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1753,
+            1019,
+            141,
+            201
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2008,
+            1019,
+            159,
+            201
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/walk_esquerda/halia_walk_esquerda_08.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2302,
+            1019,
+            132,
+            202
+          ],
+          "mirrored": true,
+          "mirrored_from": "walk",
+          "scale": 0.591133
+        }
+      ]
+    },
+    "idle_2": {
+      "state": "rest",
+      "direction": "direita",
+      "fps": 5.0,
+      "frame_duration_s": 0.2,
+      "speed_at_60fps": 0.0833,
+      "loop": false,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/idle_2",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_01.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            416,
+            1319,
+            130,
+            200
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_02.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            661,
+            1350,
+            157,
+            168
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_03.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            914,
+            1373,
+            166,
+            146
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_04.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1197,
+            1350,
+            159,
+            169
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_05.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1468,
+            1373,
+            142,
+            145
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_06.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            1737,
+            1350,
+            157,
+            168
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/idle_2/halia_idle_2_07.png",
+          "source": "Halia spritesheet.jpg",
+          "source_rect": [
+            2006,
+            1368,
+            140,
+            150
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.591133
+        }
+      ]
+    },
+    "idle_baixo": {
+      "state": "idle",
+      "direction": "baixo",
+      "fps": 5.0,
+      "frame_duration_s": 0.2,
+      "speed_at_60fps": 0.0833,
+      "loop": true,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/idle_baixo",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_01.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            441,
+            79,
+            152,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_02.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            714,
+            79,
+            152,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_03.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            989,
+            79,
+            152,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_04.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1259,
+            79,
+            153,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_05.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1534,
+            79,
+            151,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_06.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1810,
+            79,
+            150,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/idle_baixo/halia_idle_baixo_07.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2089,
+            79,
+            152,
+            237
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        }
+      ]
+    },
+    "walk_baixo": {
+      "state": "walk",
+      "direction": "baixo",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/walk_baixo",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_01.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            440,
+            400,
+            153,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_02.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            713,
+            400,
+            140,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_03.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            989,
+            400,
+            139,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_04.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1260,
+            400,
+            139,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_05.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1534,
+            400,
+            139,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_06.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1808,
+            400,
+            140,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_07.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2087,
+            400,
+            140,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/walk_baixo/halia_walk_baixo_08.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2372,
+            400,
+            154,
+            258
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.467678
+        }
+      ]
+    },
+    "idle_cima": {
+      "state": "idle",
+      "direction": "cima",
+      "fps": 5.0,
+      "frame_duration_s": 0.2,
+      "speed_at_60fps": 0.0833,
+      "loop": true,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/idle_cima",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_01.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            441,
+            723,
+            140,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_02.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            714,
+            723,
+            141,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_03.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            989,
+            723,
+            141,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_04.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1262,
+            723,
+            140,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_05.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1534,
+            723,
+            140,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_06.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1809,
+            723,
+            140,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/idle_cima/halia_idle_cima_07.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2085,
+            723,
+            140,
+            248
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.482218
+        }
+      ]
+    },
+    "walk_cima": {
+      "state": "walk",
+      "direction": "cima",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": true,
+      "num_frames": 8,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/walk_cima",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_01.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            440,
+            1033,
+            141,
+            261
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_02.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            714,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_03.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            989,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_04.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1261,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_05.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1534,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_06.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1808,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_07.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2083,
+            1033,
+            141,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        },
+        {
+          "order": 8,
+          "file": "halia/novas_sprites/walk_cima/halia_walk_cima_08.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2371,
+            1033,
+            142,
+            260
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.464135
+        }
+      ]
+    },
+    "special_baixo": {
+      "state": "special",
+      "direction": "baixo",
+      "fps": 9.0,
+      "frame_duration_s": 0.1111,
+      "speed_at_60fps": 0.15,
+      "loop": false,
+      "num_frames": 7,
+      "canvas": [
+        162,
+        162
+      ],
+      "anchor": [
+        81,
+        162
+      ],
+      "dir": "halia/novas_sprites/special_baixo",
+      "frames": [
+        {
+          "order": 1,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_01.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            439,
+            1335,
+            166,
+            278
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 2,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_02.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            715,
+            1330,
+            170,
+            283
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 3,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_03.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            986,
+            1297,
+            203,
+            316
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 4,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_04.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1259,
+            1302,
+            206,
+            311
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 5,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_05.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1530,
+            1309,
+            207,
+            304
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 6,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_06.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            1805,
+            1304,
+            212,
+            309
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        },
+        {
+          "order": 7,
+          "file": "halia/novas_sprites/special_baixo/halia_special_baixo_07.png",
+          "source": "Halia spritesheet 2.jpg",
+          "source_rect": [
+            2077,
+            1297,
+            214,
+            316
+          ],
+          "mirrored": false,
+          "mirrored_from": null,
+          "scale": 0.506329
+        }
+      ]
+    }
+  }
+}
