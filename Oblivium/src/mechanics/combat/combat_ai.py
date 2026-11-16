@@ -5,6 +5,7 @@ import random
 
 from src.core.audio_manager import AudioManager
 from src.entities.Boss import Boss
+from src.entities.player import Player
 from src.mechanics.combat.combat_narrator import CombatNarrator
 from src.mechanics.rpg import SkillsRegistry
 from src.utils.colors import (
@@ -460,6 +461,8 @@ class CombatAIController:
     def finalizar_vitoria(self):
         """Distribui recompensas acumuladas de todos os inimigos e exibe banner."""
         s = self.screen
+        if s.estado_combate == "VITORIA":
+            return
         s.recompensas_vitoria = {"moedas": 0, "memorias": 0, "xp": 0}
 
         for inimigo in s.inimigos:
@@ -479,7 +482,7 @@ class CombatAIController:
         s.adicionar_log(
             CombatNarrator.obter_mensagem(
                 "vitoria",
-                moedas=s.recompensas_vitoria["moedas"],
+                moedas=Player.formatar_valor_moedas(s.recompensas_vitoria["moedas"]),
                 memorias=s.recompensas_vitoria["memorias"],
                 xp=s.recompensas_vitoria.get("xp", 0),
             )

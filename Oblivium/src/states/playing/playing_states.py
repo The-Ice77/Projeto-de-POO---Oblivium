@@ -10,7 +10,6 @@ from src.mechanics.cutscenes import (
 )
 from src.mechanics.minigames import MinigameFerraria, MinigameCurandeira
 from src.ui.ui_utils import desenhar_indicador_tecla
-
 class PlayingState(State):
     def __init__(self, game):
         super().__init__(game)
@@ -31,7 +30,6 @@ class PlayingState(State):
         self.camera_cinematica_alvo = None
         self.camera_cinematica_vel = 4.5
         self._superficie_mundo = None
-
     @property
     def cutscene_timeskip(self):
         """Alias legado preservado por compatibilidade com testes e referências antigas."""
@@ -168,6 +166,7 @@ class PlayingState(State):
     def handle_events(self, eventos, teclas):
         if self.game.nome_estado_atual != "JOGANDO":
             return
+        self.oakhaven_controller.preparar_entrada_segredo(eventos, teclas)
         cenas_entrada = (self.cutscene_reconstrucao, self.cinematica_dragao, self.game.tela_despertar,
                         self.game.flashback_sistema if not self.game.caixa_dialogo.ativo else None, self.cutscene)
         cena = next((c for c in cenas_entrada if c is not None and c.ativo), None)
@@ -217,6 +216,7 @@ class PlayingState(State):
         # Atualização prioritária de timeskip e minigames ativos
         if dt is None or not isinstance(dt, (int, float)) or dt <= 0:
             dt = getattr(self.game, "dt", 1.0 / 60.0)
+        self.oakhaven_controller.atualizar_segredo(dt)
         if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao.ativo:
             self._atualizar_cinematica_reconstrucao(dt)
             return
@@ -562,14 +562,7 @@ class PlayingState(State):
         elif self.game.flashback_sistema.estado == "ESCURIDAO" and evento.key in [pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE]:
             self.game.flashback_sistema.processar_input()
         elif not self.game.cena_inimigos_andando:
-            tecla_interacao = self.game.tecla_interacao
-            teclas_validas_interagir = [tecla_interacao]
-            if tecla_interacao == pygame.K_SPACE:
-                teclas_validas_interagir.extend([pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_e])
-            elif tecla_interacao == pygame.K_e:
-                teclas_validas_interagir.append(pygame.K_SPACE)
-
-            if evento.key in teclas_validas_interagir:
+            if evento.key in self.game.teclas_interacao:
                 self._processar_interacoes_mundo()
 
     def _handle_clicks(self, evento):

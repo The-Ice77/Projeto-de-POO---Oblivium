@@ -414,7 +414,7 @@ class Passaro(Animal):
 
 class Gato(Animal):
     """
-    Representa Patusco (o gato recorrente de Oblivium / Easter Egg das 7 Fases)
+    Representa Patusco, o gato da vila que reage à aproximação e recebe carinho.
     ou um felino escondido na vegetação.
 
     Dinâmica autêntica baseada na arte oficial (`cat_animation.png` — 17 quadros verticais):
@@ -429,8 +429,6 @@ class Gato(Animal):
     - `escondendo` (quadros 17 -> 11 -> 08): Quando Halia se afasta (> 165px), ele se
       abaixa novamente e volta a se esconder na grama.
     """
-
-    TOTAL_APARICOES_PATUSCO = 7
 
     def __init__(self, x, y, direcao_inicial="direita", fase_id="OAKHAVEN", nome="Patusco", escala=1.65):
         super().__init__(
@@ -529,11 +527,7 @@ class Gato(Animal):
             self.animacoes["idle"].resetar()
 
     def interagir(self, game):
-        """
-        Interação de Halia com Patusco ([E]):
-        Faz o gato saltar do tufo de grama (se ainda estiver escondido), registra o progresso
-        do Easter Egg (X/7 fases) e exibe o diálogo de carinho.
-        """
+        """Um carinho em Patusco, independente de conquistas e do segredo da vila."""
         if getattr(game, "oakhaven_noite", False) or not self.visivel:
             return None
 
@@ -543,41 +537,11 @@ class Gato(Animal):
         else:
             self.estado_atual = "revelado"
 
-        if not hasattr(game, "patusco_fases_encontradas") or not isinstance(game.patusco_fases_encontradas, list):
-            game.patusco_fases_encontradas = []
-
-        primeira_vez_fase = False
-        if self.fase_id not in game.patusco_fases_encontradas:
-            game.patusco_fases_encontradas.append(self.fase_id)
-            primeira_vez_fase = True
+        primeira_vez_fase = not self.descoberto_nesta_fase
         self.descoberto_nesta_fase = True
 
-        total = len(game.patusco_fases_encontradas)
-        concluiu_todos = (total >= self.TOTAL_APARICOES_PATUSCO)
-
-        # Recompensa e notificação disparadas exclusivamente no 7º gato (Easter Egg Silencioso)
-        if concluiu_todos and primeira_vez_fase:
-            if hasattr(game, "conquistas") and game.conquistas:
-                game.conquistas.desbloquear("amigo_dos_felinos")
-            if hasattr(game, "notificacoes") and game.notificacoes and hasattr(game.notificacoes, "adicionar_notificacao"):
-                game.notificacoes.adicionar_notificacao(
-                    "Guardião dos Felinos!",
-                    "Você encontrou todos os 7 gatos escondidos pelo reino!"
-                )
-
         if hasattr(game, "caixa_dialogo") and game.caixa_dialogo:
-            if concluiu_todos and primeira_vez_fase:
-                dialogo = [
-                    {
-                        "autor": "Patusco",
-                        "texto": "Miau-prrr! (Patusco ronrona calorosamente e se esfrega com imenso carinho em seus pés, como se reconhecesse uma amiga leal de todas as jornadas.)"
-                    },
-                    {
-                        "autor": "Halia",
-                        "texto": "Você me acompanhou por cada recanto deste mundo, pequeno guardião... Sentir sua presença traz uma paz indescritível ao meu coração."
-                    }
-                ]
-            elif primeira_vez_fase:
+            if primeira_vez_fase:
                 dialogo = [
                     {
                         "autor": "Patusco",

@@ -208,16 +208,21 @@ class Player(Entidade):
     def moedas_cobre(self):
         return self.dinheiro % self.COBRES_POR_PRATA
 
-    def formatar_moedas(self):
-        """Retorna uma string formatada com os valores decompostos de Ouro, Prata e Cobre."""
+    @classmethod
+    def formatar_valor_moedas(cls, valor, compacto=False):
+        """Apresenta um valor em cobres sem alterar sua unidade interna."""
+        valor = max(0, int(valor or 0))
+        ouro, restante = divmod(valor, cls.COBRES_POR_OURO)
+        prata, cobre = divmod(restante, cls.COBRES_POR_PRATA)
         partes = []
-        if self.moedas_ouro > 0:
-            partes.append(f"{self.moedas_ouro} Ouro")
-        if self.moedas_prata > 0:
-            partes.append(f"{self.moedas_prata} Prata")
-        if self.moedas_cobre > 0 or not partes:
-            partes.append(f"{self.moedas_cobre} Cobre")
-        return ", ".join(partes)
+        for quantidade, nome, abreviacao in ((ouro, "Ouro", "O"), (prata, "Prata", "P"), (cobre, "Cobre", "C")):
+            if quantidade or (nome == "Cobre" and not partes):
+                partes.append(f"{quantidade} {abreviacao if compacto else nome}")
+        return (" · " if compacto else ", ").join(partes)
+
+    def formatar_moedas(self, compacto=False):
+        """Apresenta a carteira pela mesma regra usada em preços e recompensas."""
+        return self.formatar_valor_moedas(self.dinheiro, compacto=compacto)
 
     def tem_grimorio_desbloqueado(self):
         """
@@ -530,13 +535,18 @@ class Player(Entidade):
     # SISTEMA FINANCEIRO
     # ==========================================
     def ganhar_dinheiro(self, quantidade):
+        if not isinstance(quantidade, int) or isinstance(quantidade, bool) or quantidade < 0:
+            return False
         self.dinheiro += quantidade
-        print(f"{self.nome} recebeu {quantidade} moedas.")
+        print(f"{self.nome} recebeu {self.formatar_valor_moedas(quantidade)}.")
+        return True
 
     def gastar_dinheiro(self, quantidade):
+        if not isinstance(quantidade, int) or isinstance(quantidade, bool) or quantidade < 0:
+            return False
         if self.dinheiro >= quantidade:
             self.dinheiro -= quantidade
-            print(f"{self.nome} gastou {quantidade} moedas.")
+            print(f"{self.nome} gastou {self.formatar_valor_moedas(quantidade)}.")
             return True
         else:
             print("Dinheiro insuficiente!")

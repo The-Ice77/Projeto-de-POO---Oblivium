@@ -13,11 +13,13 @@ from src.core.save_manager import SaveManager
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.notification_manager import NotificationManager
-from src.utils.dev_commands import ComandosDev
+from src.utils.constants import desenvolvimento_habilitado
 from src.utils.animations import EfeitoFolhas
 from src.utils.clima import EfeitoChuva
 from src.core.audio_manager import AudioManager
 from src.mechanics.progression import AchievementManager, QuestManager
+from src.mechanics.progression.segredo_oakhaven import SegredoOakhaven
+from src.mechanics.progression.economia_demo import VERSAO_ECONOMIA
 from src.ui.quest_tracker import QuestTracker
 
 # Importação dos Estados Estruturados
@@ -48,6 +50,8 @@ class Game:
         pygame.display.set_caption("Oblivium")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.foco_janela = True
+        self.segredo_oakhaven = SegredoOakhaven()
 
         # --- Componentes Globais Compartilhados ---
         self.menu = Menu()
@@ -72,7 +76,10 @@ class Game:
         self.quest_tracker = QuestTracker(self.LARGURA, self.ALTURA)
         self.dt_fator = 1.0
         self.dt = 1.0 / 60.0
-        self.dev_commands = ComandosDev(self)
+        self.dev_commands = None
+        if desenvolvimento_habilitado():
+            from src.utils.dev_commands import ComandosDev
+            self.dev_commands = ComandosDev(self)
         # --- CONFIGURAÇÕES DO JOGO ---
         self.config_velocidade_indice = 1  # 0: Lento, 1: Normal, 2: Rápido
         self.opcoes_velocidade = ["Lento", "Normal", "Rápido"]
@@ -131,6 +138,7 @@ class Game:
         self.estagio_memoria_apresentado = 0
         self.etapa_epilogo = "NAO_INICIADO"
         self.versao_progressao = 2
+        self.versao_economia = VERSAO_ECONOMIA
         # Rastreia em que ponto da conversa cada NPC está
         self.progresso_npcs = {
             "carroceiro": 0  # 0: Início, 1: Falou com ele, 2: Viagem liberada, etc.
@@ -238,6 +246,16 @@ class Game:
             self.controles = {"Interagir": nova_tecla}
         else:
             self.controles["Interagir"] = nova_tecla
+
+    @property
+    def teclas_interacao(self):
+        """Atalhos aceitos igualmente no toque e no gesto de interação contínua."""
+        tecla = self.tecla_interacao
+        if tecla == pygame.K_SPACE:
+            return (tecla, pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_e)
+        if tecla == pygame.K_e:
+            return (tecla, pygame.K_SPACE)
+        return (tecla,)
 
     def obter_nome_tecla(self, codigo_tecla):
         """Retorna o nome legível em português de uma tecla do Pygame (ex.: SPACE -> ESPAÇO)."""
@@ -364,6 +382,8 @@ class Game:
             sair = getattr(anterior, "ao_sair", None)
             if mudou and callable(sair):
                 sair(proximo_estado=novo_estado)
+            if mudou and getattr(self, "segredo_oakhaven", None):
+                self.segredo_oakhaven.interromper()
             self.nome_estado_atual = novo_estado
             self.estado_atual = destino
             if novo_estado in ("MENU", "INTRO"):
@@ -473,11 +493,25 @@ class Game:
         """Inicia uma conversa ou fala através da caixa de diálogo central."""
         self.caixa_dialogo.iniciar_dialogo(id_ou_dados)
 
+    def observar_foco_janela(self, eventos):
+        """Mantém o foco correto mesmo quando menus recebem os eventos da janela."""
+        for evento in eventos:
+            if evento.type == pygame.WINDOWFOCUSLOST:
+                self.foco_janela = False
+                self.segredo_oakhaven.interromper()
+            elif evento.type == pygame.WINDOWFOCUSGAINED:
+                self.foco_janela = True
+            elif evento.type == pygame.ACTIVEEVENT and evento.state & 2:
+                self.foco_janela = bool(evento.gain)
+                if not self.foco_janela:
+                    self.segredo_oakhaven.interromper()
+
     def run(self):
         """O Loop Principal enxuto, focado em delegar tarefas ao Estado Atual"""
         while self.running:
             eventos = pygame.event.get()
             teclas = pygame.key.get_pressed()
+            self.observar_foco_janela(eventos)
 
             for evento in eventos:
                 if evento.type == pygame.QUIT:

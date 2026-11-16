@@ -76,6 +76,41 @@ class Inventario:
     # ADIÇÃO E REMOÇÃO DE ITENS
     # =========================================================================
 
+    def pode_adicionar_item(self, item_ou_id, quantidade=1):
+        """Verifica espaço para o lote inteiro, incluindo pilhas parcialmente livres."""
+        if not isinstance(quantidade, int) or isinstance(quantidade, bool) or quantidade <= 0:
+            return False
+        item = ItemFactory.criar(item_ou_id) if isinstance(item_ou_id, str) else item_ou_id
+        if not item:
+            return False
+        if not item.acumulavel:
+            return quantidade <= self.slots_livres
+        espaco_pilhas = sum(
+            max(0, slot.item.quantidade_maxima - slot.quantidade)
+            for slot in self.slots if slot.item.id == item.id
+        )
+        return quantidade <= espaco_pilhas + self.slots_livres * item.quantidade_maxima
+
+    def adicionar_item_completo(self, item_ou_id, quantidade=1, nivel_upgrade=0):
+        """Adiciona tudo ou preserva a bolsa; adequado a compras e entregas indivisíveis."""
+        item = ItemFactory.criar(item_ou_id, nivel_upgrade=nivel_upgrade) if isinstance(item_ou_id, str) else item_ou_id
+        if not self.pode_adicionar_item(item, quantidade):
+            return False, "Não há espaço na bolsa para a quantidade inteira."
+        slots_anteriores = list(self.slots)
+        quantidades_anteriores = [slot.quantidade for slot in slots_anteriores]
+        qtd_anterior = self.obter_quantidade(item.id)
+        try:
+            sucesso, mensagem = self.adicionar_item(item, quantidade, nivel_upgrade=nivel_upgrade)
+            if sucesso and self.obter_quantidade(item.id) - qtd_anterior == quantidade:
+                return True, mensagem
+        except Exception:
+            # Uma falha de criação também não pode deixar uma entrega parcial.
+            pass
+        self.slots[:] = slots_anteriores
+        for slot, qtd in zip(slots_anteriores, quantidades_anteriores):
+            slot.quantidade = qtd
+        return False, "Não foi possível guardar a quantidade inteira na bolsa."
+
     def adicionar_item(self, item_ou_id, quantidade=1, nivel_upgrade=0):
         """
         Adiciona um item ao inventário.

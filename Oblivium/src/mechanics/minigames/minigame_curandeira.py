@@ -108,6 +108,9 @@ class MinigameCurandeira(MinigameBase):
         """Abre o minigame de colheita mística ao interagir com a erva no mapa."""
         if self.ativo:
             return
+        origem = self._origem_botanica(item)
+        if origem and origem in getattr(self.game, "itens_coletados", []):
+            return
         self._colheita_aplicada = False
         self.estado = "JOGANDO"
         self.ativo = True
@@ -232,9 +235,19 @@ class MinigameCurandeira(MinigameBase):
                 if hasattr(self.game, "audio") and self.game.audio:
                     self.game.audio.tocar_sfx("ui_erro")
 
+    @staticmethod
+    def _origem_botanica(item):
+        """A reposição pertence à mesma origem finita, mesmo em outra posição."""
+        return getattr(item, "origem_botanica", None) or getattr(item, "id_unico", None)
+
     def _concluir_com_sucesso(self):
         """Aplica os efeitos da colheita bem-sucedida e encerra o minigame."""
         if not self.ativo or getattr(self, "_colheita_aplicada", False):
+            return
+        origem = self._origem_botanica(self.item_alvo)
+        if origem and origem in getattr(self.game, "itens_coletados", []):
+            self.ativo = False
+            self.estado = "CONCLUIDO"
             return
         inventario = getattr(getattr(self.game, "halia", None), "inventario", None)
         sucesso, mensagem = inventario.adicionar_item("erva_lunar", 1) if inventario is not None else (False, "Inventário indisponível.")
@@ -258,7 +271,7 @@ class MinigameCurandeira(MinigameBase):
             ervas = getattr(self.game.mapa_casa, "ervas_coletaveis", [])
             if self.item_alvo in ervas:
                 ervas.remove(self.item_alvo)
-            id_item = getattr(self.item_alvo, "id_unico", None)
+            id_item = origem
             if id_item and hasattr(self.game, "itens_coletados") and id_item not in self.game.itens_coletados:
                 self.game.itens_coletados.append(id_item)
 
@@ -280,6 +293,8 @@ class MinigameCurandeira(MinigameBase):
 
     def _concluir_com_falha(self):
         """Aplica os efeitos da colheita fracassada: flor murcha, é removida e nova erva brota em outro local."""
+        if not self.ativo:
+            return
         self.ativo = False
         self.estado = "FALHOU"
 

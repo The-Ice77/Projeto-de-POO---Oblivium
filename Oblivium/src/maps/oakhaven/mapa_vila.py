@@ -13,6 +13,7 @@ from src.entities.npc_factory import NPCFactory
 from src.entities.animal import Passaro, Gato
 from src.entities.elemento_cenario import ChamaIndependente
 from src.entities.item import Item
+from src.maps.oakhaven.detalhes_assinatura import preparar_detalhes, sprite_bancada, desenhar_revelacao
 
 
 class MapaOakhaven(CenarioBase):
@@ -359,7 +360,7 @@ class MapaOakhaven(CenarioBase):
                     sp = rng.choice(self.sprites_rochas)
                     surf.blit(sp, (px, py))
 
-        # Canteiros naturais de grama alta nos recantos onde Patusco (Easter Egg 1/7) pode se esconder
+        # Canteiros naturais de grama alta nos recantos onde Patusco pode se esconder
         # (Todos os 5 esconderijos calibrados exclusivamente em terreno gramado puro e com interação desobstruída)
         if self.sprites_grama_tufos:
             for cx, cy in [
@@ -474,7 +475,7 @@ class MapaOakhaven(CenarioBase):
         _add_estrutura(self.sprites_props["banco_pedra"], 1330, 585, hitbox_rel=(6, 22, 60, 20))
         _add_estrutura(self.sprites_props["banco_pedra"], 835, 755, hitbox_rel=(6, 22, 60, 20))
         _add_estrutura(self.sprites_props["banco_pedra"], 1330, 755, hitbox_rel=(6, 22, 60, 20))
-        _add_estrutura(self.sprites_props["quadro_avisos"], 1245, 815, hitbox_rel=(10, 48, 65, 24))
+        _add_estrutura(self.sprites_props["quadro_avisos"], 1245, 815, hitbox_rel=(10, 48, 65, 24), id_estrutura="quadro_vila")
         _add_estrutura(self.sprites_props["placa_dir"], 975, 885, hitbox_rel=(12, 50, 24, 20))
 
         for px, py in [(790, 445), (1410, 445), (790, 810), (1410, 810), (1000, 250), (1200, 250)]:
@@ -510,7 +511,7 @@ class MapaOakhaven(CenarioBase):
         _add_estrutura(self.sprites_lojas["floricultura_frente"], 600, 435, id_estrutura="loja_floricultura", categoria="loja")
 
         # Canteiros de Ervas flanqueando a loja de Elara (deixando a porta central em x=440..530 livre!)
-        _add_estrutura(self.sprites_props["canteiro_ervas"], 330, 580, hitbox_rel=(6, 18, 56, 22))
+        _add_estrutura(self.sprites_props["canteiro_ervas"], 330, 580, hitbox_rel=(6, 18, 56, 22), id_estrutura="canteiro_elara")
         _add_estrutura(self.sprites_props["canteiro_flores"], 555, 580, hitbox_rel=(6, 18, 56, 22))
 
         # Barracas da Feira Botânica e Canteiros na Clareira Sudoeste
@@ -553,6 +554,7 @@ class MapaOakhaven(CenarioBase):
         _add_estrutura(self.sprites_props["carroca"], 1755, 775, hitbox_rel=(10, 22, 76, 28), id_estrutura="carroca_forja", categoria="prop")
         _add_estrutura(self.sprites_props["barris"], 1500, 585, hitbox_rel=(4, 18, 38, 18))
         _add_estrutura(self.sprites_props["caixas_pilha"], 1745, 600, hitbox_rel=(4, 18, 44, 18))
+        _add_estrutura(sprite_bancada(), 1740, 565, hitbox_rel=(6, 20, 56, 18), id_estrutura="bancada_torvald")
         _add_estrutura(self.sprites_props["lenha_org"], 2005, 575, hitbox_rel=(4, 18, 32, 18))
 
         # Rocha de Minério Bruto no Pátio da Forja (Missão Secundária de Torvald: missao_pedra_forja)
@@ -562,7 +564,7 @@ class MapaOakhaven(CenarioBase):
             sp_rocha = self.spr_rocha_minerio_intacta.copy()
             if self.spr_cristal_minerio:
                 sp_rocha.blit(self.spr_cristal_minerio, (18, 16))
-            _add_estrutura(sp_rocha, 1835, 650, hitbox_rel=(8, 28, 56, 30))
+            _add_estrutura(sp_rocha, 1835, 650, hitbox_rel=(8, 28, 56, 30), id_estrutura="rocha_minerio_torvald")
         elif pedra_quebrada:
             if self.spr_rocha_minerio_quebrada_1:
                 _add_estrutura(self.spr_rocha_minerio_quebrada_1, 1830, 675, hitbox_rel=(0, 0, 0, 0), sombra=False)
@@ -738,12 +740,13 @@ class MapaOakhaven(CenarioBase):
                     cor=(110, 235, 195)
                 )
                 item_erva.id_unico = id_erva
+                item_erva.origem_botanica = id_erva
                 item_erva.imagem = spr_erva
                 self.itens_no_chao.append(item_erva)
                 self.ervas_coletaveis.append(item_erva)
 
         # =====================================================================
-        # 10. FAUNA VIVA: PÁSSAROS E PATUSCO (EASTER EGG 1/7 NO TUFO DE GRAMA)
+        # 10. FAUNA VIVA: PÁSSAROS E PATUSCO (ENCONTRO AMBIENTAL)
         # =====================================================================
         # Todos os esconderijos calibrados estritamente sobre tufos de grama verde (sem terra, pedra ou colisores)
         esconderijos_patusco = [
@@ -790,6 +793,7 @@ class MapaOakhaven(CenarioBase):
         self.pontos_interacao = [
             {
                 "id": "estatua_herois",
+                "estrutura_id": "monumento_praca",
                 "rect": pygame.Rect(940, 480, 360, 140),
                 "prompt_x": 1120,
                 "prompt_y": 465,
@@ -807,6 +811,7 @@ class MapaOakhaven(CenarioBase):
             },
             {
                 "id": "quadro_avisos_vila",
+                "estrutura_id": "quadro_vila",
                 "rect": pygame.Rect(1235, 805, 95, 90),
                 "prompt_x": 1280,
                 "prompt_y": 800,
@@ -820,6 +825,7 @@ class MapaOakhaven(CenarioBase):
             },
             {
                 "id": "canteiro_gengibre_elara",
+                "estrutura_id": "canteiro_elara",
                 "rect": pygame.Rect(320, 565, 80, 55),
                 "prompt_x": 360,
                 "prompt_y": 555,
@@ -833,6 +839,7 @@ class MapaOakhaven(CenarioBase):
             },
             {
                 "id": "bancada_ferramentas_torvald",
+                "estrutura_id": "bancada_torvald",
                 "rect": pygame.Rect(1740, 565, 80, 55),
                 "prompt_x": 1780,
                 "prompt_y": 555,
@@ -848,6 +855,7 @@ class MapaOakhaven(CenarioBase):
         if not getattr(self.game, "pedra_torvald_quebrada", False):
             self.pontos_interacao.insert(0, {
                 "id": "rocha_minerio_torvald",
+                "estrutura_id": "rocha_minerio_torvald",
                 "rect": pygame.Rect(1815, 635, 105, 90),
                 "prompt_x": 1868,
                 "prompt_y": 630,
@@ -860,11 +868,16 @@ class MapaOakhaven(CenarioBase):
                 ]
             })
 
+        preparar_detalhes(self)
+
     def respawn_erva_alternativa(self, item_antigo=None):
         """
         Quando uma colheita falha e a flor murcha, remove o nó danificado e
         faz brotar uma nova Erva de Orvalho Lunar em um local alternativo da vila.
         """
+        origem = getattr(item_antigo, "origem_botanica", getattr(item_antigo, "id_unico", None))
+        if not origem or origem in getattr(self.game, "itens_coletados", []):
+            return None
         if item_antigo and item_antigo in self.itens_no_chao:
             self.itens_no_chao.remove(item_antigo)
         if item_antigo and hasattr(self, "ervas_coletaveis") and item_antigo in self.ervas_coletaveis:
@@ -895,7 +908,8 @@ class MapaOakhaven(CenarioBase):
             altura=28,
             cor=(110, 235, 195)
         )
-        nova_erva.id_unico = f"erva_lunar_respawn_{len(self.itens_no_chao)}"
+        nova_erva.id_unico = origem
+        nova_erva.origem_botanica = origem
         nova_erva.imagem = self._gerar_sprite_erva_lunar()
         self.itens_no_chao.append(nova_erva)
         if hasattr(self, "ervas_coletaveis"):
@@ -1103,6 +1117,8 @@ class MapaOakhaven(CenarioBase):
                     dx_s, dy_s = obj.get("sombra_offset", (int(obj["sw"] * 0.07), obj["sh"] - 12))
                     tela.blit(s_surf, (ox + dx_s, oy + dy_s))
                 tela.blit(sp, (ox, oy))
+                if obj.get("id") == "tabua_assinatura":
+                    desenhar_revelacao(self, tela)
             elif tipo == "fogo":
                 obj.desenhar_sprite(tela)
                 obj.desenhar_particulas(tela)

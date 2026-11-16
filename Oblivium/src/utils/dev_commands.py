@@ -9,6 +9,7 @@ from src.utils.colors import (
 )
 from src.utils.resource_manager import ResourceManager
 from src.ui.ui_utils import desenhar_painel_padrao, desenhar_icone_fechar
+from src.entities.player import Player
 
 
 class ComandosDev:
@@ -230,10 +231,10 @@ class ComandosDev:
         self._notificar("Restauração", "Vida e Mana restauradas ao máximo!")
 
     def cmd_adicionar_moedas(self):
-        """Adiciona 1000 moedas ao inventário."""
+        """Adiciona 1000 cobres ao inventário."""
         if hasattr(self.game, 'halia'):
             self.game.halia.dinheiro += 1000
-        self._notificar("Tesouro Dev", "+1000 Moedas adicionadas à bolsa!")
+        self._notificar("Tesouro Dev", f"+{Player.formatar_valor_moedas(1000)} adicionados à bolsa!")
 
     def cmd_desbloquear_grimorio(self):
         """Alterna entre 7 memórias (pleno despertar) e 0 memórias (estado inicial)."""
@@ -430,7 +431,7 @@ class ComandosDev:
         cenario = getattr(getattr(self.game, 'mapa_casa', None), 'cenario_atual', 'CASA')
         mems = getattr(getattr(self.game, 'halia', None), 'fragmentos_memoria', 0)
         hp_atual = int(getattr(getattr(self.game, 'halia', None), 'vida_atual', 100))
-        ouro = getattr(getattr(self.game, 'halia', None), 'dinheiro', 0)
+        saldo = getattr(getattr(self.game, 'halia', None), 'dinheiro', 0)
 
         mapa2 = getattr(getattr(self.game, 'mapa_casa', None), 'cenarios', {}).get("ESTRADA_2", None)
         bloqueado = getattr(mapa2, 'bloqueio_ativo', True)
@@ -450,7 +451,7 @@ class ComandosDev:
             ("2", "Pular Cutscenes", "Avançar diálogos e transições", "Avanço Rápido"),
             ("3", "Teleporte de Mapa", "Alternar entre Casa, Estrada 1 e 2", cenario),
             ("4", "Curar Halia Total", "Restaurar HP e Mana ao máximo", f"HP {hp_atual}"),
-            ("5", "Tesouro Dev (+1000)", "Adicionar ouro à bolsa de Halia", f"{ouro} Ouro"),
+            ("5", "Tesouro Dev (+5 O)", "Adicionar 1000 cobres à bolsa de Halia", Player.formatar_valor_moedas(saldo, compacto=True)),
             ("6", "Despertar Memórias", "Desbloquear ou resetar Grimório", f"{mems}/7 Mems"),
             ("7", "Bloqueio Estrada 2", "Remover ou repor rochas de obstrução", status_estrada),
             ("8", "Forçar Batalha", "Iniciar arena contra Demônio", "Arena Demo"),

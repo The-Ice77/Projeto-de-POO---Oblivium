@@ -1,0 +1,40 @@
+OBLIVIUM
+
+Instale Python 3.11 a 3.13 e abra "Iniciar Oblivium.bat".
+Também é possível executar: python iniciar.py
+
+No Windows, a primeira abertura prepara o atalho "Oblivium" com a logo
+provisória. Depois, você pode abrir o jogo por esse atalho. O arquivo .bat
+continua sendo o iniciador usado pelo atalho.
+
+O arquivo .bat é um atalho de inicialização para Windows: ele entra na pasta
+do jogo, procura um Python compatível e chama iniciar.py. A verificação e a
+instalação do pygame são feitas pela classe Aplicacao, no código Python.
+Pelo VS Code, também é possível executar src/main.py diretamente.
+
+Na primeira abertura, o jogo verifica a versão do pygame e testa o filtro.
+Se necessário, cria um ambiente local na pasta .venv, instala pygame 2.6.1
+nesse ambiente e reabre o jogo. A instalação global do Python é preservada.
+É necessária internet para baixar a biblioteca nessa preparação inicial.
+Se já houver uma instalação válida, nenhum download é realizado.
+
+Se um ambiente local antigo estiver quebrado ou incompatível, ele é preservado
+numa pasta .venv_backup_... antes de criar outro. Uma preparação incompleta
+também pode recuperar o pip local automaticamente. Isso não altera os saves.
+
+O filtro de memórias é conferido antes de abrir a janela do jogo.
+Se a instalação falhar, a mensagem exibida informa como tentar novamente.
+
+Na demo de avaliação, "Iniciar Oblivium.bat" continua o participante atual.
+"Novo participante.bat" cria outro perfil com saves e conquistas separados.
+Os perfis anteriores e os saves pessoais são preservados.
+
+Na pasta de desenvolvimento, a abertura normal usa os saves pessoais.
+"Novo participante.bat" abre uma sessão isolada; a retomada automática desse
+participante acontece no pacote de avaliação. Fora dele, use --perfil NOME
+para retomar uma sessão de avaliação específica.
+
+Para continuar um perfil específico:
+python iniciar.py --perfil NOME
+
+Se a preparação falhar, siga a orientação exibida na janela do iniciador.

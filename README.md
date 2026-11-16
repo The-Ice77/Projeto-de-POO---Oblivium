@@ -5,6 +5,12 @@
 - Davi Gomes Suassuna
 - João Victor Sales de Azevedo Silva
 
+### Como executar a demo
+
+Com Python 3.10 a 3.13 instalado, abra [Iniciar Oblivium.bat](<Oblivium/Iniciar Oblivium.bat>) ou execute `python Oblivium/iniciar.py`. A inicialização verifica o pygame 2.6.1 e o filtro de memória. Se necessário, prepara uma `.venv` na pasta do jogo e instala a dependência, sem alterar o Python global. Essa preparação precisa de internet; uma instalação já válida não faz downloads.
+
+Na versão de avaliação, `Novo participante.bat` inicia um perfil separado. Os saves anteriores são preservados. Consulte [COMO_JOGAR.txt](Oblivium/COMO_JOGAR.txt) para continuar um perfil específico.
+
 ### Oblivium - Um Jogo Sobre Lembrar
 
 Oblivium é um jogo no estilo RPG feito em pixel art com visão top-down desenvolvido inicialmente para PC. O jogo utiliza de modo obrigatório Python e Pygame com possível adição de mais bibliotecas conforme decorrer do desenolvimento do jogo.

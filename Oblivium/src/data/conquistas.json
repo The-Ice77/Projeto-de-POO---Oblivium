@@ -82,9 +82,20 @@
       "secreta": false
     },
     {
+      "id": "assinatura_oculta_demo",
+      "titulo": "A Assinatura Escondida",
+      "descricao": "Encontrou a assinatura dos criadores escondida em Oakhaven.",
+      "categoria": "EXPLORACAO",
+      "icone": "✦",
+      "cor": [195, 180, 145],
+      "secreta": true,
+      "oculta_ate_desbloquear": true,
+      "conta_platina": false
+    },
+    {
       "id": "mestre_platinador",
       "titulo": "Lenda de Oblivium",
-      "descricao": "Alcançou a plenitude absoluta ao desbloquear todas as conquistas de Oblivium.",
+      "descricao": "Alcançou a plenitude absoluta ao desbloquear todas as conquistas regulares de Oblivium.",
       "categoria": "PLATINA",
       "icone": "♛",
       "cor": [255, 225, 115],

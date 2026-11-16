@@ -1,10 +1,15 @@
 # src/utils/save_storage.py
+import argparse
 import datetime
 import json
 import logging
 import os
+from pathlib import Path
+import re
 import shutil
 import sys
+from uuid import uuid4
+from src.utils import constants
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +17,34 @@ DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 DIRETORIO_SRC = os.path.dirname(DIRETORIO_ATUAL)
 DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_SRC)
 
-PASTA_SAVES_PADRAO = os.path.join(DIRETORIO_RAIZ, "saves")
+
+def pasta_perfil(nome):
+    """Resolve um perfil de avaliação sem permitir caminhos externos ao jogo."""
+    if not isinstance(nome, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", nome):
+        raise ValueError("Perfil inválido: use até 64 letras, números, _ ou -.")
+    return str(Path(constants.PASTA_OBLIVIUM) / "perfis_avaliacao" / nome / "saves")
+
+
+def novo_perfil():
+    """Cria um identificador novo; os perfis anteriores continuam preservados."""
+    return "participante_" + uuid4().hex[:16]
+
+
+def pasta_saves_inicial():
+    nome = os.environ.get("OBLIVIUM_PERFIL")
+    if nome:
+        try:
+            return pasta_perfil(nome)
+        except ValueError:
+            # A CLI valida esse valor depois de --help e de um perfil explícito.
+            # O import usa uma pasta segura sem impedir essas opções.
+            pass
+    if constants.modo_apresentacao():
+        return pasta_perfil("avaliacao")
+    return str(Path(constants.PASTA_OBLIVIUM) / "saves")
+
+
+PASTA_SAVES_PADRAO = pasta_saves_inicial()
 PASTA_SAVES = PASTA_SAVES_PADRAO
 MAX_SLOTS = 4
 
@@ -48,6 +80,37 @@ def definir_pasta_saves(caminho=None):
             mod_ach.ARQUIVO_CONQUISTAS_SAVE = os.path.join(PASTA_SAVES, "conquistas.json")
 
     return PASTA_SAVES
+
+
+def configurar_perfil(argv=None):
+    """Seleciona a pasta da sessão antes de instanciar jogo e conquistas."""
+    parser = argparse.ArgumentParser(description="Oblivium")
+    perfis = parser.add_mutually_exclusive_group()
+    perfis.add_argument("--perfil", help="Perfil de avaliação para continuar uma partida")
+    perfis.add_argument("--novo-perfil", action="store_true", help="Iniciar um participante sem progresso anterior")
+    args = parser.parse_args(argv)
+    marcador = Path(constants.PASTA_OBLIVIUM) / "perfil_avaliacao_atual.json"
+    apresentacao = constants.modo_apresentacao()
+    nome = args.perfil if args.perfil is not None else (os.environ.get("OBLIVIUM_PERFIL") or None)
+    if args.novo_perfil:
+        nome = novo_perfil()
+    elif nome is None and apresentacao:
+        try:
+            nome = json.loads(marcador.read_text(encoding="utf-8")).get("perfil")
+            pasta_perfil(nome)
+        except (OSError, ValueError, AttributeError):
+            nome = novo_perfil()
+    if nome is not None:
+        try:
+            definir_pasta_saves(pasta_perfil(nome))
+        except ValueError as erro:
+            parser.error(str(erro))
+        if apresentacao:
+            try:
+                marcador.write_text(json.dumps({"perfil": nome}), encoding="utf-8")
+            except OSError as erro:
+                parser.error(f"Não foi possível registrar o perfil de avaliação: {erro}")
+    return nome
 
 
 def normalizar_slot(slot):

@@ -1,6 +1,7 @@
 # src/states/playing/oakhaven_controller.py
 import pygame
 from src.entities.enemy_factory import EnemyFactory
+from src.mechanics.progression.economia_demo import recompensas_encontro
 
 
 class OakhavenController:
@@ -28,6 +29,133 @@ class OakhavenController:
     def __init__(self, game, playing_state):
         self.game = game
         self.playing_state = playing_state
+        self._interagir_pressionado = False
+        self._posicao_entrada = None
+
+    def _mapa_segredo(self):
+        mapa = getattr(self.game.mapa_casa, "cenario_objeto", None)
+        if (getattr(self.game.mapa_casa, "cenario_atual", None) == "OAKHAVEN"
+                and getattr(mapa, "nome", None) == "OAKHAVEN"
+                and not getattr(self.game, "oakhaven_noite", False)):
+            return mapa
+        return None
+
+    def _pes_halia(self):
+        h = self.game.halia
+        return h.x + h.largura / 2, h.y + h.altura
+
+    def _indicio_proximo(self, mapa):
+        from math import dist
+        h = self.game.halia
+        centro = (h.x + h.largura / 2, h.y + h.altura / 2)
+        candidatos = [i for i in getattr(mapa, "indicios_assinatura", [])
+                      if i["face_interacao"].collidepoint(centro)]
+        return min(candidatos, key=lambda i: dist(centro, i["marca"]), default=None)
+
+    def _olhar_para(self, direcao):
+        h = self.game.halia
+        h.direcao = direcao
+        if direcao in ("direita", "esquerda"):
+            h.virado_direita = direcao == "direita"
+        h.mudar_estado("idle")
+
+    def preparar_entrada_segredo(self, eventos, teclas):
+        """Lê o controle remapeado e observa foco antes dos retornos das cenas."""
+        segredo = getattr(self.game, "segredo_oakhaven", None)
+        if segredo is None:
+            return
+        self._posicao_entrada = self._pes_halia()
+        for evento in eventos:
+            perdeu_foco = evento.type == pygame.WINDOWFOCUSLOST or (
+                evento.type == pygame.ACTIVEEVENT and not evento.gain
+                and evento.state & 2
+            )
+            if perdeu_foco:
+                self.game.foco_janela = False
+                segredo.interromper()
+            elif evento.type == pygame.WINDOWFOCUSGAINED or (
+                evento.type == pygame.ACTIVEEVENT and evento.gain and evento.state & 2
+            ):
+                self.game.foco_janela = True
+
+        def pressionada(tecla):
+            try:
+                return bool(teclas[tecla])
+            except (IndexError, KeyError, TypeError):
+                return False
+
+        self._interagir_pressionado = any(pressionada(t) for t in self.game.teclas_interacao)
+        if not self._interagir_pressionado:
+            segredo.interromper()
+
+    def atualizar_segredo(self, dt):
+        segredo = getattr(self.game, "segredo_oakhaven", None)
+        if segredo is None:
+            return
+        mapa = self._mapa_segredo()
+        alvo = getattr(mapa, "assinatura_alvo", None)
+        livre = (alvo is not None and getattr(self.game, "foco_janela", True)
+                 and self.game.nome_estado_atual == "JOGANDO"
+                 and not self.playing_state._bloqueio_ativo()
+                 and getattr(self.game.halia, "vivo", True))
+        if not livre:
+            segredo.interromper()
+            return
+        from math import dist
+        moveu = self._posicao_entrada is not None and dist(self._pes_halia(), self._posicao_entrada) > 0.1
+        concluiu = segredo.atualizar(
+            dt, pressionando=self._interagir_pressionado,
+            movimentando=moveu, posicao=self._pes_halia(),
+            direcao=self.game.halia.direcao, ponto=alvo["ponto"],
+            direcao_alvo=alvo["direcao"], disponivel=livre,
+        )
+        if concluiu:
+            conquistas = getattr(self.game, "conquistas", None)
+            if conquistas:
+                conquistas.desbloquear(segredo.CONQUISTA)
+            self._mostrar_assinatura()
+            self._salvar_segredo()
+
+    def _salvar_segredo(self):
+        if getattr(self.game, "slot_atual", None):
+            self.game.salvar_estado(self.game.slot_atual, tipo="autosave", silenciar_notificacao=True)
+
+    def _mostrar_assinatura(self):
+        self.game.caixa_dialogo.iniciar_dialogo([{
+            "autor": "A Assinatura Escondida",
+            "texto": "OBLIVIUM — Davi & João Victor. Obrigado por olhar além do caminho. Assinatura Escondida descoberta.",
+        }])
+
+    def processar_interacao_segredo(self):
+        """Inspeções laterais têm prioridade sobre a área frontal genérica."""
+        segredo = getattr(self.game, "segredo_oakhaven", None)
+        mapa = self._mapa_segredo()
+        if segredo is None or mapa is None:
+            return False
+        indicio = self._indicio_proximo(mapa)
+        if indicio:
+            self._olhar_para(indicio["direcao"])
+            novo = segredo.registrar_indicio(indicio["id"])
+            self.game.caixa_dialogo.iniciar_dialogo([{
+                "autor": "Inscrição na madeira",
+                "texto": segredo.INDICIOS[indicio["id"]],
+            }])
+            if novo:
+                self._salvar_segredo()
+            return True
+        alvo = getattr(mapa, "assinatura_alvo", None)
+        if alvo:
+            from math import dist
+            proximo = dist(self._pes_halia(), alvo["ponto"]) <= segredo.ALCANCE
+            if proximo and (segredo.concluida or segredo.indicios_lidos == set(segredo.INDICIOS)):
+                self._olhar_para(alvo["direcao"])
+            if proximo and segredo.concluida:
+                self._mostrar_assinatura()
+                return True
+            if proximo and segredo.pode_tentar(self._pes_halia(), self.game.halia.direcao,
+                                              alvo["ponto"], alvo["direcao"]):
+                return True
+        return False
 
     def processar_escolha_dialogo(self, opcao_atual):
         """Interpreta opções de diálogo específicas de Oakhaven e identifica ações pós-fala."""
@@ -288,71 +416,101 @@ class OakhavenController:
             return True
         return False
 
-    def processar_interacao_cenario(self, area_interacao):
-        """Processa interações com NPCs, fauna e pontos de interesse de Oakhaven."""
-        # Interações com NPCs do cenário ativo (ex: Oakhaven)
-        for npc in getattr(self.game.mapa_casa, "npcs", []):
-            r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
-            if area_interacao.colliderect(r_npc):
-                self.game.npc_interagindo_atual = npc
-                npc.virado_direita = (self.game.halia.x > npc.x)
-                self.game.halia.virado_direita = (npc.x > self.game.halia.x)
-                if hasattr(self.game, "missoes") and self.game.missoes:
-                    if npc.npc_id in ("curandeira_elara", "ferreiro_torvald"):
-                        self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
-                        self.game.missoes.atualizar_progresso("visitar_mercado", 1)
-                npc.interagir(self.game)
-                return True
+    def _selecionar_interacao_normal(self, area_interacao):
+        """Resolve o mesmo alvo para a ação e o prompt, sem depender da lista.
 
-        # Interação com Patusco (Easter Egg 1/7 no tufo de grama - desativado à noite pois ele já dorme)
-        eh_noite = getattr(self.game, "oakhaven_noite", False)
-        if not eh_noite:
+        A distância até o corpo do objeto prevalece; olhar na direção dele
+        desempata alvos próximos sem exigir um alinhamento exato para conversar.
+        """
+        from math import hypot
+        h = self.game.halia
+        px, py = h.x + h.largura / 2, h.y + h.altura / 2
+        fx, fy = {"cima": (0, -1), "baixo": (0, 1), "esquerda": (-1, 0),
+                  "direita": (1, 0)}.get(h.direcao, (0, 0))
+        candidatos = []
+
+        def considerar(tipo, alvo, alcance, corpo):
+            if not area_interacao.colliderect(alcance):
+                return
+            dx = max(corpo.left, min(px, corpo.right)) - px
+            dy = max(corpo.top, min(py, corpo.bottom)) - py
+            distancia = hypot(dx, dy)
+            vx, vy = (dx, dy) if distancia else (corpo.centerx - px, corpo.centery - py)
+            norma = hypot(vx, vy)
+            alinhamento = (vx * fx + vy * fy) / norma if norma else 1.0
+            custo = distancia + 6 * (1 - alinhamento)
+            candidatos.append((custo, hypot(corpo.centerx - px, corpo.centery - py), tipo, alvo))
+
+        for npc in getattr(self.game.mapa_casa, "npcs", []):
+            if getattr(npc, "visivel", True):
+                corpo = pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura)
+                considerar("npc", npc, corpo.inflate(20, 20), corpo)
+        if not getattr(self.game, "oakhaven_noite", False):
             for animal in getattr(self.game.mapa_casa, "animais", []):
                 if hasattr(animal, "interagir") and getattr(animal, "visivel", True):
-                    r_anim = pygame.Rect(int(animal.x - 24), int(animal.y - 24), 48, 48)
-                    if area_interacao.colliderect(r_anim):
-                        animal.interagir(self.game)
-                        return True
+                    corpo = pygame.Rect(int(animal.x - 24), int(animal.y - 24), 48, 48)
+                    considerar("animal", animal, corpo, corpo)
+        mapa = getattr(self.game.mapa_casa, "cenario_objeto", None)
+        estruturas = {e.get("id"): e for e in getattr(mapa, "estruturas_ysort", []) if e.get("id")}
+        for ponto in getattr(self.game.mapa_casa, "pontos_interacao", []):
+            estrutura = estruturas.get(ponto.get("estrutura_id"), {})
+            corpo = estrutura.get("hitbox_ref")
+            if corpo is None or corpo.width <= 0 or corpo.height <= 0:
+                corpo = ponto["rect"]
+            considerar("ponto", ponto, ponto["rect"], corpo)
+        if not candidatos:
+            return None
+        selecionado = min(candidatos, key=lambda candidato: candidato[:2])
+        return selecionado[2], selecionado[3]
 
-        # Interação com pontos de lore e objetos de missão no cenário (Monumento, Quadro, Rocha de Minério)
-        for pt in getattr(self.game.mapa_casa, "pontos_interacao", []):
-            if area_interacao.colliderect(pt["rect"]):
-                if pt.get("id") == "rocha_minerio_torvald":
-                    estado_missao = (
-                        (self.game.missoes.obter_missao("missao_pedra_forja") or {}).get(
-                            "status", "NAO_INICIADA"
-                        )
-                        if hasattr(self.game, "missoes") and self.game.missoes
-                        else "NAO_INICIADA"
-                    )
-                    if estado_missao == "ATIVA" and not getattr(self.game, "pedra_torvald_quebrada", False):
-                        self.playing_state.minigame_ferraria.iniciar()
-                        return True
-                    else:
-                        self.game.caixa_dialogo.iniciar_dialogo(
-                            [
-                                {
-                                    "autor": "Narrador",
-                                    "texto": "Um grande bloco de minério bruto com veios metálicos azulados repousa no pátio da forja. O Ferreiro Torvald parece precisar de auxílio para parti-lo.",
-                                }
-                            ]
-                        )
-                        return True
-                if "evento" in pt:
-                    ev = pt["evento"]
-                    if ev == "retornar_oakhaven_vitoria":
-                        self.retornar_oakhaven_apos_vitoria()
-                        return True
-                    elif ev == "iniciar_climax_dragao_oakhaven":
-                        self.iniciar_climax_dragao_oakhaven()
-                        return True
-                if pt.get("id") == "estatua_herois":
-                    self.game.caixa_dialogo.iniciar_dialogo("monumento_herois")
-                    return True
-                if "dialogo" in pt:
-                    self.game.caixa_dialogo.iniciar_dialogo(pt["dialogo"])
-                    return True
+    def processar_interacao_cenario(self, area_interacao):
+        """Processa a interação com o alvo selecionado, preservando suas regras."""
+        if self.processar_interacao_segredo():
+            return True
+        selecionado = self._selecionar_interacao_normal(area_interacao)
+        if selecionado is None:
+            return False
+        tipo, alvo = selecionado
+        if tipo == "npc":
+            self.game.npc_interagindo_atual = alvo
+            alvo.virado_direita = (self.game.halia.x > alvo.x)
+            self.game.halia.virado_direita = (alvo.x > self.game.halia.x)
+            if hasattr(self.game, "missoes") and self.game.missoes:
+                if alvo.npc_id in ("curandeira_elara", "ferreiro_torvald"):
+                    self.game.missoes.atualizar_progresso("conhecer_mercado", 1)
+                    self.game.missoes.atualizar_progresso("visitar_mercado", 1)
+            alvo.interagir(self.game)
+            return True
+        if tipo == "animal":
+            alvo.interagir(self.game)
+            return True
 
+        pt = alvo
+        if pt.get("id") == "rocha_minerio_torvald":
+            estado_missao = (
+                (self.game.missoes.obter_missao("missao_pedra_forja") or {}).get("status", "NAO_INICIADA")
+                if hasattr(self.game, "missoes") and self.game.missoes else "NAO_INICIADA"
+            )
+            if estado_missao == "ATIVA" and not getattr(self.game, "pedra_torvald_quebrada", False):
+                self.playing_state.minigame_ferraria.iniciar()
+            else:
+                self.game.caixa_dialogo.iniciar_dialogo([{
+                    "autor": "Narrador",
+                    "texto": "Um grande bloco de minério bruto com veios metálicos azulados repousa no pátio da forja. O Ferreiro Torvald parece precisar de auxílio para parti-lo.",
+                }])
+            return True
+        if pt.get("evento") == "retornar_oakhaven_vitoria":
+            self.retornar_oakhaven_apos_vitoria()
+            return True
+        if pt.get("evento") == "iniciar_climax_dragao_oakhaven":
+            self.iniciar_climax_dragao_oakhaven()
+            return True
+        if pt.get("id") == "estatua_herois":
+            self.game.caixa_dialogo.iniciar_dialogo("monumento_herois")
+            return True
+        if "dialogo" in pt:
+            self.game.caixa_dialogo.iniciar_dialogo(pt["dialogo"])
+            return True
         return False
 
     def entrar_em_oakhaven(self):
@@ -405,7 +563,7 @@ class OakhavenController:
             bat.velocidade = 0
             bat.virado_direita = False
             bat.direcao = "esquerda"
-            bat.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
+            bat.recompensas = recompensas_encontro("patrulha")
             bat.disfarcado = True
             bat.revelado = False
             bat.revelando = False
@@ -609,45 +767,26 @@ class OakhavenController:
         """Desenha indicadores de interação para NPCs, fauna e pontos de interesse de Oakhaven."""
         if self.game.caixa_dialogo.ativo or self.game.flashback_sistema.ativo:
             return
-
-        for npc in getattr(self.game.mapa_casa, "npcs", []):
-            r_npc = pygame.Rect(int(npc.x - 10), int(npc.y - 10), npc.largura + 20, npc.altura + 20)
-            if area_interacao.colliderect(r_npc):
-                topo_y = npc.obter_topo_cabeca() if hasattr(npc, "obter_topo_cabeca") else int(npc.y - 42)
-                prompt_y = int(topo_y - 34)
-                desenhar_fn(
-                    tela,
-                    int(npc.x + npc.largura // 2),
-                    prompt_y,
-                    tecla=tecla_interacao_str,
-                    acao=f"Falar com {npc.nome}",
-                )
-                return
-
-        if not getattr(self.game, "oakhaven_noite", False):
-            for animal in getattr(self.game.mapa_casa, "animais", []):
-                if hasattr(animal, "interagir") and getattr(animal, "visivel", True):
-                    r_anim = pygame.Rect(int(animal.x - 24), int(animal.y - 24), 48, 48)
-                    if area_interacao.colliderect(r_anim):
-                        desenhar_fn(
-                            tela,
-                            int(animal.x),
-                            int(animal.y - 62),
-                            tecla=tecla_interacao_str,
-                            acao="para Acariciar Patusco",
-                        )
-                        return
-
-        for pt in getattr(self.game.mapa_casa, "pontos_interacao", []):
-            if area_interacao.colliderect(pt["rect"]):
-                desenhar_fn(
-                    tela,
-                    pt["prompt_x"],
-                    pt["prompt_y"],
-                    tecla=tecla_interacao_str,
-                    acao=pt["acao_texto"],
-                )
-                return
+        mapa_segredo = self._mapa_segredo()
+        indicio = self._indicio_proximo(mapa_segredo) if mapa_segredo else None
+        if indicio:
+            x, y = indicio["marca"]
+            desenhar_fn(tela, int(x), int(y - 24), tecla=tecla_interacao_str, acao="para Examinar")
+            return
+        selecionado = self._selecionar_interacao_normal(area_interacao)
+        if selecionado is None:
+            return
+        tipo, alvo = selecionado
+        if tipo == "npc":
+            topo = alvo.obter_topo_cabeca() if hasattr(alvo, "obter_topo_cabeca") else int(alvo.y - 42)
+            desenhar_fn(tela, int(alvo.x + alvo.largura // 2), int(topo - 34),
+                        tecla=tecla_interacao_str, acao=f"Falar com {alvo.nome}")
+        elif tipo == "animal":
+            desenhar_fn(tela, int(alvo.x), int(alvo.y - 62),
+                        tecla=tecla_interacao_str, acao=f"para Acariciar {alvo.nome}")
+        else:
+            desenhar_fn(tela, alvo["prompt_x"], alvo["prompt_y"],
+                        tecla=tecla_interacao_str, acao=alvo["acao_texto"])
 
     def atualizar_cinematica_reconstrucao(self, dt):
         """Mantém entidades, câmera cinemática, filtro e ambiente vivos durante a reconstrução."""

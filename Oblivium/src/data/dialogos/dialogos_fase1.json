@@ -256,7 +256,8 @@
       },
       "fala_3": {
         "autor": "Sistema",
-        "texto": "A Curandeira Elara aplica um bálsamo morno de Orvalho Lunar em seus machucados. Sua Vida e sua Mana foram totalmente restauradas! Você também recebeu 150 moedas, Elixir de Mana Menor e desbloqueou a Loja da Botânica.",
+        "texto": "A Curandeira Elara aplica um bálsamo morno de Orvalho Lunar em seus machucados. Sua Vida e sua Mana foram totalmente restauradas! Você também recebeu {moedas_missao}, Elixir de Mana Menor e desbloqueou a Loja da Botânica.",
+        "recompensa_missao": "missao_ervas_medicinais",
         "evento": "cura_elara_missao",
         "proximo": null
       }
@@ -372,7 +373,8 @@
       },
       "fala_2": {
         "autor": "Ferreiro Torvald",
-        "texto": "Como recompensa pelo seu trabalho, forjei este Amuleto do Guardião especialmente para você, junto com 180 moedas. E se precisar de mais armas ou tomos, minha loja já está aberta novamente!",
+        "texto": "Como recompensa pelo seu trabalho, forjei este Amuleto do Guardião especialmente para você, junto com {moedas_missao}. E se precisar de mais armas ou tomos, minha loja já está aberta novamente!",
+        "recompensa_missao": "missao_pedra_forja",
         "proximo": null
       }
     }
@@ -911,23 +913,23 @@
     "no_inicial": "chegada",
     "nos": {
       "chegada": {
-        "autor": "O Alvorecer — Silêncio Após a Tempestade",
-        "texto": "Com a queda de Ignis'Vahr, a primeira luz da manhã acaricia as ruínas de Oakhaven. Juntos, os moradores começam a erguer o que o fogo tentou apagar.",
+        "autor": "Na manhã seguinte",
+        "texto": "Ao amanhecer, os moradores separam o que ainda pode ser usado. Halia se aproxima de uma viga caída, e Doran vem ajudar. ‘Por aqui’, diz ele, indicando a passagem.",
         "proximo": "forja"
       },
       "forja": {
-        "autor": "Bairro Leste — A Forja Renascida",
-        "texto": "Halia canaliza fagulhas arcanas para reacender o fole enquanto Torvald ergue as novas vigas da forja. O bater firme do martelo volta a pulsar vida.",
+        "autor": "Semanas depois — A forja",
+        "texto": "Torvald confere o encaixe enquanto Halia aquece o metal. ‘Mais um pouco... pronto. Agora segura aqui pra mim.’ O martelo volta a soar. Quando terminam a peça, ele já separa a próxima.",
         "proximo": "botanica"
       },
       "botanica": {
-        "autor": "Alameda Oeste — O Herbário e a Terra",
-        "texto": "Gotas de orvalho lunar suavizam o solo crestado pelo dragão. Ao lado de Elara, a botânica e as barracas do jardim voltam a florescer em segurança.",
+        "autor": "Um mês depois — O herbário",
+        "texto": "Elara afofa a terra em volta dos primeiros brotos. Halia faz cair uma chuva fina sobre os canteiros. ‘Só um pouco’, pede Elara. ‘As raízes ainda estão pequenas.’ Halia diminui a magia e as duas continuam o trabalho.",
         "proximo": "praca"
       },
       "praca": {
-        "autor": "O Dia da Renovação — Praça Central",
-        "texto": "Sob o céu límpido, a fonte e o Monumento dos Heróis voltam a brilhar no coração da vila. Oakhaven respira em paz outra vez.",
+        "autor": "A praça reaberta",
+        "texto": "A fonte volta a correr sob a magia de Halia. Aldous deixa a lista de reparos de lado. ‘Quando terminar, fique um pouco. Tem água fresca.’ Os moradores vão se reunindo na praça, e Halia escuta a conversa enquanto conclui o trabalho.",
         "proximo": null
       }
     }

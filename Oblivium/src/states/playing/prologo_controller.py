@@ -2,6 +2,8 @@
 import pygame
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.item_factory import ItemFactory
+from src.entities.player import Player
+from src.mechanics.progression.economia_demo import BOLSA_INICIAL_COBRES, recompensas_encontro
 
 
 class PrologoController:
@@ -130,8 +132,8 @@ class PrologoController:
                 )
                 sombra1.velocidade = 3.5
                 sombra2.velocidade = 3.5
-                sombra1.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
-                sombra2.recompensas = {"moedas": 20, "memorias": 0, "xp": 40}
+                sombra1.recompensas = recompensas_encontro("estrada_fogo")
+                sombra2.recompensas = recompensas_encontro("estrada_fogo")
                 sombra1.virado_direita = False
                 sombra2.virado_direita = False
                 sombra1.direcao = "esquerda"
@@ -142,7 +144,7 @@ class PrologoController:
                     "demonio_superior", x=1180, y=310, nome_custom="Demônio Superior (Chefe)"
                 )
                 boss.velocidade = 3.5
-                boss.recompensas = {"moedas": 45, "memorias": 0, "xp": 80}
+                boss.recompensas = recompensas_encontro("estrada_levitacao")
                 boss.virado_direita = False
                 boss.direcao = "esquerda"
                 self.game.inimigos_em_cena.append(boss)
@@ -284,10 +286,13 @@ class PrologoController:
     def processar_interacao_item_inicial(self, item, id_do_item):
         """Aplica as recompensas e equipamentos dos itens iniciais coletados na Casa."""
         if id_do_item == "item_moedas":
-            self.game.halia.ganhar_dinheiro(50 * self.game.halia.COBRES_POR_OURO)  # 50 Moedas de Ouro = 10.000 Cobres
+            self.game.halia.ganhar_dinheiro(BOLSA_INICIAL_COBRES)
+            valor = Player.formatar_valor_moedas(BOLSA_INICIAL_COBRES)
             self.game.caixa_dialogo.iniciar_dialogo(
-                [{"autor": "Sistema", "texto": "Você encontrou a Bolsa de Moedas com 50 moedas de ouro."}]
+                [{"autor": "Sistema", "texto": f"Você encontrou a Bolsa de Moedas com {valor}."}]
             )
+            if getattr(self.game, "notificacoes", None):
+                self.game.notificacoes.notificar("notificacao_bolsa_moedas", moedas=valor)
         elif id_do_item == "item_cajado":
             cajado = ItemFactory.criar("cajado_espinheiro")
             if cajado:

@@ -1,6 +1,7 @@
 # src/states/shop_states.py
 import pygame
 from src.states.states import State
+from src.entities.player import Player
 from src.utils.colors import (
     CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
     MARFIM_OFFWHITE, BORDA_DESTAQUE, BOTAO_FECHAR_HOVER,
@@ -27,7 +28,7 @@ class ShopState(State):
     - Fundo escuro em Carvão Profundo com bordas duplas em Cinza Linho
     - Suporte a múltiplas lojas declarativas via JSON (Curandeira Elara, Ferreiro Torvald, Empório Itinerante)
     - Abas: Comprar (Mercadorias do mercador) e Vender (Itens da Bolsa de Halia)
-    - Painel esquerdo: Grelha/Lista de Itens com Preços em Ouro e Estoque disponível
+    - Painel esquerdo: Lista de Itens com preços em moedas e estoque disponível
     - Painel direito: Detalhes completos do item inspecionado (nome, ícone, raridade, tipo, descrição, efeitos, bônus)
     - Botão explícito de Ação [ COMPRAR ] / [ VENDER ] com confirmação deliberada:
       * Clicar no item da lista APENAS seleciona e inspeciona o item.
@@ -372,7 +373,8 @@ class ShopState(State):
                     tag_mem = f"Mem {st_merc['memorias_minimas']}+ | "
                     cor_preco = (245, 170, 120) if merc.disponivel else (120, 120, 120)
 
-                info_preco = f"{tag_mem}{merc.preco_compra} Ouro | Est: {merc.estoque_atual}"
+                preco_compra = self.loja.cotar_compra(merc.item_id) or 0
+                info_preco = f"{tag_mem}{Player.formatar_valor_moedas(preco_compra, compacto=True)} | Est: {merc.estoque_atual}"
                 txt_pr = self.fonte_mini.render(info_preco, True, cor_preco)
                 tela.blit(txt_pr, (rect_card.right - txt_pr.get_width() - 10, rect_card.centery - txt_pr.get_height() // 2))
 
@@ -415,9 +417,9 @@ class ShopState(State):
                 tela.blit(txt_it, (rect_card.x + 8, rect_card.centery - txt_it.get_height() // 2))
 
                 # Preço de Venda
-                preco_venda = item.preco_venda
+                preco_venda = self.loja.cotar_venda(item.id) or 0
                 cor_v = (160, 220, 160) if preco_venda > 0 else (120, 120, 120)
-                txt_pr = self.fonte_mini.render(f"+{preco_venda} Ouro/un", True, cor_v)
+                txt_pr = self.fonte_mini.render(f"+{Player.formatar_valor_moedas(preco_venda, compacto=True)}/un", True, cor_v)
                 tela.blit(txt_pr, (rect_card.right - txt_pr.get_width() - 10, rect_card.centery - txt_pr.get_height() // 2))
 
                 y_pos += h_item_card + 6
@@ -438,8 +440,10 @@ class ShopState(State):
             tela.blit(sprite_bolsa_ouro, (rect_carteira.x + 12, rect_carteira.centery - 13))
         else:
             desenhar_icone_moeda(tela, rect_carteira.x + 22, rect_carteira.centery, tipo="OURO", raio=9)
-        txt_ouro = self.fonte_sub.render(f"Suas Moedas: {dinheiro} Ouro", True, (240, 220, 130))
-        tela.blit(txt_ouro, (rect_carteira.x + 44, rect_carteira.centery - txt_ouro.get_height() // 2))
+        txt_ouro = self.fonte_sub.render(f"Carteira: {Player.formatar_valor_moedas(dinheiro, compacto=True)}", True, (240, 220, 130))
+        tela.blit(txt_ouro, (rect_carteira.x + 44, rect_carteira.y + 4))
+        legenda = self.fonte_mini.render("O: Ouro · P: Prata · C: Cobre", True, CINZA_LINHO)
+        tela.blit(legenda, (rect_carteira.x + 44, rect_carteira.y + 27))
 
         # Detalhes do item selecionado
         y_card_det = y_det + 55
@@ -507,14 +511,14 @@ class ShopState(State):
             esta_hover_btn = rect_btn.collidepoint(self.pos_mouse)
 
             if self.aba_ativa == 0 and merc_selecionada:
-                preco_compra = merc_selecionada.preco_compra
+                preco_compra = self.loja.cotar_compra(merc_selecionada.item_id) or 0
                 tem_estoque = merc_selecionada.disponivel
                 tem_moedas = (dinheiro >= preco_compra)
 
                 if tem_estoque and tem_moedas:
                     bg_btn = (56, 50, 28) if esta_hover_btn else (42, 38, 22)
                     bd_btn = (245, 215, 120) if esta_hover_btn else BORDA_DESTAQUE
-                    txt_btn_str = f"✦ COMPRAR 1x  —  {preco_compra} Ouro"
+                    txt_btn_str = f"✦ COMPRAR 1x  —  {Player.formatar_valor_moedas(preco_compra, compacto=True)}"
                     cor_txt = MARFIM_OFFWHITE
                 elif not tem_estoque:
                     bg_btn = (26, 26, 30)
@@ -524,17 +528,17 @@ class ShopState(State):
                 else:
                     bg_btn = (46, 26, 26)
                     bd_btn = (140, 60, 60)
-                    txt_btn_str = f"OURO INSUFICIENTE  ({preco_compra} Ouro)"
+                    txt_btn_str = f"MOEDAS INSUFICIENTES ({Player.formatar_valor_moedas(preco_compra, compacto=True)})"
                     cor_txt = (220, 130, 130)
 
             elif self.aba_ativa == 1 and slot_selecionado:
-                preco_venda = item_selecionado.preco_venda
+                preco_venda = self.loja.cotar_venda(item_selecionado.id) or 0
                 pode_vender = (not isinstance(item_selecionado, ItemChave) and preco_venda > 0)
 
                 if pode_vender:
                     bg_btn = (28, 48, 36) if esta_hover_btn else (22, 38, 28)
                     bd_btn = (130, 220, 160) if esta_hover_btn else (80, 160, 110)
-                    txt_btn_str = f"✦ VENDER 1x  —  +{preco_venda} Ouro"
+                    txt_btn_str = f"✦ VENDER 1x  —  +{Player.formatar_valor_moedas(preco_venda, compacto=True)}"
                     cor_txt = MARFIM_OFFWHITE
                 else:
                     bg_btn = (26, 26, 30)

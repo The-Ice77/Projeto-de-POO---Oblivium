@@ -5,6 +5,8 @@ from src.utils import save_storage as save_io
 from src.mechanics.attributes import Atributos
 from src.mechanics.inventory import Inventario
 from src.mechanics.shop import Loja
+from src.mechanics.progression.segredo_oakhaven import SegredoOakhaven
+from src.mechanics.progression.economia_demo import VERSAO_ECONOMIA, recompensas_encontro
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,7 @@ class SaveManager:
         ("estagio_memoria_apresentado", "estagio_memoria_apresentado", 0),
         ("etapa_epilogo", "etapa_epilogo", "NAO_INICIADO"),
         ("versao_progressao", "versao_progressao", 2),
+        ("versao_economia", "versao_economia", VERSAO_ECONOMIA),
     )
 
     # (atributo transitório em self.game, valor padrão no reset/load)
@@ -191,6 +194,7 @@ class SaveManager:
                 "conversa_terminou": getattr(self.game, 'conversa_carroceiro_terminou', False)
             },
             "flags": flags_dict,
+            "segredo_oakhaven": self.game.segredo_oakhaven.to_dict(),
             "missoes": self.game.missoes.to_dict() if hasattr(self.game, 'missoes') else {},
             "lojas": Loja.salvar_estado_lojas()
         }
@@ -366,7 +370,10 @@ class SaveManager:
 
             flags_persistentes_novas = {}
             for attr_game, chave_save, padrao in self.FLAGS_PERSISTENTES:
-                if attr_game == "patusco_pos_oakhaven":
+                if attr_game == "versao_economia":
+                    versao = flags.get(chave_save, 0)
+                    flags_persistentes_novas[attr_game] = versao if self._eh_inteiro(versao) and versao >= 0 else 0
+                elif attr_game == "patusco_pos_oakhaven":
                     raw_pos = flags.get(chave_save, None)
                     if (
                         isinstance(raw_pos, (list, tuple))
@@ -381,6 +388,9 @@ class SaveManager:
                     flags_persistentes_novas[attr_game] = bool(flags.get(chave_save, padrao))
                 else:
                     flags_persistentes_novas[attr_game] = flags.get(chave_save, padrao)
+
+            segredo_novo = SegredoOakhaven()
+            segredo_novo.carregar(dados.get("segredo_oakhaven"))
 
             ataques_fisicos_novos = self._migrar_progressao_e_grimorio(
                 dados=dados,
@@ -411,6 +421,7 @@ class SaveManager:
         self.game.itens_coletados = itens_coletados_novos
         self.game.conversa_carroceiro_terminou = conversa_terminou_nova
         self.game.progresso_npcs = progresso_npcs_novo
+        self.game.segredo_oakhaven.carregar(segredo_novo.to_dict())
 
         # Restaura progresso das missões
         if hasattr(self.game, 'missoes') and self.game.missoes:
@@ -551,7 +562,7 @@ class SaveManager:
                     b.velocidade = 0
                     b.virado_direita = False
                     b.direcao = "esquerda"
-                    b.recompensas = {"moedas": 25, "memorias": 0, "xp": 45}
+                    b.recompensas = recompensas_encontro("patrulha")
                     b.disfarcado = True
                     b.revelado = False
                     b.revelando = False
@@ -617,6 +628,9 @@ class SaveManager:
 
     def limpar_estado_execucao_ativo(self):
         """Limpa combate, minigames, diálogos e cutscenes transitórias ao sair ou reiniciar partida."""
+        segredo = getattr(self.game, "segredo_oakhaven", None)
+        if segredo is not None:
+            segredo.interromper()
         for attr_game, padrao in self.FLAGS_TRANSITORIAS:
             setattr(self.game, attr_game, padrao)
         if hasattr(self.game, "inimigos_em_cena"):
@@ -675,6 +689,7 @@ class SaveManager:
         self.game.slot_atual = slot_novo
         self.game.tempo_jogado = 0.0
         self.game.itens_coletados = []
+        self.game.segredo_oakhaven.resetar()
         self.game.caixa_dialogo.historico_escolhas.clear()
         save_io.apagar_dados(slot_novo, tipo="autosave")
         Loja.resetar_lojas()

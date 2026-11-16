@@ -356,7 +356,26 @@ class DialogueManager:
 
     def obter_no_atual(self):
         """Retorna o nó de diálogo ativo."""
-        return self.no_atual if self.ativo else None
+        return self._resolver_recompensa_monetaria(self.no_atual) if self.ativo else None
+
+    def _resolver_recompensa_monetaria(self, no):
+        """Exibe o valor do catálogo da missão sem alterar o texto armazenado."""
+        if not no or not no.get("recompensa_missao"):
+            return no
+        from src.entities.player import Player
+        from src.mechanics.progression.quest_manager import QuestManager
+
+        gerente = self.quest_manager if self.quest_manager is not None else QuestManager()
+        missao = gerente.obter_missao(no["recompensa_missao"])
+        if isinstance(missao, dict):
+            valor = missao.get("recompensas", {}).get("dinheiro", 0)
+            moedas = Player.formatar_valor_moedas(valor)
+        else:
+            logger.warning("Missão de recompensa inexistente: %s", no["recompensa_missao"])
+            moedas = "uma recompensa em moedas"
+        resolvido = dict(no)
+        resolvido["texto"] = str(no.get("texto", "")).replace("{moedas_missao}", moedas)
+        return resolvido
 
     def _opcao_atende_condicoes(self, opt):
         """Verifica se uma opção atende às condições de histórico, missão e flags."""
@@ -456,7 +475,7 @@ class DialogueManager:
         visitados = set()
         while no_id and no_id in nos and no_id not in visitados:
             visitados.add(no_id)
-            no = nos[no_id]
+            no = self._resolver_recompensa_monetaria(nos[no_id])
             if "texto" in no:
                 resultado.append({"autor": no.get("autor", "Narrador"), "texto": no["texto"]})
             no_id = no.get("proximo")

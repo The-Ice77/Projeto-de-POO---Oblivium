@@ -172,8 +172,8 @@ class ItemFactory:
                 "categoria": "CONSUMIVEL",
                 "tipo_consumivel": "CURA_HP",
                 "valor_efeito": 35,
-                "preco_compra": 25,
-                "preco_venda": 12
+                "preco_compra": 20,
+                "preco_venda": 7
             },
             "manto_arcanista": {
                 "id": "manto_arcanista",
@@ -181,6 +181,6 @@ class ItemFactory:
                 "categoria": "EQUIPAMENTO",
                 "slot": "ROUPA",
                 "preco_compra": 60,
-                "preco_venda": 30
+                "preco_venda": 21
             }
         }

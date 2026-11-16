@@ -107,7 +107,7 @@
     },
     "notificacao_bolsa_moedas": {
       "titulo": "Bolsa de Moedas",
-      "mensagem": "Recebeu 50 Moedas de Ouro.",
+      "mensagem": "Recebeu {moedas}.",
       "tipo": "ITEM",
       "icone": "✦",
       "duracao_ticks": 180

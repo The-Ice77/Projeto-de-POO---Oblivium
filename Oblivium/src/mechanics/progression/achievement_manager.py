@@ -5,13 +5,14 @@ import datetime
 import logging
 
 from src.utils.constants import PASTA_DATA, PASTA_OBLIVIUM, PASTA_SRC
+from src.utils import save_storage as save_io
 
 logger = logging.getLogger(__name__)
 
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 DIRETORIO_SRC = PASTA_SRC
 DIRETORIO_RAIZ = PASTA_OBLIVIUM
-PASTA_SAVES = os.path.join(DIRETORIO_RAIZ, "saves")
+PASTA_SAVES = save_io.PASTA_SAVES
 ARQUIVO_CONQUISTAS_SAVE = os.path.join(PASTA_SAVES, "conquistas.json")
 ARQUIVO_CONQUISTAS_CATALOGO = os.path.join(PASTA_DATA, "conquistas.json")
 
@@ -57,6 +58,8 @@ class AchievementManager:
                     "icone": c.get("icone", "✦"),
                     "cor": c.get("cor", [180, 215, 245]),
                     "secreta": c.get("secreta", False),
+                    "oculta_ate_desbloquear": c.get("oculta_ate_desbloquear", False),
+                    "conta_platina": c.get("conta_platina", True),
                     "desbloqueada": False,
                     "data_desbloqueio": None
                 }
@@ -139,26 +142,33 @@ class AchievementManager:
         return True
 
     def _verificar_platina(self):
-        """Se todas as 14 conquistas normais foram obtidas, concede a Platina mestre_platinador."""
+        """Concede a platina quando todas as conquistas regulares foram obtidas."""
         if self.esta_desbloqueada("mestre_platinador"):
             return
 
-        conquistas_regulares = [cid for cid in self.conquistas if cid != "mestre_platinador"]
+        conquistas_regulares = [
+            cid for cid, c in self.conquistas.items()
+            if cid != "mestre_platinador" and c.get("conta_platina", True)
+        ]
         todas_regulares = all(self.conquistas[cid]["desbloqueada"] for cid in conquistas_regulares)
 
         if todas_regulares and len(conquistas_regulares) > 0:
             self.desbloquear("mestre_platinador")
 
-    def obter_todas(self):
-        """Retorna uma lista ordenada com todas as conquistas do jogo."""
-        return list(self.conquistas.values())
+    def obter_todas(self, incluir_ocultas=False):
+        """A lista pública não revela sequer a existência de um segredo bloqueado."""
+        return [
+            c for c in self.conquistas.values()
+            if incluir_ocultas or not c.get("oculta_ate_desbloquear", False) or c["desbloqueada"]
+        ]
 
     def obter_progresso(self):
-        """Retorna (quantidade_desbloqueadas, total_conquistas, porcentagem_int)."""
-        total = len(self.conquistas)
+        """Retorna o progresso da platina pública, sem contar conquistas opcionais."""
+        publicas_platina = [c for c in self.conquistas.values() if c.get("conta_platina", True)]
+        total = len(publicas_platina)
         if total == 0:
             return 0, 0, 0
-        desbloqueadas = sum(1 for c in self.conquistas.values() if c["desbloqueada"])
+        desbloqueadas = sum(1 for c in publicas_platina if c["desbloqueada"])
         porcentagem = int((desbloqueadas / total) * 100)
         return desbloqueadas, total, porcentagem
 

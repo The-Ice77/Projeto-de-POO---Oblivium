@@ -1,0 +1,2 @@
+# Versão validada com o filtro de memória e pygame.transform.grayscale.
+pygame==2.6.1

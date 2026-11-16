@@ -21,11 +21,11 @@ class Intro(CenaBase):
         self.altura = altura
         
         self.textos = [
-           "Eu me sinto tão... distante, tão silenciosa por dentro...",
-           "Quanto tempo se passou desde a última vez que ouvi vozes familiares ao redor da fogueira?",
-           "O mundo perdeu suas cores, seu calor... e até os nomes que eu jurava jamais esquecer.",
-           "Mas este silêncio cinzento não é descanso. Há promessas que ainda pulsam sob a névoa.",
-           "Preciso caminhar outra vez... e lembrar de cada um deles."
+            "Eu me sinto tão... distante, tão silenciosa por dentro...",
+            "Quanto tempo se passou desde a última vez que ouvi vozes familiares ao redor da fogueira?",
+            "O mundo perdeu suas cores, seu calor... e até os nomes que eu jurava jamais esquecer.",
+            "Mas este silêncio cinzento não é descanso. Há promessas que ainda pulsam sob a névoa.",
+            "Preciso caminhar outra vez... e lembrar de cada um deles.",
         ]
         
         self.indice_atual = 0
@@ -170,7 +170,8 @@ class Intro(CenaBase):
         elif self.estado_efeito == "HOLD":
             self.tempo_hold_acumulado += dt * 1000.0
             tempo_atual = pygame.time.get_ticks()
-            if self.tempo_hold_acumulado >= self.tempo_hold or (tempo_atual - self.tempo_inicio_hold > self.tempo_hold):
+            # Evita atraso de 1 quadro por deriva de ponto flutuante (ex.: 156 * 1000/60 < 2600.0)
+            if (self.tempo_hold_acumulado + 1e-6) >= self.tempo_hold or (tempo_atual - self.tempo_inicio_hold > self.tempo_hold):
                 self.estado_efeito = "FADE_OUT"
                 
         elif self.estado_efeito == "FADE_OUT":

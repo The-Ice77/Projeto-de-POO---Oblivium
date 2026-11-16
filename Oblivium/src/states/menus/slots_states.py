@@ -1,6 +1,7 @@
 # src/states/slots_states.py
 import pygame
 from src.states.states import State
+from src.entities.player import Player
 from src.utils.colors import (
     PRETO, CARVAO_PROFUNDO, CINZA_ARDOSIA, CINZA_LINHO,
     MARFIM_OFFWHITE, UI_TEXTO_APAGADO,
@@ -481,12 +482,12 @@ class SlotsState(State):
                 mp_atual = int(halia.get("mana_atual", 50))
                 mp_max = int(halia.get("mana_maxima", 50))
                 mems = halia.get("fragmentos_memoria", 0)
-                ouro = halia.get("dinheiro", 0)
+                moedas = Player.formatar_valor_moedas(halia.get("dinheiro", 0), compacto=True)
                 
                 txt_data = f"   •   {data_hora}" if data_hora else ""
                 txt_missao = f"   •   Missão: {missao_tit}" if missao_tit and missao_tit != "Sem Missão Ativa" else ""
                 linha1 = f"Local: {fase}   •   Tempo: {tempo}{txt_data}"
-                linha2 = f"HP: {hp_atual}/{hp_max}   •   MP: {mp_atual}/{mp_max}   •   Ouro: {ouro}{txt_missao}"
+                linha2 = f"HP: {hp_atual}/{hp_max}   •   MP: {mp_atual}/{mp_max}   •   Moedas: {moedas}{txt_missao}"
                 
                 render_l1 = self.fonte_status.render(linha1, True, MARFIM_OFFWHITE)
                 render_l2 = self.fonte_status.render(linha2, True, CINZA_LINHO)

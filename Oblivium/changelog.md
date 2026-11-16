@@ -1,7 +1,37 @@
 # ◈ Changelog Oblivium ◈
 *Histórico de versões, implementações e refinamentos de Oblivium.*
 
+### 15 de novembro de 2026 — Revisão dos iniciadores e perfis
+
+- O iniciador do Windows verifica se o Python da `.venv` consegue executar e é compatível antes de escolhê-lo; ambientes quebrados não impedem a procura de outro Python instalado.
+- A preparação do jogo preserva ambientes locais inválidos em backup e recria a `.venv` quando necessário. Se faltar pip, usa `ensurepip` no ambiente local antes de instalar as dependências.
+- Uma variável de perfil inválida não impede a ajuda ou uma seleção válida pela linha de comando. A validação informa o erro sem traceback.
+- Guia esclarece o papel dos dois arquivos `.bat`, a execução pelo VS Code e a diferença entre perfis na pasta de desenvolvimento e no pacote de avaliação. Ambientes e perfis gerados foram adicionados às exclusões locais do Git.
+- A área final da assinatura acompanha a posição da taverna, preservando as coordenadas e o comportamento atuais.
+- Validação desta revisão: sete suítes pertinentes aprovadas, compilação sem erros e SHA-256 dos 16 arquivos de saves preservado. O `.bat` extraído do pacote revisado também abriu a ajuda corretamente.
+
+### 15 de novembro de 2026 — Correção das interações de Oakhaven
+
+- As inscrições agora respondem numa faixa lateral ligada ao corpo do objeto, incluindo os cantos alcançados ao caminhar. Interagir orienta Halia para a marca e mostra o mesmo prompt genérico de examinar usado na ação.
+- NPCs, animais e objetos usam um seletor compartilhado para texto e prompt, priorizando proximidade e direção. Corrigidos os casos de falar com Aldous diante de Elara e selecionar a rocha ao examinar a bancada.
+- As teclas alternativas de interação dos presets funcionam também no gesto contínuo da assinatura. Uma tecla remapeada conserva seu próprio mapeamento.
+- Encostar na parede sem deslocamento real não cancela o gesto; soltar a interação, sair do alcance, mover-se, abrir interfaces ou perder foco continuam interrompendo a tentativa.
+- Acrescentados testes de aproximações por movimento, áreas frontais e laterais, NPCs próximos, correspondência entre prompt e ação e controles alternativos.
+- Validação da correção: 34 suítes aprovadas e os 16 arquivos de saves preservados. Pacote atualizado em `dist/Oblivium-demo-corrigida.zip`.
+
+### 15 de novembro de 2026 — Economia e segredo da demo
+
+- Carteira, preços e recompensas usam as mesmas unidades de cobre, prata e ouro. Bolsa inicial e pagamentos rebalanceados para 350 cobres antes do dragão e 450 ao final, sem compras ou vendas.
+- Preços das duas lojas centralizados; compra e venda confirmam o lote inteiro e restauram bolsa, saldo e estoque em caso de falha. Reposições de ervas conservam a origem para impedir colheitas indefinidas após load.
+- Segredo opcional de Oakhaven com progresso por slot e confirmação repetível. Patusco permanece como encontro ambiental, sem contagem de fases ou recompensa escolar.
+- Versão de avaliação com perfis separados, conquista oculta fora dos totais públicos e console DEV indisponível. Saves anteriores conservam carteira e progresso.
+- `main.py` reduzido ao ponto de entrada; `runtime_config.py` removido. Inicialização pela classe `Aplicacao`, com pygame 2.6.1 fixado, teste real do filtro e instalação automática numa `.venv` local quando necessário.
+- Iniciadores para jogar e começar outro participante; preparador de distribuição exclui saves e documentos internos.
+- Validação: compilação e 32 suítes oficiais aprovadas, com integridade SHA-256 dos 16 arquivos de saves preservada. A dificuldade do segredo ainda depende da calibragem com jogadores.
+
 ### 15 de novembro de 2026 — Sons do inventário e das memórias
+
+- **Direção narrativa ajustada pelo autor:** restauradas as cinco frases anteriores da introdução. A revisão de texto aplicada fica restrita às quatro etapas da reconstrução de Oakhaven, com falas cotidianas e os saltos de semanas e um mês explícitos; demais diálogos preservados.
 
 - Inventário com abertura, fechamento, mudança de abas, filtros, seleção e rolagem sonora apenas quando a ação produz mudança. Corrigidos o som de equipar cajado e o feedback de falha ao equipar grimório.
 - Fogueira contínua nos flashbacks de acampamento, com prioridade sobre o clima e limpeza ao terminar, pular, carregar ou retornar ao menu.

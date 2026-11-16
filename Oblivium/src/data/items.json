@@ -10,8 +10,8 @@
       "usavel_combate": true,
       "usavel_fora": true,
       "raridade": "COMUM",
-      "preco_compra": 25,
-      "preco_venda": 12,
+      "preco_compra": 20,
+      "preco_venda": 7,
       "acumulavel": true,
       "quantidade_maxima": 20
     },
@@ -25,8 +25,8 @@
       "usavel_combate": true,
       "usavel_fora": true,
       "raridade": "RARO",
-      "preco_compra": 70,
-      "preco_venda": 35,
+      "preco_compra": 55,
+      "preco_venda": 19,
       "acumulavel": true,
       "quantidade_maxima": 20
     },
@@ -40,8 +40,8 @@
       "usavel_combate": true,
       "usavel_fora": true,
       "raridade": "COMUM",
-      "preco_compra": 30,
-      "preco_venda": 15,
+      "preco_compra": 25,
+      "preco_venda": 8,
       "acumulavel": true,
       "quantidade_maxima": 20
     },
@@ -55,8 +55,8 @@
       "usavel_combate": true,
       "usavel_fora": true,
       "raridade": "RARO",
-      "preco_compra": 85,
-      "preco_venda": 42,
+      "preco_compra": 65,
+      "preco_venda": 22,
       "acumulavel": true,
       "quantidade_maxima": 20
     },
@@ -71,8 +71,8 @@
       "usavel_combate": true,
       "usavel_fora": false,
       "raridade": "INCOMUM",
-      "preco_compra": 45,
-      "preco_venda": 20,
+      "preco_compra": 30,
+      "preco_venda": 10,
       "acumulavel": true,
       "quantidade_maxima": 10
     },
@@ -86,8 +86,8 @@
       "usavel_combate": true,
       "usavel_fora": true,
       "raridade": "INCOMUM",
-      "preco_compra": 40,
-      "preco_venda": 18,
+      "preco_compra": 25,
+      "preco_venda": 8,
       "acumulavel": true,
       "quantidade_maxima": 10
     }
@@ -101,7 +101,7 @@
       "slot": "ROUPA",
       "raridade": "COMUM",
       "preco_compra": 60,
-      "preco_venda": 30,
+      "preco_venda": 21,
       "bonus_atributos": {
         "intelecto": 2,
         "constituicao": 1
@@ -139,8 +139,8 @@
       "categoria": "EQUIPAMENTO",
       "slot": "CAJADO",
       "raridade": "COMUM",
-      "preco_compra": 75,
-      "preco_venda": 35,
+      "preco_compra": 50,
+      "preco_venda": 17,
       "icone_sprite": "props/Cajado.png",
       "bonus_atributos": {
         "intelecto": 3,
@@ -158,8 +158,8 @@
       "categoria": "EQUIPAMENTO",
       "slot": "CAJADO",
       "raridade": "RARO",
-      "preco_compra": 220,
-      "preco_venda": 110,
+      "preco_compra": 160,
+      "preco_venda": 56,
       "icone_sprite": "props/Cajado.png",
       "bonus_atributos": {
         "intelecto": 6,
@@ -177,8 +177,8 @@
       "categoria": "EQUIPAMENTO",
       "slot": "ACESSORIO_1",
       "raridade": "INCOMUM",
-      "preco_compra": 90,
-      "preco_venda": 45,
+      "preco_compra": 70,
+      "preco_venda": 24,
       "bonus_atributos": {
         "intelecto": 2,
         "presenca": 1
@@ -195,8 +195,8 @@
       "categoria": "EQUIPAMENTO",
       "slot": "ACESSORIO_2",
       "raridade": "INCOMUM",
-      "preco_compra": 95,
-      "preco_venda": 48,
+      "preco_compra": 80,
+      "preco_venda": 28,
       "bonus_atributos": {
         "constituicao": 3,
         "sabedoria": 1
@@ -216,8 +216,8 @@
       "categoria": "GRIMORIO",
       "magia_id": "bola_de_fogo",
       "raridade": "RARO",
-      "preco_compra": 150,
-      "preco_venda": 75,
+      "preco_compra": 120,
+      "preco_venda": 42,
       "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "dano_fogo_bonus": 10
@@ -250,8 +250,8 @@
       "categoria": "GRIMORIO",
       "magia_id": "brisa_curativa",
       "raridade": "RARO",
-      "preco_compra": 140,
-      "preco_venda": 70,
+      "preco_compra": 100,
+      "preco_venda": 35,
       "icone_sprite": "props/Grimório.png",
       "bonus_stats": {
         "cura_bonus": 12
@@ -362,8 +362,8 @@
       "descricao": "Pétalas prateadas que absorvem a luz da lua. Usada em poções de cura.",
       "categoria": "MATERIAL",
       "raridade": "COMUM",
-      "preco_compra": 10,
-      "preco_venda": 5,
+      "preco_compra": 6,
+      "preco_venda": 2,
       "acumulavel": true,
       "quantidade_maxima": 99
     },
@@ -373,8 +373,8 @@
       "descricao": "Resíduo brilhante da condensação mágica. Essencial para elixires e encantamentos.",
       "categoria": "MATERIAL",
       "raridade": "INCOMUM",
-      "preco_compra": 15,
-      "preco_venda": 7,
+      "preco_compra": 10,
+      "preco_venda": 3,
       "acumulavel": true,
       "quantidade_maxima": 99
     },
@@ -384,8 +384,8 @@
       "descricao": "Galho resistente e flexível, ideal para confecção e reforço de cajados.",
       "categoria": "MATERIAL",
       "raridade": "COMUM",
-      "preco_compra": 12,
-      "preco_venda": 6,
+      "preco_compra": 8,
+      "preco_venda": 2,
       "acumulavel": true,
       "quantidade_maxima": 99
     },
@@ -395,8 +395,8 @@
       "descricao": "Metal denso imbuído de trevas purificadas, utilizado em aprimoramentos de equipamentos.",
       "categoria": "MATERIAL",
       "raridade": "RARO",
-      "preco_compra": 35,
-      "preco_venda": 18,
+      "preco_compra": 25,
+      "preco_venda": 8,
       "acumulavel": true,
       "quantidade_maxima": 99
     },

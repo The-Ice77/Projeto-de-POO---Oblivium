@@ -219,13 +219,13 @@ Ao revisar os textos antigos de `src/data/dialogos.json` e `src/ui/intro.py`, co
 
 ### 5.3. Roteiro Completo e Diálogos Revisados do Prólogo
 
-#### CENA 1: A Introdução (`src/ui/intro.py` — Ao som de `cutscene_intro.ogg` / *For 1000 Years*)
+#### CENA 1: A Introdução (`src/ui/scenes/intro.py` — Ao som de `cutscene_intro.ogg` / *For 1000 Years*)
 *(Fundo em Carvão Profundo, pétalas cinzentas caindo suavemente, flor botânica no topo)*
-1. `"Eu me sinto tão... diferente, tão vazia..."`
-2. `"Já faz quanto tempo? Quanto desde a última vez que senti o mundo como devia?"`
-3. `"Tudo perdeu suas cores... sua beleza e até seu significado..."`
-4. `"Mas sinto que as coisas não deveriam ser assim... Não posso deixar este mundo cinza para sempre."`
-5. `"Preciso lembrar de tudo."`
+1. `"Eu me sinto tão... distante, tão silenciosa por dentro..."`
+2. `"Quanto tempo se passou desde a última vez que ouvi vozes familiares ao redor da fogueira?"`
+3. `"O mundo perdeu suas cores, seu calor... e até os nomes que eu jurava jamais esquecer."`
+4. `"Mas este silêncio cinzento não é descanso. Há promessas que ainda pulsam sob a névoa."`
+5. `"Preciso caminhar outra vez... e lembrar de cada um deles."`
 
 ---
 

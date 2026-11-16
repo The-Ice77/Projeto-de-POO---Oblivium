@@ -160,20 +160,20 @@ class Loja:
     def inicializar_estoque_padrao(self):
         """Define os itens e estoques iniciais do mercador itinerante padrão."""
         itens_iniciais = [
-            ("pocao_vida_menor", 25, 12, 8, 15),
-            ("elixir_mana_menor", 30, 15, 6, 12),
-            ("frasco_fogo_alquimico", 45, 20, 4, 8),
-            ("unguento_purificador", 40, 18, 5, 10),
-            ("erva_lunar", 10, 5, 15, 30),
-            ("po_eter", 15, 7, 10, 20),
-            ("madeira_espinheiro", 12, 6, 8, 16),
-            ("minerio_sombrio", 35, 18, 3, 6),
-            ("anel_cristal_mana", 90, 45, 1, 1),
-            ("amuleto_guardiao_antigo", 95, 48, 1, 1),
+            ("pocao_vida_menor", 8, 15),
+            ("elixir_mana_menor", 6, 12),
+            ("frasco_fogo_alquimico", 4, 8),
+            ("unguento_purificador", 5, 10),
+            ("erva_lunar", 15, 30),
+            ("po_eter", 10, 20),
+            ("madeira_espinheiro", 8, 16),
+            ("minerio_sombrio", 3, 6),
+            ("anel_cristal_mana", 1, 1),
+            ("amuleto_guardiao_antigo", 1, 1),
         ]
         self.mercadorias.clear()
-        for item_id, p_compra, p_venda, est_ini, est_max in itens_iniciais:
-            self.adicionar_mercadoria(item_id, p_compra, p_venda, est_ini, est_max)
+        for item_id, est_ini, est_max in itens_iniciais:
+            self.adicionar_mercadoria(item_id, estoque_inicial=est_ini, estoque_maximo=est_max)
 
     def adicionar_mercadoria(self, item_id, preco_compra=None, preco_venda=None, estoque_inicial=5, estoque_maximo=10):
         self.mercadorias[item_id] = ItemMercadoria(item_id, preco_compra, preco_venda, estoque_inicial, estoque_maximo)
@@ -181,6 +181,43 @@ class Loja:
     def obter_lista_mercadorias(self):
         """Retorna a lista de itens à venda."""
         return list(self.mercadorias.values())
+
+    @staticmethod
+    def _quantidade_valida(quantidade):
+        return isinstance(quantidade, int) and not isinstance(quantidade, bool) and quantidade > 0
+
+    def cotar_compra(self, item_id, quantidade=1):
+        """Preço total em cobres usado tanto pela interface quanto pela transação."""
+        merc = self.mercadorias.get(item_id)
+        if not self._quantidade_valida(quantidade) or not merc or not merc.item_template:
+            return None
+        preco = merc.preco_compra
+        if not isinstance(preco, int) or isinstance(preco, bool) or preco < 0:
+            return None
+        return preco * quantidade
+
+    def cotar_venda(self, item_id, quantidade=1):
+        """Preço total em cobres; None indica item ou quantidade não vendável."""
+        if not self._quantidade_valida(quantidade):
+            return None
+        item = ItemFactory.criar(item_id)
+        if not item or isinstance(item, ItemChave) or item.preco_venda <= 0:
+            return None
+        merc = self.mercadorias.get(item_id)
+        preco = merc.preco_venda if merc else item.preco_venda
+        if not isinstance(preco, int) or isinstance(preco, bool) or preco <= 0:
+            return None
+        return preco * quantidade
+
+    @staticmethod
+    def _capturar_bolsa(inventario):
+        return [(slot, slot.quantidade) for slot in inventario.slots]
+
+    @staticmethod
+    def _restaurar_bolsa(inventario, estado):
+        inventario.slots[:] = [slot for slot, _ in estado]
+        for slot, quantidade in estado:
+            slot.quantidade = quantidade
 
     # =========================================================================
     # COMPRA (JOGADOR COMPRA DA LOJA)
@@ -191,31 +228,44 @@ class Loja:
         Jogador compra `quantidade` de `item_id` da loja.
         Retorna (sucesso: bool, mensagem: str).
         """
-        merc = self.mercadorias.get(item_id)
-        if not merc:
-            return False, "Item indisponível nesta loja."
-
-        if quantidade <= 0:
+        if not self._quantidade_valida(quantidade):
             return False, "Quantidade inválida."
+
+        merc = self.mercadorias.get(item_id)
+        custo_total = self.cotar_compra(item_id, quantidade)
+        if custo_total is None:
+            return False, "Item indisponível nesta loja."
 
         if merc.estoque_atual < quantidade:
             return False, f"Estoque insuficiente! O mercador possui apenas {merc.estoque_atual} unidade(s)."
 
-        custo_total = merc.preco_compra * quantidade
+        from src.entities.player import Player
         if jogador.dinheiro < custo_total:
-            return False, f"Moedas insuficientes! Custo total: {custo_total} moedas."
+            return False, f"Moedas insuficientes! Custo total: {Player.formatar_valor_moedas(custo_total)}."
 
         inv = jogador.inventario
-        if inv.esta_cheio and not inv.tem_item(item_id, 1):
-            return False, "Sua bolsa está cheia! Libere espaço antes de comprar."
+        if not inv.pode_adicionar_item(merc.item_template, quantidade):
+            return False, "Não há espaço na bolsa para a quantidade inteira."
 
-        # Efetua transação
-        jogador.gastar_dinheiro(custo_total)
-        merc.estoque_atual -= quantidade
-        inv.adicionar_item(item_id, quantidade)
+        saldo_anterior = jogador.dinheiro
+        estoque_anterior = merc.estoque_atual
+        bolsa_anterior = self._capturar_bolsa(inv)
+        try:
+            sucesso, _ = inv.adicionar_item_completo(item_id, quantidade)
+            if not sucesso or not jogador.gastar_dinheiro(custo_total):
+                raise ValueError("A entrega ou o débito não foi confirmado.")
+            if jogador.dinheiro != saldo_anterior - custo_total:
+                raise ValueError("O débito divergiu da cotação.")
+            merc.estoque_atual -= quantidade
+        except Exception as exc:
+            self._restaurar_bolsa(inv, bolsa_anterior)
+            jogador.dinheiro = saldo_anterior
+            merc.estoque_atual = estoque_anterior
+            logger.warning("Compra cancelada sem alterar saldo, estoque ou bolsa: %s", exc)
+            return False, "Não foi possível concluir a compra. Suas moedas e sua bolsa foram preservadas."
 
         nome_item = merc.item_template.nome if merc.item_template else item_id
-        return True, f"✦ Comprou {quantidade}x {nome_item} por {custo_total} moedas!"
+        return True, f"✦ Comprou {quantidade}x {nome_item} por {Player.formatar_valor_moedas(custo_total)}!"
 
     # =========================================================================
     # VENDA (JOGADOR VENDE ITEM DA BOLSA PARA A LOJA)
@@ -226,6 +276,8 @@ class Loja:
         Jogador vende `quantidade` de `item_id` para o mercador.
         Retorna (sucesso: bool, mensagem: str).
         """
+        if not self._quantidade_valida(quantidade):
+            return False, "Quantidade inválida."
         inv = jogador.inventario
         if not inv.tem_item(item_id, quantidade):
             return False, "Você não possui a quantidade informada deste item."
@@ -234,28 +286,33 @@ class Loja:
         if not item_temp:
             return False, "Item inválido."
 
-        if isinstance(item_temp, ItemChave) or item_temp.preco_venda <= 0:
+        total_ganho = self.cotar_venda(item_id, quantidade)
+        if total_ganho is None:
             return False, f"{item_temp.nome} é um item de valor inestimável e não pode ser vendido."
 
-        # Calcula valor recebido
-        preco_unitario = item_temp.preco_venda
-        if item_id in self.mercadorias:
-            preco_unitario = self.mercadorias[item_id].preco_venda
+        saldo_anterior = jogador.dinheiro
+        bolsa_anterior = self._capturar_bolsa(inv)
+        merc = self.mercadorias.get(item_id)
+        estoque_anterior = merc.estoque_atual if merc else None
+        qtd_anterior = inv.obter_quantidade(item_id)
+        try:
+            if not inv.remover_item(item_id, quantidade) or inv.obter_quantidade(item_id) != qtd_anterior - quantidade:
+                raise ValueError("A remoção não foi integral.")
+            jogador.ganhar_dinheiro(total_ganho)
+            if jogador.dinheiro != saldo_anterior + total_ganho:
+                raise ValueError("O crédito divergiu da cotação.")
+            if merc:
+                merc.estoque_atual = min(merc.estoque_maximo, merc.estoque_atual + quantidade)
+        except Exception as exc:
+            self._restaurar_bolsa(inv, bolsa_anterior)
+            jogador.dinheiro = saldo_anterior
+            if merc:
+                merc.estoque_atual = estoque_anterior
+            logger.warning("Venda cancelada sem alterar saldo, estoque ou bolsa: %s", exc)
+            return False, "Não foi possível concluir a venda. Suas moedas e sua bolsa foram preservadas."
 
-        total_ganho = preco_unitario * quantidade
-
-        # Efetua transação
-        inv.remover_item(item_id, quantidade)
-        jogador.ganhar_dinheiro(total_ganho)
-
-        # Repõe estoque na loja se for um item catalogado
-        if item_id in self.mercadorias:
-            self.mercadorias[item_id].estoque_atual = min(
-                self.mercadorias[item_id].estoque_maximo,
-                self.mercadorias[item_id].estoque_atual + quantidade
-            )
-
-        return True, f"✦ Vendeu {quantidade}x {item_temp.nome} por {total_ganho} moedas!"
+        from src.entities.player import Player
+        return True, f"✦ Vendeu {quantidade}x {item_temp.nome} por {Player.formatar_valor_moedas(total_ganho)}!"
 
     def reabastecer(self):
         """Reabastece periodicamente o estoque do mercador."""

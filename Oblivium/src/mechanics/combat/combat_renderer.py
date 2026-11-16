@@ -1,6 +1,7 @@
 # src/mechanics/combat/combat_renderer.py
 import pygame
 import random
+from src.entities.player import Player
 from src.ui.ui_utils import (
     desenhar_barra_status_interpolada,
     quebrar_texto_em_linhas
@@ -1001,7 +1002,8 @@ class CombatRenderer:
         if self.cs.estado_combate == "VITORIA":
             cor_borda = TXT_SISTEMA_NARRADOR
             titulo = CombatNarrator.obter_banner("vitoria_titulo") or "VITÓRIA ALCANÇADA!"
-            msg1 = f"Recompensas: +{self.cs.recompensas_vitoria['moedas']} Moedas | +{self.cs.recompensas_vitoria['memorias']} Memória(s)"
+            moedas = Player.formatar_valor_moedas(self.cs.recompensas_vitoria["moedas"], compacto=True)
+            msg1 = f"Recompensas: +{moedas} | +{self.cs.recompensas_vitoria['memorias']} Memória(s)"
             msg2 = CombatNarrator.obter_banner("continuar_prompt") or "Pressione [ENTER], [ESPAÇO] ou clique para prosseguir"
         elif self.cs.estado_combate == "DERROTA":
             cor_borda = TEXTO_ALERTA_COMBATE
