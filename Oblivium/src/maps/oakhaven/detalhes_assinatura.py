@@ -1,6 +1,7 @@
 """Pequenas marcas no cenário, independentes de missões e da fauna."""
 
 import pygame
+from src.utils import constants
 
 
 def _tracos(sprite, posicao, quantidade):
@@ -12,8 +13,11 @@ def _tracos(sprite, posicao, quantidade):
 
 def preparar_detalhes(mapa):
     """Monta as marcas, suas faixas de inspeção e a madeira da taverna."""
-    por_id = {e.get("id"): e for e in mapa.estruturas_ysort if e.get("id")}
     mapa.indicios_assinatura = []
+    mapa.assinatura_alvo = None
+    if not constants.easter_egg_oakhaven_habilitado():
+        return
+    por_id = {e.get("id"): e for e in mapa.estruturas_ysort if e.get("id")}
     for identificador, estrutura, local, ponto, direcao, quantidade in (
         ("quadro", "quadro_vila", (78, 44), (1345, 878), "esquerda", 1),
         ("canteiro", "canteiro_elara", (1, 29), (310, 615), "direita", 2),
@@ -37,7 +41,6 @@ def preparar_detalhes(mapa):
         })
 
     taverna = por_id.get("loja_taverna")
-    mapa.assinatura_alvo = None
     if taverna is not None:
         # Peça sobre o poste de madeira do canto esquerdo, visível desde o chão.
         madeira = pygame.Surface((14, 28), pygame.SRCALPHA)
@@ -78,6 +81,8 @@ def sprite_bancada():
 
 
 def desenhar_revelacao(mapa, tela):
+    if not constants.easter_egg_oakhaven_habilitado():
+        return
     segredo = getattr(mapa.game, "segredo_oakhaven", None)
     alvo = getattr(mapa, "assinatura_alvo", None)
     if segredo is None or alvo is None or mapa.nome != "OAKHAVEN":

@@ -8,6 +8,15 @@ PASTA_SRC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASTA_OBLIVIUM = os.path.dirname(PASTA_SRC)
 PASTA_DATA = os.path.join(PASTA_SRC, "data")
 
+# Toggle do Easter Egg de Oakhaven ("A Assinatura Escondida").
+# Altere para True para reativar marcas, pistas, interação e revelação no mapa.
+EASTER_EGG_OAKHAVEN_HABILITADO = False
+
+
+def easter_egg_oakhaven_habilitado():
+    """Retorna True quando o Easter Egg de Oakhaven está ativo."""
+    return bool(EASTER_EGG_OAKHAVEN_HABILITADO)
+
 
 def modo_apresentacao():
     """O marcador existe somente na distribuição escolar preparada pelo projeto."""

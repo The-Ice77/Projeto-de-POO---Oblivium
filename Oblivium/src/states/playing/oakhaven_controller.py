@@ -2,6 +2,7 @@
 import pygame
 from src.entities.enemy_factory import EnemyFactory
 from src.mechanics.progression.economia_demo import recompensas_encontro
+from src.utils import constants
 
 
 class OakhavenController:
@@ -35,6 +36,8 @@ class OakhavenController:
         self._posicao_entrada = None
 
     def _mapa_segredo(self):
+        if not constants.easter_egg_oakhaven_habilitado():
+            return None
         mapa = getattr(self.game.mapa_casa, "cenario_objeto", None)
         if (getattr(self.game.mapa_casa, "cenario_atual", None) == "OAKHAVEN"
                 and getattr(mapa, "nome", None) == "OAKHAVEN"
@@ -79,6 +82,11 @@ class OakhavenController:
                 evento.type == pygame.ACTIVEEVENT and evento.gain and evento.state & 2
             ):
                 self.game.foco_janela = True
+
+        if not constants.easter_egg_oakhaven_habilitado():
+            self._interagir_pressionado = False
+            segredo.interromper()
+            return
 
         def pressionada(tecla):
             try:
