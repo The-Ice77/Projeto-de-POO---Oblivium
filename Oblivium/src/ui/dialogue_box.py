@@ -230,9 +230,13 @@ class DialogueBox:
         idx = max(0, min(getattr(self, "indice_pagina_texto", 0), len(paginas) - 1))
         return paginas[idx]
 
-    def _tocar_sfx(self, alias, volume_extra=1.0):
+    def _tocar_sfx(self, alias, volume_extra=1.0, cooldown_s=0.0):
         audio = AudioManager.get_instance()
-        if audio:
+        if not audio:
+            return
+        if cooldown_s > 0:
+            audio.tocar_sfx_com_cooldown(alias, cooldown_s=cooldown_s, volume_extra=volume_extra)
+        else:
             audio.tocar_sfx(alias, volume_extra=volume_extra)
 
     def proximo_texto(self):
@@ -549,13 +553,12 @@ class DialogueBox:
         fator_quadro = float(dt) * 60.0
         if self.caractere_atual < self.tamanho_total:
             caractere_ant = int(self.caractere_atual)
-            self.caractere_atual += self.velocidade_texto * fator_quadro
-            if self.caractere_atual > self.tamanho_total:
-                self.caractere_atual = self.tamanho_total
-            
-            # Feedback sonoro rítmico suave de máquina de escrever a cada 3 caracteres
-            if int(self.caractere_atual) // 3 > caractere_ant // 3:
-                self._tocar_sfx("ui_dialogo", volume_extra=0.45)
+            self.caractere_atual = min(self.tamanho_total, self.caractere_atual + self.velocidade_texto * fator_quadro)
+            caractere_novo = int(self.caractere_atual)
+            if caractere_novo > caractere_ant:
+                trecho = "".join(self.linhas_pagina_atual)[caractere_ant:caractere_novo]
+                if any(ch.isalnum() for ch in trecho):
+                    self._tocar_sfx("ui_dialogo", volume_extra=0.55, cooldown_s=0.055)
 
     def desenhar(self, tela):
         if not self.ativo or not self.dados_atuais:

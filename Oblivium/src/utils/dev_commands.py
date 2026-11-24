@@ -370,13 +370,13 @@ class ComandosDev:
             ativou_alguma = False
             if not principal_ativa:
                 for mid, m in qm.missoes.items():
-                    if m.get("categoria") == "PRINCIPAL" and m.get("status") == "DISPONIVEL":
+                    if m.get("categoria") == "PRINCIPAL" and qm.missao_disponivel(mid):
                         qm.aceitar_missao(mid)
                         ativou_alguma = True
                         break
             if not secundaria_ativa:
                 for mid, m in qm.missoes.items():
-                    if m.get("categoria") != "PRINCIPAL" and m.get("status") == "DISPONIVEL":
+                    if m.get("categoria") != "PRINCIPAL" and qm.missao_disponivel(mid):
                         qm.aceitar_missao(mid)
                         ativou_alguma = True
                         break

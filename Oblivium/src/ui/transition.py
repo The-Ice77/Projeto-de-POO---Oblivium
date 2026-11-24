@@ -68,8 +68,9 @@ class Transition:
         Ativa o efeito de fade-out e transição poética. 
         Pode receber um texto opcional (ex: 'Capítulo 1: O Despertar', 'Vila de Oakhaven').
         """
-        if self.estado == "INATIVO":
-            self.alpha = 0
+        if self.estado in ("INATIVO", "CLAREANDO"):
+            if self.estado == "INATIVO":
+                self.alpha = 0
             self.texto_atual = texto_opcional
             self.texto_alpha = 255
             self.caractere_atual = 0.0

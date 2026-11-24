@@ -157,6 +157,7 @@
         "xp": 150,
         "itens": ["po_eter"]
       },
+      "prerequisitos_missao": ["missao_boas_vindas"],
       "status": "DISPONIVEL"
     }
   ]

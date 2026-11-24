@@ -222,6 +222,37 @@ class SaveManager:
 
         return True
 
+    def obter_tipo_save_mais_recente(self, slot):
+        """Retorna 'manual' ou 'autosave' conforme o checkpoint válido mais recente do slot."""
+        slot = save_io.normalizar_slot(slot)
+        dados_auto = save_io.carregar_dados(slot, tipo="autosave")
+        dados_manual = save_io.carregar_dados(slot, tipo="manual")
+
+        if dados_manual and not dados_auto:
+            return "manual"
+        if dados_auto and not dados_manual:
+            return "autosave"
+        if not dados_auto and not dados_manual:
+            return None
+
+        ts_auto = dados_auto.get("timestamp_epoch")
+        ts_man = dados_manual.get("timestamp_epoch")
+        if self._eh_numero(ts_man) and self._eh_numero(ts_auto) and float(ts_man) > float(ts_auto):
+            return "manual"
+        return "autosave"
+
+    def carregar_ultimo_checkpoint(self, slot):
+        """Carrega o save mais recente (manual ou autosave) do slot, com fallback para o alternativo."""
+        if not slot:
+            return False
+        tipo_pref = self.obter_tipo_save_mais_recente(slot)
+        if not tipo_pref:
+            return False
+        if self.carregar_estado(slot, tipo=tipo_pref):
+            return True
+        outro_tipo = "manual" if tipo_pref == "autosave" else "autosave"
+        return bool(self.carregar_estado(slot, tipo=outro_tipo))
+
     def carregar_estado(self, slot, tipo="manual"):
         """
         Carrega e desserializa os dados do save em duas fases:
@@ -579,7 +610,13 @@ class SaveManager:
                         ninho.inicializar_cenario()
             else:
                 from src.entities.enemy_factory import EnemyFactory
-                dragao = EnemyFactory.criar_boss("dragao_vermelho", x=575, y=210, nome_custom="Ignis'Vahr, o Dragão Vermelho")
+                ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
+                if ninho is not None:
+                    ninho.ninho_amanhecer = False
+                    ninho.dragao_derrotado = False
+                    if hasattr(ninho, "inicializar_cenario"):
+                        ninho.inicializar_cenario()
+                dragao = EnemyFactory.criar_boss("dragao_vermelho", x=525, y=145, nome_custom="Ignis'Vahr, o Dragão Vermelho")
                 dragao.velocidade = 0
                 dragao.virado_direita = False
                 dragao.direcao = "esquerda"

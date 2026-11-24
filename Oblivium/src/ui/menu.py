@@ -3,6 +3,7 @@ from src.utils.colors import PRETO
 from src.utils import save_storage
 from src.utils.resource_manager import ResourceManager
 from src.utils.animations import EfeitoPetalas
+from src.ui.menu_secret import SegredoMenuCheats
 from src.ui.ui_utils import BotaoGrafico
 
 class Menu:
@@ -25,6 +26,8 @@ class Menu:
         
         # Carregamento e dimensionamento dos elementos visuais
         self._carregar_artes()
+        tam_versao = self.img_versao.get_size() if self.img_versao else (152, 44)
+        self.segredo_cheats = SegredoMenuCheats(self.efeito_petalas, self.pos_versao, tam_versao)
         self._criar_botoes()
         self.atualizar_opcoes()
 
@@ -109,6 +112,7 @@ class Menu:
     def atualizar(self, dt=0.016):
         """Atualiza a simulação das pétalas e o estado de animação dos botões."""
         self.efeito_petalas.atualizar(dt)
+        self.segredo_cheats.atualizar(dt)
 
         for i, opcao in enumerate(self.opcoes):
             if opcao in self.botoes:
@@ -138,8 +142,8 @@ class Menu:
         # 1. Fundo 100% preto puro
         tela.fill(self.cor_fundo)
 
-        # 2. Pétalas caindo ao fundo com transparência alfa limpa
-        self.efeito_petalas.desenhar(tela)
+        # 2. Pétalas caindo ao fundo com transparência alfa limpa e folhas do segredo
+        self.segredo_cheats.desenhar_petalas(tela)
 
         # 3. Título e Subtítulo
         if self.img_titulo:
@@ -154,6 +158,5 @@ class Menu:
         if self.img_texto_especial:
             tela.blit(self.img_texto_especial, self.pos_texto_especial)
 
-        # 6. Versão do Jogo (canto inferior direito)
-        if self.img_versao:
-            tela.blit(self.img_versao, self.pos_versao)
+        # 6. Versão do Jogo e compartimento oculto (canto inferior direito)
+        self.segredo_cheats.desenhar_versao_e_botao(tela, self.img_versao)

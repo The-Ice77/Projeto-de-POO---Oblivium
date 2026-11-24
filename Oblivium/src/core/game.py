@@ -13,6 +13,7 @@ from src.core.save_manager import SaveManager
 from src.ui.hud import HUD
 from src.utils.filtro_memoria import FiltroMemoria
 from src.ui.notification_manager import NotificationManager
+from src.utils import constants
 from src.utils.constants import desenvolvimento_habilitado
 from src.utils.animations import EfeitoFolhas
 from src.utils.clima import EfeitoChuva
@@ -561,6 +562,18 @@ class Game:
         """Atualiza dt_fator (legado) e dt em segundos (limitado a 50 ms) após clock.tick."""
         self.dt_fator = max(0.5, min(2.0, dt_ms / 16.666)) if dt_ms > 0 else 1.0
         self.dt = min(0.05, dt_ms / 1000.0) if dt_ms > 0 else (1.0 / 60.0)
+
+    def habilitar_comandos_dev(self):
+        """Habilita o console DEV após o segredo do menu (nunca no modo apresentação)."""
+        if constants.modo_apresentacao():
+            return False
+        if getattr(self, "dev_commands", None) is None:
+            try:
+                from src.utils.dev_commands import ComandosDev
+            except ImportError:
+                return False
+            self.dev_commands = ComandosDev(self)
+        return True
 
     def salvar_estado(self, slot=None, tipo="manual", silenciar_notificacao=False):
         return self.save_manager.salvar_estado(slot, tipo=tipo, silenciar_notificacao=silenciar_notificacao)

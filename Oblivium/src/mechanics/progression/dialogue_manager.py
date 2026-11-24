@@ -297,6 +297,13 @@ class DialogueManager:
             if "evento" not in opcao:
                 self.evento_pendente = f"concluir_missao:{id_m}"
 
+        if "concluir_missao_adiantada" in opcao:
+            id_m = opcao["concluir_missao_adiantada"]
+            if self.quest_manager and not self.quest_manager.concluir_missao_adiantada(id_m):
+                return False
+            if "evento" not in opcao:
+                self.evento_pendente = f"concluir_missao:{id_m}"
+
         opt_id = opcao.get("id")
         if opt_id and not self._opcao_eh_permanente(opcao):
             self.historico_escolhas.add(opt_id)
@@ -424,12 +431,30 @@ class DialogueManager:
             if all(self.quest_manager.missoes.get(mid, {}).get("status") == "CONCLUIDA" for mid in lista_pend):
                 return False
 
+        # Condição de bloquear opção caso todas as missões listadas estejam concluídas
+        cond_bloq = opt.get("condicao_bloquear_se_concluidas")
+        if cond_bloq and self.quest_manager:
+            lista_bloq = [cond_bloq] if isinstance(cond_bloq, str) else list(cond_bloq)
+            if all(self.quest_manager.missoes.get(mid, {}).get("status") == "CONCLUIDA" for mid in lista_bloq):
+                return False
+
+        # Condição de nenhuma missão concluída (oculta opção se qualquer missão listada já foi concluída)
+        cond_nenhuma = opt.get("condicao_nenhuma_missao_concluida")
+        if cond_nenhuma and self.quest_manager:
+            lista_nenhuma = [cond_nenhuma] if isinstance(cond_nenhuma, str) else list(cond_nenhuma)
+            if any(self.quest_manager.missoes.get(mid, {}).get("status") == "CONCLUIDA" for mid in lista_nenhuma):
+                return False
+
         # Condição de missão disponível
         id_missao_disp = opt.get("condicao_missao_disponivel") or opt.get("aceitar_missao")
         if id_missao_disp and self.quest_manager:
-            missao = self.quest_manager.missoes.get(id_missao_disp)
-            if not missao or missao.get("status") != "DISPONIVEL":
-                return False
+            if hasattr(self.quest_manager, "missao_disponivel"):
+                if not self.quest_manager.missao_disponivel(id_missao_disp):
+                    return False
+            else:
+                missao = self.quest_manager.missoes.get(id_missao_disp)
+                if not missao or missao.get("status") != "DISPONIVEL":
+                    return False
 
         # Condição de flag narrativa
         flag_req = opt.get("condicao_flag")

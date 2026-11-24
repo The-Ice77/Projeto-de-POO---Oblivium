@@ -271,6 +271,14 @@ class MapaNinhoDragao(CenarioBase):
                     "prompt_y": 195,
                     "acao_texto": "para Enfrentar Ignis'Vahr",
                     "evento": "iniciar_climax_dragao_oakhaven"
+                },
+                {
+                    "id": "trilha_recuar_oakhaven",
+                    "rect": pygame.Rect(540, 640, 200, 70),
+                    "prompt_x": 640,
+                    "prompt_y": 620,
+                    "acao_texto": "para Recuar a Oakhaven",
+                    "evento": "recuar_oakhaven_destruida"
                 }
             ]
 

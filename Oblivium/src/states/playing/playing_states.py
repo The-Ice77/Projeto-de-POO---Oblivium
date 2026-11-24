@@ -240,15 +240,9 @@ class PlayingState(State):
             if hasattr(self.game, 'transicao'):
                 if self.game.transicao.estado == "INATIVO":
                     self.game.transicao.iniciar("Halia sucumbiu... Retornando ao último marco.")
-                elif self.game.transicao.estado == "ESCURO":
-                    if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
-                        self.game.carregar_estado(self.game.slot_atual, tipo="autosave")
-                    elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
-                        self.game.carregar_estado(self.game.slot_atual, tipo="manual")
-                    else:
-                        self.game.halia.restaurar_total()
-                        self.game.mapa_casa.carregar_cenario("CASA")
-                        self.game.halia.x, self.game.halia.y = 210, 280
+                elif self.game.transicao.atualizar(dt) or self.game.transicao.estado in ("MUDANDO", "ESCURO"):
+                    self.on_derrota()
+                    self.game.transicao.alpha = 255
                     self.game.transicao.estado = "CLAREANDO"
             return
         
@@ -765,17 +759,19 @@ class PlayingState(State):
                 self._entrar_em_oakhaven()
 
     def on_derrota(self):
-        """Recarrega o checkpoint após derrota e limpa uniformemente flags transitórias, cenas e inimigos."""
+        """Recarrega o checkpoint mais recente após derrota e restaura o cenário com segurança."""
+        cenario_antes = getattr(getattr(self.game, "mapa_casa", None), "cenario_atual", "CASA")
         self.game.inimigos_em_cena.clear()
-        carregou_save = False
-        if self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="autosave"):
-            carregou_save = bool(self.game.carregar_estado(self.game.slot_atual, tipo="autosave"))
-        elif self.game.slot_atual and self.game.save_manager.save_existe(self.game.slot_atual, tipo="manual"):
-            carregou_save = bool(self.game.carregar_estado(self.game.slot_atual, tipo="manual"))
+        carregou_save = bool(
+            self.game.slot_atual
+            and self.game.save_manager.carregar_ultimo_checkpoint(self.game.slot_atual)
+        )
 
         if not carregou_save:
             self.game.halia.restaurar_total()
-            self.game.halia.x, self.game.halia.y = 60, 330
+            self.game.halia.x, self.game.halia.y = self.game.save_manager.SPAWNS_SEGUROS.get(
+                cenario_antes, (60, 330)
+            )
 
         for attr_game, padrao in self.game.save_manager.FLAGS_TRANSITORIAS:
             setattr(self.game, attr_game, padrao)
@@ -784,7 +780,6 @@ class PlayingState(State):
         self.game.bola_fogo_ativa = False
         self.game.distanciando_halia = False
         self.game.timer_magia = 0
-        self.game.inimigos_em_cena.clear()
 
         if hasattr(self.game, "caixa_dialogo") and self.game.caixa_dialogo:
             self.game.caixa_dialogo.ativo = False
@@ -798,8 +793,15 @@ class PlayingState(State):
         if hasattr(self, "cutscene_reconstrucao") and self.cutscene_reconstrucao:
             self.cutscene_reconstrucao.ativo = False
 
-        if self.game.mapa_casa.cenario_atual == "ESTRADA_2":
+        cenario_atual = getattr(getattr(self.game, "mapa_casa", None), "cenario_atual", cenario_antes)
+        if cenario_atual == "ESTRADA_2":
+            self.game.inimigos_em_cena.clear()
             self.prologo_controller.resetar_derrota_estrada_2()
+        elif cenario_atual in ("ORLA_NORTE", "NINHO_DRAGAO", "OAKHAVEN", "OAKHAVEN_DESTRUIDA"):
+            self.oakhaven_controller.restaurar_apos_derrota_fase1()
+        else:
+            self.game.inimigos_em_cena.clear()
+            self.game.halia.restaurar_total()
 
         self.game.mudar_estado("JOGANDO")
 

@@ -23,10 +23,27 @@
             "repetivel": true
           },
           {
+            "id": "aldous_reconhecer_adiantamento",
+            "texto": "Já ajudei a Curandeira Elara e o Ferreiro Torvald. Há algo mais em que eu possa auxiliar a vila?",
+            "proximo": "fala_aldous_adiantado_1",
+            "condicao_missao_disponivel": "missao_boas_vindas",
+            "condicao_missao_concluida": ["missao_ervas_medicinais", "missao_pedra_forja"],
+            "concluir_missao_adiantada": "missao_boas_vindas"
+          },
+          {
+            "id": "aldous_perguntar_descanso_bloqueado_patrulha",
+            "texto": "Onde posso me recolher para passar a noite?",
+            "proximo": "fala_descanso_bloqueado_patrulha",
+            "condicao_missao_concluida": ["missao_ervas_medicinais", "missao_pedra_forja"],
+            "condicao_missao_nao_concluida": ["missao_boas_vindas", "missao_ronda_fronteiras"],
+            "repetivel": true
+          },
+          {
             "id": "aldous_perguntar_descanso_bloqueado",
             "texto": "Onde posso me recolher para passar a noite?",
             "proximo": "fala_descanso_bloqueado",
             "condicao_missao_nao_concluida": ["missao_boas_vindas", "missao_ronda_fronteiras"],
+            "condicao_bloquear_se_concluidas": ["missao_ervas_medicinais", "missao_pedra_forja"],
             "repetivel": true
           },
           {
@@ -44,6 +61,25 @@
             "texto": "Quero ajudar a vila e conhecer os moradores de Oakhaven.",
             "proximo": "fala_aceitar_aldous_1",
             "condicao_missao_disponivel": "missao_boas_vindas",
+            "condicao_nenhuma_missao_concluida": ["missao_ervas_medicinais", "missao_pedra_forja"],
+            "aceitar_missao": "missao_boas_vindas"
+          },
+          {
+            "id": "aldous_aceitar_missao_elara_concluida",
+            "texto": "Já ajudei a Curandeira Elara na botânica. O que mais falta fazer pela vila?",
+            "proximo": "fala_aceitar_aldous_elara_feita",
+            "condicao_missao_disponivel": "missao_boas_vindas",
+            "condicao_missao_concluida": "missao_ervas_medicinais",
+            "condicao_missao_nao_concluida": "missao_pedra_forja",
+            "aceitar_missao": "missao_boas_vindas"
+          },
+          {
+            "id": "aldous_aceitar_missao_torvald_concluido",
+            "texto": "Já ajudei o Ferreiro Torvald na oficina. O que mais falta fazer pela vila?",
+            "proximo": "fala_aceitar_aldous_torvald_feito",
+            "condicao_missao_disponivel": "missao_boas_vindas",
+            "condicao_missao_concluida": "missao_pedra_forja",
+            "condicao_missao_nao_concluida": "missao_ervas_medicinais",
             "aceitar_missao": "missao_boas_vindas"
           },
           {
@@ -96,6 +132,37 @@
         "autor": "Halia",
         "texto": "Obrigada, Ancião. Vou me recolher por esta noite.",
         "evento": "iniciar_cutscene_dormir_vila",
+        "proximo": null
+      },
+      "fala_aceitar_aldous_elara_feita": {
+        "autor": "Ancião Aldous",
+        "texto": "A Curandeira Elara já comentou sobre sua presteza, Halia! Resta agora visitar a oficina do Ferreiro Torvald a leste para auxiliá-lo com a rocha de minério. Quando concluir com ele, retorne a mim diante do monumento.",
+        "proximo": null
+      },
+      "fala_aceitar_aldous_torvald_feito": {
+        "autor": "Ancião Aldous",
+        "texto": "O Ferreiro Torvald já me contou o quanto você o ajudou na forja, Halia! Falta apenas visitar a botânica da Curandeira Elara a oeste para colher as ervas de que ela precisa. Depois, volte a falar comigo diante do monumento.",
+        "proximo": null
+      },
+      "fala_descanso_bloqueado_patrulha": {
+        "autor": "Ancião Aldous",
+        "texto": "Sei que você já se adiantou e ajudou Elara na botânica e Torvald na forja, mas ainda há uma ameaça urgente: resolva a situação dos batedores demoníacos com o Guarda Doran no Portão Norte. Assim que retornar em segurança, você terá repouso garantido na Casa de Hóspedes.",
+        "proximo": "menu_aldous"
+      },
+      "fala_aldous_adiantado_1": {
+        "autor": "Ancião Aldous",
+        "texto": "Sim, senhorita! Antes mesmo que eu pudesse pedir, Elara e Torvald já mandaram notícias contando que você se adiantou e ajudou ambos com as ervas da botânica e o minério da forja.",
+        "proximo": "fala_aldous_adiantado_2"
+      },
+      "fala_aldous_adiantado_2": {
+        "autor": "Ancião Aldous",
+        "texto": "Tamanha iniciativa trouxe esperança a toda Oakhaven. Aceite estas provisões em reconhecimento por tudo o que você já fez pela vila.",
+        "proximo": "fala_aldous_adiantado_3"
+      },
+      "fala_aldous_adiantado_3": {
+        "autor": "Ancião Aldous",
+        "texto": "Como as tarefas com Elara e Torvald já foram cumpridas, só lhe peço uma última urgência antes do anoitecer: procure o Guarda Doran no Portão Norte da paliçada e ajude-o a resolver a presença dos batedores demoníacos na Orla Norte.",
+        "aceitar_missao": "missao_ronda_fronteiras",
         "proximo": null
       }
     }
@@ -399,8 +466,16 @@
             "id": "doran_aceitar_missao",
             "texto": "Vim ajudar a afastar os batedores demoníacos da Orla Norte.",
             "proximo": "fala_aceitar_doran_1",
+            "condicao_missao_concluida": "missao_boas_vindas",
             "condicao_missao_disponivel": "missao_ronda_fronteiras",
             "aceitar_missao": "missao_ronda_fronteiras"
+          },
+          {
+            "id": "doran_sobre_orla_bloqueada",
+            "texto": "Posso ajudar na vigilância além do portão norte agora?",
+            "proximo": "fala_doran_aguardar_aldous",
+            "condicao_missao_nao_concluida": "missao_boas_vindas",
+            "repetivel": true
           },
           {
             "id": "doran_sobre_carta",
@@ -427,6 +502,11 @@
       "despedida_doran": {
         "autor": "Guarda Doran",
         "texto": "Olhos atentos na neblina, viajante."
+      },
+      "fala_doran_aguardar_aldous": {
+        "autor": "Guarda Doran",
+        "texto": "Agradeço a disposição, Grã-Maga, mas recebi ordens do Ancião Aldous para manter este portão fechado até você se alinhar com ele na praça central. Assim que o Ancião autorizar a patrulha, iremos juntos à Orla Norte.",
+        "proximo": "menu_doran"
       }
     }
   },
@@ -478,6 +558,86 @@
       "fala_2": {
         "autor": "Guarda Doran",
         "texto": "Receba esta recompensa da guarda e este Pó de Éter. A ronda foi um sucesso e nós manteremos a vigília nos portões! Vá falar com o Ancião Aldous diante da praça central, Halia — ele reservou um abrigo seguro para você repousar esta noite.",
+        "proximo": null
+      }
+    }
+  },
+  "hub_doran_orla_norte": {
+    "no_inicial": "saudacao_orla",
+    "nos": {
+      "saudacao_orla": {
+        "autor": "Guarda Doran",
+        "texto": "Silêncio demais nesta clareira... Veja ali adiante na grama, Halia: parecem dois sentinelas da patrulha caídos, mas o miasma escuro ao redor não é natural. Fique em guarda antes de avançar.",
+        "proximo": "menu_doran_orla"
+      },
+      "menu_doran_orla": {
+        "tipo": "escolha",
+        "cabecalho": "O que deseja falar com o Guarda Doran na Orla Norte?",
+        "pode_fechar": true,
+        "id_cancelamento": "fechar_doran_orla",
+        "resultado_fechar": "fala_avancar",
+        "opcoes": [
+          {
+            "id": "doran_orla_inimigos",
+            "texto": "O que exatamente você viu rondando a fronteira antes?",
+            "proximo": "fala_inimigos_1",
+            "repetivel": true
+          },
+          {
+            "id": "doran_orla_tatica",
+            "texto": "Como devemos abordar a clareira?",
+            "proximo": "fala_tatica",
+            "repetivel": true
+          },
+          {
+            "id": "doran_orla_retaguarda",
+            "texto": "Você não vai avançar comigo até eles?",
+            "proximo": "fala_retaguarda",
+            "repetivel": true
+          },
+          {
+            "id": "doran_orla_voltar_vila",
+            "texto": "Preciso voltar a Oakhaven para me preparar antes da luta.",
+            "proximo": "fala_voltar_vila",
+            "repetivel": true
+          },
+          {
+            "id": "doran_orla_avancar",
+            "texto": "Entendido. Vou me aproximar da clareira agora.",
+            "proximo": "fala_avancar",
+            "repetivel": true
+          }
+        ]
+      },
+      "fala_inimigos_1": {
+        "autor": "Guarda Doran",
+        "texto": "Dois dos nossos homens desapareceram na última ronda da madrugada. Quando saí para procurá-los ao amanhecer, as pegadas terminavam bruscamente aqui no meio da clareira, cercadas por esse nevoeiro pesado.",
+        "proximo": "fala_inimigos_2"
+      },
+      "fala_inimigos_2": {
+        "autor": "Halia",
+        "texto": "(Pensamento) O ar treme em volta daquelas silhuetas... Seja o que for que esteja na grama, não está morto — está esperando alguém chegar perto demais.",
+        "proximo": "menu_doran_orla"
+      },
+      "fala_tatica": {
+        "autor": "Guarda Doran",
+        "texto": "Espere uma emboscada no instante em que chegar perto. Se ambos avançarem juntos, proteja-se com guarda ou concentre sua mana antes de abrir a defesa — e não hesite em usar feitiços arcanos ou poções de Elara se o cerco apertar.",
+        "proximo": "menu_doran_orla"
+      },
+      "fala_retaguarda": {
+        "autor": "Guarda Doran",
+        "texto": "Eu cobrirei o estreito do portão sul. Se alguma criatura tentar escapar para dentro das ruas civis enquanto você enfrenta o grosso da ameaça, ela terá de passar pela minha lança primeiro.",
+        "proximo": "menu_doran_orla"
+      },
+      "fala_voltar_vila": {
+        "autor": "Guarda Doran",
+        "texto": "Decisão sensata, Halia. Recue comigo até o Portão Norte; visitando a botânica de Elara ou a forja de Torvald você entra nesta clareira muito melhor preparada.",
+        "evento": "retornar_vila_da_orla",
+        "proximo": null
+      },
+      "fala_avancar": {
+        "autor": "Guarda Doran",
+        "texto": "Estou cobrindo sua retaguarda, Halia. Assim que der o passo à frente na clareira, mantenha o cajado erguido!",
         "proximo": null
       }
     }

@@ -631,6 +631,9 @@ class NPC(Entidade):
                 else getattr(m, "npc_emissor", "")
             )
             if status_m in ("DISPONIVEL", "NAO_INICIADA"):
+                mid = m.get("id") if isinstance(m, dict) else getattr(m, "id", None)
+                if mid and hasattr(quest_manager, "prerequisitos_atendidos") and not quest_manager.prerequisitos_atendidos(mid):
+                    continue
                 emissor_norm = norm_fn(emissor_m)
                 if any(c and (c == emissor_norm or c in emissor_norm or emissor_norm in c) for c in chaves_npc):
                     return ("!", (255, 215, 70))
@@ -654,6 +657,10 @@ class NPC(Entidade):
                 elif "doran" in self.npc_id.lower():
                     return "hub_doran_vitoria"
             return self.dialogo_id or self.dialogos
+
+        cenario_atual = getattr(getattr(game_ref, "mapa_casa", None), "cenario_atual", None) if game_ref else None
+        if cenario_atual == "ORLA_NORTE" and ("doran" in self.npc_id.lower() or self.arquetipo == "guarda"):
+            return "hub_doran_orla_norte"
 
         if quest_manager:
             res = quest_manager.processar_interacao_npc(self.npc_id)

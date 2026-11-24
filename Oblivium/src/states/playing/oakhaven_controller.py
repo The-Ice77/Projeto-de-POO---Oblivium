@@ -22,6 +22,8 @@ class OakhavenController:
         "iniciar_combate_dragao_oakhaven",
         "iniciar_flashback_sylvan_ninho",
         "retornar_oakhaven_vitoria",
+        "retornar_vila_da_orla",
+        "recuar_oakhaven_destruida",
         "iniciar_timeskip_final_oakhaven",
         "iniciar_partida_demo_oakhaven",
     )
@@ -275,6 +277,10 @@ class OakhavenController:
         elif evt_pendente == "iniciar_partida_demo_oakhaven":
             if hasattr(self.playing_state, "cutscene_reconstrucao"):
                 self.playing_state.cutscene_reconstrucao.iniciar_partida()
+        elif evt_pendente == "retornar_vila_da_orla":
+            self.retornar_oakhaven_da_orla()
+        elif evt_pendente == "recuar_oakhaven_destruida":
+            self.recuar_oakhaven_destruida()
 
     def processar_eventos_pos_avanco_dialogo(
         self, abrir_loja_apos=False, loja_id_alvo=None, ir_patrulha_apos=False
@@ -301,6 +307,8 @@ class OakhavenController:
             "iniciar_combate_dragao_oakhaven",
             "iniciar_flashback_sylvan_ninho",
             "retornar_oakhaven_vitoria",
+            "retornar_vila_da_orla",
+            "recuar_oakhaven_destruida",
             "iniciar_timeskip_final_oakhaven",
             "iniciar_partida_demo_oakhaven",
         ):
@@ -368,12 +376,7 @@ class OakhavenController:
         if self.game.mapa_casa.cenario_atual == "ORLA_NORTE":
             # Se Halia caminhar de volta pelo portão sul da clareira, retorna a Oakhaven
             if self.game.halia.y > 660 and not getattr(self.game, "combate_climax_dragao", False):
-                self.game.inimigos_em_cena.clear()
-                self.game.mapa_casa.carregar_cenario("OAKHAVEN")
-                self.game.halia.x, self.game.halia.y = 1102, 245
-                self.game.halia.direcao = "baixo"
-                self.game.halia.mudar_estado("idle")
-                self.playing_state.atualizar_camera(instantaneo=True)
+                self.retornar_oakhaven_da_orla()
                 return
 
             # Se Halia se aproximar dos batedores na clareira da Orla Norte, inicia o combate de patrulha
@@ -502,6 +505,9 @@ class OakhavenController:
         if pt.get("evento") == "retornar_oakhaven_vitoria":
             self.retornar_oakhaven_apos_vitoria()
             return True
+        if pt.get("evento") == "recuar_oakhaven_destruida":
+            self.recuar_oakhaven_destruida()
+            return True
         if pt.get("evento") == "iniciar_climax_dragao_oakhaven":
             self.iniciar_climax_dragao_oakhaven()
             return True
@@ -557,18 +563,7 @@ class OakhavenController:
         if self.game.slot_atual:
             self.game.salvar_estado(self.game.slot_atual, tipo="autosave")
 
-        batedor1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
-        batedor2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
-        for bat in (batedor1, batedor2):
-            bat.velocidade = 0
-            bat.virado_direita = False
-            bat.direcao = "esquerda"
-            bat.recompensas = recompensas_encontro("patrulha")
-            bat.disfarcado = True
-            bat.revelado = False
-            bat.revelando = False
-            bat.mudar_estado("corpo")
-        self.game.inimigos_em_cena.extend([batedor1, batedor2])
+        self.game.inimigos_em_cena.extend(self._criar_batedores_orla_norte())
 
         self.game.caixa_dialogo.iniciar_dialogo(
             [
@@ -625,13 +620,7 @@ class OakhavenController:
         ninho.dragao_derrotado = False
         ninho.inicializar_cenario()
 
-        dragao = EnemyFactory.criar_boss(
-            "dragao_vermelho", x=525, y=145, nome_custom="Ignis'Vahr, o Dragão Vermelho"
-        )
-        dragao.velocidade = 0
-        dragao.virado_direita = False
-        dragao.direcao = "esquerda"
-        self.game.inimigos_em_cena.append(dragao)
+        self.game.inimigos_em_cena.append(self._criar_dragao_ninho())
 
         if hasattr(self.game, "audio") and self.game.audio:
             self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=800)
@@ -756,6 +745,99 @@ class OakhavenController:
             ]
         )
 
+    def _criar_batedores_orla_norte(self):
+        """Instancia os dois Batedores Mímicos disfarçados na clareira da Orla Norte."""
+        batedor1 = EnemyFactory.criar("mimico", x=565, y=285, nome_custom="Mímico Batedor 1")
+        batedor2 = EnemyFactory.criar("mimico", x=665, y=305, nome_custom="Mímico Batedor 2")
+        for bat in (batedor1, batedor2):
+            bat.velocidade = 0
+            bat.virado_direita = False
+            bat.direcao = "esquerda"
+            bat.recompensas = recompensas_encontro("patrulha")
+            bat.disfarcado = True
+            bat.revelado = False
+            bat.revelando = False
+            bat.mudar_estado("corpo")
+        return [batedor1, batedor2]
+
+    def _criar_dragao_ninho(self):
+        """Instancia Ignis'Vahr no altar do Ninho do Dragão em postura inicial de guarda."""
+        dragao = EnemyFactory.criar_boss(
+            "dragao_vermelho", x=525, y=145, nome_custom="Ignis'Vahr, o Dragão Vermelho"
+        )
+        dragao.velocidade = 0
+        dragao.virado_direita = False
+        dragao.direcao = "esquerda"
+        return dragao
+
+    def retornar_oakhaven_da_orla(self):
+        """Retorna Halia da Orla Norte para o Portão Norte de Oakhaven."""
+        self.game.inimigos_em_cena.clear()
+        self.game.mapa_casa.carregar_cenario("OAKHAVEN")
+        self.game.halia.x, self.game.halia.y = 1102, 245
+        self.game.halia.direcao = "baixo"
+        self.game.halia.mudar_estado("idle")
+        self.playing_state.atualizar_camera(instantaneo=True)
+
+    def recuar_oakhaven_destruida(self):
+        """Permite recuar do Ninho do Dragão para Oakhaven Destruída para se preparar."""
+        self.game.oakhaven_noite = True
+        self.game.oakhaven_destruida = True
+        self.game.combate_climax_dragao = False
+        self.game.inimigos_em_cena.clear()
+        self.game.mapa_casa.carregar_cenario("OAKHAVEN_DESTRUIDA")
+        self.game.halia.x, self.game.halia.y = 1102, 260
+        self.game.halia.direcao = "baixo"
+        self.game.halia.mudar_estado("idle")
+        self.playing_state.atualizar_camera(instantaneo=True)
+        if hasattr(self.game, "audio") and self.game.audio:
+            self.game.audio.tocar_musica("ataque_dragao", loop=-1, fade_ms=800)
+
+    def restaurar_apos_derrota_fase1(self):
+        """Restaura estado seguro de Halia, cenário e encontros após derrota na Fase 1."""
+        halia = self.game.halia
+        halia.restaurar_total()
+        halia.vulneravel = False
+        halia.focado = False
+        halia.mudar_estado("idle")
+
+        cenario = self.game.mapa_casa.cenario_atual
+        if cenario == "ORLA_NORTE":
+            halia.x, halia.y = 610, 520
+            halia.direcao = "cima"
+            self.game.inimigos_em_cena.clear()
+            qm = getattr(self.game, "missoes", None)
+            missao_ronda = qm.obter_missao("missao_ronda_fronteiras") if qm else None
+            if (
+                missao_ronda
+                and missao_ronda.get("status") == "ATIVA"
+                and not qm.pronta_para_entregar("missao_ronda_fronteiras")
+            ):
+                self.game.inimigos_em_cena.extend(self._criar_batedores_orla_norte())
+        elif cenario == "NINHO_DRAGAO":
+            self.game.oakhaven_noite = True
+            halia.x, halia.y = 610, 520
+            halia.direcao = "cima"
+            self.game.inimigos_em_cena.clear()
+            if not getattr(self.game, "dragao_derrotado", False):
+                ninho = getattr(self.game.mapa_casa, "cenario_objeto", None)
+                if ninho is not None:
+                    ninho.ninho_amanhecer = False
+                    ninho.dragao_derrotado = False
+                    if hasattr(ninho, "inicializar_cenario"):
+                        ninho.inicializar_cenario()
+                self.game.inimigos_em_cena.append(self._criar_dragao_ninho())
+                if hasattr(self.game, "audio") and self.game.audio:
+                    self.game.audio.tocar_musica("combate_dragao", loop=-1, fade_ms=800)
+        elif cenario == "OAKHAVEN_DESTRUIDA":
+            self.game.oakhaven_noite = True
+            self.game.oakhaven_destruida = True
+            self.game.inimigos_em_cena.clear()
+        elif cenario == "OAKHAVEN":
+            self.game.inimigos_em_cena.clear()
+
+        self.playing_state.atualizar_camera(instantaneo=True)
+
     def on_fuga_combate_patrulha(self):
         """Retorna Halia para o Portão Norte de Oakhaven ao fugir de combate em Oakhaven/Orla Norte."""
         self.game.inimigos_em_cena.clear()
@@ -768,10 +850,7 @@ class OakhavenController:
         if self.game.caixa_dialogo.ativo or self.game.flashback_sistema.ativo:
             return
         mapa_segredo = self._mapa_segredo()
-        indicio = self._indicio_proximo(mapa_segredo) if mapa_segredo else None
-        if indicio:
-            x, y = indicio["marca"]
-            desenhar_fn(tela, int(x), int(y - 24), tecla=tecla_interacao_str, acao="para Examinar")
+        if mapa_segredo and self._indicio_proximo(mapa_segredo):
             return
         selecionado = self._selecionar_interacao_normal(area_interacao)
         if selecionado is None:

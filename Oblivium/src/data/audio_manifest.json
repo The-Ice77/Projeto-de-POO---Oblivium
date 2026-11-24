@@ -317,6 +317,12 @@
         "autor": "yetiancai",
         "licenca": "Commercial & non-commercial game projects (credit optional)",
         "url": ""
+      },
+      {
+        "pacote": "Interface Digital de Texto / Text Digital Interface",
+        "autor": "Estúdio Coati",
+        "licenca": "Pixabay Content License (sfx/ui/ui_dialogo*.ogg)",
+        "url": "https://pixabay.com"
       }
     ],
     "sfx": {
@@ -327,7 +333,7 @@
         "itens",
         "mundo"
       ],
-      "arquivos_disponiveis": 105,
+      "arquivos_disponiveis": 107,
       "normalizacao": "44.1 kHz estereo OGG Vorbis, envelope RMS ativo calibrado, pico <= -0.3 dBFS, 0 amostras clipadas",
       "canonicos": [
         "memoria_despertar",

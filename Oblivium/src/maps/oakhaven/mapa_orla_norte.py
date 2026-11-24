@@ -190,7 +190,7 @@ class MapaOrlaNorte(CenarioBase):
 
         # Guarda Doran acompanhando Halia na entrada da clareira
         self.npcs = [
-            NPCFactory.criar("guarda_doran", x=485, y=465)
+            NPCFactory.criar("guarda_doran", x=485, y=465, dialogo_id="hub_doran_orla_norte")
         ]
         for npc in self.npcs:
             self.hitboxes.append(pygame.Rect(int(npc.x), int(npc.y), npc.largura, npc.altura))

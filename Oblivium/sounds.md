@@ -31,11 +31,11 @@ Todas as 12 faixas fornecidas em `assets/audio/Trilha Sonora Oblivium/` (`11` `.
 
 ---
 
-## 2. Efeitos Sonoros (`assets/audio/sfx/`) — Integrados (105 arquivos)
+## 2. Efeitos Sonoros (`assets/audio/sfx/`) — Integrados (107 arquivos)
 
 Os efeitos sonoros curados dos pacotes oficiais estão normalizados (44,1 kHz estéreo `.ogg` Vorbis, normalização por janela RMS de 20 ms e proteção anti-clipping com `0` amostras clipadas) e organizados por contexto em `Oblivium/assets/audio/sfx/`, com **seleção aleatória não repetitiva de variações** (`_02`, `_03`, `_04`) no [`AudioManager`](src/core/audio_manager.py):
 
-- **`sfx/ui/` (27 arquivos):** `ui_cursor` (`01..03`), `ui_hover`, `ui_slider`, `ui_confirmar` (`01..03`), `ui_aceitar`, `ui_voltar`, `ui_erro` (`01..03`), `ui_trancado`, `ui_dialogo`, `ui_notificacao`, `ui_clique_pedra`, `ui_clique_madeira`, `ui_clique_ferro`, `quest_nova`, `quest_concluida`, `level_up`, `livro_abrir`, `pagina_virar`, `pergaminho_abrir`, `toggle_on`, `toggle_off`.
+- **`sfx/ui/` (29 arquivos):** `ui_cursor` (`01..03`), `ui_hover`, `ui_slider`, `ui_confirmar` (`01..03`), `ui_aceitar`, `ui_voltar`, `ui_erro` (`01..03`), `ui_trancado`, `ui_dialogo` (`01..03`), `ui_notificacao`, `ui_clique_pedra`, `ui_clique_madeira`, `ui_clique_ferro`, `quest_nova`, `quest_concluida`, `level_up`, `livro_abrir`, `pagina_virar`, `pergaminho_abrir`, `toggle_on`, `toggle_off`.
 - **`sfx/combate/` (48 arquivos):** `ataque_acerto` (`01..03`), `ataque_critico`, `ataque_erro` (`01..02`), `ataque_espada` (`01..02`), `defesa_escudo` (`01..03`), `magia_cast`, `magia_fogo` (`01..03`), `magia_gelo` (`01..03`), `magia_raio` (`01..03`), `magia_cura` (`01..04`), `explosao` (`01..03`), `rugido_monstro` (`01..03`), `slime` (`01..03`), `flecha` (`01..03`), `dano_halia` (`01..03`), `dano_inimigo` (`01..03`), `esquiva` (`01..03`), `fuga`, `concentrar`.
 - **`sfx/itens/` (15 arquivos):** `item_coletar`, `item_pocao` (`01..04`), `garrafa_abrir`, `moeda` (`01..04`), `saco_moedas` (`01..03`), `equipar_armadura`, `desembainhar`.
 - **`sfx/mundo/` (15 arquivos):** `porta_abrir` (`01..03`), `porta_fechar`, `bau_abrir` (`01..04`), `forja_bigorna`, além de passos individuais recortados sem sobreposição e sincronizados com cadência/terreno em **`passo_grama_01..03.ogg`** e **`passo_pedra_01..03.ogg`**.
@@ -64,6 +64,7 @@ Loops contínuos normalizados (~ `-23 dBFS RMS`, `0` amostras clipadas) acionado
 - **Fantasy UI SFX Free by heyheythere** — https://heyheythere.itch.io/fantasy-ui-sfx-free — **CC BY 4.0** (atribuído também na tela de Créditos do jogo).
 - **FantasySFX Sampler** por **AHTu20** — https://ahtu20.itch.io — Uso comercial/pessoal permitido sem redistribuição isolada do pacote.
 - **Ambient Loops Free Lite 3** por **yetiancai** — Uso permitido em jogos comerciais/não comerciais sem redistribuição isolada do pacote.
+- **Interface Digital de Texto / Text Digital Interface** por **Estúdio Coati** — Licença Pixabay (`sfx/ui/ui_dialogo*.ogg`).
 
 **Recomendação de escuta final:** antes da apresentação, validar em dispositivo de áudio real o equilíbrio entre passos (`passo_grama`/`passo_pedra`), ambiências, ataques elementais e trilha musical.
 

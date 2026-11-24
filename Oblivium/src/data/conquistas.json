@@ -93,6 +93,17 @@
       "conta_platina": false
     },
     {
+      "id": "segredo_menu_cheats",
+      "titulo": "Selo dos Bastidores",
+      "descricao": "Colheu as pétalas sutis do menu inicial, ergueu a versão de Oblivium e ativou o botão oculto de cheats.",
+      "categoria": "SEGREDO",
+      "icone": "✧",
+      "cor": [235, 195, 110],
+      "secreta": true,
+      "oculta_ate_desbloquear": true,
+      "conta_platina": false
+    },
+    {
       "id": "mestre_platinador",
       "titulo": "Lenda de Oblivium",
       "descricao": "Alcançou a plenitude absoluta ao desbloquear todas as conquistas regulares de Oblivium.",

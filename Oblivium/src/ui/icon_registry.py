@@ -276,6 +276,17 @@ class IconRegistry:
             pts_c = [(cx, cy - 6), (cx + 5, cy), (cx, cy + 6), (cx - 5, cy)]
             pygame.draw.polygon(surf, cor_brilho, pts_c)
 
+        elif id_c == "segredo_menu_cheats":
+            # Emblema secreto: chave dourada e pétala luminosa
+            pygame.draw.circle(surf, (42, 34, 18) if desbloqueada else (28, 28, 34), (cx - 7, cy + 4), 6)
+            pygame.draw.circle(surf, cor_p, (cx - 7, cy + 4), 6, 2)
+            pygame.draw.line(surf, cor_p, (cx - 2, cy), (cx + 11, cy - 11), 2)
+            pygame.draw.line(surf, cor_brilho, (cx + 7, cy - 7), (cx + 11, cy - 3), 2)
+            pygame.draw.line(surf, cor_brilho, (cx + 4, cy - 4), (cx + 7, cy - 1), 2)
+            pts_petala = [(cx - 10, cy - 11), (cx - 5, cy - 7), (cx - 9, cy - 3), (cx - 13, cy - 7)]
+            pygame.draw.polygon(surf, cor_sec, pts_petala)
+            pygame.draw.circle(surf, cor_brilho, (cx + 12, cy + 8), 2)
+
         elif id_c == "mestre_platinador" or cat_c == "PLATINA":
             pts_coroa = [
                 (cx - 13, cy + 10), (cx - 15, cy - 4), (cx - 7, cy + 2),

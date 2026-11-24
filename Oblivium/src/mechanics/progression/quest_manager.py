@@ -74,6 +74,26 @@ class QuestManager:
         """Retorna o dicionário de dados da missão pelo ID, ou None."""
         return self.missoes.get(id_missao)
 
+    def prerequisitos_atendidos(self, id_missao):
+        """Retorna True se todos os pré-requisitos de conclusão da missão estiverem satisfeitos."""
+        missao = self.missoes.get(id_missao)
+        if not missao:
+            return False
+        for req_id in missao.get("prerequisitos_missao", []):
+            req_m = self.missoes.get(req_id)
+            if not req_m or req_m.get("status") != "CONCLUIDA":
+                return False
+        return True
+
+    def missao_disponivel(self, id_missao):
+        """Retorna True somente se a missão está DISPONIVEL e com pré-requisitos cumpridos."""
+        missao = self.missoes.get(id_missao)
+        return bool(
+            missao
+            and missao.get("status") == "DISPONIVEL"
+            and self.prerequisitos_atendidos(id_missao)
+        )
+
     def ativar_missao(self, id_missao, substituir_categoria=False):
         """Alias para aceitar_missao."""
         return self.aceitar_missao(id_missao, substituir_categoria=substituir_categoria)
@@ -173,10 +193,10 @@ class QuestManager:
             return all(o.get("concluido", False) for o in objetivos[:-1])
         return True
 
-    def aceitar_missao(self, id_missao, substituir_categoria=False):
+    def aceitar_missao(self, id_missao, substituir_categoria=False, ignorar_prerequisitos=False):
         """
-        Transiciona uma missão do estado DISPONIVEL para ATIVA, respeitando o limite
-        de no máximo 1 missão PRINCIPAL e 1 missão SECUNDARIA ativas por vez.
+        Transiciona uma missão do estado DISPONIVEL para ATIVA, respeitando pré-requisitos
+        e o limite de no máximo 1 missão PRINCIPAL e 1 missão SECUNDARIA ativas por vez.
         """
         if id_missao not in self.missoes:
             return False
@@ -186,6 +206,8 @@ class QuestManager:
             return False  # Já está ativa
         if missao["status"] == "CONCLUIDA":
             return False  # Já foi concluída
+        if not ignorar_prerequisitos and not self.prerequisitos_atendidos(id_missao):
+            return False
 
         categoria = missao.get("categoria", "SECUNDARIA").upper()
         ativa_mesma_cat = self.obter_missao_ativa_por_categoria(categoria)
@@ -322,6 +344,48 @@ class QuestManager:
             "dialogo_id": missao.get("dialogo_andamento"),
             "missao": missao
         }
+
+    def concluir_missao_adiantada(self, id_missao):
+        """
+        Conclui diretamente uma missão DISPONIVEL cujos requisitos de campo já tenham
+        sido satisfeitos por missões anteriores, com rollback integral caso falhe.
+        """
+        if id_missao not in self.missoes:
+            return False
+        missao = self.missoes[id_missao]
+        if missao.get("status") == "CONCLUIDA":
+            return False
+        if missao.get("status") == "ATIVA":
+            return bool(self.concluir_missao(id_missao))
+        if not self.prerequisitos_atendidos(id_missao):
+            return False
+
+        snapshot_status = missao.get("status")
+        snapshot_objetivos = copy.deepcopy(missao.get("objetivos", []))
+        snapshot_rastreada = self.missao_rastreada_id
+
+        missao["status"] = "ATIVA"
+        objetivos_por_id = {
+            o.get("id"): o
+            for o in missao.get("objetivos", [])
+            if isinstance(o, dict) and o.get("id")
+        }
+        for m_outra in self.missoes.values():
+            if m_outra.get("id") != id_missao and m_outra.get("status") == "CONCLUIDA":
+                for prog in m_outra.get("progresso_ao_concluir", []):
+                    obj = objetivos_por_id.get(prog.get("objetivo_id"))
+                    if obj is not None:
+                        alvo = int(obj.get("alvo", 1))
+                        inc_prog = int(prog.get("incremento", 1))
+                        obj["atual"] = min(alvo, int(obj.get("atual", 0)) + inc_prog)
+                        obj["concluido"] = (obj["atual"] >= alvo)
+
+        if not self.pronta_para_entregar(id_missao) or not self.concluir_missao(id_missao):
+            missao["status"] = snapshot_status
+            missao["objetivos"] = snapshot_objetivos
+            self.missao_rastreada_id = snapshot_rastreada
+            return False
+        return True
 
     def concluir_missao(self, id_missao, forcar=False):
         """Marca a missão como concluída, consome requisitos de entrega, entrega recompensas e desbloqueia 'cumpridor_promessas'."""

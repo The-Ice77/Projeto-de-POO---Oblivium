@@ -31,15 +31,66 @@ class MenuState(State):
                         self.executar_opcao()
                     
             elif evento.type == pygame.MOUSEMOTION:
-                sel_ant = self.game.menu.selecionada
-                self.game.menu.atualizar_mouse(evento.pos)
-                if self.game.menu.selecionada != -1 and self.game.menu.selecionada != sel_ant:
-                    self._tocar_sfx("ui_cursor")
-                
+                segredo = getattr(self.game.menu, "segredo_cheats", None)
+                res_mov = segredo.processar_mouse_motion(evento.pos) if segredo else None
+                if res_mov and res_mov.get("arrastando"):
+                    self.game.menu.selecionada = -1
+                else:
+                    sel_ant = self.game.menu.selecionada
+                    self.game.menu.atualizar_mouse(evento.pos)
+                    if self.game.menu.selecionada != -1 and self.game.menu.selecionada != sel_ant:
+                        self._tocar_sfx("ui_cursor")
+                    elif res_mov and res_mov.get("hover_botao_entrou"):
+                        self._tocar_sfx("ui_cursor")
+
             elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 opcao = self.game.menu.clicar_mouse(evento.pos)
-                if opcao: 
+                if opcao:
                     self.executar_opcao(opcao)
+                else:
+                    segredo = getattr(self.game.menu, "segredo_cheats", None)
+                    if segredo:
+                        self._tratar_evento_segredo_menu(segredo.processar_mouse_down(evento.pos))
+
+            elif evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
+                segredo = getattr(self.game.menu, "segredo_cheats", None)
+                if segredo:
+                    self._tratar_evento_segredo_menu(segredo.processar_mouse_up(evento.pos))
+
+    def _tratar_evento_segredo_menu(self, resultado):
+        if not resultado:
+            return
+        evento = resultado.get("evento")
+        audio = getattr(self.game, "audio", None)
+        if evento == "folha_coletada":
+            if audio:
+                audio.tocar_sfx("ui_aceitar", volume_extra=0.55)
+        elif evento == "versao_liberada":
+            if audio:
+                audio.tocar_sfx("memoria_despertar", volume_extra=0.50)
+        elif evento == "botao_revelado":
+            if audio:
+                audio.tocar_sfx("ui_clique_pedra", volume_extra=0.75)
+        elif evento == "ativar_cheats":
+            if hasattr(self.game, "habilitar_comandos_dev") and self.game.habilitar_comandos_dev():
+                if audio:
+                    audio.tocar_sfx("memoria_despertar", volume_extra=0.65)
+                conquistas = getattr(self.game, "conquistas", None)
+                if conquistas:
+                    conquistas.desbloquear("segredo_menu_cheats")
+                notif = getattr(self.game, "notificacoes", None)
+                if notif:
+                    notif.notificar(
+                        "notificacao_alerta",
+                        titulo="Cheats Liberados",
+                        mensagem="Console DEV ativado! Pressione ['] ou [`] a qualquer momento.",
+                        tipo="INFO",
+                    )
+        elif evento == "abrir_cheats":
+            if hasattr(self.game, "habilitar_comandos_dev") and self.game.habilitar_comandos_dev():
+                if getattr(self.game, "dev_commands", None):
+                    self.game.dev_commands.ativo = True
+                    self._tocar_sfx("ui_confirmar")
 
     def executar_opcao(self, opcao_clicada=None):
         if opcao_clicada is not None:
